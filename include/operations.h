@@ -612,6 +612,23 @@ extern "C"
     //-----------------------------------------------------------------------------
     OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(tDevice* device, ptrWriteAfterErase writeReq);
 
+    typedef enum _eOSFeatureSupported
+    {
+        OS_FEATURE_UNKNOWN,
+        OS_FEATURE_SUPPORTED,           //supported and no known blocks 
+        OS_FEATURE_OS_BLOCKS,           //OPERATING system blocks the command 
+        OS_FEATURE_ADAPTER_BLOCKS,      //HBA or USB adapter is blocking this capability etc
+        OS_FEATURE_INTERFACE_BLOCKS,    //blocking because of Interface
+    } eOSFeatureSupported;
+
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Block_Sanitize_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_NVMe_Format_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_SMART_Check_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_DST_Operation_Supported(tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(tDevice* device);
 #if defined (__cplusplus)
 }
 #endif

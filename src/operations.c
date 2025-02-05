@@ -2891,3 +2891,342 @@ eReturnValues set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecif
     }
     return ret;
 }
+
+eOSFeatureSupported is_Block_Sanitize_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.drive_type == NVME_DRIVE) //If NVMe drive
+    {
+        if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+        {
+            if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                || device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_ASMEDIA) //JMICRON or ASMEDIA, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+            else if (device->drive_info.passThroughHacks.ataPTHacks.ata28BitOnly) //Only supported when can send 48bit SAT commands
+            {
+                featureSupported = OS_FEATURE_ADAPTER_BLOCKS;
+            }
+        }
+        else //Non USB_INTERFACE
+        {
+#if defined (_WIN32)
+            if (is_Windows_PE()) //If Windows PE, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+            else
+            {
+                if (device->os_info.fileSystemInfo.fileSystemInfoValid && device->os_info.fileSystemInfo.isSystemDisk) //If boot drive than not supported
+                    featureSupported = OS_FEATURE_OS_BLOCKS;
+                else if (!is_Windows_10_Version_1903_Or_Higher()) //If not 1903 and higher, if not, than not supported
+                {
+                    featureSupported = OS_FEATURE_OS_BLOCKS;
+                }
+                else
+                {
+                    featureSupported = OS_FEATURE_SUPPORTED;
+                }
+            }
+#else
+            if (device->os_info.fileSystemInfo.fileSystemInfoValid && device->os_info.fileSystemInfo.isSystemDisk) //If boot drive than not supported
+                featureSupported = OS_FEATURE_OS_BLOCKS;
+            else
+                featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+        }
+    }
+    else //If SATA/SAS drive
+    {
+#if defined (_WIN32)
+        if (is_Windows_PE()) //If Windows_PE, than supported
+        {
+            featureSupported = OS_FEATURE_SUPPORTED;
+        }
+        else if (is_Windows_8_Or_Higher()) //If Windows_8_or_higher
+        {
+            if ((device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE)
+                || (device->drive_info.drive_type == SCSI_DRIVE && device->drive_info.interface_type == SCSI_INTERFACE))
+            {
+                featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
+            }
+        }
+#else
+        featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+    }
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.drive_type == NVME_DRIVE) //If NVMe drive
+    {
+        if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+        {
+            if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                || device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_ASMEDIA) //JMICRON or ASMEDIA, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+            else if (device->drive_info.passThroughHacks.ataPTHacks.ata28BitOnly) //Only supported when can send 48bit SAT commands
+            {
+                featureSupported = OS_FEATURE_ADAPTER_BLOCKS;
+            }
+        }
+        else //Non USB_INTERFACE
+        {
+#if defined (_WIN32)
+            if (is_Windows_PE()) //If Windows PE, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+            else
+            {
+                if (device->os_info.fileSystemInfo.fileSystemInfoValid && device->os_info.fileSystemInfo.isSystemDisk) //If boot drive than not supported
+                    featureSupported = OS_FEATURE_OS_BLOCKS;
+                else if (!is_Windows_10_Version_1903_Or_Higher()) //If not 1903 and higher, if not, than not supported
+                {
+                    featureSupported = OS_FEATURE_OS_BLOCKS;
+                }
+                else
+                {
+                    featureSupported = OS_FEATURE_SUPPORTED;
+                }
+            }
+#else
+            if (device->os_info.fileSystemInfo.fileSystemInfoValid && device->os_info.fileSystemInfo.isSystemDisk) //If boot drive than not supported
+                featureSupported = OS_FEATURE_OS_BLOCKS;
+            else
+                featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+        }
+    }
+    else //If SATA/SAS drive
+    {
+#if defined (_WIN32)
+        if (is_Windows_PE()) //If Windows_PE, than supported
+        {
+            featureSupported = OS_FEATURE_SUPPORTED;
+        }
+        else if (is_Windows_8_Or_Higher()) //If Windows_8_or_higher
+        {
+            if ((device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE)
+                || (device->drive_info.drive_type == SCSI_DRIVE && device->drive_info.interface_type == SCSI_INTERFACE))
+            {
+                featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
+            }
+        }
+#else
+        featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+    }
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.drive_type == NVME_DRIVE) //If NVMe drive
+    {
+        if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+        {
+            if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                || device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_ASMEDIA) //JMICRON or ASMEDIA, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+            else if (device->drive_info.passThroughHacks.ataPTHacks.ata28BitOnly) //Only supported when can send 48bit SAT commands
+            {
+                featureSupported = OS_FEATURE_ADAPTER_BLOCKS;
+            }
+        }
+        else //Non USB_INTERFACE
+        {
+#if defined (_WIN32)
+            if (is_Windows_PE()) //If Windows PE, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+#else
+            if (device->os_info.fileSystemInfo.fileSystemInfoValid && device->os_info.fileSystemInfo.isSystemDisk) //If boot drive than not supported
+                featureSupported = OS_FEATURE_OS_BLOCKS;
+            else
+                featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+        }
+    }
+    else //If SATA/SAS drive
+    {
+#if defined (_WIN32)
+        if (is_Windows_PE()) //If Windows_PE, than supported
+        {
+            featureSupported = OS_FEATURE_SUPPORTED;
+        }
+        else if (is_Windows_8_Or_Higher()) //If Windows_8_or_higher
+        {
+            if ((device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE)
+                || (device->drive_info.drive_type == SCSI_DRIVE && device->drive_info.interface_type == SCSI_INTERFACE))
+            {
+                featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
+            }
+        }
+#else
+        featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+    }
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_NVMe_Format_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.drive_type == NVME_DRIVE) //If NVMe drive
+    {
+        if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+        {
+            if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                || device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_ASMEDIA) //JMICRON or ASMEDIA, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+        }
+        else //Non USB_INTERFACE
+        {
+#if defined (_WIN32)
+            if (is_Windows_PE()) //If Windows PE, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+            }
+#else
+            featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+        }
+    }
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+    {
+        //Some devices may support the most basic version of this command, 
+        //but it is better to just disable it since it likely won't do what we want
+        featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
+    }
+    else if (device->drive_info.interface_type == SCSI_INTERFACE && device->drive_info.drive_type == ATA_DRIVE) //If SATA drive on a SCSI_INTERFACE
+    {
+        //It MAY be supported, but it will most likely just return without running anything.
+        //It is recommended to disable it in this case because it doesn't really do anything useful.
+        featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
+    }
+    else
+    {
+        featureSupported = OS_FEATURE_SUPPORTED;
+    }
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_SMART_Check_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_SUPPORTED;
+
+#if defined (_WIN32)
+    if (device->os_info.ioType == WIN_IOCTL_BASIC)
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    else if (device->drive_info.drive_type == NVME_DRIVE
+        && device->drive_info.interface_type == SCSI_INTERFACE
+        && strcmp(device->drive_info.T10_vendor_ident, "NVMe") == 0) //SCSI Vendor ID is set to NVMe, the Interface is SCSI_INTERFACE, drive is NVMe, then not supported
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+#endif
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_DST_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+    if (device->drive_info.drive_type == NVME_DRIVE) //If NVMe drive
+    {
+        if (device->drive_info.interface_type == USB_INTERFACE) //If USB_INTERFACE
+        {
+            if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                || device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_ASMEDIA) //JMICRON or ASMEDIA, than supported
+            {
+                featureSupported = OS_FEATURE_SUPPORTED;
+#if !defined (_WIN32)
+                if ((device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON
+                    && device->drive_info.adapter_info.vendorID == 0x0BC2)) //For linux, if JMICRON and 0BC2h vendor, then not supported
+                {
+                    featureSupported = OS_FEATURE_ADAPTER_BLOCKS;
+                }
+#endif
+            }
+        }
+        else if (device->drive_info.interface_type == SCSI_INTERFACE
+            && (strcmp(device->drive_info.T10_vendor_ident, "NVMe") == 0)) //SCSI Vendor ID is set to NVMe, the Interface is SCSI_INTERFACE, drive is NVMe, then not supported
+        {
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        }
+        else
+        {
+            featureSupported = OS_FEATURE_SUPPORTED;
+        }
+    }
+    else //If SATA/SAS drive
+    {
+#if defined (_WIN32)
+        if (device->os_info.ioType == WIN_IOCTL_BASIC)
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else
+            featureSupported = OS_FEATURE_SUPPORTED;
+#else
+        featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+    }
+
+#if defined (_WIN32)
+    if (!is_Windows_PE() && !is_Windows_10_Version_1903_Or_Higher())
+    {
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    }
+#endif
+
+    return featureSupported;
+}
+
+eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(tDevice* device)
+{
+    eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
+
+#if defined (_WIN32)
+    if (device->os_info.ioType == WIN_IOCTL_BASIC
+        || device->os_info.ioType == WIN_IOCTL_SMART_ONLY
+        || device->os_info.ioType == WIN_IOCTL_SMART_AND_IDE) //Not supported for WIN_IOCTL_BASIC or WIN_IOCTL_SMART_ONLY or WIN_IOCTL_SMART_AND_IDE
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    else if (!is_Windows_PE()
+        && !is_Windows_8_Or_Higher()
+        && (device->drive_info.interface_type == USB_INTERFACE || device->drive_info.interface_type == SCSI_INTERFACE)) //Non PE windows which are older than 8 will not support for USB or SCSI interface
+        featureSupported = OS_FEATURE_OS_BLOCKS;
+    else
+        featureSupported = OS_FEATURE_SUPPORTED;
+#else
+    featureSupported = OS_FEATURE_SUPPORTED;
+#endif
+
+    return featureSupported;
+}
