@@ -94,19 +94,22 @@ extern "C"
 
     // Takes all the inputs to start a test pattern
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues start_SAS_Test_Pattern(tDevice*                device,
-                                                                              uint8_t                 phyIdentifier,
-                                                                              eSASPhyTestPattern      pattern,
-                                                                              bool                    sataTestFunction,
-                                                                              eSASPhyTestFunctionSSC  testFunctionSSC,
-                                                                              eSASPhyPhysicalLinkRate linkRate,
-                                                                              eSASPhyDwordControl     dwordControl,
-                                                                              uint64_t phyTestPatternDwords);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues start_SAS_Test_Pattern(tDevice*                device,
+                                                                uint8_t                 phyIdentifier,
+                                                                eSASPhyTestPattern      pattern,
+                                                                bool                    sataTestFunction,
+                                                                eSASPhyTestFunctionSSC  testFunctionSSC,
+                                                                eSASPhyPhysicalLinkRate linkRate,
+                                                                eSASPhyDwordControl     dwordControl,
+                                                                uint64_t                phyTestPatternDwords);
 
     // will stop a test pattern on a specified phy
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        stop_SAS_Test_Pattern(tDevice* device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues stop_SAS_Test_Pattern(tDevice*                device,
+                                                               uint8_t                 phyIdentifier,
+                                                               eSASPhyPhysicalLinkRate linkRate);
 
 #if defined(__cplusplus)
 }

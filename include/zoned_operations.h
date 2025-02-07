@@ -27,11 +27,12 @@ extern "C"
 #endif
 
     M_NONNULL_PARAM_LIST(1, 4)
-    M_PARAM_RO(1) M_PARAM_WO(4) OPENSEA_OPERATIONS_API eReturnValues
-        get_Number_Of_Zones(tDevice*              device,
-                            eZoneReportingOptions reportingOptions,
-                            uint64_t              startingLBA,
-                            uint32_t*             numberOfMatchingZones);
+    M_PARAM_RO(1)
+    M_PARAM_WO(4)
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Zones(tDevice*              device,
+                                                             eZoneReportingOptions reportingOptions,
+                                                             uint64_t              startingLBA,
+                                                             uint32_t*             numberOfMatchingZones);
 
     typedef enum eZoneTypeEnum
     {
@@ -75,19 +76,21 @@ extern "C"
     }
 
     M_NONNULL_PARAM_LIST(1, 5)
-    M_PARAM_RO(1) M_PARAM_WO(5) OPENSEA_OPERATIONS_API eReturnValues
-        get_Zone_Descriptors(tDevice*              device,
-                             eZoneReportingOptions reportingOptions,
-                             uint64_t              startingLBA,
-                             uint32_t              numberOfZoneDescriptors,
-                             ptrZoneDescriptor     zoneDescriptors);
+    M_PARAM_RO(1)
+    M_PARAM_WO(5)
+    OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(tDevice*              device,
+                                                              eZoneReportingOptions reportingOptions,
+                                                              uint64_t              startingLBA,
+                                                              uint32_t              numberOfZoneDescriptors,
+                                                              ptrZoneDescriptor     zoneDescriptors);
 
     // eZoneReportingOptions reportingOptions is used to print the header saying which zones we are showing (all, some,
     // etc)
     M_NONNULL_PARAM_LIST(3)
-    M_PARAM_RO(3) OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
-                                                                     uint32_t              numberOfZoneDescriptors,
-                                                                     ptrZoneDescriptor     zoneDescriptors);
+    M_PARAM_RO(3)
+    OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
+                                                       uint32_t              numberOfZoneDescriptors,
+                                                       ptrZoneDescriptor     zoneDescriptors);
 
 #if defined(__cplusplus)
 }

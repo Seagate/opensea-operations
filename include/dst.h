@@ -54,8 +54,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        run_DST(tDevice* device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues
+    run_DST(tDevice* device, eDSTType DSTType, bool pollForProgress, bool captiveForeground, bool ignoreMaxTime);
 
     //-----------------------------------------------------------------------------
     //
@@ -76,8 +77,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        send_DST(tDevice* device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues send_DST(tDevice* device,
+                                                  eDSTType DSTType,
+                                                  bool     captiveForeground,
+                                                  uint32_t commandTimeout);
 
     //-----------------------------------------------------------------------------
     //
@@ -110,7 +114,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
         get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
 
     //-----------------------------------------------------------------------------
@@ -130,8 +136,9 @@ extern "C"
 
 #define MAX_DST_STATUS_STRING_LENGTH 160
     M_NONNULL_PARAM_LIST(2)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API
-        void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool justRanDST, bool isNVMeDrive);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API
+    void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool justRanDST, bool isNVMeDrive);
 
     //-----------------------------------------------------------------------------
     //
@@ -150,7 +157,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
         get_Long_DST_Time(tDevice* device, uint8_t* hours, uint8_t* minutes);
 
     //-----------------------------------------------------------------------------
@@ -184,7 +193,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
         ata_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
 
     //-----------------------------------------------------------------------------
@@ -203,11 +214,15 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
         scsi_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
 
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
         nvme_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
 
     //-----------------------------------------------------------------------------
@@ -278,13 +293,14 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) M_PARAM_WO(5) M_PARAM_WO(6) OPENSEA_OPERATIONS_API eReturnValues
-        run_DST_And_Clean(tDevice*                device,
-                          uint16_t                errorLimit,
-                          custom_Update           updateFunction,
-                          void*                   updateData,
-                          ptrDSTAndCleanErrorList externalErrorList,
-                          bool*                   repaired);
+    M_PARAM_RO(1)
+    M_PARAM_WO(5)
+    M_PARAM_WO(6) OPENSEA_OPERATIONS_API eReturnValues run_DST_And_Clean(tDevice*                device,
+                                                                         uint16_t                errorLimit,
+                                                                         custom_Update           updateFunction,
+                                                                         void*                   updateData,
+                                                                         ptrDSTAndCleanErrorList externalErrorList,
+                                                                         bool*                   repaired);
 
     typedef struct s_dstDescriptor
     {
@@ -351,8 +367,8 @@ extern "C"
     } dstLogEntries, *ptrDstLogEntries;
 
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries);

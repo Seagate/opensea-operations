@@ -423,7 +423,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
         get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo);
 
     //-----------------------------------------------------------------------------
@@ -441,12 +443,15 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
         get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo);
 
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -465,13 +470,17 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_WO(1) M_PARAM_RO(2) M_PARAM_RO(3) OPENSEA_OPERATIONS_API
+    M_PARAM_WO(1)
+    M_PARAM_RO(2)
+    M_PARAM_RO(3) OPENSEA_OPERATIONS_API
         void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
                                                  ptrDriveInformationSAS_SATA scsiDriveInfo,
                                                  ptrDriveInformationSAS_SATA ataDriveInfo);
 
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_WO(1) M_PARAM_RO(2) M_PARAM_RO(3) OPENSEA_OPERATIONS_API
+    M_PARAM_WO(1)
+    M_PARAM_RO(2)
+    M_PARAM_RO(3) OPENSEA_OPERATIONS_API
         void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
                                                       ptrDriveInformationSAS_SATA scsiDriveInfo,
                                                       ptrDriveInformationNVMe     nvmeDriveInfo);
@@ -526,7 +535,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API
         void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo, ptrDriveInformation driveInfo);
 
     //-----------------------------------------------------------------------------
@@ -547,8 +558,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        print_Drive_Information(tDevice* device, bool showChildInformation);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation);
 
     M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) const char* print_drive_type(tDevice* device);
 

@@ -40,8 +40,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        seagate_ata_SCT_SATA_phy_speed(tDevice* device, uint8_t speedGen);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice* device, uint8_t speedGen);
 
     //-----------------------------------------------------------------------------
     //
@@ -61,8 +61,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Phy_Speed(tDevice* device,
+                                                            uint8_t  phySpeedGen,
+                                                            bool     allPhys,
+                                                            uint8_t  phyNumber);
 
 #define SET_PHY_SPEED_MAX_GENERATION 5
 // SATA only has 3 generations, so it's a lower number than the overall limit above which covers SAS as well.
@@ -86,8 +89,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyIdentifier);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_phy_speed(tDevice* device,
+                                                       uint8_t  phySpeedGen,
+                                                       bool     allPhys,
+                                                       uint8_t  phyIdentifier);
 
     //-----------------------------------------------------------------------------
     //
@@ -145,8 +151,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        seagate_SCT_Low_Current_Spinup(tDevice* device, eSeagateLCSpinLevel spinupLevel);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues seagate_SCT_Low_Current_Spinup(tDevice*            device,
+                                                                        eSeagateLCSpinLevel spinupLevel);
 
     //-----------------------------------------------------------------------------
     //
@@ -167,8 +174,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        set_Low_Current_Spin_Up(tDevice* device, bool useSCTCommand, eSeagateLCSpinLevel state);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_Low_Current_Spin_Up(tDevice*            device,
+                                                                 bool                useSCTCommand,
+                                                                 eSeagateLCSpinLevel state);
 
     //-----------------------------------------------------------------------------
     //
@@ -206,8 +215,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode);
 
     typedef struct s_seagateJITModes
     {
@@ -220,18 +229,19 @@ extern "C"
     } seagateJITModes, *ptrSeagateJITModes;
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues seagate_Set_JIT_Modes(tDevice* device,
-                                                                             bool     disableVjit,
-                                                                             uint8_t  jitMode,
-                                                                             bool     revertToDefaults,
-                                                                             bool     nonvolatile);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues
+    seagate_Set_JIT_Modes(tDevice* device, bool disableVjit, uint8_t jitMode, bool revertToDefaults, bool nonvolatile);
 
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        seagate_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues seagate_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes);
 
     M_NONNULL_PARAM_LIST(1, 2, 3)
-    M_PARAM_RO(1) M_PARAM_WO(2) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues seagate_Get_Power_Balance(
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues seagate_Get_Power_Balance(
         tDevice* device,
         bool*    supported,
         bool*    enabled); // SATA only. SAS should use the set power consumption options in power_control.h
@@ -245,7 +255,8 @@ extern "C"
     } ePowerBalanceMode;
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues seagate_Set_Power_Balance(
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues seagate_Set_Power_Balance(
         tDevice*          device,
         ePowerBalanceMode powerMode); // SATA only. SAS should use the set power consumption options in power_control.h
 
@@ -277,8 +288,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSupport);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSupport);
 
     //-----------------------------------------------------------------------------
     //
@@ -297,7 +309,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 3)
-    M_PARAM_RO(1) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues
         get_Approximate_IDD_Time(tDevice* device, eIDDTests iddTest, uint64_t* timeInSeconds);
 
     //-----------------------------------------------------------------------------
@@ -318,8 +332,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, bool captive);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues run_IDD(tDevice*  device,
+                                                 eIDDTests IDDtest,
+                                                 bool      pollForProgress,
+                                                 bool      captive);
 
     //-----------------------------------------------------------------------------
     //
@@ -401,8 +418,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry pwrTelData);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry pwrTelData);
 
     //-----------------------------------------------------------------------------
     //
@@ -436,10 +454,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        request_Power_Measurement(tDevice*                          device,
-                                  uint16_t                          timeMeasurementSeconds,
-                                  ePowerTelemetryMeasurementOptions measurementOption);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues request_Power_Measurement(tDevice* device,
+                                                                   uint16_t timeMeasurementSeconds,
+                                                                   ePowerTelemetryMeasurementOptions measurementOption);
 
     //-----------------------------------------------------------------------------
     //
@@ -458,7 +476,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) M_NULL_TERM_STRING(2) M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_NULL_TERM_STRING(2)
+    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues
         pull_Power_Telemetry_Log(tDevice* device, const char* filePath, uint32_t transferSizeBytes);
 
 //-----------------------------------------------------------------------------
@@ -479,8 +499,8 @@ extern "C"
 //-----------------------------------------------------------------------------
 #define MAX_IDD_STATUS_STRING_LENGTH 160
     M_NONNULL_PARAM_LIST(2)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API
-        void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool justRanDST);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool justRanDST);
 
     //-----------------------------------------------------------------------------
     //
@@ -604,11 +624,15 @@ extern "C"
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Seagate_DeviceStatistics_Supported(tDevice* device);
 
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
         get_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats);
 
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API
         void print_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats);
 
 #define FIRMWARE_RELEASE_NUM_LEN       8
@@ -638,7 +662,9 @@ extern "C"
 
     // This is defined in the Seagate SCSI commands reference manual available on the web
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
         get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers);
 
 #if defined(__cplusplus)

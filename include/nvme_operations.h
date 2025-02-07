@@ -36,8 +36,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrint);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrint);
 
     //-----------------------------------------------------------------------------
     //
@@ -118,10 +118,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        nvme_Print_All_Feature_Identifiers(tDevice*                 device,
-                                           eNvmeFeaturesSelectValue selectType,
-                                           bool                     listOnlySupportedFeatures);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(tDevice*                 device,
+                                                                            eNvmeFeaturesSelectValue selectType,
+                                                                            bool listOnlySupportedFeatures);
 
     //-----------------------------------------------------------------------------
     //
@@ -139,8 +139,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        nvme_Print_Feature_Details(tDevice* device, uint8_t featureID, eNvmeFeaturesSelectValue selectType);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Feature_Details(tDevice*                 device,
+                                                                    uint8_t                  featureID,
+                                                                    eNvmeFeaturesSelectValue selectType);
 
     // \fn print_Nvme_Ctrl_Regs(tDevice * device)
     // \brief Prints the controller registers.
@@ -165,8 +167,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 3)
-    M_PARAM_RO(1) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* logSize);
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* logSize);
 
 #if defined(__cplusplus)
 }

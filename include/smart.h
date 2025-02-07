@@ -58,12 +58,13 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_SMART_Attributes(tDevice* device, smartLogData* smartAttrs);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(tDevice* device, smartLogData* smartAttrs);
 
     M_NONNULL_PARAM_LIST(1, 3)
-    M_PARAM_RO(1) M_PARAM_WO(3) OPENSEA_OPERATIONS_API
-        void get_Attribute_Name(tDevice* device, uint8_t attributeNumber, char** attributeName);
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API void get_Attribute_Name(tDevice* device, uint8_t attributeNumber, char** attributeName);
 
     typedef enum eSMARTAttrOutModeEnum
     {
@@ -87,8 +88,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMode);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMode);
 
     //-----------------------------------------------------------------------------
     //
@@ -167,8 +168,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        run_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues run_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -205,8 +206,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        ata_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -225,8 +226,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        scsi_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -245,8 +246,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        nvme_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -266,12 +267,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(tDevice* device);
 
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_Pending_List_Count(tDevice* device, uint32_t* pendingCount);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Pending_List_Count(tDevice* device, uint32_t* pendingCount);
 
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_Grown_List_Count(tDevice* device, uint32_t* grownCount);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Grown_List_Count(tDevice* device, uint32_t* grownCount);
 
     //-----------------------------------------------------------------------------
     //
@@ -294,12 +295,13 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sct_Set_Feature_Control(tDevice*    device,
-                                                                               eSCTFeature sctFeature,
-                                                                               bool        enableDisable,
-                                                                               bool        defaultValue,
-                                                                               bool        isVolatile,
-                                                                               uint16_t hdaTemperatureIntervalOrState);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Feature_Control(tDevice*    device,
+                                                                 eSCTFeature sctFeature,
+                                                                 bool        enableDisable,
+                                                                 bool        defaultValue,
+                                                                 bool        isVolatile,
+                                                                 uint16_t    hdaTemperatureIntervalOrState);
 
     //-----------------------------------------------------------------------------
     //
@@ -321,7 +323,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 3, 4, 6)
-    M_PARAM_RO(1) M_PARAM_WO(3) M_PARAM_WO(4) M_PARAM_WO(5) M_PARAM_WO(6) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    M_PARAM_WO(4) M_PARAM_WO(5) M_PARAM_WO(6) OPENSEA_OPERATIONS_API eReturnValues
         sct_Get_Feature_Control(tDevice*    device,
                                 eSCTFeature sctFeature,
                                 bool*       enableDisable,
@@ -352,10 +356,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sct_Set_Command_Timer(tDevice*                 device,
-                                                                             eSCTErrorRecoveryCommand ercCommand,
-                                                                             uint32_t timerValueMilliseconds,
-                                                                             bool     isVolatile);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Command_Timer(tDevice*                 device,
+                                                               eSCTErrorRecoveryCommand ercCommand,
+                                                               uint32_t                 timerValueMilliseconds,
+                                                               bool                     isVolatile);
 
     //-----------------------------------------------------------------------------
     //
@@ -374,11 +379,12 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 3)
-    M_PARAM_RO(1) M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        sct_Get_Command_Timer(tDevice*                 device,
-                              eSCTErrorRecoveryCommand ercCommand,
-                              uint32_t*                timerValueMilliseconds,
-                              bool                     isVolatile);
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Command_Timer(tDevice*                 device,
+                                                               eSCTErrorRecoveryCommand ercCommand,
+                                                               uint32_t*                timerValueMilliseconds,
+                                                               bool                     isVolatile);
 
     //-----------------------------------------------------------------------------
     //
@@ -395,8 +401,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        sct_Restore_Command_Timer(tDevice* device, eSCTErrorRecoveryCommand ercCommand);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues sct_Restore_Command_Timer(tDevice*                 device,
+                                                                   eSCTErrorRecoveryCommand ercCommand);
 
     //-----------------------------------------------------------------------------
     //
@@ -413,7 +420,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
         sct_Get_Min_Recovery_Time_Limit(tDevice* device, uint32_t* minRcvTimeLmtMilliseconds);
 
     //-----------------------------------------------------------------------------
@@ -446,8 +455,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        enable_Disable_SMART_Attribute_Autosave(tDevice* device, bool enable);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice* device, bool enable);
 
     //-----------------------------------------------------------------------------
     //
@@ -500,8 +509,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -518,8 +527,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues
-        print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo);
+    M_PARAM_RO(1)
+    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(tDevice* device);
@@ -573,7 +582,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 3)
-    M_PARAM_RO(1) M_PARAM_WO(3) M_PARAM_WO(4) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    M_PARAM_WO(4) OPENSEA_OPERATIONS_API eReturnValues
         get_SCSI_Informational_Exceptions_Info(tDevice*                          device,
                                                eScsiModePageControl              mpc,
                                                ptrInformationalExceptionsControl controlData,
@@ -597,7 +608,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 3)
-    M_PARAM_RO(1) M_PARAM_RO(3) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_RO(3)
+    OPENSEA_OPERATIONS_API eReturnValues
         set_SCSI_Informational_Exceptions_Info(tDevice*                          device,
                                                bool                              save,
                                                ptrInformationalExceptionsControl controlData);
@@ -619,8 +632,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        set_MRIE_Mode(tDevice* device, uint8_t mrieMode, bool driveDefault);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(tDevice* device, uint8_t mrieMode, bool driveDefault);
 
 #define SMART_ERROR_STATE_MASK                                                                                         \
     0x0F // highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below
@@ -780,7 +793,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
         get_ATA_Summary_SMART_Error_Log(tDevice* device, ptrSummarySMARTErrorLog smartErrorLog);
 
     //-----------------------------------------------------------------------------
@@ -798,8 +813,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
-        void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API
+    void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput);
 
     //-----------------------------------------------------------------------------
     //
@@ -822,7 +838,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
         get_ATA_Comprehensive_SMART_Error_Log(tDevice*                      device,
                                               ptrComprehensiveSMARTErrorLog smartErrorLog,
                                               bool                          forceSMARTLog);
@@ -842,8 +860,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
-        void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API
+    void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);
 
     M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Error_Logging_Supported(tDevice* device);
 

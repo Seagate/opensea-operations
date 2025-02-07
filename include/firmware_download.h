@@ -86,8 +86,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues
-        firmware_Download(tDevice* device, firmwareUpdateData* options);
+    M_PARAM_RO(1)
+    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options);
 
     // See extended inquiry VPD page in SPC spec for details
     typedef enum eSCSIMicrocodeActivationEnum
@@ -168,8 +168,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_RW(2) OPENSEA_OPERATIONS_API eReturnValues
-        get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
+    M_PARAM_RO(1)
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
 
     //-----------------------------------------------------------------------------
     //
@@ -186,8 +187,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API
-        void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
 
 #if defined(__cplusplus)
 }

@@ -127,12 +127,15 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API
         void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API
-        void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API
+    void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported);
 
     //-----------------------------------------------------------------------------
     //
@@ -157,12 +160,13 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_WO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API
-        void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
-                                                 ptrATASecurityPassword ataPassword,
-                                                 bool                   setPassword,
-                                                 bool                   eraseUnit,
-                                                 bool                   useSAT);
+    M_PARAM_WO(1)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
+                                                                    ptrATASecurityPassword ataPassword,
+                                                                    bool                   setPassword,
+                                                                    bool                   eraseUnit,
+                                                                    bool                   useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -179,8 +183,9 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RW(1) OPENSEA_OPERATIONS_API
-        void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT);
+    M_PARAM_RW(1)
+    OPENSEA_OPERATIONS_API
+    void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -199,8 +204,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        disable_ATA_Security_Password(tDevice* device, ataSecurityPassword ataPassword, bool useSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(tDevice*            device,
+                                                                       ataSecurityPassword ataPassword,
+                                                                       bool                useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -219,8 +226,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        set_ATA_Security_Password(tDevice* device, ataSecurityPassword ataPassword, bool useSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(tDevice*            device,
+                                                                   ataSecurityPassword ataPassword,
+                                                                   bool                useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -239,8 +248,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        unlock_ATA_Security(tDevice* device, ataSecurityPassword ataPassword, bool useSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(tDevice*            device,
+                                                             ataSecurityPassword ataPassword,
+                                                             bool                useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -264,11 +275,12 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(tDevice*              device,
-                                                                                ataSecurityPassword   ataPassword,
-                                                                                eATASecurityEraseType eraseType,
-                                                                                uint32_t              timeout,
-                                                                                bool                  useSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(tDevice*              device,
+                                                                  ataSecurityPassword   ataPassword,
+                                                                  eATASecurityEraseType eraseType,
+                                                                  uint32_t              timeout,
+                                                                  bool                  useSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -290,11 +302,12 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(tDevice*              device,
-                                                                              eATASecurityEraseType eraseType,
-                                                                              ataSecurityPassword   ataPassword,
-                                                                              bool                  forceSATvalid,
-                                                                              bool                  forceSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(tDevice*              device,
+                                                                eATASecurityEraseType eraseType,
+                                                                ataSecurityPassword   ataPassword,
+                                                                bool                  forceSATvalid,
+                                                                bool                  forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -318,11 +331,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        run_Disable_ATA_Security_Password(tDevice*            device,
-                                          ataSecurityPassword ataPassword,
-                                          bool                forceSATvalid,
-                                          bool                forceSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(tDevice*            device,
+                                                                           ataSecurityPassword ataPassword,
+                                                                           bool                forceSATvalid,
+                                                                           bool                forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -349,10 +362,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(tDevice*            device,
-                                                                                     ataSecurityPassword ataPassword,
-                                                                                     bool                forceSATvalid,
-                                                                                     bool                forceSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(tDevice*            device,
+                                                                       ataSecurityPassword ataPassword,
+                                                                       bool                forceSATvalid,
+                                                                       bool                forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -376,8 +390,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        run_Unlock_ATA_Security(tDevice* device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(tDevice*            device,
+                                                                 ataSecurityPassword ataPassword,
+                                                                 bool                forceSATvalid,
+                                                                 bool                forceSAT);
 
     //-----------------------------------------------------------------------------
     //
@@ -398,8 +415,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues
-        run_Freeze_ATA_Security(tDevice* device, bool forceSATvalid, bool forceSAT);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(tDevice* device, bool forceSATvalid, bool forceSAT);
 
 #if defined(__cplusplus)
 }

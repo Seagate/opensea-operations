@@ -1593,9 +1593,8 @@ typedef struct s_persistentReserveOutBasic
 #define PR_OUT_BASIC_MIN_LENGTH 24
 M_NONNULL_PARAM_LIST(3)
 M_NONNULL_IF_NONZERO_PARAM(1, 2)
-    M_PARAM_RW_SIZE(1, 2) static void format_Basic_Info(uint8_t*                     ptrData,
-                                                        uint32_t                     dataLength,
-                                                        ptrPersistentReserveOutBasic basicInfo)
+M_PARAM_RW_SIZE(1, 2)
+static void format_Basic_Info(uint8_t* ptrData, uint32_t dataLength, ptrPersistentReserveOutBasic basicInfo)
 {
     DISABLE_NONNULL_COMPARE
     if (ptrData != M_NULLPTR && dataLength >= PR_OUT_BASIC_MIN_LENGTH &&
