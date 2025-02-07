@@ -2141,6 +2141,11 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                 // check what the user requested us try and pull and set a size based off of what the drive reports
                 // supporting (ex, if they asked for large, but only small is available, return the small information
                 // set)
+                if (islDataSet > 3 || islDataSet == 0)
+                {
+                    // Set to largest possible space by default that the NVMe spec supports
+                    islDataSet = 3;
+                }
                 switch (islDataSet)
                 {
                 case 3: // large
@@ -2158,8 +2163,6 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                     }
                     M_FALLTHROUGH;
                 case 1: // small
-                    M_FALLTHROUGH;
-                default:
                     islPullingSize = reportedSmallSize;
                     break;
                 }
@@ -2467,6 +2470,11 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                 // check what the user requested us try and pull and set a size based off of what the drive reports
                 // supporting (ex, if they asked for large, but only small is available, return the small information
                 // set)
+                if (islDataSet > 4 || islDataSet == 0)
+                {
+                    // Set to largest possible space by default that the NVMe spec supports
+                    islDataSet = 4;
+                }
                 switch (islDataSet)
                 {
                 case 4: // X-large
@@ -2491,8 +2499,6 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                     }
                     M_FALLTHROUGH;
                 case 1: // small
-                    M_FALLTHROUGH;
-                default:
                     islPullingSize = reportedSmallSize;
                     break;
                 }
@@ -2683,8 +2689,9 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 uint16_t reportedSmallSize  = UINT16_C(0);
                 uint16_t reportedMediumSize = UINT16_C(0);
                 uint16_t reportedLargeSize  = UINT16_C(0);
-                uint16_t islPullingSize     = UINT16_C(0);
-                uint16_t pageNumber         = UINT16_C(0); // keep track of the offset we are reading/saving
+                uint32_t reportedXLargeSize = UINT32_C(0);
+                uint32_t islPullingSize     = UINT32_C(0);
+                uint32_t pageNumber         = UINT32_C(0); // keep track of the offset we are reading/saving
                 uint32_t pullChunkSize =
                     UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE; // pull the remainder of the log in 4k chunks
                 if (transferSizeBytes > UINT32_C(0))
@@ -2737,11 +2744,27 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 reportedSmallSize  = M_BytesTo2ByteValue(dataBuffer[9], dataBuffer[8]);
                 reportedMediumSize = M_BytesTo2ByteValue(dataBuffer[11], dataBuffer[10]);
                 reportedLargeSize  = M_BytesTo2ByteValue(dataBuffer[13], dataBuffer[12]);
+                if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT6)
+                {
+                    reportedXLargeSize = M_BytesTo4ByteValue(dataBuffer[19], dataBuffer[18],dataBuffer[17], dataBuffer[16]);
+                }
                 // check what the user requested us try and pull and set a size based off of what the drive reports
                 // supporting (ex, if they asked for large, but only small is available, return the small information
                 // set)
+                if (islDataSet > 4 || islDataSet == 0)
+                {
+                    // Set to largest possible space by default that the NVMe spec supports
+                    islDataSet = 4;
+                }
                 switch (islDataSet)
                 {
+                case 4: // X-large
+                    islPullingSize = reportedXLargeSize;
+                    if (islPullingSize > 0)
+                    {
+                        break;
+                    }
+                    M_FALLTHROUGH;
                 case 3: // large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > 0)
@@ -2757,8 +2780,6 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                     }
                     M_FALLTHROUGH;
                 case 1: // small
-                    M_FALLTHROUGH;
-                default:
                     islPullingSize = reportedSmallSize;
                     break;
                 }
@@ -2776,12 +2797,12 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 telemOpts.addr = dataBuffer; // update the data buffer after the reallocation - TJE
                 safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
                 // read the remaining data
-                for (pageNumber = UINT16_C(1); pageNumber < islPullingSize;
-                     pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
+                for (pageNumber = UINT32_C(1); pageNumber < islPullingSize;
+                     pageNumber += C_CAST(uint32_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        if ((pageNumber - UINT16_C(1)) % UINT16_C(16) == UINT16_C(0))
+                        if ((pageNumber - UINT32_C(1)) % UINT32_C(16) == UINT32_C(0))
                         {
                             printf(".");
                             flush_stdout();
