@@ -284,6 +284,14 @@ extern "C"
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(tDevice* device, const char* filePath);
 
+    #define TELEMETRY_LOG_SMALL_DATA_SET 1
+    #define TELEMETRY_LOG_MEDIUM_DATA_SET 2
+    #define TELEMETRY_LOG_LARGE_DATA_SET 3
+    #define TELEMETRY_LOG_XLARGE_DATA_SET 4
+
+    #define TELEMETRY_LOG_MIN_DATA_SET TELEMETRY_LOG_SMALL_DATA_SET
+    #define TELEMETRY_LOG_MAX_DATA_SET TELEMETRY_LOG_XLARGE_DATA_SET
+
     //-----------------------------------------------------------------------------
     //
     //  pull_Telemetry_Log()

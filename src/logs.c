@@ -2141,28 +2141,28 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                 // check what the user requested us try and pull and set a size based off of what the drive reports
                 // supporting (ex, if they asked for large, but only small is available, return the small information
                 // set)
-                if (islDataSet > 3 || islDataSet == 0)
+                if (islDataSet > TELEMETRY_LOG_LARGE_DATA_SET || islDataSet < TELEMETRY_LOG_MIN_DATA_SET)
                 {
-                    // Set to largest possible space by default that the NVMe spec supports
-                    islDataSet = 3;
+                    // Set to largest possible space by default that the ATA spec supports
+                    islDataSet = TELEMETRY_LOG_LARGE_DATA_SET;
                 }
                 switch (islDataSet)
                 {
-                case 3: // large
+                case TELEMETRY_LOG_LARGE_DATA_SET: // large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 2: // medium
+                case TELEMETRY_LOG_MEDIUM_DATA_SET: // medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 1: // small
+                case TELEMETRY_LOG_SMALL_DATA_SET: // small
                     islPullingSize = reportedSmallSize;
                     break;
                 }
@@ -2470,35 +2470,35 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                 // check what the user requested us try and pull and set a size based off of what the drive reports
                 // supporting (ex, if they asked for large, but only small is available, return the small information
                 // set)
-                if (islDataSet > 4 || islDataSet == 0)
+                if (islDataSet > TELEMETRY_LOG_MAX_DATA_SET || islDataSet < TELEMETRY_LOG_MIN_DATA_SET)
                 {
-                    // Set to largest possible space by default that the NVMe spec supports
-                    islDataSet = 4;
+                    // Set to largest possible space by default that the SAS spec supports
+                    islDataSet = TELEMETRY_LOG_MAX_DATA_SET;
                 }
                 switch (islDataSet)
                 {
-                case 4: // X-large
+                case TELEMETRY_LOG_XLARGE_DATA_SET: // X-large
                     islPullingSize = reportedXLargeSize;
                     if (islPullingSize > UINT32_C(0))
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 3: // large
+                case TELEMETRY_LOG_LARGE_DATA_SET: // large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > UINT32_C(0))
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 2: // medium
+                case TELEMETRY_LOG_MEDIUM_DATA_SET: // medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > UINT32_C(0))
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 1: // small
+                case TELEMETRY_LOG_SMALL_DATA_SET: // small
                     islPullingSize = reportedSmallSize;
                     break;
                 }
@@ -2751,35 +2751,35 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 // check what the user requested us try and pull and set a size based off of what the drive reports
                 // supporting (ex, if they asked for large, but only small is available, return the small information
                 // set)
-                if (islDataSet > 4 || islDataSet == 0)
+                if (islDataSet > TELEMETRY_LOG_MAX_DATA_SET || islDataSet < TELEMETRY_LOG_MIN_DATA_SET)
                 {
                     // Set to largest possible space by default that the NVMe spec supports
-                    islDataSet = 4;
+                    islDataSet = TELEMETRY_LOG_MAX_DATA_SET;
                 }
                 switch (islDataSet)
                 {
-                case 4: // X-large
+                case TELEMETRY_LOG_XLARGE_DATA_SET: // X-large
                     islPullingSize = reportedXLargeSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 3: // large
+                case TELEMETRY_LOG_LARGE_DATA_SET: // large
                     islPullingSize = reportedLargeSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 2: // medium
+                case TELEMETRY_LOG_MEDIUM_DATA_SET: // medium
                     islPullingSize = reportedMediumSize;
                     if (islPullingSize > 0)
                     {
                         break;
                     }
                     M_FALLTHROUGH;
-                case 1: // small
+                case TELEMETRY_LOG_SMALL_DATA_SET: // small
                     islPullingSize = reportedSmallSize;
                     break;
                 }
