@@ -390,10 +390,11 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_Supported_Erase_Methods(tDevice*    device,
-                                    eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-                                    uint32_t*   overwriteEraseTimeEstimateMinutes);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues
+    get_Supported_Erase_Methods(tDevice*    device,
+                                eraseMethod eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
+                                uint32_t*   overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -413,10 +414,11 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    M_PARAM_RO(3) OPENSEA_OPERATIONS_API
-        void print_Supported_Erase_Methods(tDevice*          device,
-                                           eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-                                           const uint32_t*   overwriteEraseTimeEstimateMinutes);
+    M_PARAM_RO(3)
+    OPENSEA_OPERATIONS_API
+    void print_Supported_Erase_Methods(tDevice*          device,
+                                       eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
+                                       const uint32_t*   overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -511,11 +513,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(2, 3)
-    M_PARAM_RO_SIZE(2, 3) OPENSEA_OPERATIONS_API eReturnValues
-        scsi_Set_Mode_Page(tDevice* device,
-                           uint8_t* modePageData,
-                           uint16_t modeDataLength,
-                           bool     saveChanges); // takes a byte array and sends it to the drive.
+    M_PARAM_RO_SIZE(2, 3)
+    OPENSEA_OPERATIONS_API eReturnValues
+    scsi_Set_Mode_Page(tDevice* device,
+                       uint8_t* modePageData,
+                       uint16_t modeDataLength,
+                       bool     saveChanges); // takes a byte array and sends it to the drive.
 
     // NOTE: SPC4 and higher is required to reset only a specific page. Prior to that, all pages will be reset (logpage
     // and logSubPage both set to zero) This function will return BAD_PARAMETER if the device does not support resetting

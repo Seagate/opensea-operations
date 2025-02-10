@@ -331,20 +331,26 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(tDevice*         device,
+                                                                        ptrPendingDefect defectList,
+                                                                        uint32_t*        numberOfDefects);
 
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice*         device,
+                                                                         ptrPendingDefect defectList,
+                                                                         uint32_t*        numberOfDefects);
 
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(tDevice*         device,
+                                                                    ptrPendingDefect defectList,
+                                                                    uint32_t*        numberOfDefects);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
@@ -353,8 +359,10 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_DST_Log(tDevice*         device,
+                                                               ptrPendingDefect defectList,
+                                                               uint32_t*        numberOfDefects);
 
 #define MAX_BACKGROUND_SCAN_RESULTS UINT32_C(2048) // parameter codes 1 - 800h
     typedef struct s_backgroundResults
@@ -375,14 +383,18 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(tDevice*             device,
+                                                                          ptrBackgroundResults results,
+                                                                          uint16_t*            numberOfResults);
 
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_LBAs_From_SCSI_Background_Scan_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
+                                                                                ptrPendingDefect defectList,
+                                                                                uint32_t*        numberOfDefects);
 
 #if defined(__cplusplus)
 }

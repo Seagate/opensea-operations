@@ -99,10 +99,10 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_Automatic_Reallocation_Support(tDevice* device,
-                                           bool*    automaticWriteReallocationEnabled,
-                                           bool*    automaticReadReallocationEnabled);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
+                                                                            bool*    automaticWriteReallocationEnabled,
+                                                                            bool*    automaticReadReallocationEnabled);
 
     // Use this call to determine if you've already logged an error in the list so that you don't log it again
     M_NONNULL_PARAM_LIST(1)

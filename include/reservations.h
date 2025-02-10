@@ -124,7 +124,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API eReturnValues
-        get_Persistent_Reservations_Capabilities(tDevice* device, ptrPersistentReservationCapabilities prCapabilities);
+    get_Persistent_Reservations_Capabilities(tDevice* device, ptrPersistentReservationCapabilities prCapabilities);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
@@ -155,8 +155,9 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
-    OPENSEA_OPERATIONS_API eReturnValues
-        get_Registration_Keys(tDevice* device, uint16_t numberOfKeys, ptrRegistrationKeysData keys);
+    OPENSEA_OPERATIONS_API eReturnValues get_Registration_Keys(tDevice*                device,
+                                                               uint16_t                numberOfKeys,
+                                                               ptrRegistrationKeysData keys);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Registration_Keys(ptrRegistrationKeysData keys);
@@ -195,8 +196,9 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
-    OPENSEA_OPERATIONS_API eReturnValues
-        get_Reservations(tDevice* device, uint16_t numberReservations, ptrReservationsData reservations);
+    OPENSEA_OPERATIONS_API eReturnValues get_Reservations(tDevice*            device,
+                                                          uint16_t            numberReservations,
+                                                          ptrReservationsData reservations);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData reservations);
@@ -238,8 +240,9 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
-    OPENSEA_OPERATIONS_API eReturnValues
-        get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation);
+    OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(tDevice*               device,
+                                                         uint16_t               numberOfKeys,
+                                                         ptrFullReservationInfo fullReservation);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInfo fullReservation);

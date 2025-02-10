@@ -325,13 +325,15 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3, 4, 6)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    M_PARAM_WO(4) M_PARAM_WO(5) M_PARAM_WO(6) OPENSEA_OPERATIONS_API eReturnValues
-        sct_Get_Feature_Control(tDevice*    device,
-                                eSCTFeature sctFeature,
-                                bool*       enableDisable,
-                                bool*       defaultValue,
-                                uint16_t*   hdaTemperatureIntervalOrState,
-                                uint16_t*   featureOptionFlags);
+    M_PARAM_WO(4)
+    M_PARAM_WO(5)
+    M_PARAM_WO(6)
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Feature_Control(tDevice*    device,
+                                                                 eSCTFeature sctFeature,
+                                                                 bool*       enableDisable,
+                                                                 bool*       defaultValue,
+                                                                 uint16_t*   hdaTemperatureIntervalOrState,
+                                                                 uint16_t*   featureOptionFlags);
 
     typedef enum eSCTErrorRecoveryCommandEnum
     {
@@ -422,8 +424,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues
-        sct_Get_Min_Recovery_Time_Limit(tDevice* device, uint32_t* minRcvTimeLmtMilliseconds);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice*  device,
+                                                                         uint32_t* minRcvTimeLmtMilliseconds);
 
     //-----------------------------------------------------------------------------
     //
@@ -584,11 +586,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    M_PARAM_WO(4) OPENSEA_OPERATIONS_API eReturnValues
-        get_SCSI_Informational_Exceptions_Info(tDevice*                          device,
-                                               eScsiModePageControl              mpc,
-                                               ptrInformationalExceptionsControl controlData,
-                                               ptrInformationalExceptionsLog     logData);
+    M_PARAM_WO(4)
+    OPENSEA_OPERATIONS_API eReturnValues
+    get_SCSI_Informational_Exceptions_Info(tDevice*                          device,
+                                           eScsiModePageControl              mpc,
+                                           ptrInformationalExceptionsControl controlData,
+                                           ptrInformationalExceptionsLog     logData);
 
     //-----------------------------------------------------------------------------
     //
@@ -611,9 +614,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RO(3)
     OPENSEA_OPERATIONS_API eReturnValues
-        set_SCSI_Informational_Exceptions_Info(tDevice*                          device,
-                                               bool                              save,
-                                               ptrInformationalExceptionsControl controlData);
+    set_SCSI_Informational_Exceptions_Info(tDevice* device, bool save, ptrInformationalExceptionsControl controlData);
 
     //-----------------------------------------------------------------------------
     //
@@ -795,8 +796,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues
-        get_ATA_Summary_SMART_Error_Log(tDevice* device, ptrSummarySMARTErrorLog smartErrorLog);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice*                device,
+                                                                         ptrSummarySMARTErrorLog smartErrorLog);
 
     //-----------------------------------------------------------------------------
     //
@@ -841,9 +842,9 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API eReturnValues
-        get_ATA_Comprehensive_SMART_Error_Log(tDevice*                      device,
-                                              ptrComprehensiveSMARTErrorLog smartErrorLog,
-                                              bool                          forceSMARTLog);
+    get_ATA_Comprehensive_SMART_Error_Log(tDevice*                      device,
+                                          ptrComprehensiveSMARTErrorLog smartErrorLog,
+                                          bool                          forceSMARTLog);
 
     //-----------------------------------------------------------------------------
     //

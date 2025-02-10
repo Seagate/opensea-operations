@@ -212,8 +212,10 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_Depopulate_Progress(tDevice*      device,
+                                                                 eDepopStatus* depopStatus,
+                                                                 double*       progress);
 
     //-----------------------------------------------------------------------------
     //

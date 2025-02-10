@@ -116,8 +116,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
 
     //-----------------------------------------------------------------------------
     //
@@ -159,8 +159,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_Long_DST_Time(tDevice* device, uint8_t* hours, uint8_t* minutes);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_Long_DST_Time(tDevice* device, uint8_t* hours, uint8_t* minutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -195,8 +195,10 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        ata_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues ata_Get_DST_Progress(tDevice*  device,
+                                                              uint32_t* percentComplete,
+                                                              uint8_t*  status);
 
     //-----------------------------------------------------------------------------
     //
@@ -216,14 +218,18 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        scsi_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Get_DST_Progress(tDevice*  device,
+                                                               uint32_t* percentComplete,
+                                                               uint8_t*  status);
 
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        nvme_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_DST_Progress(tDevice*  device,
+                                                               uint32_t* percentComplete,
+                                                               uint8_t*  status);
 
     //-----------------------------------------------------------------------------
     //
@@ -295,12 +301,13 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    M_PARAM_WO(6) OPENSEA_OPERATIONS_API eReturnValues run_DST_And_Clean(tDevice*                device,
-                                                                         uint16_t                errorLimit,
-                                                                         custom_Update           updateFunction,
-                                                                         void*                   updateData,
-                                                                         ptrDSTAndCleanErrorList externalErrorList,
-                                                                         bool*                   repaired);
+    M_PARAM_WO(6)
+    OPENSEA_OPERATIONS_API eReturnValues run_DST_And_Clean(tDevice*                device,
+                                                           uint16_t                errorLimit,
+                                                           custom_Update           updateFunction,
+                                                           void*                   updateData,
+                                                           ptrDSTAndCleanErrorList externalErrorList,
+                                                           bool*                   repaired);
 
     typedef struct s_dstDescriptor
     {

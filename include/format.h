@@ -441,11 +441,11 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3, 4)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    M_PARAM_WO(4) OPENSEA_OPERATIONS_API eReturnValues
-        ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
-                                                uint32_t  logicalBlockLength,
-                                                uint16_t* descriptorCheckCode,
-                                                uint8_t*  descriptorIndex);
+    M_PARAM_WO(4)
+    OPENSEA_OPERATIONS_API eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
+                                                                                 uint32_t  logicalBlockLength,
+                                                                                 uint16_t* descriptorCheckCode,
+                                                                                 uint8_t*  descriptorIndex);
 
     typedef struct s_nvmeFormatSupport
     {

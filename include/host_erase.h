@@ -44,12 +44,13 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(4, 5)
-    M_PARAM_RO_SIZE(4, 5) OPENSEA_OPERATIONS_API eReturnValues erase_Range(tDevice* device,
-                                                                           uint64_t eraseRangeStart,
-                                                                           uint64_t eraseRangeEnd,
-                                                                           uint8_t* pattern,
-                                                                           uint32_t patternLength,
-                                                                           bool     hideLBACounter);
+    M_PARAM_RO_SIZE(4, 5)
+    OPENSEA_OPERATIONS_API eReturnValues erase_Range(tDevice* device,
+                                                     uint64_t eraseRangeStart,
+                                                     uint64_t eraseRangeEnd,
+                                                     uint8_t* pattern,
+                                                     uint32_t patternLength,
+                                                     bool     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -72,12 +73,13 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(4, 5)
-    M_PARAM_RO_SIZE(4, 5) OPENSEA_OPERATIONS_API eReturnValues erase_Time(tDevice* device,
-                                                                          uint64_t eraseStartLBA,
-                                                                          uint64_t eraseTime,
-                                                                          uint8_t* pattern,
-                                                                          uint32_t patternLength,
-                                                                          bool     hideLBACounter);
+    M_PARAM_RO_SIZE(4, 5)
+    OPENSEA_OPERATIONS_API eReturnValues erase_Time(tDevice* device,
+                                                    uint64_t eraseStartLBA,
+                                                    uint64_t eraseTime,
+                                                    uint8_t* pattern,
+                                                    uint32_t patternLength,
+                                                    bool     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //

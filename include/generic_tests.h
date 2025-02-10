@@ -52,11 +52,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(4, 5)
-    M_PARAM_RW_SIZE(4, 5) OPENSEA_OPERATIONS_API eReturnValues read_Write_Seek_Command(tDevice*        device,
-                                                                                       eRWVCommandType rwvCommand,
-                                                                                       uint64_t        lba,
-                                                                                       uint8_t*        ptrData,
-                                                                                       uint32_t        dataSize);
+    M_PARAM_RW_SIZE(4, 5)
+    OPENSEA_OPERATIONS_API eReturnValues read_Write_Seek_Command(tDevice*        device,
+                                                                 eRWVCommandType rwvCommand,
+                                                                 uint64_t        lba,
+                                                                 uint8_t*        ptrData,
+                                                                 uint32_t        dataSize);
 
     //-----------------------------------------------------------------------------
     //
@@ -927,14 +928,14 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 4, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(4)
-    M_PARAM_WO(5) OPENSEA_OPERATIONS_API eReturnValues
-        read_Write_Or_Verify_Timed_Test(tDevice*        device,
-                                        eRWVCommandType testMode,
-                                        uint32_t        timePerTestSeconds,
-                                        uint16_t*       numberOfCommandTimeouts,
-                                        uint16_t*       numberOfCommandFailures,
-                                        custom_Update   updateFunction,
-                                        void*           updateData);
+    M_PARAM_WO(5)
+    OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*        device,
+                                                                         eRWVCommandType testMode,
+                                                                         uint32_t        timePerTestSeconds,
+                                                                         uint16_t*       numberOfCommandTimeouts,
+                                                                         uint16_t*       numberOfCommandFailures,
+                                                                         custom_Update   updateFunction,
+                                                                         void*           updateData);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)

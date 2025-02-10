@@ -80,7 +80,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API eReturnValues
-        get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
+    get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
 
     //-----------------------------------------------------------------------------
     //
@@ -99,14 +99,14 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues
-        get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Sanitize_Device_Features(tDevice*                   device,
+                                                                          sanitizeFeaturesSupported* sanitizeOptions);
 
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API eReturnValues
-        get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
+    get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
 
     //-----------------------------------------------------------------------------
     //
@@ -164,8 +164,10 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    M_PARAM_WO(3) OPENSEA_OPERATIONS_API eReturnValues
-        get_Sanitize_Progress(tDevice* device, double* percentComplete, eSanitizeStatus* sanitizeStatus);
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_Sanitize_Progress(tDevice*         device,
+                                                               double*          percentComplete,
+                                                               eSanitizeStatus* sanitizeStatus);
 
     //-----------------------------------------------------------------------------
     //
