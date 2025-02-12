@@ -48,7 +48,7 @@ static bool add_Feature_To_Supported_List(char        featuresSupported[MAX_FEAT
     {
         if ((*numberOfFeaturesSupported) < MAX_FEATURES)
         {
-            snprintf(featuresSupported[*numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "%s", featureString);
+            snprintf_err_handle(featuresSupported[*numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "%s", featureString);
             (*numberOfFeaturesSupported) += 1;
         }
         else
@@ -78,8 +78,8 @@ static bool add_Specification_To_Supported_List(char        specificationsSuppor
     {
         if ((*numberOfSpecificationsSupported) < MAX_SPECS)
         {
-            snprintf(specificationsSupported[*numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "%s",
-                     specificationString);
+            snprintf_err_handle(specificationsSupported[*numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "%s",
+                                specificationString);
             (*numberOfSpecificationsSupported) += 1;
         }
         else
@@ -263,22 +263,22 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         case 2: // PIO-2
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "PIO-2");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
             break;
         case 1: // PIO-1
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 5.2;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "PIO-1");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
             break;
         case 0: // PIO-0
         default:
             // all others are reserved, treat as PIO-0 in this case
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 3.3;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "PIO-0");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
             break;
         }
     }
@@ -306,8 +306,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
             }
             break;
         case 1: // SWDMA-1
@@ -315,8 +315,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             {
                 driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
             }
             break;
         case 0: // SWDMA-0
@@ -326,8 +326,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 // all others are reserved, treat as SWDMA-0 in this case
                 driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
             }
             break;
         }
@@ -347,8 +347,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             // this will be changed later for any drives supporting the other MWDMA/UDMA fields
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "SWDMA-0");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
         }
     }
 
@@ -428,8 +428,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
                 }
                 break;
             case 1:
@@ -437,8 +437,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
                 }
                 break;
             case 0:
@@ -446,8 +446,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
                 }
                 break;
             }
@@ -469,8 +469,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 8.3;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                 PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
                     }
                     break;
                 case 1:
@@ -479,8 +479,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 4.2;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                 PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
                     }
                     break;
                 case 0:
@@ -489,8 +489,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 2.1;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                 PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
                     }
                     break;
                 }
@@ -525,8 +525,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
                 }
                 break;
             case 1:
@@ -534,8 +534,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 13.3;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
                 }
                 break;
             case 0:
@@ -543,8 +543,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
                 }
                 break;
             }
@@ -566,8 +566,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 16.7;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                 PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
+                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
                     }
                     break;
                 case 1:
@@ -576,8 +576,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 13.3;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                 PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
+                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
                     }
                     break;
                 case 0:
@@ -586,8 +586,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 4.2;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                 PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
+                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
                     }
                     break;
                 }
@@ -616,8 +616,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
                 }
             }
             else if (le16_to_host(wordPtr[64]) & BIT0)
@@ -626,8 +626,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 11.1;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
                 }
             }
         }
@@ -646,8 +646,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
                 }
                 break;
             case 180: // PIO3
@@ -655,8 +655,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 11.1;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
                 }
                 break;
             case 240: // PIO2
@@ -664,8 +664,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
                 }
                 break;
             case 383: // PIO1
@@ -673,8 +673,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 5.2;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
                 }
                 break;
             case 600: // PIO0
@@ -682,8 +682,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 3.3;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
+                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
                 }
                 break;
             }
@@ -757,7 +757,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (le16_to_host(wordPtr[76]) & BIT8)
         {
             DECLARE_ZERO_INIT_ARRAY(char, ncqFeatureString, MAX_FEATURE_LENGTH);
-            snprintf(ncqFeatureString, MAX_FEATURE_LENGTH, "SATA NCQ [QD=%" PRIu8 "]", queueDepth);
+            snprintf_err_handle(ncqFeatureString, MAX_FEATURE_LENGTH, "SATA NCQ [QD=%" PRIu8 "]", queueDepth);
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           ncqFeatureString);
         }
@@ -1413,7 +1413,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (le16_to_host(wordPtr[83]) & BIT1 || le16_to_host(wordPtr[86]) & BIT1)
         {
             DECLARE_ZERO_INIT_ARRAY(char, tcqFeatureString, MAX_FEATURE_LENGTH);
-            snprintf(tcqFeatureString, MAX_FEATURE_LENGTH, "TCQ [QD=%" PRIu8 "]", queueDepth);
+            snprintf_err_handle(tcqFeatureString, MAX_FEATURE_LENGTH, "TCQ [QD=%" PRIu8 "]", queueDepth);
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           tcqFeatureString);
         }
@@ -1490,50 +1490,50 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         case 7: // compact flash only
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 167;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-7");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
             break;
         case 6:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 133;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-6");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
             break;
         case 5:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 100;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-5");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
             break;
         case 4:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 66.7;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-4");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
             break;
         case 3:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 44.4;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-3");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
             break;
         case 2:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 33.3;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-2");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
             break;
         case 1:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 25;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-1");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
             break;
         case 0:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "UDMA-0");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
             break;
         }
         // now check selected
@@ -1551,50 +1551,50 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             case 7: // compact flash only
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 167;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
                 break;
             case 6:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 133;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
                 break;
             case 5:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 100;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
                 break;
             case 4:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 66.7;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
                 break;
             case 3:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 44.4;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
                 break;
             case 2:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 33.3;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
                 break;
             case 1:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 25;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
                 break;
             case 0:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 16.7;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                         PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
+                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
                 break;
             }
         }
@@ -1850,15 +1850,15 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             {
                 if (deterministicTrim && zeroesAfterTrim)
                 {
-                    snprintf(trimDetails, 30, "TRIM [Deterministic, Zeroes]");
+                    snprintf_err_handle(trimDetails, 30, "TRIM [Deterministic, Zeroes]");
                 }
                 else if (deterministicTrim)
                 {
-                    snprintf(trimDetails, 30, "TRIM [Deterministic]");
+                    snprintf_err_handle(trimDetails, 30, "TRIM [Deterministic]");
                 }
                 else if (zeroesAfterTrim)
                 {
-                    snprintf(trimDetails, 30, "TRIM [Zeroes]");
+                    snprintf_err_handle(trimDetails, 30, "TRIM [Zeroes]");
                 }
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               trimDetails);
@@ -3210,7 +3210,7 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     // Read Log data
     uint32_t logBufferSize = ATA_LOG_PAGE_LEN_BYTES;
     uint8_t* logBuffer     = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -4159,23 +4159,23 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                                 if (lbprz == 0)
                                 {
                                     // vendor unique
-                                    snprintf(lbprzStr, 22, "Vendor Pattern");
+                                    snprintf_err_handle(lbprzStr, 22, "Vendor Pattern");
                                 }
                                 else if (lbprz & BIT0)
                                 {
-                                    snprintf(lbprzStr, 22, "Zeros");
+                                    snprintf_err_handle(lbprzStr, 22, "Zeros");
                                 }
                                 else if (lbprz == 0x02)
                                 {
-                                    snprintf(lbprzStr, 22, "Provisioning Pattern");
+                                    snprintf_err_handle(lbprzStr, 22, "Provisioning Pattern");
                                 }
                                 if (logicalBlockProvisioning[5] & BIT1)
                                 {
-                                    snprintf(unmapDetails, 48, "UNMAP [Deterministic, %s]", lbprzStr);
+                                    snprintf_err_handle(unmapDetails, 48, "UNMAP [Deterministic, %s]", lbprzStr);
                                 }
                                 else if (safe_strlen(lbprzStr))
                                 {
-                                    snprintf(unmapDetails, 48, "UNMAP [%s]", lbprzStr);
+                                    snprintf_err_handle(unmapDetails, 48, "UNMAP [%s]", lbprzStr);
                                 }
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                               &driveInfo->numberOfFeaturesSupported, unmapDetails);
@@ -5425,7 +5425,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         awreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
+                                            char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
                                                                        awreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
@@ -5435,7 +5435,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     }
                                     if (awreString != M_NULLPTR && awreStringLength >= 30)
                                     {
-                                        snprintf(awreString, awreStringLength, "Automatic Write Reassignment");
+                                        snprintf_err_handle(awreString, awreStringLength,
+                                                            "Automatic Write Reassignment");
                                     }
                                 }
                                 // arre
@@ -5451,7 +5452,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         arreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
+                                            char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
                                                                        arreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
@@ -5461,7 +5462,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     }
                                     if (arreString != M_NULLPTR && arreStringLength >= 30)
                                     {
-                                        snprintf(arreString, arreStringLength, "Automatic Read Reassignment");
+                                        snprintf_err_handle(arreString, arreStringLength,
+                                                            "Automatic Read Reassignment");
                                     }
                                 }
                             }
@@ -5506,7 +5508,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         awreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
+                                            char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
                                                                        awreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
@@ -5516,8 +5518,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     }
                                     if (awreString != M_NULLPTR && awreStringLength >= 40)
                                     {
-                                        snprintf(awreString, awreStringLength,
-                                                 "Automatic Write Reassignment [Enabled]");
+                                        snprintf_err_handle(awreString, awreStringLength,
+                                                            "Automatic Write Reassignment [Enabled]");
                                     }
                                 }
                                 // arre
@@ -5533,7 +5535,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     {
                                         arreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
-                                                  char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
+                                            char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
                                                                        arreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
@@ -5543,7 +5545,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     }
                                     if (arreString != M_NULLPTR && arreStringLength >= 40)
                                     {
-                                        snprintf(arreString, arreStringLength, "Automatic Read Reassignment [Enabled]");
+                                        snprintf_err_handle(arreString, arreStringLength,
+                                                            "Automatic Read Reassignment [Enabled]");
                                     }
                                 }
                             }
@@ -5842,7 +5845,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (dlcString != M_NULLPTR && dlcStringLength >= 50)
                                 {
-                                    snprintf(dlcString, dlcStringLength, "Device Life Control");
+                                    snprintf_err_handle(dlcString, dlcStringLength, "Device Life Control");
                                 }
                             }
                         }
@@ -5896,7 +5899,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (dlcString != M_NULLPTR && dlcStringLength >= 50)
                                 {
-                                    snprintf(dlcString, dlcStringLength, "Device Life Control [Enabled]");
+                                    snprintf_err_handle(dlcString, dlcStringLength, "Device Life Control [Enabled]");
                                 }
                             }
                         }
@@ -6373,9 +6376,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed =
                                         C_CAST(double, scalingMultiplier) *
                                         (C_CAST(double, transferWidthExponent) + UINT32_C(1));
-                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "",
-                                             scalingMultiplier);
+                                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "",
+                                                        scalingMultiplier);
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
                                 }
                             }
@@ -6480,9 +6483,9 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed =
                                         C_CAST(double, scalingMultiplier) *
                                         (C_CAST(double, transferWidthExponent) + UINT32_C(1));
-                                    snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                             PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "",
-                                             scalingMultiplier);
+                                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "",
+                                                        scalingMultiplier);
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
                                 }
                             }
@@ -6568,7 +6571,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 4)
                                 {
-                                    snprintf(epcFeatureString, epcFeatureStringLength, "EPC");
+                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength, "EPC");
                                 }
                             }
                             else
@@ -6594,7 +6597,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 17)
                                 {
-                                    snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions");
+                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength, "Power Conditions");
                                 }
                             }
                         }
@@ -6651,7 +6654,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 14)
                                 {
-                                    snprintf(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]");
+                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]");
                                 }
                             }
                             else if (powerConditions[3 + headerLength] & BIT0 ||
@@ -6678,7 +6681,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 27)
                                 {
-                                    snprintf(epcFeatureString, epcFeatureStringLength, "Power Conditions [Enabled]");
+                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength,
+                                                        "Power Conditions [Enabled]");
                                 }
                             }
                         }
@@ -6781,8 +6785,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                         if (pageRead && modeDataLen > 0)
                         {
                             DECLARE_ZERO_INIT_ARRAY(char, temp, MAX_FEATURE_LENGTH);
-                            snprintf(temp, MAX_FEATURE_LENGTH, "Informational Exceptions [Mode %" PRIu8 "]",
-                                     M_Nibble0(informationalExceptions[headerLength + 3]));
+                            snprintf_err_handle(temp, MAX_FEATURE_LENGTH, "Informational Exceptions [Mode %" PRIu8 "]",
+                                                M_Nibble0(informationalExceptions[headerLength + 3]));
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, temp);
                         }
@@ -6852,7 +6856,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (bmsString != M_NULLPTR && bmsStringLength >= 50)
                                 {
-                                    snprintf(bmsString, bmsStringLength, "Background Media Scan");
+                                    snprintf_err_handle(bmsString, bmsStringLength, "Background Media Scan");
                                 }
                             }
                             // bms-ps
@@ -6868,7 +6872,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 {
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
-                                               char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
+                                        char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
                                                                     bmsPSStringLength * sizeof(char)));
                                     if (temp != M_NULLPTR)
                                     {
@@ -6878,7 +6882,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (bmsPSString != M_NULLPTR && bmsPSStringLength >= 50)
                                 {
-                                    snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan");
+                                    snprintf_err_handle(bmsPSString, bmsPSStringLength, "Background Pre-Scan");
                                 }
                             }
                         }
@@ -6930,7 +6934,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (bmsString != M_NULLPTR && bmsStringLength >= 50)
                                 {
-                                    snprintf(bmsString, bmsStringLength, "Background Media Scan [Enabled]");
+                                    snprintf_err_handle(bmsString, bmsStringLength, "Background Media Scan [Enabled]");
                                 }
                             }
                             // bms-ps
@@ -6946,7 +6950,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 {
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
-                                               char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
+                                        char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
                                                                     bmsPSStringLength * sizeof(char)));
                                     if (temp != M_NULLPTR)
                                     {
@@ -6956,7 +6960,8 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
                                 }
                                 if (bmsPSString != M_NULLPTR && bmsPSStringLength >= 50)
                                 {
-                                    snprintf(bmsPSString, bmsPSStringLength, "Background Pre-Scan [Enabled]");
+                                    snprintf_err_handle(bmsPSString, bmsPSStringLength,
+                                                        "Background Pre-Scan [Enabled]");
                                 }
                             }
                         }
@@ -7499,8 +7504,8 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
             driveInfo->interfaceSpeedInfo.speedIsValid           = true;
             driveInfo->interfaceSpeedInfo.speedType              = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 5.0;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "FAST-5");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-5");
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
         }
         else if (scsiInfo.version >= 2 && scsiInfo.version <= 4)
@@ -7508,8 +7513,8 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
             driveInfo->interfaceSpeedInfo.speedIsValid           = true;
             driveInfo->interfaceSpeedInfo.speedType              = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 10.0;
-            snprintf(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName, PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
-                     "FAST-10");
+            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-10");
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
         }
     }
@@ -7639,9 +7644,9 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice*                d
                 driveInfo->dstInfo.resultOrStatus = status;
                 driveInfo->dstInfo.testNumber     = M_Nibble1(nvmeDSTLog[latestDSTOffset + 0]);
                 driveInfo->dstInfo.powerOnHours   = M_BytesTo8ByteValue(
-                      nvmeDSTLog[latestDSTOffset + 11], nvmeDSTLog[latestDSTOffset + 10], nvmeDSTLog[latestDSTOffset + 9],
-                      nvmeDSTLog[latestDSTOffset + 8], nvmeDSTLog[latestDSTOffset + 7], nvmeDSTLog[latestDSTOffset + 6],
-                      nvmeDSTLog[latestDSTOffset + 5], nvmeDSTLog[latestDSTOffset + 4]);
+                    nvmeDSTLog[latestDSTOffset + 11], nvmeDSTLog[latestDSTOffset + 10], nvmeDSTLog[latestDSTOffset + 9],
+                    nvmeDSTLog[latestDSTOffset + 8], nvmeDSTLog[latestDSTOffset + 7], nvmeDSTLog[latestDSTOffset + 6],
+                    nvmeDSTLog[latestDSTOffset + 5], nvmeDSTLog[latestDSTOffset + 4]);
                 if (nvmeDSTLog[latestDSTOffset + 2] & BIT1)
                 {
                     driveInfo->dstInfo.errorLBA =
@@ -9552,13 +9557,15 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
         if (nvmeDriveInfo->controllerData.majorVersion > 0 || nvmeDriveInfo->controllerData.minorVersion > 0 ||
             nvmeDriveInfo->controllerData.tertiaryVersion > 0)
         {
-            snprintf(externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
-                     "NVMe %" PRIu16 ".%" PRIu8 ".%" PRIu8 "\n", nvmeDriveInfo->controllerData.majorVersion,
-                     nvmeDriveInfo->controllerData.minorVersion, nvmeDriveInfo->controllerData.tertiaryVersion);
+            snprintf_err_handle(externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
+                                "NVMe %" PRIu16 ".%" PRIu8 ".%" PRIu8 "\n", nvmeDriveInfo->controllerData.majorVersion,
+                                nvmeDriveInfo->controllerData.minorVersion,
+                                nvmeDriveInfo->controllerData.tertiaryVersion);
         }
         else
         {
-            snprintf(externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH, "NVMe 1.1 or older\n");
+            snprintf_err_handle(externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
+                                "NVMe 1.1 or older\n");
         }
         ++(externalDriveInfo->numberOfSpecificationsSupported);
 

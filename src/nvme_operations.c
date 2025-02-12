@@ -820,18 +820,18 @@ eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice* device)
     int             i, temp;
     const char*     test_code_res;
     const char*     test_res[10] = {
-            "Operation completed without error",
-            "Operation was aborted by a Device Self-test command",
-            "Operation was aborted by a Controller Level Reset",
-            "Operation was aborted due to a removal of a namespace from the namespace inventory",
-            "Operation was aborted due to the processing of a Format NVM command",
-            "A fatal error or unknown test error occurred while the controller was executing the"
-                " device self-test operation andthe operation did not complete",
-            "Operation completed with a segment that failed and the segment that failed is not known",
-            "Operation completed with one or more failed segments and the first segment that failed "
-                "is indicated in the SegmentNumber field",
-            "Operation was aborted for unknown reason",
-            "Reserved"};
+        "Operation completed without error",
+        "Operation was aborted by a Device Self-test command",
+        "Operation was aborted by a Controller Level Reset",
+        "Operation was aborted due to a removal of a namespace from the namespace inventory",
+        "Operation was aborted due to the processing of a Format NVM command",
+        "A fatal error or unknown test error occurred while the controller was executing the"
+            " device self-test operation andthe operation did not complete",
+        "Operation completed with a segment that failed and the segment that failed is not known",
+        "Operation completed with one or more failed segments and the first segment that failed "
+            "is indicated in the SegmentNumber field",
+        "Operation was aborted for unknown reason",
+        "Reserved"};
 
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);

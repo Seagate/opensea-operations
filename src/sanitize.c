@@ -163,8 +163,8 @@ static eReturnValues get_SCSI_Sanitize_Progress(tDevice*         device,
     uint8_t       senseKey = UINT8_C(0);
     uint8_t       fru      = UINT8_C(0);
     eReturnValues result   = scsi_Request_Sense_Cmd(
-          device, false, req_sense_buf,
-          SPC3_SENSE_LEN); // get fixed format sense data to make this easier to parse the progress from.
+        device, false, req_sense_buf,
+        SPC3_SENSE_LEN); // get fixed format sense data to make this easier to parse the progress from.
     get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
     result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
     // set this for now. It will be changed below if necessary.

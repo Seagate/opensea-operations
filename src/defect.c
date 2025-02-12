@@ -48,7 +48,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
         uint8_t  returnedDefectListFormat  = UINT8_MAX;
         uint32_t dataLength                = UINT32_C(8);
         uint8_t* defectData                = M_REINTERPRET_CAST(
-                           uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint32_t defectListLength = UINT32_C(0);
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 &&
             (ret = scsi_Read_Defect_Data_12(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat), 0,
@@ -1045,7 +1045,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
             uint16_t numberOfBlocksRequested = UINT16_C(0);
             uint32_t dataSize                = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
             uint8_t* data                    = M_REINTERPRET_CAST(
-                                   uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (data == M_NULLPTR)
             {
                 return MEMORY_FAILURE;

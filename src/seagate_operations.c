@@ -42,7 +42,7 @@ eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice* device, uint8_t speedGen)
 {
     eReturnValues ret             = UNKNOWN;
     uint8_t*      sctSATAPhySpeed = M_REINTERPRET_CAST(
-             uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (sctSATAPhySpeed == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
@@ -1103,29 +1103,32 @@ void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool
     DISABLE_NONNULL_COMPARE
     if (translatedString != M_NULLPTR)
     {
+        safe_memset(translatedString, MAX_DST_STATUS_STRING_LENGTH, 0, MAX_DST_STATUS_STRING_LENGTH);
         switch (status)
         {
         case 0x00:
             if (justRanDST)
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine completed without error.");
+                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                    "The IDD routine completed without error.");
             }
             else
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous IDD routine completed without error or no IDD has ever been run.");
+                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                    "The previous IDD routine completed without error or no IDD has ever been run.");
             }
             break;
         case 0x01:
 
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine was aborted by the host.");
+            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                "The IDD routine was aborted by the host.");
             break;
         case 0x02:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                     "The IDD routine was interrupted by the host with a hardware or software reset.");
+            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                "The IDD routine was interrupted by the host with a hardware or software reset.");
             break;
         case 0x03:
-            snprintf(
+            snprintf_err_handle(
                 translatedString, MAX_DST_STATUS_STRING_LENGTH,
                 "A fatal error or unknown test error occurred while the device was executing its IDD routine and the "
                 "device was unable to complete the IDD routine.");
@@ -1133,13 +1136,14 @@ void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool
         case 0x04:
             if (justRanDST)
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The IDD completed having a test element that failed and the test element that failed is not "
-                         "known.");
+                snprintf_err_handle(
+                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    "The IDD completed having a test element that failed and the test element that failed is not "
+                    "known.");
             }
             else
             {
-                snprintf(
+                snprintf_err_handle(
                     translatedString, MAX_DST_STATUS_STRING_LENGTH,
                     "The previous IDD completed having a test element that failed and the test element that failed is "
                     "not known.");
@@ -1148,51 +1152,55 @@ void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool
         case 0x05:
             if (justRanDST)
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The IDD completed having the electrical element of the test failed.");
+                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                    "The IDD completed having the electrical element of the test failed.");
             }
             else
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous IDD completed having the electrical element of the test failed.");
+                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                    "The previous IDD completed having the electrical element of the test failed.");
             }
             break;
         case 0x06:
             if (justRanDST)
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The IDD completed having the servo (and/or seek) test element of the test failed.");
+                snprintf_err_handle(
+                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    "The IDD completed having the servo (and/or seek) test element of the test failed.");
             }
             else
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
+                snprintf_err_handle(
+                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
             }
             break;
         case 0x07:
             if (justRanDST)
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The IDD completed having the read element of the test failed.");
+                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                    "The IDD completed having the read element of the test failed.");
             }
             else
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous IDD completed having the read element of the test failed.");
+                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                    "The previous IDD completed having the read element of the test failed.");
             }
             break;
         case 0x08:
             if (justRanDST)
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The IDD completed having a test element that failed and the device is suspected of having "
-                         "handling damage.");
+                snprintf_err_handle(
+                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    "The IDD completed having a test element that failed and the device is suspected of having "
+                    "handling damage.");
             }
             else
             {
-                snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                         "The previous IDD completed having a test element that failed and the device is suspected of "
-                         "having handling damage.");
+                snprintf_err_handle(
+                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    "The previous IDD completed having a test element that failed and the device is suspected of "
+                    "having handling damage.");
             }
             break;
         case 0x09:
@@ -1201,13 +1209,14 @@ void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool
         case 0x0C:
         case 0x0D:
         case 0x0E:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
+            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
             break;
         case 0x0F:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "IDD in progress.");
+            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "IDD in progress.");
             break;
         default:
-            snprintf(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.", status);
+            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.",
+                                status);
         }
     }
     RESTORE_NONNULL_COMPARE
@@ -2175,56 +2184,57 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
     if (lastAttr == 1)
     {
 
-        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                 (print_ext_smart_id(VS_ATTR_ID_GB_ERASED_LSB) + 7));
+        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
+                            (print_ext_smart_id(VS_ATTR_ID_GB_ERASED_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_GB_ERASED_MSB << 8 | VS_ATTR_ID_GB_ERASED_LSB);
 
-        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "", msbGbErased,
-                 lsbGbErased);
+        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "",
+                            msbGbErased, lsbGbErased);
         printf(" %s", buf);
         printf("\n");
 
-        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                 (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
+        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
+                            (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB);
 
-        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtToFlash,
-                 lsbLifWrtToFlash);
+        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
+                            msbLifWrtToFlash, lsbLifWrtToFlash);
         printf(" %s", buf);
         printf("\n");
 
-        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                 (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
+        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
+                            (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB);
 
-        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifWrtFrmHost,
-                 lsbLifWrtFrmHost);
+        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
+                            msbLifWrtFrmHost, lsbLifWrtFrmHost);
         printf(" %s", buf);
         printf("\n");
 
-        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                 (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
+        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
+                            (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_READS_TO_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB);
 
-        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbLifRdToHost,
-                 lsbLifRdToHost);
+        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
+                            msbLifRdToHost, lsbLifRdToHost);
         printf(" %s", buf);
         printf("\n");
 
-        snprintf(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                 (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
+        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
+                            (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
         printf("%-40s", strBuf);
         printf("%-15d", VS_ATTR_ID_TRIM_COUNT_MSB << 8 | VS_ATTR_ID_TRIM_COUNT_LSB);
 
-        snprintf(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt, lsbTrimCnt);
+        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt,
+                            lsbTrimCnt);
         printf(" %s", buf);
         printf("\n");
     }

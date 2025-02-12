@@ -96,8 +96,8 @@ static void addDataSetEntry(int32_t   subPageType,
 {
     // farm current signature
     DECLARE_ZERO_INIT_ARRAY(char, signature, FARM_DATASET_SIGNATURE_LENGTH + 1);
-    snprintf(signature, FARM_DATASET_SIGNATURE_LENGTH + 1, "%-*s", FARM_DATASET_SIGNATURE_LENGTH,
-             farmSubPageSignatureId[subPageType]);
+    snprintf_err_handle(signature, FARM_DATASET_SIGNATURE_LENGTH + 1, "%-*s", FARM_DATASET_SIGNATURE_LENGTH,
+                        farmSubPageSignatureId[subPageType]);
     safe_memcpy(dataSetHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, &signature, FARM_DATASET_SIGNATURE_LENGTH);
     safe_memcpy(dataSetHeader + 12, FARMC_LOG_DATA_SET_HEADER_LENGTH - 12, &dataSetLength, sizeof(uint32_t));
     safe_memcpy(dataSetHeader + 16, FARMC_LOG_DATA_SET_HEADER_LENGTH - 16, &startTimeStamp, sizeof(uint64_t));
@@ -1141,7 +1141,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
     farmPtrAndLen          farmSavedLog      = {.ptr = M_NULLPTR, .alloclen = uint32_to_sizet(ATA_FARM_LOG_PAGE_SIZE)};
     farmPtrAndLen          farmTimeSeriesLog = {.ptr = M_NULLPTR,
                                                 .alloclen = uint32_to_sizet(FARM_TIME_SERIES_PAGES * ATA_FARM_LOG_PAGE_SIZE)};
-    farmPtrAndLen          farmLongSavedLog  = {.ptr      = M_NULLPTR,
+    farmPtrAndLen          farmLongSavedLog  = {.ptr = M_NULLPTR,
                                                 .alloclen = uint32_to_sizet(FARM_LONG_SAVED_PAGES * ATA_FARM_LOG_PAGE_SIZE)};
     farmPtrAndLen          farmStickyLog     = {.ptr      = M_NULLPTR,
                                                 .alloclen = uint32_to_sizet(FARM_STICKY_PAGES * ATA_FARM_LOG_PAGE_SIZE)};
@@ -1157,7 +1157,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
 
     // set signature
     DECLARE_ZERO_INIT_ARRAY(char, signature, FARM_SIGNATURE_LENGTH + 1);
-    snprintf(signature, FARM_SIGNATURE_LENGTH + 1, "%-*s", FARM_SIGNATURE_LENGTH, FARMC_SIGNATURE_ID);
+    snprintf_err_handle(signature, FARM_SIGNATURE_LENGTH + 1, "%-*s", FARM_SIGNATURE_LENGTH, FARMC_SIGNATURE_ID);
     safe_memcpy(header, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH), &signature, FARM_SIGNATURE_LENGTH);
 
     // set the version number - major.minor.revision
@@ -1172,31 +1172,32 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
     DECLARE_ZERO_INIT_ARRAY(char, interfaceType, 4 + 1);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        snprintf(interfaceType, 4 + 1, "%-*s", 4, "SATA");
+        snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SATA");
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        snprintf(interfaceType, 4 + 1, "%-*s", 4, "SAS");
+        snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SAS");
     }
     else
     {
-        snprintf(interfaceType, 4 + 1, "%-*s", 4, "NVMe");
+        snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "NVMe");
     }
     safe_memcpy(header + 24, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(24), &interfaceType, 4);
 
     // set model#
     DECLARE_ZERO_INIT_ARRAY(char, modelNumber, MODEL_NUM_LEN + 1);
-    snprintf(modelNumber, MODEL_NUM_LEN + 1, "%-*s", MODEL_NUM_LEN, device->drive_info.product_identification);
+    snprintf_err_handle(modelNumber, MODEL_NUM_LEN + 1, "%-*s", MODEL_NUM_LEN,
+                        device->drive_info.product_identification);
     safe_memcpy(header + 32, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(32), &modelNumber, MODEL_NUM_LEN);
 
     // set serial#
     DECLARE_ZERO_INIT_ARRAY(char, serialNumber, SERIAL_NUM_LEN + 1);
-    snprintf(serialNumber, SERIAL_NUM_LEN + 1, "%-*s", SERIAL_NUM_LEN, device->drive_info.serialNumber);
+    snprintf_err_handle(serialNumber, SERIAL_NUM_LEN + 1, "%-*s", SERIAL_NUM_LEN, device->drive_info.serialNumber);
     safe_memcpy(header + 80, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(80), &serialNumber, SERIAL_NUM_LEN);
 
     // set firmware revision
     DECLARE_ZERO_INIT_ARRAY(char, firmwareVersion, FW_REV_LEN + 1);
-    snprintf(firmwareVersion, FW_REV_LEN + 1, "%-*s", FW_REV_LEN, device->drive_info.product_revision);
+    snprintf_err_handle(firmwareVersion, FW_REV_LEN + 1, "%-*s", FW_REV_LEN, device->drive_info.product_revision);
     safe_memcpy(header + 104, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(104), &firmwareVersion, FW_REV_LEN);
 
     // set dataset length
@@ -1310,7 +1311,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
                 logpageSize.currentLog  = logSize;
                 farmCurrentLog.alloclen = uint32_to_sizet(logSize);
                 farmCurrentLog.ptr      = M_REINTERPRET_CAST(
-                         uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.currentLog), sizeof(uint8_t),
+                    uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.currentLog), sizeof(uint8_t),
                                                        device->os_info.minimumAlignment));
                 if (!farmCurrentLog.ptr)
                 {
@@ -1329,7 +1330,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
                 logpageSize.factoryLog  = logSize;
                 farmFactoryLog.alloclen = uint32_to_sizet(logSize);
                 farmFactoryLog.ptr      = M_REINTERPRET_CAST(
-                         uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.factoryLog), sizeof(uint8_t),
+                    uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.factoryLog), sizeof(uint8_t),
                                                        device->os_info.minimumAlignment));
                 if (!farmFactoryLog.ptr)
                 {
@@ -1348,7 +1349,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
                 logpageSize.timeSeriesLog  = logSize;
                 farmTimeSeriesLog.alloclen = uint32_to_sizet(logSize) * FARM_TIME_SERIES_PAGES;
                 farmTimeSeriesLog.ptr      = M_REINTERPRET_CAST(
-                         uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.timeSeriesLog) * FARM_TIME_SERIES_PAGES,
+                    uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.timeSeriesLog) * FARM_TIME_SERIES_PAGES,
                                                        sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmTimeSeriesLog.ptr)
                 {
@@ -1367,7 +1368,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
                 logpageSize.longSavedLog  = logSize;
                 farmLongSavedLog.alloclen = uint32_to_sizet(logSize) * FARM_LONG_SAVED_PAGES;
                 farmLongSavedLog.ptr      = M_REINTERPRET_CAST(
-                         uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.longSavedLog) * FARM_LONG_SAVED_PAGES,
+                    uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.longSavedLog) * FARM_LONG_SAVED_PAGES,
                                                        sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmLongSavedLog.ptr)
                 {
@@ -1386,7 +1387,7 @@ eReturnValues pull_FARM_Combined_Log(tDevice*    device,
                 logpageSize.stickyLog  = logSize;
                 farmStickyLog.alloclen = uint32_to_sizet(logSize) * FARM_STICKY_PAGES;
                 farmStickyLog.ptr      = M_REINTERPRET_CAST(
-                         uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.stickyLog) * FARM_STICKY_PAGES,
+                    uint8_t*, safe_calloc_aligned(uint32_to_sizet(logpageSize.stickyLog) * FARM_STICKY_PAGES,
                                                        sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (!farmStickyLog.ptr)
                 {

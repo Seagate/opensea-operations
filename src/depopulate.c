@@ -280,53 +280,53 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
         DECLARE_ZERO_INIT_ARRAY(char, rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH);
         if (elementList[elementIter].elementHealth == 0x0)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Not reported");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Not reported");
         }
         else if (elementList[elementIter].elementHealth >= 0x1 && elementList[elementIter].elementHealth <= 0x63)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "In Limit");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "In Limit");
         }
         else if (elementList[elementIter].elementHealth == 0x64)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "At Limit");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "At Limit");
         }
         else if (elementList[elementIter].elementHealth >= 0x65 && elementList[elementIter].elementHealth <= 0xCF)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Over Limit");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Over Limit");
         }
         else if (elementList[elementIter].elementHealth == 0xFB)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate Error");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate Error");
         }
         else if (elementList[elementIter].elementHealth == 0xFC)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate in progress");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate in progress");
         }
         else if (elementList[elementIter].elementHealth == 0xFD)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate Error");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate Error");
         }
         else if (elementList[elementIter].elementHealth == 0xFE)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate in progress");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate in progress");
         }
         else if (elementList[elementIter].elementHealth == 0xFF)
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulated");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulated");
         }
         else
         {
-            snprintf(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Reserved");
+            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Reserved");
         }
         if (elementList[elementIter].associatedCapacity == UINT64_MAX)
         {
             // Drive doesn't report this
-            snprintf(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "N/A");
+            snprintf_err_handle(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "N/A");
         }
         else
         {
-            snprintf(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "%" PRIu64,
-                     elementList[elementIter].associatedCapacity);
+            snprintf_err_handle(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "%" PRIu64,
+                                elementList[elementIter].associatedCapacity);
         }
         if (elementList[elementIter].elementType == 1)
         {
@@ -334,11 +334,11 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
         }
         if (elementList[elementIter].restorationAllowed)
         {
-            snprintf(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "Yes");
+            snprintf_err_handle(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "Yes");
         }
         else
         {
-            snprintf(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "No");
+            snprintf_err_handle(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "No");
         }
         printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%s\t%s\n", elementList[elementIter].elementIdentifier,
                elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);

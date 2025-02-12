@@ -177,23 +177,23 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
         switch (zoneDescriptor.zoneType)
         {
         case ZONE_TYPE_CONVENTIONAL:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "CONV");
+            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "CONV");
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_REQUIRED:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWR");
+            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWR");
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_PREFERRED:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWP");
+            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWP");
             break;
         case ZONE_TYPE_SEQUENTIAL_OR_BEFORE_REQUIRED:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SOBR");
+            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SOBR");
             break;
         case ZONE_TYPE_GAP:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "GAP");
+            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "GAP");
             break;
         case ZONE_TYPE_RESERVED:
         default:
-            snprintf(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "RESV");
+            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "RESV");
             break;
         }
 #define ZONE_CONDITION_STRING_LENGTH 18
@@ -201,34 +201,34 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
         switch (zoneDescriptor.zoneCondition)
         {
         case ZONE_CONDITION_NOT_WRITE_POINTER:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Not Write Pointer");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Not Write Pointer");
             break;
         case ZONE_CONDITION_EMPTY:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Empty");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Empty");
             break;
         case ZONE_CONDITION_IMLICITLY_OPENED:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Implicitly Opened");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Implicitly Opened");
             break;
         case ZONE_CONDITION_EXPLICITYLE_OPENED:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Explicitly Opened");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Explicitly Opened");
             break;
         case ZONE_CONDITION_CLOSED:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Closed");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Closed");
             break;
         case ZONE_CONDITION_INACTIVE:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Inactive");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Inactive");
             break;
         case ZONE_CONDITION_READ_ONLY:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Read Only");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Read Only");
             break;
         case ZONE_CONDITION_FULL:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Full");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Full");
             break;
         case ZONE_CONDITION_OFFLINE:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Offline");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Offline");
             break;
         default:
-            snprintf(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Reserved");
+            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Reserved");
             break;
         }
 #define ZONE_ATTR_OTHER_FLAGS_LENGTH 4
@@ -286,40 +286,40 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
     switch (reportingOptions)
     {
     case ZONE_REPORT_LIST_ALL_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "All Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "All Zones");
         break;
     case ZONE_REPORT_LIST_EMPTY_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Empty Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Empty Zones");
         break;
     case ZONE_REPORT_LIST_IMPLICIT_OPEN_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Implicitly Open Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Implicitly Open Zones");
         break;
     case ZONE_REPORT_LIST_EXPLICIT_OPEN_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Explicitly Open Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Explicitly Open Zones");
         break;
     case ZONE_REPORT_LIST_CLOSED_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Closed Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Closed Zones");
         break;
     case ZONE_REPORT_LIST_FULL_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Full Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Full Zones");
         break;
     case ZONE_REPORT_LIST_READ_ONLY_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Read Only Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Read Only Zones");
         break;
     case ZONE_REPORT_LIST_OFFLINE_ZONES:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Offline Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Offline Zones");
         break;
     case ZONE_REPORT_LIST_ZONES_WITH_RESET_SET_TO_ONE:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Reset Recommended Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Reset Recommended Zones");
         break;
     case ZONE_REPORT_LIST_ZONES_WITH_NON_SEQ_SET_TO_ONE:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Non-Sequential Resource Active Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Non-Sequential Resource Active Zones");
         break;
     case ZONE_REPORT_LIST_ALL_ZONES_THAT_ARE_NOT_WRITE_POINTERS:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Not Write Pointer Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Not Write Pointer Zones");
         break;
     default:
-        snprintf(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
+        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
         break;
     }
     DISABLE_NONNULL_COMPARE

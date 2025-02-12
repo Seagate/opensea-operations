@@ -1280,7 +1280,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                                             reportAllOPs[supportedCmdsIter + 2], reportAllOPs[supportedCmdsIter + 3]);
                                         bool serviceActionValid = M_ToBool(reportAllOPs[supportedCmdsIter + 5] & BIT0);
                                         eMLU mlu                = C_CAST(
-                                                           eMLU, get_bit_range_uint8(reportAllOPs[supportedCmdsIter + 5], 5, 4));
+                                            eMLU, get_bit_range_uint8(reportAllOPs[supportedCmdsIter + 5], 5, 4));
                                         cmdDescriptorLength = (reportAllOPs[supportedCmdsIter + 5] & BIT1) ? 20 : 8;
                                         switch (operationCode)
                                         {
@@ -1651,12 +1651,12 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
                     }
                     if (safe_strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
                     {
-                        snprintf(slotRevision, 14, "%s",
-                                 supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision);
+                        snprintf_err_handle(slotRevision, 14, "%s",
+                                            supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision);
                     }
                     else
                     {
-                        snprintf(slotRevision, 14, "Not Available");
+                        snprintf_err_handle(slotRevision, 14, "Not Available");
                     }
                     printf(": %s\n", slotRevision);
                 }

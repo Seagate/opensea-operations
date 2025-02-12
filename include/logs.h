@@ -708,18 +708,19 @@ extern "C"
     M_PARAM_WO_SIZE(8, 9)
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
-    M_PARAM_WO(12) OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice*    device,
-                                                                               uint8_t     bufferID,
-                                                                               const char* logName,
-                                                                               bool        createNewSnapshot,
-                                                                               bool        useReadBuffer16,
-                                                                               const char* fileExtension,
-                                                                               bool        toBuffer,
-                                                                               uint8_t*    myBuf,
-                                                                               uint32_t    bufSize,
-                                                                               const char* filePath,
-                                                                               uint32_t    transferSizeBytes,
-                                                                               char*       fileNameUsed);
+    M_PARAM_WO(12)
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice*    device,
+                                                                uint8_t     bufferID,
+                                                                const char* logName,
+                                                                bool        createNewSnapshot,
+                                                                bool        useReadBuffer16,
+                                                                const char* fileExtension,
+                                                                bool        toBuffer,
+                                                                uint8_t*    myBuf,
+                                                                uint32_t    bufSize,
+                                                                const char* filePath,
+                                                                uint32_t    transferSizeBytes,
+                                                                char*       fileNameUsed);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
@@ -861,17 +862,18 @@ extern "C"
     M_PARAM_WO_SIZE(8, 9)
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
-    M_PARAM_WO(11) OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice*             device,
-                                                                           eScsiModePageControl mpc,
-                                                                           uint8_t              modePage,
-                                                                           uint8_t              subpage,
-                                                                           const char*          logName,
-                                                                           const char*          fileExtension,
-                                                                           bool                 toBuffer,
-                                                                           uint8_t*             myBuf,
-                                                                           uint32_t             bufSize,
-                                                                           const char*          filePath,
-                                                                           bool*                used6ByteCmd);
+    M_PARAM_WO(11)
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice*             device,
+                                                            eScsiModePageControl mpc,
+                                                            uint8_t              modePage,
+                                                            uint8_t              subpage,
+                                                            const char*          logName,
+                                                            const char*          fileExtension,
+                                                            bool                 toBuffer,
+                                                            uint8_t*             myBuf,
+                                                            uint32_t             bufSize,
+                                                            const char*          filePath,
+                                                            bool*                used6ByteCmd);
 
     // This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes
     // should be passed as 0 unless you know the length you want to pull.

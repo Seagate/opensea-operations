@@ -816,7 +816,7 @@ eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptr
     {
         uint16_t reservationsLength = C_CAST(uint16_t, numberReservations * UINT16_C(16) + UINT16_C(8));
         uint8_t* reservationKeys    = C_CAST(
-               uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (reservationKeys == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -907,7 +907,7 @@ eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptr
         {
             uint32_t reservationsLength = (C_CAST(uint32_t, totalReservationKeys) * UINT32_C(24)) + UINT32_C(24);
             uint8_t* reservationKeys    = C_CAST(
-                   uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
             if (reservationKeys == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
@@ -997,54 +997,54 @@ void show_Reservations(ptrReservationsData reservations)
             switch (reservations->reservation[resIter].scope)
             {
             case RESERVATION_SCOPE_LOGICAL_UNIT:
-                snprintf(scope, RES_SCOPE_BUF_LEN, "LU");
+                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "LU");
                 break;
             case RESERVATION_SCOPE_EXTENT:
-                snprintf(scope, RES_SCOPE_BUF_LEN, "Extent");
+                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "Extent");
                 break;
             case RESERVATION_SCOPE_ELEMENT:
-                snprintf(scope, RES_SCOPE_BUF_LEN, "Element");
+                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "Element");
                 break;
             case RESERVATION_SCOPE_UNKNOWN:
             default:
-                snprintf(scope, RES_SCOPE_BUF_LEN, "Unknown");
+                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "Unknown");
                 break;
             }
             switch (reservations->reservation[resIter].type)
             {
             case RES_TYPE_NO_RESERVATION:
-                snprintf(type, RES_TYPE_BUF_LEN, "None");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "None");
                 break;
             case RES_TYPE_READ_SHARED:
-                snprintf(type, RES_TYPE_BUF_LEN, "Read Shared");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Shared");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE:
-                snprintf(type, RES_TYPE_BUF_LEN, "Write Exclusive");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive");
                 break;
             case RES_TYPE_READ_EXCLUSIVE:
-                snprintf(type, RES_TYPE_BUF_LEN, "Read Exclusive");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Exclusive");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Exclusive Access");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access");
                 break;
             case RES_TYPE_SHARED_ACCESS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Shared Access");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Shared Access");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
-                snprintf(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
-                snprintf(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
                 break;
             case RES_TYPE_UNKNOWN:
             default:
-                snprintf(type, RES_TYPE_BUF_LEN, "Unknown");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Unknown");
                 break;
             }
             printf("%16" PRIX64 "h  %7s  %20s", reservations->reservation[resIter].reservationKey, scope, type);
@@ -1389,7 +1389,7 @@ eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullRes
     {
         uint32_t nvmeFullDataLen = UINT32_C(24) + (UINT32_C(24) * C_CAST(uint32_t, numberOfKeys));
         uint8_t* nvmeFullData    = M_REINTERPRET_CAST(
-               uint8_t*, safe_calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (nvmeFullData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -1490,54 +1490,54 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
             switch (fullReservation->reservationKey[keyIter].scope)
             {
             case RESERVATION_SCOPE_LOGICAL_UNIT:
-                snprintf(type, RES_SCOPE_BUF_LEN, "LU");
+                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "LU");
                 break;
             case RESERVATION_SCOPE_EXTENT:
-                snprintf(type, RES_SCOPE_BUF_LEN, "Extent");
+                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "Extent");
                 break;
             case RESERVATION_SCOPE_ELEMENT:
-                snprintf(type, RES_SCOPE_BUF_LEN, "Element");
+                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "Element");
                 break;
             case RESERVATION_SCOPE_UNKNOWN:
             default:
-                snprintf(type, RES_SCOPE_BUF_LEN, "Unknown");
+                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "Unknown");
                 break;
             }
             switch (fullReservation->reservationKey[keyIter].type)
             {
             case RES_TYPE_NO_RESERVATION:
-                snprintf(type, RES_TYPE_BUF_LEN, "None");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "None");
                 break;
             case RES_TYPE_READ_SHARED:
-                snprintf(type, RES_TYPE_BUF_LEN, "Read Shared");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Shared");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE:
-                snprintf(type, RES_TYPE_BUF_LEN, "Write Exclusive");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive");
                 break;
             case RES_TYPE_READ_EXCLUSIVE:
-                snprintf(type, RES_TYPE_BUF_LEN, "Read Exclusive");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Exclusive");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Exclusive Access");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access");
                 break;
             case RES_TYPE_SHARED_ACCESS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Shared Access");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Shared Access");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
-                snprintf(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
-                snprintf(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
-                snprintf(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
                 break;
             case RES_TYPE_UNKNOWN:
             default:
-                snprintf(type, RES_TYPE_BUF_LEN, "Unknown");
+                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Unknown");
                 break;
             }
             printf("%16" PRIX64 "h  %c        %c      %7s  %23s  %08" PRIX16 "h ",

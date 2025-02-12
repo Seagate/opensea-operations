@@ -285,7 +285,7 @@ eReturnValues get_SCSI_VPD_Page_Size(tDevice* device, uint8_t vpdPage, uint32_t*
     eReturnValues ret             = NOT_SUPPORTED; // assume the page is not supported
     uint32_t      vpdBufferLength = INQ_RETURN_DATA_LENGTH;
     uint8_t*      vpdBuffer       = M_REINTERPRET_CAST(
-                   uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (vpdBuffer == M_NULLPTR)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -1441,7 +1441,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
         bool            fileOpened = false;
         secureFileInfo* fp_log     = M_NULLPTR;
         uint8_t*        logBuffer  = M_REINTERPRET_CAST(
-                    uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (logBuffer == M_NULLPTR)
         {
             perror("Calloc Failure!\n");
@@ -1926,7 +1926,7 @@ eReturnValues get_SCSI_VPD(tDevice*    device,
     {
         secureFileInfo* fp_vpd    = M_NULLPTR;
         uint8_t*        vpdBuffer = M_REINTERPRET_CAST(
-                   uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         bool fileOpened = false;
         if (vpdBuffer == M_NULLPTR)
         {
@@ -2967,7 +2967,7 @@ eReturnValues print_Supported_SCSI_Logs(tDevice* device, uint64_t flags)
 {
     eReturnValues retStatus = NOT_SUPPORTED;
     uint8_t*      logBuffer = M_REINTERPRET_CAST(
-             uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -3067,7 +3067,7 @@ static void format_print_ata_logs_info(uint8_t  log,
     DECLARE_ZERO_INIT_ARRAY(char, access, ATA_LOG_ACCESS_STRING_LENGTH);
     if (smartAccess)
     {
-        snprintf(access, ATA_LOG_ACCESS_STRING_LENGTH, "SL");
+        snprintf_err_handle(access, ATA_LOG_ACCESS_STRING_LENGTH, "SL");
     }
     if (gplAccess)
     {
@@ -3092,7 +3092,7 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
     eReturnValues retStatus           = NOT_SUPPORTED;
     bool          legacyDriveNoLogDir = false;
     uint8_t*      gplLogBuffer        = M_REINTERPRET_CAST(
-                    uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t), device->os_info.minimumAlignment));
     uint8_t* smartLogBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
@@ -3611,7 +3611,7 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice* device, uint8_t logNum, eLogPull
                     secureFileInfo* pLogFile = M_NULLPTR;
 #define NVME_LOG_NAME_SIZE 16
                     DECLARE_ZERO_INIT_ARRAY(char, logName, NVME_LOG_NAME_SIZE);
-                    snprintf(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum);
+                    snprintf_err_handle(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum);
                     if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(
                                        device, &pLogFile, NAMING_SERIAL_NUMBER_DATE_TIME, M_NULLPTR, logName, "bin"))
                     {
@@ -3715,7 +3715,7 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice* device, uin
     eReturnValues ret                   = NOT_SUPPORTED;
     uint32_t      errorHistorySize      = SCSI_ERROR_HISTORY_DIRECTORY_LEN;
     uint8_t*      errorHistoryDirectory = M_REINTERPRET_CAST(
-             uint8_t*, safe_calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment));
     M_USE_UNUSED(flags);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
     if (errorHistoryDirectory != M_NULLPTR)
@@ -3767,16 +3767,16 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice* device, uin
                 switch (bufferFormat)
                 {
                 case 0: // vendor specific data
-                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Vendor Specific");
+                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Vendor Specific");
                     break;
                 case 1: // current internal status parameter data
-                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Current ISL");
+                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Current ISL");
                     break;
                 case 2: // saved internal status parameter data
-                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Saved ISL");
+                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Saved ISL");
                     break;
                 default: // unknown or reserved
-                    snprintf(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Reserved");
+                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Reserved");
                     break;
                 }
                 printf("  %3" PRIu8 " (%02" PRIX8 "h)      :  %-16s :    %" PRIu32 "\n", bufferID, bufferID,
@@ -3915,12 +3915,13 @@ eReturnValues pull_Generic_Log(tDevice*     device,
     DECLARE_ZERO_INIT_ARRAY(char, logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH);
     if (device->drive_info.drive_type == SCSI_DRIVE && subpage != 0)
     {
-        snprintf(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH, "GENERIC_LOG-%u-%u", logNum,
-                 subpage);
+        snprintf_err_handle(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH, "GENERIC_LOG-%u-%u",
+                            logNum, subpage);
     }
     else
     {
-        snprintf(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH, "GENERIC_LOG-%u", logNum);
+        snprintf_err_handle(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH, "GENERIC_LOG-%u",
+                            logNum);
     }
 #ifdef _DEBUG
     printf("%s: Log to Pull %d, mode %d, device type %d\n", __FUNCTION__, logNum, C_CAST(uint8_t, mode),
@@ -3956,8 +3957,8 @@ eReturnValues pull_Generic_Error_History(tDevice*     device,
 #define ERROR_HISTORY_FILENAME_LENGTH 30
 #define ERROR_HISTORY_POST_FIX_LENGTH 10
     DECLARE_ZERO_INIT_ARRAY(char, errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH + ERROR_HISTORY_POST_FIX_LENGTH);
-    snprintf(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH + ERROR_HISTORY_POST_FIX_LENGTH,
-             "GENERIC_ERROR_HISTORY-%" PRIu8, bufferID);
+    snprintf_err_handle(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH + ERROR_HISTORY_POST_FIX_LENGTH,
+                        "GENERIC_ERROR_HISTORY-%" PRIu8, bufferID);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
@@ -4024,7 +4025,7 @@ eReturnValues pull_FARM_LogPage(tDevice*     device,
             return NOT_SUPPORTED;
         case PULL_LOG_BIN_FILE_MODE:
         default:
-            snprintf(logType, OPENSEA_PATH_MAX, "FARM_PAGE_%d", logPage);
+            snprintf_err_handle(logType, OPENSEA_PATH_MAX, "FARM_PAGE_%d", logPage);
             if (device->drive_info.interface_type != USB_INTERFACE &&
                 device->drive_info.interface_type != IEEE_1394_INTERFACE)
             {

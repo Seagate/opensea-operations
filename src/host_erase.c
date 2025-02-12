@@ -45,7 +45,7 @@ eReturnValues erase_Range(tDevice* device,
     uint32_t      dataLength  = sectors * device->drive_info.deviceBlockSize;
     uint64_t      alignedLBA  = align_LBA(device, eraseRangeStart);
     uint8_t*      writeBuffer = M_REINTERPRET_CAST(
-             uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase range");
@@ -320,7 +320,7 @@ eReturnValues erase_Boot_Sectors(tDevice* device)
     uint64_t      iter        = UINT64_C(0);
     uint32_t      dataLength  = sectors * device->drive_info.deviceBlockSize;
     uint8_t*      writeBuffer = M_REINTERPRET_CAST(
-             uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase range");

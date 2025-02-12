@@ -651,32 +651,32 @@ static const char* convert_NVM_Latency_To_HR_Time_Str(uint64_t timeInNanoSeconds
     switch (unitCounter)
     {
     case 6: // we shouldn't get to a days value, but room for future large drives I guess...-TJE
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "d");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "d");
         break;
     case 5:
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "h");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "h");
         break;
     case 4:
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "m");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "m");
         break;
     case 3:
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "s");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "s");
         break;
     case 2:
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "ms");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "ms");
         break;
     case 1:
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "us");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "us");
         break;
     case 0:
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "ns");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "ns");
         break;
     default: // couldn't get a good conversion or something weird happened so show original nanoseconds.
-        snprintf(units, NVM_LAT_UNIT_STR_LEN, "ns");
+        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "ns");
         printTime = C_CAST(double, timeInNanoSeconds);
         break;
     }
-    snprintf(timeStr, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "%0.02f %s", printTime, units);
+    snprintf_err_handle(timeStr, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "%0.02f %s", printTime, units);
     return ctimestr;
 }
 
@@ -725,30 +725,30 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
             }
             if (nvmps->powerState[psIter].maxPowerValid)
             {
-                snprintf(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
-                         (nvmps->powerState[psIter].maxPowerMilliWatts / 1000.0));
+                snprintf_err_handle(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
+                                    (nvmps->powerState[psIter].maxPowerMilliWatts / 1000.0));
             }
             else
             {
-                snprintf(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+                snprintf_err_handle(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
             }
             if (nvmps->powerState[psIter].idlePowerValid)
             {
-                snprintf(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
-                         (nvmps->powerState[psIter].idlePowerMilliWatts / 1000.0));
+                snprintf_err_handle(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
+                                    (nvmps->powerState[psIter].idlePowerMilliWatts / 1000.0));
             }
             else
             {
-                snprintf(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+                snprintf_err_handle(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
             }
             if (nvmps->powerState[psIter].activePowerValid)
             {
-                snprintf(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
-                         (nvmps->powerState[psIter].activePowerMilliWatts / 1000.0));
+                snprintf_err_handle(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
+                                    (nvmps->powerState[psIter].activePowerMilliWatts / 1000.0));
             }
             else
             {
-                snprintf(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+                snprintf_err_handle(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
             }
             if (nvmps->powerState[psIter].entryLatency > 0)
             {
@@ -756,7 +756,7 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
             }
             else
             {
-                snprintf(entryTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
+                snprintf_err_handle(entryTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
             }
             if (nvmps->powerState[psIter].exitLatency > 0)
             {
@@ -764,7 +764,7 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
             }
             else
             {
-                snprintf(exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
+                snprintf_err_handle(exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
             }
             printf("%s%2" PRIu16 " %10s  %10s    %10s %4" PRIu8 " %4" PRIu8 " %4" PRIu8 " %4" PRIu8 "  %10s %10s\n",
                    flags, nvmps->powerState[psIter].powerStateNumber, maxPowerWatts, idlePowerWatts, activePowerWatts,
@@ -1825,25 +1825,25 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
                 switch (currentUnit)
                 {
                 case 0: // gigawatts
-                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Gigawatts");
+                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Gigawatts");
                     break;
                 case 1: // megawatts
-                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Megawatts");
+                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Megawatts");
                     break;
                 case 2: // kilowatts
-                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Kilowatts");
+                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Kilowatts");
                     break;
                 case 3: // watts
-                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
+                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
                     break;
                 case 4: // milliwatts
-                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
+                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
                     break;
                 case 5: // microwatts
-                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
+                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
                     break;
                 default:
-                    snprintf(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "unknown unit of measure");
+                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "unknown unit of measure");
                     break;
                 }
                 printf("Current Power Consumption Value: %g %s\n", currentConsumption, currentUnits);
@@ -2963,7 +2963,7 @@ eReturnValues sata_Set_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice*
         bool          dipmSupported = false;
         bool          dipmEnabled   = false;
         eReturnValues getDIPM       = sata_Get_Device_Initiated_Interface_Power_State_Transitions(
-                  device, &dipmSupported, &dipmEnabled); // DIPM must be ENABLED before we can change this feature!!
+            device, &dipmSupported, &dipmEnabled); // DIPM must be ENABLED before we can change this feature!!
         if (getDIPM == SUCCESS && dipmSupported && dipmEnabled)
         {
             bool supported = false;
@@ -3258,7 +3258,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8
     RESTORE_NONNULL_COMPARE
     uint16_t enhPhyControlLength = UINT16_C(8); // only need 8 bytes to get the number of phys
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
-           uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
+        uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
                                          sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {
@@ -3306,7 +3306,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*    
     bool     gotFullPageLength   = false;
     uint16_t enhPhyControlLength = UINT16_C(0);
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
-           uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
+        uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
                                          sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {

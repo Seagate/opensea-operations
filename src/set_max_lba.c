@@ -83,7 +83,7 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
 {
     eReturnValues ret            = UNKNOWN;
     uint8_t*      scsiDataBuffer = C_CAST(
-             uint8_t*, safe_calloc_aligned(0x18, sizeof(uint8_t),
+        uint8_t*, safe_calloc_aligned(0x18, sizeof(uint8_t),
                                            device->os_info.minimumAlignment)); // this should be big enough to get back the
                                                                                // block descriptor we care about
     if (scsiDataBuffer == M_NULLPTR)

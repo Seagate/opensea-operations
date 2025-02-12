@@ -662,9 +662,9 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
                 case 1: // grown defects during certification
                     formatStatus->grownDefectsDuringCertificationValid = true;
                     formatStatus->grownDefectsDuringCertification      = M_BytesTo8ByteValue(
-                             formatStatusPage[offset + 4], formatStatusPage[offset + 5], formatStatusPage[offset + 6],
-                             formatStatusPage[offset + 7], formatStatusPage[offset + 8], formatStatusPage[offset + 9],
-                             formatStatusPage[offset + 10], formatStatusPage[offset + 11]);
+                        formatStatusPage[offset + 4], formatStatusPage[offset + 5], formatStatusPage[offset + 6],
+                        formatStatusPage[offset + 7], formatStatusPage[offset + 8], formatStatusPage[offset + 9],
+                        formatStatusPage[offset + 10], formatStatusPage[offset + 11]);
                     if (formatStatus->grownDefectsDuringCertification == UINT64_MAX)
                     {
                         grownDefectsDuringCertificationAllFs               = true;
@@ -674,9 +674,9 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
                 case 2: // total blocks reassigned during format
                     formatStatus->totalBlockReassignsDuringFormatValid = true;
                     formatStatus->totalBlockReassignsDuringFormat      = M_BytesTo8ByteValue(
-                             formatStatusPage[offset + 4], formatStatusPage[offset + 5], formatStatusPage[offset + 6],
-                             formatStatusPage[offset + 7], formatStatusPage[offset + 8], formatStatusPage[offset + 9],
-                             formatStatusPage[offset + 10], formatStatusPage[offset + 11]);
+                        formatStatusPage[offset + 4], formatStatusPage[offset + 5], formatStatusPage[offset + 6],
+                        formatStatusPage[offset + 7], formatStatusPage[offset + 8], formatStatusPage[offset + 9],
+                        formatStatusPage[offset + 10], formatStatusPage[offset + 11]);
                     if (formatStatus->totalBlockReassignsDuringFormat == UINT64_MAX)
                     {
                         totalBlockReassignsDuringFormatAllFs               = true;
@@ -686,9 +686,9 @@ eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
                 case 3: // total new blocks reassigned
                     formatStatus->totalNewBlocksReassignedValid = true;
                     formatStatus->totalNewBlocksReassigned      = M_BytesTo8ByteValue(
-                             formatStatusPage[offset + 4], formatStatusPage[offset + 5], formatStatusPage[offset + 6],
-                             formatStatusPage[offset + 7], formatStatusPage[offset + 8], formatStatusPage[offset + 9],
-                             formatStatusPage[offset + 10], formatStatusPage[offset + 11]);
+                        formatStatusPage[offset + 4], formatStatusPage[offset + 5], formatStatusPage[offset + 6],
+                        formatStatusPage[offset + 7], formatStatusPage[offset + 8], formatStatusPage[offset + 9],
+                        formatStatusPage[offset + 10], formatStatusPage[offset + 11]);
                     if (formatStatus->totalNewBlocksReassigned == UINT64_MAX)
                     {
                         totalNewBlocksReassignedAllFs               = true;
@@ -1011,7 +1011,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
 {
     eReturnValues ret         = NOT_SUPPORTED;
     uint8_t*      inquiryData = C_CAST(
-             uint8_t*, safe_calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (inquiryData == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -1428,8 +1428,8 @@ void show_Supported_Formats(ptrSupportedFormats formats)
 #define META_STRING_SIZE 10
             DECLARE_ZERO_INIT_ARRAY(char, perf, PERF_STRING_SIZE);
             DECLARE_ZERO_INIT_ARRAY(char, metaSize, META_STRING_SIZE);
-            snprintf(perf, PERF_STRING_SIZE, "N/A");
-            snprintf(metaSize, META_STRING_SIZE, "N/A");
+            snprintf_err_handle(perf, PERF_STRING_SIZE, "N/A");
+            snprintf_err_handle(metaSize, META_STRING_SIZE, "N/A");
             if (formats->protectionInformationSupported.deviceSupportsProtection)
             {
                 pi0 = 'Y';
@@ -1518,24 +1518,24 @@ void show_Supported_Formats(ptrSupportedFormats formats)
                 switch (formats->sectorSizes[iter].nvmeSectorBits.relativePerformance)
                 {
                 case 0:
-                    snprintf(perf, PERF_STRING_SIZE, "Best");
+                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Best");
                     break;
                 case 1:
-                    snprintf(perf, PERF_STRING_SIZE, "Better");
+                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Better");
                     break;
                 case 2:
-                    snprintf(perf, PERF_STRING_SIZE, "Good");
+                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Good");
                     break;
                 case 3:
-                    snprintf(perf, PERF_STRING_SIZE, "Degraded");
+                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Degraded");
                     break;
                 default:
-                    snprintf(perf, PERF_STRING_SIZE, "N/A");
+                    snprintf_err_handle(perf, PERF_STRING_SIZE, "N/A");
                     break;
                 }
                 safe_memset(metaSize, META_STRING_SIZE, 0, META_STRING_SIZE);
-                snprintf(metaSize, META_STRING_SIZE, "%" PRIu16,
-                         formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
+                snprintf_err_handle(metaSize, META_STRING_SIZE, "%" PRIu16,
+                                    formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
                 break;
             default:
                 break;

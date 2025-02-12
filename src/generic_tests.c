@@ -303,16 +303,16 @@ eReturnValues short_Generic_Test(tDevice*                    device,
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf(message, 256, "Sequential Read Test at OD");
+            snprintf_err_handle(message, 256, "Sequential Read Test at OD");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf(message, 256, "Sequential Verify Test at OD");
+            snprintf_err_handle(message, 256, "Sequential Verify Test at OD");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf(message, 256, "Sequential Write Test at OD");
+            snprintf_err_handle(message, 256, "Sequential Write Test at OD");
             break;
         default:
-            snprintf(message, 256, "Unknown Sequential Test at OD");
+            snprintf_err_handle(message, 256, "Unknown Sequential Test at OD");
             break;
         }
         printf("%s for %" PRIu64 " LBAs\n", message, onePercentOfDrive);
@@ -326,16 +326,16 @@ eReturnValues short_Generic_Test(tDevice*                    device,
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, 256, "Read failed within OD sequential read");
+                snprintf_err_handle(message, 256, "Read failed within OD sequential read");
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, 256, "Verify failed within OD sequential read");
+                snprintf_err_handle(message, 256, "Verify failed within OD sequential read");
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, 256, "Write failed within OD sequential read");
+                snprintf_err_handle(message, 256, "Write failed within OD sequential read");
                 break;
             default:
-                snprintf(message, 256, "Unknown failed within OD sequential read");
+                snprintf_err_handle(message, 256, "Unknown failed within OD sequential read");
                 break;
             }
             printf("\n%s\n", message);
@@ -353,16 +353,16 @@ eReturnValues short_Generic_Test(tDevice*                    device,
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf(message, 256, "Sequential Read Test at ID");
+            snprintf_err_handle(message, 256, "Sequential Read Test at ID");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf(message, 256, "Sequential Verify Test at ID");
+            snprintf_err_handle(message, 256, "Sequential Verify Test at ID");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf(message, 256, "Sequential Write Test at ID");
+            snprintf_err_handle(message, 256, "Sequential Write Test at ID");
             break;
         default:
-            snprintf(message, 256, "Unknown Sequential Test at ID");
+            snprintf_err_handle(message, 256, "Unknown Sequential Test at ID");
             break;
         }
         printf("%s for %" PRIu64 " LBAs\n", message, onePercentOfDrive);
@@ -376,16 +376,16 @@ eReturnValues short_Generic_Test(tDevice*                    device,
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, 256, "Read failed within ID sequential read");
+                snprintf_err_handle(message, 256, "Read failed within ID sequential read");
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, 256, "Verify failed within ID sequential read");
+                snprintf_err_handle(message, 256, "Verify failed within ID sequential read");
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, 256, "Write failed within ID sequential read");
+                snprintf_err_handle(message, 256, "Write failed within ID sequential read");
                 break;
             default:
-                snprintf(message, 256, "Unknown failed within ID sequential read");
+                snprintf_err_handle(message, 256, "Unknown failed within ID sequential read");
                 break;
             }
             printf("\n%s\n", message);
@@ -403,16 +403,16 @@ eReturnValues short_Generic_Test(tDevice*                    device,
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf(message, 256, "Random Read Test of 5000 LBAs");
+            snprintf_err_handle(message, 256, "Random Read Test of 5000 LBAs");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf(message, 256, "Random Verify Test of 5000 LBAs");
+            snprintf_err_handle(message, 256, "Random Verify Test of 5000 LBAs");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf(message, 256, "Random Write Test of 5000 LBAs");
+            snprintf_err_handle(message, 256, "Random Write Test of 5000 LBAs");
             break;
         default:
-            snprintf(message, 256, "Random Unknown Test of 5000 LBAs");
+            snprintf_err_handle(message, 256, "Random Unknown Test of 5000 LBAs");
             break;
         }
         printf("%s\n", message);
@@ -459,16 +459,20 @@ eReturnValues short_Generic_Test(tDevice*                    device,
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf(message, 256, "\nRead error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintf_err_handle(message, 256, "\nRead error occurred at LBA %-20" PRIu64 "",
+                                    randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf(message, 256, "\nVerify error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintf_err_handle(message, 256, "\nVerify error occurred at LBA %-20" PRIu64 "",
+                                    randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf(message, 256, "\nWrite error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintf_err_handle(message, 256, "\nWrite error occurred at LBA %-20" PRIu64 "",
+                                    randomLBAList[iterator]);
                 break;
             default:
-                snprintf(message, 256, "\nUnknown error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintf_err_handle(message, 256, "\nUnknown error occurred at LBA %-20" PRIu64 "",
+                                    randomLBAList[iterator]);
                 break;
             }
             printf("%s\n", message);
@@ -1261,7 +1265,7 @@ eReturnValues user_Timed_Test(tDevice*                    device,
         // allocate memory
         dataBufSize = uint32_to_sizet(device->drive_info.deviceBlockSize) * uint32_to_sizet(sectorCount);
         dataBuf     = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (dataBuf == M_NULLPTR)
         {
             perror("failed to allocate memory!\n");
@@ -2376,7 +2380,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice*        device,
         // allocate memory
         dataBufSize = uint32_to_sizet(device->drive_info.deviceBlockSize) * uint32_to_sizet(sectorCount);
         dataBuf     = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(dataBufSize, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (dataBuf == M_NULLPTR)
         {
             perror("failed to allocate memory!\n");
