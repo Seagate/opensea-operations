@@ -2784,7 +2784,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                     break;
                 }
                 // increment pageNumber to 1 and reallocate the local data buffer
-                pageNumber += 1;
+                pageNumber += UINT32_C(1);
                 temp = C_CAST(uint8_t*,
                               safe_realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment));
                 if (temp == M_NULLPTR)
@@ -2854,8 +2854,8 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                         }
                         else
                         {
-                            if (0 != safe_memcpy(&ptrData[uint16_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE],
-                                                 dataSize - (uint16_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE),
+                            if (0 != safe_memcpy(&ptrData[uint32_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE],
+                                                 dataSize - (uint32_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE),
                                                  dataBuffer, uint32_to_sizet(pullChunkSize)))
                             {
                                 safe_free_aligned(&dataBuffer);
