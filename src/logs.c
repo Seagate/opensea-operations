@@ -2746,7 +2746,8 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 reportedLargeSize  = M_BytesTo2ByteValue(dataBuffer[13], dataBuffer[12]);
                 if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT6)
                 {
-                    reportedXLargeSize = M_BytesTo4ByteValue(dataBuffer[19], dataBuffer[18],dataBuffer[17], dataBuffer[16]);
+                    reportedXLargeSize =
+                        M_BytesTo4ByteValue(dataBuffer[19], dataBuffer[18], dataBuffer[17], dataBuffer[16]);
                 }
                 // check what the user requested us try and pull and set a size based off of what the drive reports
                 // supporting (ex, if they asked for large, but only small is available, return the small information

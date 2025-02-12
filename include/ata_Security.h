@@ -130,7 +130,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API
-        void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
+    void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
