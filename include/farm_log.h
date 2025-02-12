@@ -9,18 +9,18 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // ******************************************************************************************
-// 
+//
 // \file farm_log.c
 // \brief This file defines the functions related to FARM Log
 
 #pragma once
 #include "operations_Common.h"
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
-    typedef enum _eSataFarmCopyType
+    typedef enum eSataFarmCopyTypeEnum
     {
         SATA_FARM_COPY_TYPE_UNKNOWN,
         SATA_FARM_COPY_TYPE_DISC,
@@ -36,14 +36,21 @@ extern "C"
     //
     //  Entry:
     //!   \param[in] device = poiner to a valid device structure with a device handle
-    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current working dir.
-    //!   \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored. 
+    //!   \param[in] filePath = pointer to the path where this log should be generated. Use M_NULLPTR for current
+    //!   working dir. \param[in] transferSizeBytes = OPTIONAL. If set to zero, this is ignored.
     //  Exit:
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    M_NULL_TERM_STRING(2)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(tDevice*    device,
+                                                                const char* filePath,
+                                                                uint32_t    transferSizeBytes,
+                                                                int         sataFarmCopyType);
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif

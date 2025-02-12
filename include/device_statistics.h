@@ -9,7 +9,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // ******************************************************************************************
-// 
+//
 // \file device_statistics.h
 // \brief This file defines the functions related to getting/displaying device statistics
 
@@ -17,42 +17,51 @@
 
 #include "operations_Common.h"
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
-    typedef enum _eThresholdType
+    typedef enum eThresholdTypeEnum
     {
-        THRESHOLD_TYPE_NO_TRIGGER = 0,
+        THRESHOLD_TYPE_NO_TRIGGER               = 0,
         THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE = 1,
-        THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL = 2,
-        THRESHOLD_TYPE_TRIGGER_WHEN_LESS = 3,
-        THRESHOLD_TYPE_TRIGGER_WHEN_GREATER = 4,
-        THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL,//added for SAS
+        THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL       = 2,
+        THRESHOLD_TYPE_TRIGGER_WHEN_LESS        = 3,
+        THRESHOLD_TYPE_TRIGGER_WHEN_GREATER     = 4,
+        THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL, // added for SAS
         THRESHOLD_TYPE_RESERVED
-    }eThresholdType;
-    //This is written towards the SATA device statistics log, however all SAS statistics read should be able to be put into here without too much issue.
-    typedef struct _statistic
+    } eThresholdType;
+    // This is written towards the SATA device statistics log, however all SAS statistics read should be able to be put
+    // into here without too much issue.
+    typedef struct s_statistic
     {
-        bool isSupported;
-        bool isValueValid;
-        bool isNormalized;
-        bool supportsNotification;
-        bool monitoredConditionMet;
-        uint64_t statisticValue;//may need additional parsing depending on the statistic this represents
-        bool isThresholdValid;
-        bool thresholdNotificationEnabled;
+        bool           isSupported;
+        bool           isValueValid;
+        bool           isNormalized;
+        bool           supportsNotification;
+        bool           monitoredConditionMet;
+        bool           isThresholdValid;
+        bool           thresholdNotificationEnabled;
+        bool           nonValidityTrigger;
+        bool           validityTrigger;
         eThresholdType threshType;
-        bool nonValidityTrigger;
-        bool validityTrigger;
-        uint64_t threshold;//may not be populated depending on drive support/code support
-    }statistic;
+        uint64_t       statisticValue; // may need additional parsing depending on the statistic this represents
+        uint64_t       threshold;      // may not be populated depending on drive support/code support
+    } statistic;
 
-    typedef struct _sataDeviceStatistics
+    typedef struct s_sataDeviceStatistics
     {
-        uint16_t statisticsPopulated;//just a count of how many were populated...not any specific order
-        //general statistics
-        bool generalStatisticsSupported;
+        bool     generalStatisticsSupported;
+        bool     freeFallStatisticsSupported;
+        bool     rotatingMediaStatisticsSupported;
+        bool     generalErrorsStatisticsSupported;
+        bool     temperatureStatisticsSupported;
+        bool     transportStatisticsSupported;
+        bool     ssdStatisticsSupported;
+        bool     zonedDeviceStatisticsSupported;
+        bool     vendorSpecificStatisticsSupported;
+        uint16_t statisticsPopulated; // just a count of how many were populated...not any specific order
+        // general statistics
         statistic lifetimePoweronResets;
         statistic powerOnHours;
         statistic logicalSectorsWritten;
@@ -65,12 +74,10 @@ extern "C"
         statistic utilizationUsageRate;
         statistic resourceAvailability;
         statistic randomWriteResourcesUsed;
-        //free fall statistics
-        bool freeFallStatisticsSupported;
+        // free fall statistics
         statistic numberOfFreeFallEventsDetected;
         statistic overlimitShockEvents;
-        //rotating media statistics
-        bool rotatingMediaStatisticsSupported;
+        // rotating media statistics
         statistic spindleMotorPoweronHours;
         statistic headFlyingHours;
         statistic headLoadEvents;
@@ -79,13 +86,11 @@ extern "C"
         statistic numberOfMechanicalStartFailures;
         statistic numberOfReallocationCandidateLogicalSectors;
         statistic numberOfHighPriorityUnloadEvents;
-        //general errors statistics
-        bool generalErrorsStatisticsSupported;
+        // general errors statistics
         statistic numberOfReportedUncorrectableErrors;
         statistic numberOfResetsBetweenCommandAcceptanceAndCommandCompletion;
         statistic physicalElementStatusChanged;
-        //temperature statistics
-        bool temperatureStatisticsSupported;
+        // temperature statistics
         statistic currentTemperature;
         statistic averageShortTermTemperature;
         statistic averageLongTermTemperature;
@@ -99,16 +104,13 @@ extern "C"
         statistic specifiedMaximumOperatingTemperature;
         statistic timeInUnderTemperature;
         statistic specifiedMinimumOperatingTemperature;
-        //transport statistics
-        bool transportStatisticsSupported;
+        // transport statistics
         statistic numberOfHardwareResets;
         statistic numberOfASREvents;
         statistic numberOfInterfaceCRCErrors;
-        //solid state device statistics
-        bool ssdStatisticsSupported;
+        // solid state device statistics
         statistic percentageUsedIndicator;
-        //Zoned device statistics (ZAC2)
-        bool zonedDeviceStatisticsSupported;
+        // Zoned device statistics (ZAC2)
         statistic maximumOpenZones;
         statistic maximumExplicitlyOpenZones;
         statistic maximumImplicitlyOpenZones;
@@ -120,54 +122,76 @@ extern "C"
         statistic failedExplicitOpens;
         statistic readRuleViolations;
         statistic writeRuleViolations;
-        //vendor specific
-        bool vendorSpecificStatisticsSupported;
-        uint8_t vendorSpecificStatisticsPopulated;
+        // vendor specific
+        uint8_t   vendorSpecificStatisticsPopulated;
         statistic vendorSpecificStatistics[64];
-    }sataDeviceStatistics;
+    } sataDeviceStatistics;
 
-    typedef enum _eProtocolSpecificStatisticsType
+    typedef enum eProtocolSpecificStatisticsTypeEnum
     {
-        STAT_PROT_NONE, //no statistics available or reported
-        STAT_PROT_SAS, //SAS protocol specific port page info. Up to 2 ports and 2 phys?
-        //Other protocol specific pages. I did not see one for SPI, SSA, SRP, Fibre Channel, UAS, or SOP. If these other protocols add data to output, we can add it here. - TJE
-    }eProtocolSpecificStatisticsType;
+        STAT_PROT_NONE, // no statistics available or reported
+        STAT_PROT_SAS,  // SAS protocol specific port page info. Up to 2 ports and 2 phys?
+        // Other protocol specific pages. I did not see one for SPI, SSA, SRP, Fibre Channel, UAS, or SOP. If these
+        // other protocols add data to output, we can add it here. - TJE
+    } eProtocolSpecificStatisticsType;
 
-    //setting maximum number of ports to 2 for now. This could change in the future, but is not super likely - TJE
-    #define SAS_STATISTICS_MAX_PORTS 2
-    //setting maximum phys to 2. Current drives have 1 phy per port, so this is more than necessary - TJE
-    #define SAS_STATISTICS_MAX_PHYS 2
+// setting maximum number of ports to 2 for now. This could change in the future, but is not super likely - TJE
+#define SAS_STATISTICS_MAX_PORTS 2
+// setting maximum phys to 2. Current drives have 1 phy per port, so this is more than necessary - TJE
+#define SAS_STATISTICS_MAX_PHYS 2
 
-    typedef struct _sasProtocolStatisticsPhy
+    typedef struct s_sasProtocolStatisticsPhy
     {
-        bool sasPhyStatsValid;
-        uint16_t phyID;
+        bool      sasPhyStatsValid;
+        uint16_t  phyID;
         statistic invalidDWORDCount;
         statistic runningDisparityErrorCount;
         statistic lossOfDWORDSynchronizationCount;
         statistic phyResetProblemCount;
-    }sasProtocolStatisticsPhy;
+    } sasProtocolStatisticsPhy;
 
-    typedef struct _sasProtocolPortStatistics
+    typedef struct s_sasProtocolPortStatistics
     {
-        bool sasProtStatsValid;
-        uint16_t portID;
-        uint8_t phyCount;
+        bool                     sasProtStatsValid;
+        uint8_t                  phyCount;
+        uint16_t                 portID;
         sasProtocolStatisticsPhy perPhy[SAS_STATISTICS_MAX_PHYS];
-    }sasProtocolPortStatistics;
+    } sasProtocolPortStatistics;
 
-    typedef struct _sasProtocolStatistics
+    typedef struct s_sasProtocolStatistics
     {
-        uint16_t portCount;
+        uint16_t                  portCount;
         sasProtocolPortStatistics sasStatsPerPort[SAS_STATISTICS_MAX_PORTS];
-    }sasProtocolStatistics;
+    } sasProtocolStatistics;
 
-
-    typedef struct _sasDeviceStatitics
+    typedef struct s_sasDeviceStatitics
     {
-        uint16_t statisticsPopulated;//just a count of how many were populated...not any specific order
-        //Write Error Counters
-        bool writeErrorCountersSupported;
+        bool     writeErrorCountersSupported;
+        bool     readErrorCountersSupported;
+        bool     readReverseErrorCountersSupported;
+        bool     verifyErrorCountersSupported;
+        bool     nonMediumErrorSupported;
+        bool     formatStatusSupported;
+        bool     logicalBlockProvisioningSupported;
+        bool     temperatureSupported;
+        bool     environmentReportingSupported;
+        bool     environmentLimitsSupported;
+        bool     startStopCycleCounterSupported;
+        bool     utilizationSupported;
+        bool     solidStateMediaSupported;
+        bool     backgroundScanResultsSupported;
+        bool     pendingDefectsSupported;
+        bool     lpsMisalignmentSupported;
+        bool     nvCacheSupported;
+        bool     generalStatisticsAndPerformanceSupported;
+        bool     cacheMemoryStatisticsSupported;
+        bool     timeStampSupported;
+        bool     zonedDeviceStatisticsSupported;
+        bool     defectStatisticsSupported;
+        bool     protocolSpecificStatisticsSupported;
+        bool     powerConditionTransitionsSupported;
+        uint16_t statisticsPopulated; // just a count of how many were populated...not any specific order
+        // Write Error Counters
         statistic writeErrorsCorrectedWithoutSubstantialDelay;
         statistic writeErrorsCorrectedWithPossibleDelays;
         statistic writeTotalReWrites;
@@ -175,8 +199,7 @@ extern "C"
         statistic writeTotalTimeCorrectionAlgorithmProcessed;
         statistic writeTotalBytesProcessed;
         statistic writeTotalUncorrectedErrors;
-        //Read Error Counters
-        bool readErrorCountersSupported;
+        // Read Error Counters
         statistic readErrorsCorrectedWithoutSubstantialDelay;
         statistic readErrorsCorrectedWithPossibleDelays;
         statistic readTotalRereads;
@@ -184,8 +207,7 @@ extern "C"
         statistic readTotalTimeCorrectionAlgorithmProcessed;
         statistic readTotalBytesProcessed;
         statistic readTotalUncorrectedErrors;
-        //Read Reverse Error Counters - These might be for tape drives, not HDDs...may remove this-TJE
-        bool readReverseErrorCountersSupported;
+        // Read Reverse Error Counters - These might be for tape drives, not HDDs...may remove this-TJE
         statistic readReverseErrorsCorrectedWithoutSubstantialDelay;
         statistic readReverseErrorsCorrectedWithPossibleDelays;
         statistic readReverseTotalReReads;
@@ -193,8 +215,7 @@ extern "C"
         statistic readReverseTotalTimeCorrectionAlgorithmProcessed;
         statistic readReverseTotalBytesProcessed;
         statistic readReverseTotalUncorrectedErrors;
-        //Verify Error Counters
-        bool verifyErrorCountersSupported;
+        // Verify Error Counters
         statistic verifyErrorsCorrectedWithoutSubstantialDelay;
         statistic verifyErrorsCorrectedWithPossibleDelays;
         statistic verifyTotalReVerifies;
@@ -202,29 +223,24 @@ extern "C"
         statistic verifyTotalTimeCorrectionAlgorithmProcessed;
         statistic verifyTotalBytesProcessed;
         statistic verifyTotalUncorrectedErrors;
-        //non-medium Error
-        bool nonMediumErrorSupported;
+        // non-medium Error
         statistic nonMediumErrorCount;
-        //Format Status
-        bool formatStatusSupported;
+        // Format Status
         statistic grownDefectsDuringCertification;
         statistic totalBlocksReassignedDuringFormat;
         statistic totalNewBlocksReassigned;
         statistic powerOnMinutesSinceFormat;
-        //logical block provisioning
-        bool logicalBlockProvisioningSupported;
+        // logical block provisioning
         statistic availableLBAMappingresourceCount;
         statistic usedLBAMappingResourceCount;
         statistic availableProvisioningResourcePercentage;
         statistic deduplicatedLBAResourceCount;
         statistic compressedLBAResourceCount;
         statistic totalEfficiencyLBAResourceCount;
-        //Temperature
-        bool temperatureSupported;
+        // Temperature
         statistic temperature;
         statistic referenceTemperature;
-        //Environment (Temperature and humidity) (reporting)
-        bool environmentReportingSupported;
+        // Environment (Temperature and humidity) (reporting)
         statistic currentTemperature;
         statistic lifetimeMaximumTemperature;
         statistic lifetimeMinimumTemperature;
@@ -239,8 +255,7 @@ extern "C"
         statistic minimumRelativeHumiditySincePoweron;
         statistic maximumOtherRelativeHumidity;
         statistic minimumOtherRelativeHumidity;
-        //Environment (Temperature and humidity) (limits)
-        bool environmentLimitsSupported;
+        // Environment (Temperature and humidity) (limits)
         statistic highCriticalTemperatureLimitTrigger;
         statistic highCriticalTemperatureLimitReset;
         statistic lowCriticalTemperatureLimitReset;
@@ -257,39 +272,31 @@ extern "C"
         statistic highOperatingHumidityLimitReset;
         statistic lowOperatingHumidityLimitReset;
         statistic lowOperatingHumidityLimitTrigger;
-        //start-stop cycle counter
-        bool startStopCycleCounterSupported;
+        // start-stop cycle counter
         statistic dateOfManufacture;
         statistic accountingDate;
         statistic specifiedCycleCountOverDeviceLifetime;
         statistic accumulatedStartStopCycles;
         statistic specifiedLoadUnloadCountOverDeviceLifetime;
         statistic accumulatedLoadUnloadCycles;
-        //utilization
-        bool utilizationSupported;
+        // utilization
         statistic workloadUtilization;
         statistic utilizationUsageRateBasedOnDateAndTime;
-        //SSD
-        bool solidStateMediaSupported;
+        // SSD
         statistic percentUsedEndurance;
-        //Background scan results
-        bool backgroundScanResultsSupported;
+        // Background scan results
         statistic accumulatedPowerOnMinutes;
         statistic numberOfBackgroundScansPerformed;
-        //statistic backgroundScanProgress;//not sure if we need this - TJE
+        // statistic backgroundScanProgress;//not sure if we need this - TJE
         statistic numberOfBackgroundMediaScansPerformed;
-        //pending defects
-        bool pendingDefectsSupported;
+        // pending defects
         statistic pendingDefectCount;
-        //LPS misalignment
-        bool lpsMisalignmentSupported;
+        // LPS misalignment
         statistic lpsMisalignmentCount;
-        //NVCache
-        bool nvCacheSupported;
+        // NVCache
         statistic remainingNonvolatileTime;
         statistic maximumNonvolatileTime;
-        //General Statistics and performance
-        bool generalStatisticsAndPerformanceSupported;
+        // General Statistics and performance
         statistic numberOfReadCommands;
         statistic numberOfWriteCommands;
         statistic numberOfLogicalBlocksReceived;
@@ -308,19 +315,16 @@ extern "C"
         statistic writeFUACommandProcessingIntervals;
         statistic readFUANVCommandProcessingIntervals;
         statistic writeFUANVCommandProcessingIntervals;
-        //Cache Memory Statistics
-        bool cacheMemoryStatisticsSupported;
+        // Cache Memory Statistics
         statistic readCacheMemoryHits;
         statistic readsToCacheMemory;
         statistic writeCacheMemoryHits;
         statistic writesFromCacheMemory;
         statistic timeFromLastHardReset;
         statistic cacheTimeInterval;
-        //timestamp
-        bool timeStampSupported;
+        // timestamp
         statistic dateAndTimeTimestamp;
-        //ZBC Statistics (ZBC2)
-        bool zonedDeviceStatisticsSupported;
+        // ZBC Statistics (ZBC2)
         statistic maximumOpenZones;
         statistic maximumExplicitlyOpenZones;
         statistic maximumImplicitlyOpenZones;
@@ -333,20 +337,19 @@ extern "C"
         statistic readRuleViolations;
         statistic writeRuleViolations;
         statistic maxImplicitlyOpenSeqOrBeforeReqZones;
-        //Defect list counts (Grown and Primary)
-        bool defectStatisticsSupported;
+        // Defect list counts (Grown and Primary)
         statistic grownDefects;
         statistic primaryDefects;
-        //Protocol specific statistics
-        bool protocolSpecificStatisticsSupported;
+        // Protocol specific statistics
         eProtocolSpecificStatisticsType protocolStatisticsType;
-        //TODO: How do we want to handle multiple port SAS? Currently limiting this output to 2 ports since that is the most supported today-TJE
-        union {
+        // TODO: How do we want to handle multiple port SAS? Currently limiting this output to 2 ports since that is the
+        // most supported today-TJE
+        union
+        {
             sasProtocolStatistics sasProtStats;
-            //Other data structures for other protocols that implement the protocol specific port log page
+            // Other data structures for other protocols that implement the protocol specific port log page
         };
-        //Power condition transitions
-        bool powerConditionTransitionsSupported;
+        // Power condition transitions
         statistic transitionsToActive;
         statistic transitionsToIdleA;
         statistic transitionsToIdleB;
@@ -355,24 +358,29 @@ extern "C"
         statistic transitionsToStandbyY;
         //      Command duration limits statistics page
         //      Informational exceptions??? Not sure how we should track this data yet - TJE
-        //      
-    }sasDeviceStatitics;
+        //
+    } sasDeviceStatitics;
 
-    //access the proper stats in the union based on device->drive_info.drive_type
-    typedef struct _deviceStatistics
+    // access the proper stats in the union based on device->drive_info.drive_type
+    typedef struct s_deviceStatistics
     {
         union
         {
             sataDeviceStatistics sataStatistics;
-            sasDeviceStatitics sasStatistics;
+            sasDeviceStatitics   sasStatistics;
         };
-    }deviceStatistics, *ptrDeviceStatistics;
+    } deviceStatistics, *ptrDeviceStatistics;
 
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
 
-    OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
 
-    OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(tDevice *device, ptrDeviceStatistics deviceStats);
-
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
