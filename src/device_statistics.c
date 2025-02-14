@@ -29,19 +29,296 @@
 #include "logs.h"
 
 // this is ued to determine which device statistic is being talked about by the DSN log on ata
-/*
-eReturnValues map_Page_And_Offset_To_Device_Statistic_And_Set_Threshold_Data(tDevice *device, ptrDeviceStatistics
-deviceStats)
+// TODO: Make enum of all stat offsets on each page so it is easy to make sure all cases are handled correctly
+static statistic * dev_stat_page_offset_map(ptrDeviceStatistics deviceStats, uint8_t ataDevStatPage, uint8_t byteOffsetOnPage)
 {
-    eReturnValues ret = FAILURE;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    statistic * stat = M_NULLPTR;
+    switch (ataDevStatPage)
     {
-
+    case ATA_DEVICE_STATS_LOG_LIST:
+        break;
+    case ATA_DEVICE_STATS_LOG_GENERAL:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.lifetimePoweronResets;
+                break;
+            case 16:
+                stat = &deviceStats->sataStatistics.powerOnHours;
+                break;
+            case 24:
+                stat = &deviceStats->sataStatistics.logicalSectorsWritten;
+                break;
+            case 32:
+                stat = &deviceStats->sataStatistics.numberOfWriteCommands;
+                break;
+            case 40:
+                stat = &deviceStats->sataStatistics.logicalSectorsRead;
+                break;
+            case 48:
+                stat = &deviceStats->sataStatistics.numberOfReadCommands;
+                break;
+            case 56:
+                stat = &deviceStats->sataStatistics.dateAndTimeTimestamp;
+                break;
+            case 64:
+                stat = &deviceStats->sataStatistics.pendingErrorCount;
+                break;
+            case 72:
+                stat = &deviceStats->sataStatistics.workloadUtilization;
+                break;
+            case 80:
+                stat = &deviceStats->sataStatistics.utilizationUsageRate;
+                break;
+            case 88:
+                stat = &deviceStats->sataStatistics.resourceAvailability;
+                break;
+            case 96:
+                stat = &deviceStats->sataStatistics.randomWriteResourcesUsed;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_FREE_FALL:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.numberOfFreeFallEventsDetected;
+                break;
+            case 16:
+                stat = &deviceStats->sataStatistics.overlimitShockEvents;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.spindleMotorPoweronHours;
+                break;
+            case 16:
+                stat = &deviceStats->sataStatistics.headFlyingHours;
+                break;
+            case 24:
+                stat = &deviceStats->sataStatistics.headLoadEvents;
+                break;
+            case 32:
+                stat = &deviceStats->sataStatistics.numberOfReallocatedLogicalSectors;
+                break;
+            case 40:
+                stat = &deviceStats->sataStatistics.readRecoveryAttempts;
+                break;
+            case 48:
+                stat = &deviceStats->sataStatistics.numberOfMechanicalStartFailures;
+                break;
+            case 56:
+                stat = &deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors;
+                break;
+            case 64:
+                stat = &deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_GEN_ERR:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.numberOfReportedUncorrectableErrors;
+                break;
+            case 16:
+                stat = &deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion;
+                break;
+            case 24:
+                stat = &deviceStats->sataStatistics.physicalElementStatusChanged;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_TEMP:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.currentTemperature;
+                break;
+            case 16:
+                stat = &deviceStats->sataStatistics.averageShortTermTemperature;
+                break;
+            case 24:
+                stat = &deviceStats->sataStatistics.averageLongTermTemperature;
+                break;
+            case 32:
+                stat = &deviceStats->sataStatistics.highestTemperature;
+                break;
+            case 40:
+                stat = &deviceStats->sataStatistics.lowestTemperature;
+                break;
+            case 48:
+                stat = &deviceStats->sataStatistics.highestAverageShortTermTemperature;
+                break;
+            case 56:
+                stat = &deviceStats->sataStatistics.lowestAverageShortTermTemperature;
+                break;
+            case 64:
+                stat = &deviceStats->sataStatistics.highestAverageLongTermTemperature;
+                break;
+            case 72:
+                stat = &deviceStats->sataStatistics.lowestAverageLongTermTemperature;
+                break;
+            case 80:
+                stat = &deviceStats->sataStatistics.timeInOverTemperature;
+                break;
+            case 88:
+                stat = &deviceStats->sataStatistics.specifiedMaximumOperatingTemperature;
+                break;
+            case 96:
+                stat = &deviceStats->sataStatistics.timeInUnderTemperature;
+                break;
+            case 104:
+                stat = &deviceStats->sataStatistics.specifiedMinimumOperatingTemperature;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_TRANSPORT:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.numberOfHardwareResets;
+                break;
+            case 16:
+                stat = &deviceStats->sataStatistics.numberOfASREvents;
+                break;
+            case 24:
+                stat = &deviceStats->sataStatistics.numberOfInterfaceCRCErrors;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_SSD:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.percentageUsedIndicator;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
+        switch(byteOffsetOnPage)
+        {
+            case 8:
+                stat = &deviceStats->sataStatistics.maximumOpenZones;
+                break;
+            case 16:
+                stat = &deviceStats->sataStatistics.maximumExplicitlyOpenZones;
+                break;
+            case 24:
+                stat = &deviceStats->sataStatistics.maximumImplicitlyOpenZones;
+                break;
+            case 32:
+                stat = &deviceStats->sataStatistics.minimumEmptyZones;
+                break;
+            case 40:
+                stat = &deviceStats->sataStatistics.maximumNonSequentialZones;
+                break;
+            case 48:
+                stat = &deviceStats->sataStatistics.zonesEmptied;
+                break;
+            case 56:
+                stat = &deviceStats->sataStatistics.suboptimalWriteCommands;
+                break;
+            case 64:
+                stat = &deviceStats->sataStatistics.commandsExceedingOptimalLimit;
+                break;
+            case 72:
+                stat = &deviceStats->sataStatistics.failedExplicitOpens;
+                break;
+            case 80:
+                stat = &deviceStats->sataStatistics.readRuleViolations;
+                break;
+            case 88:
+                stat = &deviceStats->sataStatistics.writeRuleViolations;
+                break;
+            default:
+                break;
+        }
+        break;
+    case ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC:
+        // slightly different than case by case here -TJE
+        stat = &deviceStats->sataStatistics.vendorSpecificStatistics[byteOffsetOnPage / UINT8_C(8)];
+        break;
     }
-    return ret;
+    return stat;
 }
-*/
+
 M_NONNULL_PARAM_LIST(1) M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* ptrStatistic); // prototype
+
+static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic * stat)
+{
+    if (stat != M_NULLPTR)
+    {
+        // device statistics condition definition:
+        // Bits 63:56 = DSN Condition Flags (below)
+        // Bit 63 = notification enabled
+        // Bits 62:60 = value comparison type
+        //   000b = does not trigger on any update
+        //   001b = triggers on every update of the statistics value
+        //   010b = triggers on the device statistic value equal to the threshold value
+        //   011b = triggers on the device statistic value less than the threshold value
+        //   100b = triggers on the device statistic value greater than the threshold value
+        // Bit 59 = non-validity trigger
+        // Bit 58 = validity trigger
+        uint8_t dsnConditionFlags   = M_Byte7(statisticCondition);
+        bool    notificationEnabled = dsnConditionFlags & BIT7;
+        uint8_t comparisonType      = M_Nibble1(dsnConditionFlags) & 0x03;
+        bool    nonValidityTrigger  = dsnConditionFlags & BIT3;
+        bool    validityTrigger     = dsnConditionFlags & BIT2;
+        // Bits 55:0 = Threshold Value
+        uint64_t thresholdValue = statisticCondition & UINT64_C(0x00FFFFFFFFFFFFFF); // removing byte 7
+        stat->isThresholdValid = true;
+        stat->thresholdNotificationEnabled = notificationEnabled;
+        stat->threshType = C_CAST(eThresholdType, comparisonType);
+        stat->nonValidityTrigger = nonValidityTrigger;
+        stat->validityTrigger    = validityTrigger;
+        stat->threshold          = thresholdValue;
+    }
+}
+
+//NOTE: call le64 to host on qword when passing in to keep this simpler!
+M_NONNULL_PARAM_LIST(2)
+M_PARAM_WO(2)
+static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic * stat, uint8_t statmsb, uint8_t statlsb)
+{
+    bool statisticPopulated = false;
+    DISABLE_NONNULL_COMPARE
+    if (qword & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && stat != M_NULLPTR)
+    {
+        stat->isSupported = true;
+        stat->isValueValid =
+            qword & ATA_DEV_STATS_VALID_VALUE_BIT;
+        stat->isNormalized =
+            qword & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
+        stat->supportsNotification =
+            qword & ATA_DEV_STATS_SUPPORTS_DSN;
+        stat->monitoredConditionMet =
+            qword & ATA_DEV_STATS_MONITORED_CONDITION_MET;
+        stat->supportsReadThenInitialize =
+            qword & ATA_DEV_STATS_READ_THEN_INIT_SUPPORTED;
+        stat->statisticValue = get_bit_range_uint64(qword, statmsb, statlsb);
+        statisticPopulated = true;
+    }
+    RESTORE_NONNULL_COMPARE
+    return statisticPopulated;
+}
 
 static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
 {
@@ -90,666 +367,8 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                         devStatsNotificationsLog[offset + 11], devStatsNotificationsLog[offset + 10],
                         devStatsNotificationsLog[offset + 9], devStatsNotificationsLog[offset + 8]);
                     uint8_t statisticLogPage = M_Byte3(statisticLocation);
-                    uint8_t statisticByteOffset =
-                        M_Byte0(statisticLocation); // first byte of the statistic offset (view ACS3/4 spec for this)
-                    // device statistics condition definition:
-                    // Bits 63:56 = DSN Condition Flags (below)
-                    // Bit 63 = notification enabled
-                    // Bits 62:60 = value comparison type
-                    //   000b = does not trigger on any update
-                    //   001b = triggers on every update of the statistics value
-                    //   010b = triggers on the device statistic value equal to the threshold value
-                    //   011b = triggers on the device statistic value less than the threshold value
-                    //   100b = triggers on the device statistic value greater than the threshold value
-                    // Bit 59 = non-validity trigger
-                    // Bit 58 = validity trigger
-                    uint8_t dsnConditionFlags   = M_Byte7(statisticCondition);
-                    bool    notificationEnabled = dsnConditionFlags & BIT7;
-                    uint8_t comparisonType      = M_Nibble1(dsnConditionFlags) & 0x03;
-                    bool    nonValidityTrigger  = dsnConditionFlags & BIT3;
-                    bool    validityTrigger     = dsnConditionFlags & BIT2;
-                    // Bits 55:0 = Threshold Value
-                    uint64_t thresholdValue = statisticCondition & 0x00FFFFFFFFFFFFFFULL; // removing byte 7
-                    switch (statisticLogPage)
-                    {
-                    case ATA_DEVICE_STATS_LOG_LIST:
-                        // nothing on this page since this is the summary page, break
-                        break;
-                    case ATA_DEVICE_STATS_LOG_GENERAL:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // lifetime power on resets
-                            deviceStats->sataStatistics.lifetimePoweronResets.isThresholdValid = true;
-                            deviceStats->sataStatistics.lifetimePoweronResets.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.lifetimePoweronResets.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.lifetimePoweronResets.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.lifetimePoweronResets.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.lifetimePoweronResets.threshold          = thresholdValue;
-                            break;
-                        case 16: // power on hours
-                            deviceStats->sataStatistics.powerOnHours.isThresholdValid             = true;
-                            deviceStats->sataStatistics.powerOnHours.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.powerOnHours.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.powerOnHours.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.powerOnHours.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.powerOnHours.threshold          = thresholdValue;
-                            break;
-                        case 24: // logical sectors written
-                            deviceStats->sataStatistics.logicalSectorsWritten.isThresholdValid = true;
-                            deviceStats->sataStatistics.logicalSectorsWritten.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.logicalSectorsWritten.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.logicalSectorsWritten.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.logicalSectorsWritten.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.logicalSectorsWritten.threshold          = thresholdValue;
-                            break;
-                        case 32: // number of write commands
-                            deviceStats->sataStatistics.numberOfWriteCommands.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfWriteCommands.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfWriteCommands.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfWriteCommands.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfWriteCommands.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.numberOfWriteCommands.threshold          = thresholdValue;
-                            break;
-                        case 40: // logical sectors read
-                            deviceStats->sataStatistics.logicalSectorsRead.isThresholdValid = true;
-                            deviceStats->sataStatistics.logicalSectorsRead.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.logicalSectorsRead.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.logicalSectorsRead.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.logicalSectorsRead.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.logicalSectorsRead.threshold          = thresholdValue;
-                            break;
-                        case 48: // number of read commands
-                            deviceStats->sataStatistics.numberOfReadCommands.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfReadCommands.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReadCommands.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfReadCommands.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfReadCommands.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.numberOfReadCommands.threshold          = thresholdValue;
-                            break;
-                        case 56: // Date and Time Timestamp
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.isThresholdValid = true;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.threshold          = thresholdValue;
-                            break;
-                        case 64: // Pending Error Count
-                            deviceStats->sataStatistics.pendingErrorCount.isThresholdValid = true;
-                            deviceStats->sataStatistics.pendingErrorCount.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.pendingErrorCount.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.pendingErrorCount.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.pendingErrorCount.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.pendingErrorCount.threshold          = thresholdValue;
-                            break;
-                        case 72: // workload utilization
-                            deviceStats->sataStatistics.workloadUtilization.isThresholdValid = true;
-                            deviceStats->sataStatistics.workloadUtilization.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.workloadUtilization.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.workloadUtilization.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.workloadUtilization.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.workloadUtilization.threshold          = thresholdValue;
-                            break;
-                        case 80: // utilization usage rate
-                            deviceStats->sataStatistics.utilizationUsageRate.isThresholdValid = true;
-                            deviceStats->sataStatistics.utilizationUsageRate.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.utilizationUsageRate.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.utilizationUsageRate.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.utilizationUsageRate.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.utilizationUsageRate.threshold          = thresholdValue;
-                            break;
-                        case 88: // resource availability
-                            deviceStats->sataStatistics.resourceAvailability.isThresholdValid = true;
-                            deviceStats->sataStatistics.resourceAvailability.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.resourceAvailability.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.resourceAvailability.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.resourceAvailability.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.resourceAvailability.threshold          = thresholdValue;
-                            break;
-                        case 96: // random write resources used
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.isThresholdValid = true;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.threshold       = thresholdValue;
-                            break;
-                        default:
-                            // unknown
-                            break;
-                        }
-                        break;
-                    case ATA_DEVICE_STATS_LOG_FREE_FALL:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // number of free fall events detected
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.threshold = thresholdValue;
-                            break;
-                        case 16: // overlimit shock events
-                            deviceStats->sataStatistics.overlimitShockEvents.isThresholdValid = true;
-                            deviceStats->sataStatistics.overlimitShockEvents.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.overlimitShockEvents.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.overlimitShockEvents.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.overlimitShockEvents.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.overlimitShockEvents.threshold          = thresholdValue;
-                            break;
-                        default:
-                            // unknown
-                            break;
-                        }
-                        break;
-                    case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // spindle motor power-on hours
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.isThresholdValid = true;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.threshold       = thresholdValue;
-                            break;
-                        case 16: // head flying hours
-                            deviceStats->sataStatistics.headFlyingHours.isThresholdValid = true;
-                            deviceStats->sataStatistics.headFlyingHours.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.headFlyingHours.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.headFlyingHours.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.headFlyingHours.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.headFlyingHours.threshold          = thresholdValue;
-                            break;
-                        case 24: // head load events
-                            deviceStats->sataStatistics.headLoadEvents.isThresholdValid = true;
-                            deviceStats->sataStatistics.headLoadEvents.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.headLoadEvents.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.headLoadEvents.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.headLoadEvents.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.headLoadEvents.threshold          = thresholdValue;
-                            break;
-                        case 32: // number of reallocated logical sectors
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.threshold = thresholdValue;
-                            break;
-                        case 40: // read recovery attempts
-                            deviceStats->sataStatistics.readRecoveryAttempts.isThresholdValid = true;
-                            deviceStats->sataStatistics.readRecoveryAttempts.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.readRecoveryAttempts.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.readRecoveryAttempts.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.readRecoveryAttempts.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.readRecoveryAttempts.threshold          = thresholdValue;
-                            break;
-                        case 48: // number of mechanical start failures
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.threshold = thresholdValue;
-                            break;
-                        case 56: // numberOfReallocationCandidateLogicalSectors
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.isThresholdValid =
-                                true;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors
-                                .thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.threshold =
-                                thresholdValue;
-                            break;
-                        case 64: // number of high priority unload events
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.threshold = thresholdValue;
-                            break;
-                        default:
-                            // unknown
-                            break;
-                        }
-                        break;
-                    case ATA_DEVICE_STATS_LOG_GEN_ERR:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // number of reported uncorrectable errors
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors
-                                .thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.threshold = thresholdValue;
-                            break;
-                        case 16: // number of resets between command acceptance and command completion
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .threshType = C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .threshold = thresholdValue;
-                            break;
-                        case 24: // physical element status changed
-                            deviceStats->sataStatistics.physicalElementStatusChanged.isThresholdValid = true;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.physicalElementStatusChanged.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.threshold       = thresholdValue;
-                            break;
-                        default:
-                            // unknown
-                            break;
-                        }
-                        break;
-                    case ATA_DEVICE_STATS_LOG_TEMP:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // current temperature
-                            deviceStats->sataStatistics.currentTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.currentTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.currentTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.currentTemperature.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.currentTemperature.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.currentTemperature.threshold          = thresholdValue;
-                            break;
-                        case 16: // average short term temperature
-                            deviceStats->sataStatistics.averageShortTermTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.averageShortTermTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.averageShortTermTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.averageShortTermTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.averageShortTermTemperature.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.averageShortTermTemperature.threshold       = thresholdValue;
-                            break;
-                        case 24: // average long term temperature
-                            deviceStats->sataStatistics.averageLongTermTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.averageLongTermTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.averageLongTermTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.averageLongTermTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.averageLongTermTemperature.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.averageLongTermTemperature.threshold       = thresholdValue;
-                            break;
-                        case 32: // highest temperature
-                            deviceStats->sataStatistics.highestTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.highestTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.highestTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.highestTemperature.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.highestTemperature.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.highestTemperature.threshold          = thresholdValue;
-                            break;
-                        case 40: // lowest temperature
-                            deviceStats->sataStatistics.lowestTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.lowestTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.lowestTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.lowestTemperature.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.lowestTemperature.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.lowestTemperature.threshold          = thresholdValue;
-                            break;
-                        case 48: // highest Averagre Short Term Temperature
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature
-                                .thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.threshold = thresholdValue;
-                            break;
-                        case 56: // lowest average short term temperature
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.threshold = thresholdValue;
-                            break;
-                        case 64: // highest average long term temperature
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.threshold = thresholdValue;
-                            break;
-                        case 72: // lowest average long term temperature
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.threshold = thresholdValue;
-                            break;
-                        case 80: // time in over temperature
-                            deviceStats->sataStatistics.timeInOverTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.timeInOverTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.timeInOverTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.timeInOverTemperature.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.timeInOverTemperature.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.timeInOverTemperature.threshold          = thresholdValue;
-                            break;
-                        case 88: // specified maximum operating temperature
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature
-                                .thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.threshold = thresholdValue;
-                            break;
-                        case 96: // time in under temperature
-                            deviceStats->sataStatistics.timeInUnderTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.timeInUnderTemperature.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.timeInUnderTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.timeInUnderTemperature.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.timeInUnderTemperature.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.timeInUnderTemperature.threshold          = thresholdValue;
-                            break;
-                        case 104: // specified minimum operating temperature
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.isThresholdValid = true;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature
-                                .thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.validityTrigger =
-                                validityTrigger;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.threshold = thresholdValue;
-                            break;
-                        default:
-                            // unknown
-                            break;
-                        }
-                        break;
-                    case ATA_DEVICE_STATS_LOG_TRANSPORT:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // number of hardware resets
-                            deviceStats->sataStatistics.numberOfHardwareResets.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfHardwareResets.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfHardwareResets.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfHardwareResets.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfHardwareResets.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.numberOfHardwareResets.threshold          = thresholdValue;
-                            break;
-                        case 16: // number of ASR events
-                            deviceStats->sataStatistics.numberOfASREvents.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfASREvents.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfASREvents.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfASREvents.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfASREvents.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.numberOfASREvents.threshold          = thresholdValue;
-                            break;
-                        case 24: // number of interface CRC errors
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.isThresholdValid = true;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.threshold       = thresholdValue;
-                            break;
-                        default:
-                            // unknown
-                            break;
-                        }
-                        break;
-                    case ATA_DEVICE_STATS_LOG_SSD:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // percent used indicator
-                            deviceStats->sataStatistics.percentageUsedIndicator.isThresholdValid = true;
-                            deviceStats->sataStatistics.percentageUsedIndicator.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.percentageUsedIndicator.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.percentageUsedIndicator.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.percentageUsedIndicator.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.percentageUsedIndicator.threshold          = thresholdValue;
-                            break;
-                        default:
-                            // unknown
-                            break;
-                        }
-                        break;
-                    case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
-                        switch (statisticByteOffset)
-                        {
-                        case 8: // maximum open zones
-                            deviceStats->sataStatistics.maximumOpenZones.isThresholdValid = true;
-                            deviceStats->sataStatistics.maximumOpenZones.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.maximumOpenZones.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.maximumOpenZones.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.maximumOpenZones.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.maximumOpenZones.threshold          = thresholdValue;
-                            break;
-                        case 16: // maximum explicitly open zones
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isThresholdValid = true;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.threshold       = thresholdValue;
-                            break;
-                        case 24: // maximum implicitly open zones
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isThresholdValid = true;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.threshold       = thresholdValue;
-                            break;
-                        case 32: // minimum empty zones
-                            deviceStats->sataStatistics.minimumEmptyZones.isThresholdValid = true;
-                            deviceStats->sataStatistics.minimumEmptyZones.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.minimumEmptyZones.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.minimumEmptyZones.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.minimumEmptyZones.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.minimumEmptyZones.threshold          = thresholdValue;
-                            break;
-                        case 40: // maximum non-sequential zones
-                            deviceStats->sataStatistics.maximumNonSequentialZones.isThresholdValid = true;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.maximumNonSequentialZones.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.threshold       = thresholdValue;
-                            break;
-                        case 48: // zones emptied
-                            deviceStats->sataStatistics.zonesEmptied.isThresholdValid             = true;
-                            deviceStats->sataStatistics.zonesEmptied.thresholdNotificationEnabled = notificationEnabled;
-                            deviceStats->sataStatistics.zonesEmptied.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.zonesEmptied.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.zonesEmptied.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.zonesEmptied.threshold          = thresholdValue;
-                            break;
-                        case 56: // suboptimal write commands
-                            deviceStats->sataStatistics.suboptimalWriteCommands.isThresholdValid = true;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.suboptimalWriteCommands.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.threshold          = thresholdValue;
-                            break;
-                        case 64: // commands exceeding optimal limit
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isThresholdValid = true;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.nonValidityTrigger =
-                                nonValidityTrigger;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.validityTrigger = validityTrigger;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.threshold       = thresholdValue;
-                            break;
-                        case 72: // failed explicit opens
-                            deviceStats->sataStatistics.failedExplicitOpens.isThresholdValid = true;
-                            deviceStats->sataStatistics.failedExplicitOpens.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.failedExplicitOpens.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.failedExplicitOpens.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.failedExplicitOpens.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.failedExplicitOpens.threshold          = thresholdValue;
-                            break;
-                        case 80: // read rule violations
-                            deviceStats->sataStatistics.readRuleViolations.isThresholdValid = true;
-                            deviceStats->sataStatistics.readRuleViolations.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.readRuleViolations.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.readRuleViolations.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.readRuleViolations.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.readRuleViolations.threshold          = thresholdValue;
-                            break;
-                        case 88: // write rule violations
-                            deviceStats->sataStatistics.writeRuleViolations.isThresholdValid = true;
-                            deviceStats->sataStatistics.writeRuleViolations.thresholdNotificationEnabled =
-                                notificationEnabled;
-                            deviceStats->sataStatistics.writeRuleViolations.threshType =
-                                C_CAST(eThresholdType, comparisonType);
-                            deviceStats->sataStatistics.writeRuleViolations.nonValidityTrigger = nonValidityTrigger;
-                            deviceStats->sataStatistics.writeRuleViolations.validityTrigger    = validityTrigger;
-                            deviceStats->sataStatistics.writeRuleViolations.threshold          = thresholdValue;
-                            break;
-                        default:
-                            break;
-                        }
-                        break;
-                    default:
-                        // unknown page, break
-                        break;
-                    }
+                    uint8_t statisticByteOffset = M_Byte0(statisticLocation);
+                    set_ATA_Dev_Stat_Notification_Info(statisticCondition, dev_stat_page_offset_map(deviceStats, statisticLogPage, statisticByteOffset));
                 }
             }
             safe_free_aligned(&devStatsNotificationsLog);
@@ -763,13 +382,6 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
             for (uint8_t pageIter = UINT8_C(0); pageIter < deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET];
                  ++pageIter)
             {
-                // statistics flags:
-                // bit 63 = supported
-                // bit 62 = valid value
-                // bit 61 = normalized
-                // bit 60 = supports DSN
-                // bit 59 = monitored condition met
-                // bits 58-56 are reserved
                 offset = deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter] * LEGACY_DRIVE_SEC_SIZE;
                 if (offset > deviceStatsSize)
                 {
@@ -777,6 +389,17 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                     break;
                 }
                 qwordPtrDeviceStatsLog = C_CAST(uint64_t*, &deviceStatsLog[offset]);
+
+                for (uint16_t statisticOffset = UINT16_C(8); statisticOffset < LEGACY_DRIVE_SEC_SIZE; statisticOffset += UINT16_C(8))
+                {
+                    // TODO: Need to adjust min/max field offsets based on the attribute. For now selecting all 48 possible bits seems ok.
+                    //       Need more testing and to come back to this again later.
+                    if (set_ATA_Dev_Stat_Info(le64_to_host(qwordPtrDeviceStatsLog[statisticOffset / UINT16_C(8)]), dev_stat_page_offset_map(deviceStats, deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter], statisticOffset), 47, 0))
+                    {
+                        ++deviceStats->sataStatistics.statisticsPopulated;
+                    }
+                }
+
                 switch (deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter])
                 {
                 case ATA_DEVICE_STATS_LOG_LIST: // supported pages page...
@@ -785,849 +408,48 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                     if (ATA_DEVICE_STATS_LOG_GENERAL == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.generalStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.lifetimePoweronResets.isSupported = true;
-                            deviceStats->sataStatistics.lifetimePoweronResets.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.lifetimePoweronResets.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.lifetimePoweronResets.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.lifetimePoweronResets.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.lifetimePoweronResets.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[1]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.powerOnHours.isSupported = true;
-                            deviceStats->sataStatistics.powerOnHours.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.powerOnHours.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.powerOnHours.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.powerOnHours.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.powerOnHours.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[2]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.logicalSectorsWritten.isSupported = true;
-                            deviceStats->sataStatistics.logicalSectorsWritten.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.logicalSectorsWritten.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.logicalSectorsWritten.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.logicalSectorsWritten.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.logicalSectorsWritten.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfWriteCommands.isSupported = true;
-                            deviceStats->sataStatistics.numberOfWriteCommands.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfWriteCommands.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfWriteCommands.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfWriteCommands.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfWriteCommands.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.logicalSectorsRead.isSupported = true;
-                            deviceStats->sataStatistics.logicalSectorsRead.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.logicalSectorsRead.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.logicalSectorsRead.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.logicalSectorsRead.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.logicalSectorsRead.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfReadCommands.isSupported = true;
-                            deviceStats->sataStatistics.numberOfReadCommands.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfReadCommands.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfReadCommands.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfReadCommands.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfReadCommands.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.isSupported = true;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.dateAndTimeTimestamp.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.pendingErrorCount.isSupported = true;
-                            deviceStats->sataStatistics.pendingErrorCount.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.pendingErrorCount.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.pendingErrorCount.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.pendingErrorCount.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.pendingErrorCount.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[8]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.workloadUtilization.isSupported = true;
-                            deviceStats->sataStatistics.workloadUtilization.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.workloadUtilization.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.workloadUtilization.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.workloadUtilization.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.workloadUtilization.statisticValue =
-                                M_Word0(le64_to_host(qwordPtrDeviceStatsLog[9]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.utilizationUsageRate.isSupported = true;
-                            deviceStats->sataStatistics.utilizationUsageRate.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.utilizationUsageRate.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.utilizationUsageRate.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.utilizationUsageRate.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.utilizationUsageRate.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.resourceAvailability.isSupported = true;
-                            deviceStats->sataStatistics.resourceAvailability.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.resourceAvailability.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.resourceAvailability.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.resourceAvailability.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.resourceAvailability.statisticValue =
-                                M_Word0(le64_to_host(qwordPtrDeviceStatsLog[11]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.isSupported = true;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.randomWriteResourcesUsed.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[12]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_FREE_FALL: // free fall statistics
                     if (ATA_DEVICE_STATS_LOG_FREE_FALL == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.freeFallStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.isSupported = true;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfFreeFallEventsDetected.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[1]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.overlimitShockEvents.isSupported = true;
-                            deviceStats->sataStatistics.overlimitShockEvents.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.overlimitShockEvents.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.overlimitShockEvents.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.overlimitShockEvents.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.overlimitShockEvents.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[2]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA: // rotating media statistics
                     if (ATA_DEVICE_STATS_LOG_ROTATING_MEDIA == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.rotatingMediaStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.isSupported = true;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.spindleMotorPoweronHours.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[1]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.headFlyingHours.isSupported = true;
-                            deviceStats->sataStatistics.headFlyingHours.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.headFlyingHours.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.headFlyingHours.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.headFlyingHours.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.headFlyingHours.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[2]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.headLoadEvents.isSupported = true;
-                            deviceStats->sataStatistics.headLoadEvents.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.headLoadEvents.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.headLoadEvents.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.headLoadEvents.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.headLoadEvents.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[3]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isSupported = true;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[4]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.readRecoveryAttempts.isSupported = true;
-                            deviceStats->sataStatistics.readRecoveryAttempts.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.readRecoveryAttempts.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.readRecoveryAttempts.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.readRecoveryAttempts.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.readRecoveryAttempts.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[5]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.isSupported = true;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfMechanicalStartFailures.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[6]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.isSupported = true;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors
-                                .supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors
-                                .monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[7]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.isSupported = true;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[8]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_GEN_ERR: // general errors statistics
                     if (ATA_DEVICE_STATS_LOG_GEN_ERR == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.generalErrorsStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.isSupported = true;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfReportedUncorrectableErrors.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[1]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .isSupported = true;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .isValueValid = le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion
-                                .statisticValue = M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[2]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.physicalElementStatusChanged.isSupported = true;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.physicalElementStatusChanged.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[3]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_TEMP: // temperature statistics
                     if (ATA_DEVICE_STATS_LOG_TEMP == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.temperatureStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.currentTemperature.isSupported = true;
-                            deviceStats->sataStatistics.currentTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.currentTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.currentTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.currentTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.currentTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[1]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.averageShortTermTemperature.isSupported = true;
-                            deviceStats->sataStatistics.averageShortTermTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.averageShortTermTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.averageShortTermTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.averageShortTermTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.averageShortTermTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[2]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.averageLongTermTemperature.isSupported = true;
-                            deviceStats->sataStatistics.averageLongTermTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.averageLongTermTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.averageLongTermTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.averageLongTermTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.averageLongTermTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[3]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.highestTemperature.isSupported = true;
-                            deviceStats->sataStatistics.highestTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.highestTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.highestTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.highestTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.highestTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[4]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.lowestTemperature.isSupported = true;
-                            deviceStats->sataStatistics.lowestTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.lowestTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.lowestTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.lowestTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.lowestTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[5]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.isSupported = true;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.highestAverageShortTermTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[6]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.isSupported = true;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.lowestAverageShortTermTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[7]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.isSupported = true;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.highestAverageLongTermTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[8]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.isSupported = true;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.lowestAverageLongTermTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[9]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.timeInOverTemperature.isSupported = true;
-                            deviceStats->sataStatistics.timeInOverTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.timeInOverTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.timeInOverTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.timeInOverTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.timeInOverTemperature.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[10]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.isSupported = true;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.specifiedMaximumOperatingTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[11]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.timeInUnderTemperature.isSupported = true;
-                            deviceStats->sataStatistics.timeInUnderTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.timeInUnderTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.timeInUnderTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.timeInUnderTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[12]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.timeInUnderTemperature.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[12]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[13]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.isSupported = true;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[13]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[13]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[13]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[13]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.specifiedMinimumOperatingTemperature.statisticValue =
-                                M_Byte0(le64_to_host(qwordPtrDeviceStatsLog[13]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_TRANSPORT: // transport statistics
                     if (ATA_DEVICE_STATS_LOG_TRANSPORT == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.transportStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfHardwareResets.isSupported = true;
-                            deviceStats->sataStatistics.numberOfHardwareResets.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfHardwareResets.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfHardwareResets.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfHardwareResets.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfHardwareResets.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[1]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfASREvents.isSupported = true;
-                            deviceStats->sataStatistics.numberOfASREvents.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfASREvents.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfASREvents.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfASREvents.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfASREvents.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[2]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.isSupported = true;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.numberOfInterfaceCRCErrors.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[3]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_SSD: // solid state device statistics
                     if (ATA_DEVICE_STATS_LOG_SSD == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.ssdStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.percentageUsedIndicator.isSupported = true;
-                            deviceStats->sataStatistics.percentageUsedIndicator.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.percentageUsedIndicator.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.percentageUsedIndicator.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.percentageUsedIndicator.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.percentageUsedIndicator.statisticValue =
-                                M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[1]));
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_ZONED_DEVICE: // ZAC statistics
                     if (ATA_DEVICE_STATS_LOG_ZONED_DEVICE == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.zonedDeviceStatisticsSupported = true;
-                        if (le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.maximumOpenZones.isSupported = true;
-                            deviceStats->sataStatistics.maximumOpenZones.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.maximumOpenZones.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.maximumOpenZones.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.maximumOpenZones.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.maximumOpenZones.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[1]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isSupported = true;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.maximumExplicitlyOpenZones.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[2]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isSupported = true;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.maximumImplicitlyOpenZones.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[3]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.minimumEmptyZones.isSupported = true;
-                            deviceStats->sataStatistics.minimumEmptyZones.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.minimumEmptyZones.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.minimumEmptyZones.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.minimumEmptyZones.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.minimumEmptyZones.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[4]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.maximumNonSequentialZones.isSupported = true;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.maximumNonSequentialZones.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[5]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.zonesEmptied.isSupported = true;
-                            deviceStats->sataStatistics.zonesEmptied.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.zonesEmptied.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.zonesEmptied.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.zonesEmptied.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.zonesEmptied.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[6]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.suboptimalWriteCommands.isSupported = true;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.suboptimalWriteCommands.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[7]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isSupported = true;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.commandsExceedingOptimalLimit.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[8]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.failedExplicitOpens.isSupported = true;
-                            deviceStats->sataStatistics.failedExplicitOpens.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.failedExplicitOpens.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.failedExplicitOpens.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.failedExplicitOpens.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.failedExplicitOpens.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[9]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.readRuleViolations.isSupported = true;
-                            deviceStats->sataStatistics.readRuleViolations.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.readRuleViolations.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.readRuleViolations.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.readRuleViolations.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.readRuleViolations.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[10]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
-                        if (le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                        {
-                            deviceStats->sataStatistics.writeRuleViolations.isSupported = true;
-                            deviceStats->sataStatistics.writeRuleViolations.isValueValid =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_VALID_VALUE_BIT;
-                            deviceStats->sataStatistics.writeRuleViolations.isNormalized =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                            deviceStats->sataStatistics.writeRuleViolations.supportsNotification =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_SUPPORTS_DSN;
-                            deviceStats->sataStatistics.writeRuleViolations.monitoredConditionMet =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                            deviceStats->sataStatistics.writeRuleViolations.statisticValue =
-                                le64_to_host(qwordPtrDeviceStatsLog[11]) & MAX_48_BIT_LBA;
-                            ++deviceStats->sataStatistics.statisticsPopulated;
-                        }
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC: // vendor specific
@@ -1635,30 +457,6 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                         ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.vendorSpecificStatisticsSupported = true;
-                        for (uint8_t vendorSpecificIter = UINT8_C(1); vendorSpecificIter < 64; ++vendorSpecificIter)
-                        {
-                            if (qwordPtrDeviceStatsLog[vendorSpecificIter] & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
-                            {
-                                deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter - 1]
-                                    .isSupported = true;
-                                deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter - 1]
-                                    .isValueValid =
-                                    qwordPtrDeviceStatsLog[vendorSpecificIter] & ATA_DEV_STATS_VALID_VALUE_BIT;
-                                deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter - 1]
-                                    .isNormalized =
-                                    qwordPtrDeviceStatsLog[vendorSpecificIter] & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-                                deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter - 1]
-                                    .supportsNotification =
-                                    qwordPtrDeviceStatsLog[vendorSpecificIter] & ATA_DEV_STATS_SUPPORTS_DSN;
-                                deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter - 1]
-                                    .monitoredConditionMet =
-                                    qwordPtrDeviceStatsLog[vendorSpecificIter] & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-                                deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter - 1]
-                                    .statisticValue = qwordPtrDeviceStatsLog[vendorSpecificIter] & MAX_48_BIT_LBA;
-                                ++deviceStats->sataStatistics.statisticsPopulated;
-                                ++deviceStats->sataStatistics.vendorSpecificStatisticsPopulated;
-                            }
-                        }
                     }
                     break;
                 default:
@@ -9993,6 +8791,10 @@ static void print_Humidity_Statistic(statistic theStatistic, const char* statist
         {
             printf("-");
         }
+        else if (theStatistic.supportsReadThenInitialize)
+        {
+            printf("r");
+        }
         else
         {
             printf(" ");
@@ -10075,6 +8877,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     printf("\t* = condition monitored with threshold (DSN Feature)\n");
     printf("\t! = monitored condition met\n");
     printf("\t- = supports notification (DSN Feature)\n");
+    printf("\tr = supports reinitialization/reset\n");
     printf(" %-60s %-16s %-16s\n", "Statistic Name:", "Threshold:", "Value:");
     if (deviceStats->sataStatistics.generalStatisticsSupported)
     {

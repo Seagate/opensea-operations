@@ -40,6 +40,7 @@ extern "C"
         bool           isNormalized;
         bool           supportsNotification;
         bool           monitoredConditionMet;
+        bool           supportsReadThenInitialize;
         bool           isThresholdValid;
         bool           thresholdNotificationEnabled;
         bool           nonValidityTrigger;
