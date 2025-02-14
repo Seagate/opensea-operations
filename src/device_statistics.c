@@ -7795,7 +7795,7 @@ static M_INLINE void print_Statistic_Flags(statistic theStatistic)
     }
     if (theStatistic.supportsReadThenInitialize)
     {
-        statisticFlags[3] = 'r';
+        statisticFlags[3] = '^';
     }
     else
     {
@@ -8720,7 +8720,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     printf("\t* = condition monitored with threshold (DSN Feature)\n");
     printf("\t! = monitored condition met\n");
     printf("\t- = supports notification (DSN Feature)\n");
-    printf("\tr = supports reinitialization/reset\n");
+    printf("\t^ = supports reinitialization/reset\n");
     printf("%s%-60s %-16s %-16s\n", flagPad , "Statistic Name:", "Threshold:", "Value:");
     if (deviceStats->sataStatistics.generalStatisticsSupported)
     {
