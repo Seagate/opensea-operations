@@ -7764,6 +7764,46 @@ void scsi_Threshold_Comparison(statistic* ptrStatistic)
     RESTORE_NONNULL_COMPARE
 }
 
+#define DEVICE_STATISTIC_FLAGS_LEN 4
+
+static M_INLINE void print_Statistic_Flags(statistic theStatistic)
+{
+    DECLARE_ZERO_INIT_ARRAY(char, statisticFlags, DEVICE_STATISTIC_FLAGS_LEN + 1);
+    if (theStatistic.monitoredConditionMet)
+    {
+        statisticFlags[0] = '!';
+    }
+    else
+    {
+        statisticFlags[0] = ' ';
+    }
+    if (theStatistic.isThresholdValid)
+    {
+        statisticFlags[1] = '*';
+    }
+    else
+    {
+        statisticFlags[1] = ' ';
+    }
+    if (theStatistic.supportsNotification)
+    {
+        statisticFlags[2] = '-';
+    }
+    else
+    {
+        statisticFlags[2] = ' ';
+    }
+    if (theStatistic.supportsReadThenInitialize)
+    {
+        statisticFlags[3] = 'r';
+    }
+    else
+    {
+        statisticFlags[3] = ' ';
+    }
+    printf("%s", statisticFlags);
+}
+
 #define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
 
 static void print_Count_Statistic(statistic theStatistic, const char* statisticName, const char* statisticUnit)
@@ -7771,22 +7811,7 @@ static void print_Count_Statistic(statistic theStatistic, const char* statisticN
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -7845,22 +7870,7 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, const c
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -7924,22 +7934,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8034,22 +8029,7 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, const 
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8105,22 +8085,7 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8183,22 +8148,7 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8267,22 +8217,7 @@ static void print_Temperature_Statistic(statistic theStatistic, const char* stat
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8337,22 +8272,7 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8415,22 +8335,7 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, const char* sta
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8501,22 +8406,7 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, const char* statis
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8588,22 +8478,7 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const cha
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8694,22 +8569,7 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, co
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8779,26 +8639,7 @@ static void print_Humidity_Statistic(statistic theStatistic, const char* statist
     if (theStatistic.isSupported)
     {
         DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
-        if (theStatistic.monitoredConditionMet)
-        {
-            printf("!");
-        }
-        else if (theStatistic.isThresholdValid)
-        {
-            printf("*");
-        }
-        else if (theStatistic.supportsNotification)
-        {
-            printf("-");
-        }
-        else if (theStatistic.supportsReadThenInitialize)
-        {
-            printf("r");
-        }
-        else
-        {
-            printf(" ");
-        }
+        print_Statistic_Flags(theStatistic);
         printf("%-60s", statisticName);
         if (theStatistic.isThresholdValid)
         {
@@ -8873,12 +8714,14 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     {
         return MEMORY_FAILURE;
     }
+    DECLARE_ZERO_INIT_ARRAY(char, flagPad, DEVICE_STATISTIC_FLAGS_LEN + 1);
+    safe_memset(flagPad, DEVICE_STATISTIC_FLAGS_LEN + 1, ' ', DEVICE_STATISTIC_FLAGS_LEN);
     printf("===Device Statistics===\n");
     printf("\t* = condition monitored with threshold (DSN Feature)\n");
     printf("\t! = monitored condition met\n");
     printf("\t- = supports notification (DSN Feature)\n");
     printf("\tr = supports reinitialization/reset\n");
-    printf(" %-60s %-16s %-16s\n", "Statistic Name:", "Threshold:", "Value:");
+    printf("%s%-60s %-16s %-16s\n", flagPad , "Statistic Name:", "Threshold:", "Value:");
     if (deviceStats->sataStatistics.generalStatisticsSupported)
     {
         printf("\n---General Statistics---\n");
