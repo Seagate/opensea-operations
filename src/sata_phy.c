@@ -28,6 +28,118 @@
 #include "ata_helper_func.h"
 #include "sata_phy.h"
 
+M_NONNULL_PARAM_LIST(1, 2)
+M_PARAM_WO(1)
+static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters counters,
+                                                       uint8_t*                phyEventLog,
+                                                       uint32_t                dataLength)
+{
+    DISABLE_NONNULL_COMPARE
+    if (counters != M_NULLPTR && phyEventLog != M_NULLPTR && dataLength >= ATA_LOG_PAGE_LEN_BYTES)
+    {
+        uint32_t firstInvalidSector = UINT32_C(0);
+        counters->valid             = true;
+        if (!is_Checksum_Valid(phyEventLog, dataLength, &firstInvalidSector))
+        {
+            counters->validChecksumReceived = false;
+        }
+        else
+        {
+            counters->validChecksumReceived = true;
+        }
+        uint8_t counterLength      = UINT8_C(0);
+        counters->numberOfCounters = 0;
+        for (uint16_t offset = UINT16_C(4); offset < UINT16_C(512);
+             offset += C_CAST(uint16_t, UINT16_C(2) + counterLength))
+        {
+            counters->counters[counters->numberOfCounters].rawID =
+                M_BytesTo2ByteValue(phyEventLog[offset + 1], phyEventLog[offset]);
+            if (counters->counters[counters->numberOfCounters].rawID == 0)
+            {
+                // subtract one since this counter was not valid
+                counters->numberOfCounters -= 1;
+                break;
+            }
+            uint16_t counterBits = get_bit_range_uint16(counters->counters[counters->numberOfCounters].rawID, 14, 12);
+            counters->counters[counters->numberOfCounters].eventID =
+                get_bit_range_uint16(counters->counters[counters->numberOfCounters].rawID, 11, 0);
+            if (counters->counters[counters->numberOfCounters].rawID & BIT15)
+            {
+                counters->counters[counters->numberOfCounters].vendorUnique = true;
+            }
+            switch (counterBits)
+            {
+            case 1: // 16 bits
+                counters->counters[counters->numberOfCounters].counterMaxValue = UINT16_MAX;
+                counters->counters[counters->numberOfCounters].counterValue =
+                    M_BytesTo2ByteValue(phyEventLog[offset + 3], phyEventLog[offset + 2]);
+                counterLength = 2;
+                break;
+            case 2: // 32 bits
+                counters->counters[counters->numberOfCounters].counterMaxValue = UINT32_MAX;
+                counters->counters[counters->numberOfCounters].counterValue    = M_BytesTo4ByteValue(
+                    phyEventLog[offset + 5], phyEventLog[offset + 4], phyEventLog[offset + 3], phyEventLog[offset + 2]);
+                counterLength = 4;
+                break;
+            case 3: // 48 bits
+                counters->counters[counters->numberOfCounters].counterMaxValue = MAX_48_BIT_LBA;
+                counters->counters[counters->numberOfCounters].counterValue =
+                    M_BytesTo8ByteValue(0, 0, phyEventLog[offset + 7], phyEventLog[offset + 6], phyEventLog[offset + 5],
+                                        phyEventLog[offset + 4], phyEventLog[offset + 3], phyEventLog[offset + 2]);
+                counterLength = 6;
+                break;
+            case 4: // 64 bits
+                counters->counters[counters->numberOfCounters].counterMaxValue = UINT64_MAX;
+                counters->counters[counters->numberOfCounters].counterValue    = M_BytesTo8ByteValue(
+                    phyEventLog[offset + 9], phyEventLog[offset + 8], phyEventLog[offset + 7], phyEventLog[offset + 6],
+                    phyEventLog[offset + 5], phyEventLog[offset + 4], phyEventLog[offset + 3], phyEventLog[offset + 2]);
+                counterLength = 8;
+                break;
+            default:
+                // unknown counter length. Cannot handle this at this time.
+                counterLength = 0;
+                break;
+            }
+            if (counterLength == 0)
+            {
+                break;
+            }
+            counters->numberOfCounters += 1;
+        }
+    }
+    RESTORE_NONNULL_COMPARE
+}
+
+eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters /* optional */)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
+    if (device == M_NULLPTR)
+    {
+        return BAD_PARAMETER;
+    }
+    RESTORE_NONNULL_COMPARE
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word076) & BIT10)
+        {
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, phyEventLog, ATA_LOG_PAGE_LEN_BYTES);
+            ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, 0, phyEventLog,
+                                            ATA_LOG_PAGE_LEN_BYTES, ATA_SATA_PHY_EVENT_LOG_READ_AND_REINITIALIZE_FEAT);
+            if (SUCCESS == ret || WARN_INVALID_CHECKSUM == ret)
+            {
+                ret = SUCCESS;
+                if (counters != M_NULLPTR)
+                {
+                    fill_SATA_Phy_Events_To_Structure(counters, phyEventLog, ATA_LOG_PAGE_LEN_BYTES);
+                }
+            }
+        }
+    }
+    return ret;
+}
+
 eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -44,82 +156,13 @@ eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounte
         if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
             le16_to_host(device->drive_info.IdentifyData.ata.Word076) & BIT10)
         {
-            DECLARE_ZERO_INIT_ARRAY(uint8_t, phyEventLog, 512);
-            ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, 0, phyEventLog, 512, 0);
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, phyEventLog, ATA_LOG_PAGE_LEN_BYTES);
+            ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, 0, phyEventLog,
+                                            ATA_LOG_PAGE_LEN_BYTES, 0);
             if (SUCCESS == ret || WARN_INVALID_CHECKSUM == ret)
             {
-                counters->valid = true;
-                if (WARN_INVALID_CHECKSUM == ret)
-                {
-                    counters->validChecksumReceived = false;
-                    ret = SUCCESS; // changing this since we are indicating an invalid checksum another way.-TJE
-                }
-                else
-                {
-                    counters->validChecksumReceived = true;
-                }
-                uint8_t counterLength      = UINT8_C(0);
-                counters->numberOfCounters = 0;
-                for (uint16_t offset = UINT16_C(4); offset < UINT16_C(512);
-                     offset += C_CAST(uint16_t, UINT16_C(2) + counterLength))
-                {
-                    counters->counters[counters->numberOfCounters].rawID =
-                        M_BytesTo2ByteValue(phyEventLog[offset + 1], phyEventLog[offset]);
-                    if (counters->counters[counters->numberOfCounters].rawID == 0)
-                    {
-                        // subtract one since this counter was not valid
-                        counters->numberOfCounters -= 1;
-                        break;
-                    }
-                    uint16_t counterBits =
-                        get_bit_range_uint16(counters->counters[counters->numberOfCounters].rawID, 14, 12);
-                    counters->counters[counters->numberOfCounters].eventID =
-                        get_bit_range_uint16(counters->counters[counters->numberOfCounters].rawID, 11, 0);
-                    if (counters->counters[counters->numberOfCounters].rawID & BIT15)
-                    {
-                        counters->counters[counters->numberOfCounters].vendorUnique = true;
-                    }
-                    switch (counterBits)
-                    {
-                    case 1: // 16 bits
-                        counters->counters[counters->numberOfCounters].counterMaxValue = UINT16_MAX;
-                        counters->counters[counters->numberOfCounters].counterValue =
-                            M_BytesTo2ByteValue(phyEventLog[offset + 3], phyEventLog[offset + 2]);
-                        counterLength = 2;
-                        break;
-                    case 2: // 32 bits
-                        counters->counters[counters->numberOfCounters].counterMaxValue = UINT32_MAX;
-                        counters->counters[counters->numberOfCounters].counterValue =
-                            M_BytesTo4ByteValue(phyEventLog[offset + 5], phyEventLog[offset + 4],
-                                                phyEventLog[offset + 3], phyEventLog[offset + 2]);
-                        counterLength = 4;
-                        break;
-                    case 3: // 48 bits
-                        counters->counters[counters->numberOfCounters].counterMaxValue = MAX_48_BIT_LBA;
-                        counters->counters[counters->numberOfCounters].counterValue    = M_BytesTo8ByteValue(
-                            0, 0, phyEventLog[offset + 7], phyEventLog[offset + 6], phyEventLog[offset + 5],
-                            phyEventLog[offset + 4], phyEventLog[offset + 3], phyEventLog[offset + 2]);
-                        counterLength = 6;
-                        break;
-                    case 4: // 64 bits
-                        counters->counters[counters->numberOfCounters].counterMaxValue = UINT64_MAX;
-                        counters->counters[counters->numberOfCounters].counterValue    = M_BytesTo8ByteValue(
-                            phyEventLog[offset + 9], phyEventLog[offset + 8], phyEventLog[offset + 7],
-                            phyEventLog[offset + 6], phyEventLog[offset + 5], phyEventLog[offset + 4],
-                            phyEventLog[offset + 3], phyEventLog[offset + 2]);
-                        counterLength = 8;
-                        break;
-                    default:
-                        // unknown counter length. Cannot handle this at this time.
-                        counterLength = 0;
-                        break;
-                    }
-                    if (counterLength == 0)
-                    {
-                        break;
-                    }
-                    counters->numberOfCounters += 1;
-                }
+                fill_SATA_Phy_Events_To_Structure(counters, phyEventLog, ATA_LOG_PAGE_LEN_BYTES);
+                ret = SUCCESS;
             }
         }
     }

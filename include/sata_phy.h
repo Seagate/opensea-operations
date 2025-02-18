@@ -77,6 +77,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters);
 
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API
+    eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice*                device,
+                                                       ptrSATAPhyEventCounters counters /* optional */);
+
 #if defined(__cplusplus)
 }
 #endif //__cplusplus
