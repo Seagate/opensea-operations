@@ -123,6 +123,7 @@ extern "C"
         statistic failedExplicitOpens;
         statistic readRuleViolations;
         statistic writeRuleViolations;
+        statistic maximumImplicitOpenSequentialOrBeforeRequiredZones;
         // vendor specific
         uint8_t   vendorSpecificStatisticsPopulated;
         statistic vendorSpecificStatistics[64];
@@ -381,6 +382,18 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
+
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    bool is_Timestamp_Supported(tDevice* device);
+
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    eReturnValues set_Date_And_Time_Timestamp(tDevice* device);
+
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    eReturnValues ata_Device_Statistics_Reinitialize(tDevice* device, eDeviceStatisticsLog reinitializeRequest);
 
 #if defined(__cplusplus)
 }

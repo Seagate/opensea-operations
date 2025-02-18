@@ -28,229 +28,274 @@
 #include "device_statistics.h"
 #include "logs.h"
 
+static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_GENERAL_LIFETIME_POR:
+        stat = &deviceStats->sataStatistics.lifetimePoweronResets;
+        break;
+    case ATA_DEV_STAT_GENERAL_POH:
+        stat = &deviceStats->sataStatistics.powerOnHours;
+        break;
+    case ATA_DEV_STAT_GENERAL_LBA_WRITTEN:
+        stat = &deviceStats->sataStatistics.logicalSectorsWritten;
+        break;
+    case ATA_DEV_STAT_GENERAL_NUM_WRITE_CMDS:
+        stat = &deviceStats->sataStatistics.numberOfWriteCommands;
+        break;
+    case ATA_DEV_STAT_GENERAL_LBA_READ:
+        stat = &deviceStats->sataStatistics.logicalSectorsRead;
+        break;
+    case ATA_DEV_STAT_GENERAL_NUM_READ_CMDS:
+        stat = &deviceStats->sataStatistics.numberOfReadCommands;
+        break;
+    case ATA_DEV_STAT_GENERAL_DATE_AND_TIME_TIMESTAMP:
+        stat = &deviceStats->sataStatistics.dateAndTimeTimestamp;
+        break;
+    case ATA_DEV_STAT_GENERAL_PENDING_ERR_CNT:
+        stat = &deviceStats->sataStatistics.pendingErrorCount;
+        break;
+    case ATA_DEV_STAT_GENERAL_WORKLOAD_UTIL:
+        stat = &deviceStats->sataStatistics.workloadUtilization;
+        break;
+    case ATA_DEV_STAT_GENERAL_UTIL_USAGE_RATE:
+        stat = &deviceStats->sataStatistics.utilizationUsageRate;
+        break;
+    case ATA_DEV_STAT_GENERAL_RESOURCE_AVAIL:
+        stat = &deviceStats->sataStatistics.resourceAvailability;
+        break;
+    case ATA_DEV_STAT_GENERAL_RAND_WRITE_RESOURCE_USED:
+        stat = &deviceStats->sataStatistics.randomWriteResourcesUsed;
+        break;
+    }
+    return stat;
+}
+
+static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_FREEFALL_NUM_FREEFALL_EVENTS:
+        stat = &deviceStats->sataStatistics.numberOfFreeFallEventsDetected;
+        break;
+    case ATA_DEV_STAT_FREEFALL_OVERLIM_SHOCK_EVENT:
+        stat = &deviceStats->sataStatistics.overlimitShockEvents;
+        break;
+    }
+    return stat;
+}
+
+static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_ROTATING_SPINDLE_MOTOR_POH:
+        stat = &deviceStats->sataStatistics.spindleMotorPoweronHours;
+        break;
+    case ATA_DEV_STAT_ROTATING_HEAD_FLYING_HOURS:
+        stat = &deviceStats->sataStatistics.headFlyingHours;
+        break;
+    case ATA_DEV_STAT_ROTATING_HEAD_LOAD_EVENTS:
+        stat = &deviceStats->sataStatistics.headLoadEvents;
+        break;
+    case ATA_DEV_STAT_ROTATING_NUM_REALLOCATED_LBA:
+        stat = &deviceStats->sataStatistics.numberOfReallocatedLogicalSectors;
+        break;
+    case ATA_DEV_STAT_ROTATING_READ_RECOVERY_ATTEMPTS:
+        stat = &deviceStats->sataStatistics.readRecoveryAttempts;
+        break;
+    case ATA_DEV_STAT_ROTATING_NUM_MECH_START_FAILURE:
+        stat = &deviceStats->sataStatistics.numberOfMechanicalStartFailures;
+        break;
+    case ATA_DEV_STAT_ROTATING_NUM_REALLOCATION_CANDIDATE_LBA:
+        stat = &deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors;
+        break;
+    case ATA_DEV_STAT_ROTATING_NUM_HIGH_PRIO_UNLOAD_EVENTS:
+        stat = &deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents;
+        break;
+    }
+    return stat;
+}
+
+static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_GENERR_NUM_REPORTED_UNCOR_ERR:
+        stat = &deviceStats->sataStatistics.numberOfReportedUncorrectableErrors;
+        break;
+    case ATA_DEV_STAT_GENERR_NUM_RESETS_BETWEEN_CMD_ACCEPT_AND_COMPLETE:
+        stat = &deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion;
+        break;
+    case ATA_DEV_STAT_GENERR_PHYSICAL_ELEMENT_STATUS_CHANGE:
+        stat = &deviceStats->sataStatistics.physicalElementStatusChanged;
+        break;
+    }
+    return stat;
+}
+
+static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_TEMP_CURRENT_TEMP:
+        stat = &deviceStats->sataStatistics.currentTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_AVG_SHORT_TEMP:
+        stat = &deviceStats->sataStatistics.averageShortTermTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_AVG_LONG_TEMP:
+        stat = &deviceStats->sataStatistics.averageLongTermTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_HIGHEST_TEMP:
+        stat = &deviceStats->sataStatistics.highestTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_LOWEST_TEMP:
+        stat = &deviceStats->sataStatistics.lowestTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_HIGH_AVG_SHORT_TEMP:
+        stat = &deviceStats->sataStatistics.highestAverageShortTermTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_LOW_AVG_SHORT_TEMP:
+        stat = &deviceStats->sataStatistics.lowestAverageShortTermTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_HIGH_AVG_LONG_TEMP:
+        stat = &deviceStats->sataStatistics.highestAverageLongTermTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_LOW_AVG_LONG_TEMP:
+        stat = &deviceStats->sataStatistics.lowestAverageLongTermTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_TIME_OVER_TEMP:
+        stat = &deviceStats->sataStatistics.timeInOverTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_SPEC_MAX_TEMP:
+        stat = &deviceStats->sataStatistics.specifiedMaximumOperatingTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_TIME_UNDER_TEMP:
+        stat = &deviceStats->sataStatistics.timeInUnderTemperature;
+        break;
+    case ATA_DEV_STAT_TEMP_SPEC_MIN_TEMP:
+        stat = &deviceStats->sataStatistics.specifiedMinimumOperatingTemperature;
+        break;
+    }
+    return stat;
+}
+
+static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_TRANSPORT_NUM_HARD_RESET:
+        stat = &deviceStats->sataStatistics.numberOfHardwareResets;
+        break;
+    case ATA_DEV_STAT_TRANSPORT_NUM_ASR_EVENTS:
+        stat = &deviceStats->sataStatistics.numberOfASREvents;
+        break;
+    case ATA_DEV_STAT_TRANSPORT_NUM_CRC_ERRORS:
+        stat = &deviceStats->sataStatistics.numberOfInterfaceCRCErrors;
+        break;
+    }
+    return stat;
+}
+
+static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_SSD_ENDURANCE:
+        stat = &deviceStats->sataStatistics.percentageUsedIndicator;
+        break;
+    }
+    return stat;
+}
+
+static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic* stat = M_NULLPTR;
+    switch (byteOffsetOnPage)
+    {
+    case ATA_DEV_STAT_ZONED_MAX_OPEN_ZONES:
+        stat = &deviceStats->sataStatistics.maximumOpenZones;
+        break;
+    case ATA_DEV_STAT_ZONED_MAX_EXPLICIT_OPEN_ZONES:
+        stat = &deviceStats->sataStatistics.maximumExplicitlyOpenZones;
+        break;
+    case ATA_DEV_STAT_ZONED_MAX_IMPLICIT_OPEN_ZONES:
+        stat = &deviceStats->sataStatistics.maximumImplicitlyOpenZones;
+        break;
+    case ATA_DEV_STAT_ZONED_MIN_EMPTY_ZONES:
+        stat = &deviceStats->sataStatistics.minimumEmptyZones;
+        break;
+    case ATA_DEV_STAT_ZONED_MAX_NON_SEQ_ZONES:
+        stat = &deviceStats->sataStatistics.maximumNonSequentialZones;
+        break;
+    case ATA_DEV_STAT_ZONED_ZONES_EMPTIED:
+        stat = &deviceStats->sataStatistics.zonesEmptied;
+        break;
+    case ATA_DEV_STAT_ZONED_SUBOPTIMAL_WRITE_CMD:
+        stat = &deviceStats->sataStatistics.suboptimalWriteCommands;
+        break;
+    case ATA_DEV_STAT_ZONED_CMD_EXCEED_OPTIMAL_LIM:
+        stat = &deviceStats->sataStatistics.commandsExceedingOptimalLimit;
+        break;
+    case ATA_DEV_STAT_ZONED_FAILED_EXPLICIT_OPEN:
+        stat = &deviceStats->sataStatistics.failedExplicitOpens;
+        break;
+    case ATA_DEV_STAT_ZONED_READ_RULE_VIOLATIONS:
+        stat = &deviceStats->sataStatistics.readRuleViolations;
+        break;
+    case ATA_DEV_STAT_ZONED_WRITE_RULE_VIOLATIONS:
+        stat = &deviceStats->sataStatistics.writeRuleViolations;
+        break;
+    case ATA_DEV_STAT_ZONED_MAX_IMPLICIT_OPEN_SEQ_OR_BEF_REQ_ZONES:
+        stat = &deviceStats->sataStatistics.maximumImplicitOpenSequentialOrBeforeRequiredZones;
+        break;
+    }
+    return stat;
+}
+
 // this is ued to determine which device statistic is being talked about by the DSN log on ata
 // TODO: Make enum of all stat offsets on each page so it is easy to make sure all cases are handled correctly
-static statistic * dev_stat_page_offset_map(ptrDeviceStatistics deviceStats, uint8_t ataDevStatPage, uint8_t byteOffsetOnPage)
+static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
+                                           uint8_t             ataDevStatPage,
+                                           uint16_t            byteOffsetOnPage)
 {
-    statistic * stat = M_NULLPTR;
+    statistic* stat = M_NULLPTR;
     switch (ataDevStatPage)
     {
     case ATA_DEVICE_STATS_LOG_LIST:
         break;
     case ATA_DEVICE_STATS_LOG_GENERAL:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.lifetimePoweronResets;
-                break;
-            case 16:
-                stat = &deviceStats->sataStatistics.powerOnHours;
-                break;
-            case 24:
-                stat = &deviceStats->sataStatistics.logicalSectorsWritten;
-                break;
-            case 32:
-                stat = &deviceStats->sataStatistics.numberOfWriteCommands;
-                break;
-            case 40:
-                stat = &deviceStats->sataStatistics.logicalSectorsRead;
-                break;
-            case 48:
-                stat = &deviceStats->sataStatistics.numberOfReadCommands;
-                break;
-            case 56:
-                stat = &deviceStats->sataStatistics.dateAndTimeTimestamp;
-                break;
-            case 64:
-                stat = &deviceStats->sataStatistics.pendingErrorCount;
-                break;
-            case 72:
-                stat = &deviceStats->sataStatistics.workloadUtilization;
-                break;
-            case 80:
-                stat = &deviceStats->sataStatistics.utilizationUsageRate;
-                break;
-            case 88:
-                stat = &deviceStats->sataStatistics.resourceAvailability;
-                break;
-            case 96:
-                stat = &deviceStats->sataStatistics.randomWriteResourcesUsed;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_general_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_FREE_FALL:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.numberOfFreeFallEventsDetected;
-                break;
-            case 16:
-                stat = &deviceStats->sataStatistics.overlimitShockEvents;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_freefall_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.spindleMotorPoweronHours;
-                break;
-            case 16:
-                stat = &deviceStats->sataStatistics.headFlyingHours;
-                break;
-            case 24:
-                stat = &deviceStats->sataStatistics.headLoadEvents;
-                break;
-            case 32:
-                stat = &deviceStats->sataStatistics.numberOfReallocatedLogicalSectors;
-                break;
-            case 40:
-                stat = &deviceStats->sataStatistics.readRecoveryAttempts;
-                break;
-            case 48:
-                stat = &deviceStats->sataStatistics.numberOfMechanicalStartFailures;
-                break;
-            case 56:
-                stat = &deviceStats->sataStatistics.numberOfReallocationCandidateLogicalSectors;
-                break;
-            case 64:
-                stat = &deviceStats->sataStatistics.numberOfHighPriorityUnloadEvents;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_rotating_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_GEN_ERR:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.numberOfReportedUncorrectableErrors;
-                break;
-            case 16:
-                stat = &deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion;
-                break;
-            case 24:
-                stat = &deviceStats->sataStatistics.physicalElementStatusChanged;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_generallerror_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_TEMP:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.currentTemperature;
-                break;
-            case 16:
-                stat = &deviceStats->sataStatistics.averageShortTermTemperature;
-                break;
-            case 24:
-                stat = &deviceStats->sataStatistics.averageLongTermTemperature;
-                break;
-            case 32:
-                stat = &deviceStats->sataStatistics.highestTemperature;
-                break;
-            case 40:
-                stat = &deviceStats->sataStatistics.lowestTemperature;
-                break;
-            case 48:
-                stat = &deviceStats->sataStatistics.highestAverageShortTermTemperature;
-                break;
-            case 56:
-                stat = &deviceStats->sataStatistics.lowestAverageShortTermTemperature;
-                break;
-            case 64:
-                stat = &deviceStats->sataStatistics.highestAverageLongTermTemperature;
-                break;
-            case 72:
-                stat = &deviceStats->sataStatistics.lowestAverageLongTermTemperature;
-                break;
-            case 80:
-                stat = &deviceStats->sataStatistics.timeInOverTemperature;
-                break;
-            case 88:
-                stat = &deviceStats->sataStatistics.specifiedMaximumOperatingTemperature;
-                break;
-            case 96:
-                stat = &deviceStats->sataStatistics.timeInUnderTemperature;
-                break;
-            case 104:
-                stat = &deviceStats->sataStatistics.specifiedMinimumOperatingTemperature;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_temperature_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_TRANSPORT:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.numberOfHardwareResets;
-                break;
-            case 16:
-                stat = &deviceStats->sataStatistics.numberOfASREvents;
-                break;
-            case 24:
-                stat = &deviceStats->sataStatistics.numberOfInterfaceCRCErrors;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_transport_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_SSD:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.percentageUsedIndicator;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_ssd_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
-        switch(byteOffsetOnPage)
-        {
-            case 8:
-                stat = &deviceStats->sataStatistics.maximumOpenZones;
-                break;
-            case 16:
-                stat = &deviceStats->sataStatistics.maximumExplicitlyOpenZones;
-                break;
-            case 24:
-                stat = &deviceStats->sataStatistics.maximumImplicitlyOpenZones;
-                break;
-            case 32:
-                stat = &deviceStats->sataStatistics.minimumEmptyZones;
-                break;
-            case 40:
-                stat = &deviceStats->sataStatistics.maximumNonSequentialZones;
-                break;
-            case 48:
-                stat = &deviceStats->sataStatistics.zonesEmptied;
-                break;
-            case 56:
-                stat = &deviceStats->sataStatistics.suboptimalWriteCommands;
-                break;
-            case 64:
-                stat = &deviceStats->sataStatistics.commandsExceedingOptimalLimit;
-                break;
-            case 72:
-                stat = &deviceStats->sataStatistics.failedExplicitOpens;
-                break;
-            case 80:
-                stat = &deviceStats->sataStatistics.readRuleViolations;
-                break;
-            case 88:
-                stat = &deviceStats->sataStatistics.writeRuleViolations;
-                break;
-            default:
-                break;
-        }
+        stat = dev_stat_zoned_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC:
         // slightly different than case by case here -TJE
@@ -262,7 +307,7 @@ static statistic * dev_stat_page_offset_map(ptrDeviceStatistics deviceStats, uin
 
 M_NONNULL_PARAM_LIST(1) M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* ptrStatistic); // prototype
 
-static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic * stat)
+static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic* stat)
 {
     if (stat != M_NULLPTR)
     {
@@ -283,38 +328,33 @@ static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, stat
         bool    nonValidityTrigger  = dsnConditionFlags & BIT3;
         bool    validityTrigger     = dsnConditionFlags & BIT2;
         // Bits 55:0 = Threshold Value
-        uint64_t thresholdValue = statisticCondition & UINT64_C(0x00FFFFFFFFFFFFFF); // removing byte 7
-        stat->isThresholdValid = true;
+        uint64_t thresholdValue            = statisticCondition & UINT64_C(0x00FFFFFFFFFFFFFF); // removing byte 7
+        stat->isThresholdValid             = true;
         stat->thresholdNotificationEnabled = notificationEnabled;
-        stat->threshType = C_CAST(eThresholdType, comparisonType);
-        stat->nonValidityTrigger = nonValidityTrigger;
-        stat->validityTrigger    = validityTrigger;
-        stat->threshold          = thresholdValue;
+        stat->threshType                   = C_CAST(eThresholdType, comparisonType);
+        stat->nonValidityTrigger           = nonValidityTrigger;
+        stat->validityTrigger              = validityTrigger;
+        stat->threshold                    = thresholdValue;
     }
 }
 
-//NOTE: call le64 to host on qword when passing in to keep this simpler!
+// NOTE: call le64 to host on qword when passing in to keep this simpler!
 M_NONNULL_PARAM_LIST(2)
 M_PARAM_WO(2)
-static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic * stat, uint8_t statmsb, uint8_t statlsb)
+static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* stat)
 {
     bool statisticPopulated = false;
     DISABLE_NONNULL_COMPARE
     if (qword & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && stat != M_NULLPTR)
     {
-        stat->isSupported = true;
-        stat->isValueValid =
-            qword & ATA_DEV_STATS_VALID_VALUE_BIT;
-        stat->isNormalized =
-            qword & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-        stat->supportsNotification =
-            qword & ATA_DEV_STATS_SUPPORTS_DSN;
-        stat->monitoredConditionMet =
-            qword & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-        stat->supportsReadThenInitialize =
-            qword & ATA_DEV_STATS_READ_THEN_INIT_SUPPORTED;
-        stat->statisticValue = get_bit_range_uint64(qword, statmsb, statlsb);
-        statisticPopulated = true;
+        stat->isSupported                = true;
+        stat->isValueValid               = qword & ATA_DEV_STATS_VALID_VALUE_BIT;
+        stat->isNormalized               = qword & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
+        stat->supportsNotification       = qword & ATA_DEV_STATS_SUPPORTS_DSN;
+        stat->monitoredConditionMet      = qword & ATA_DEV_STATS_MONITORED_CONDITION_MET;
+        stat->supportsReadThenInitialize = qword & ATA_DEV_STATS_READ_THEN_INIT_SUPPORTED;
+        stat->statisticValue = get_bit_range_uint64(qword, ATA_DEV_STATS_VALUE_MSB, ATA_DEV_STATS_VALUE_LSB);
+        statisticPopulated   = true;
     }
     RESTORE_NONNULL_COMPARE
     return statisticPopulated;
@@ -366,9 +406,11 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                         devStatsNotificationsLog[offset + 13], devStatsNotificationsLog[offset + 12],
                         devStatsNotificationsLog[offset + 11], devStatsNotificationsLog[offset + 10],
                         devStatsNotificationsLog[offset + 9], devStatsNotificationsLog[offset + 8]);
-                    uint8_t statisticLogPage = M_Byte3(statisticLocation);
+                    uint8_t statisticLogPage    = M_Byte3(statisticLocation);
                     uint8_t statisticByteOffset = M_Byte0(statisticLocation);
-                    set_ATA_Dev_Stat_Notification_Info(statisticCondition, dev_stat_page_offset_map(deviceStats, statisticLogPage, statisticByteOffset));
+                    set_ATA_Dev_Stat_Notification_Info(
+                        statisticCondition,
+                        dev_stat_page_offset_map(deviceStats, statisticLogPage, statisticByteOffset));
                 }
             }
             safe_free_aligned(&devStatsNotificationsLog);
@@ -390,11 +432,17 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                 }
                 qwordPtrDeviceStatsLog = C_CAST(uint64_t*, &deviceStatsLog[offset]);
 
-                for (uint16_t statisticOffset = UINT16_C(8); statisticOffset < LEGACY_DRIVE_SEC_SIZE; statisticOffset += UINT16_C(8))
+                for (uint16_t statisticOffset = UINT16_C(8); statisticOffset < LEGACY_DRIVE_SEC_SIZE;
+                     statisticOffset += UINT16_C(8))
                 {
-                    // TODO: Need to adjust min/max field offsets based on the attribute. For now selecting all 48 possible bits seems ok.
+                    // TODO: Need to adjust min/max field offsets based on the attribute. For now selecting all 48
+                    // possible bits seems ok.
                     //       Need more testing and to come back to this again later.
-                    if (set_ATA_Dev_Stat_Info(le64_to_host(qwordPtrDeviceStatsLog[statisticOffset / UINT16_C(8)]), dev_stat_page_offset_map(deviceStats, deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter], statisticOffset), 47, 0))
+                    if (set_ATA_Dev_Stat_Info(
+                            le64_to_host(qwordPtrDeviceStatsLog[statisticOffset / UINT16_C(8)]),
+                            dev_stat_page_offset_map(deviceStats,
+                                                     deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter],
+                                                     statisticOffset)))
                     {
                         ++deviceStats->sataStatistics.statisticsPopulated;
                     }
@@ -8312,15 +8360,18 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
-            uint16_t days    = UINT16_C(0);
-            uint8_t  years   = UINT8_C(0);
-            uint8_t  hours   = UINT8_C(0);
-            uint8_t  minutes = UINT8_C(0);
-            uint8_t  seconds = UINT8_C(0);
-            // this is reported in milliseconds...convert to other displayable.
-            uint64_t statisticSeconds = theStatistic.statisticValue / UINT64_C(1000);
-            convert_Seconds_To_Displayable_Time(statisticSeconds, &years, &days, &hours, &minutes, &seconds);
-            print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+            struct tm time;
+            DECLARE_ZERO_INIT_ARRAY(char, timestr, TIME_STRING_LENGTH);
+            safe_memset(&time, sizeof(struct tm), 0, sizeof(struct tm));
+            if (0 == safe_asctime(timestr, TIME_STRING_LENGTH,
+                                  milliseconds_Since_Unix_Epoch_To_Struct_TM(theStatistic.statisticValue, &time)))
+            {
+                printf("%s", timestr);
+            }
+            else
+            {
+                printf("Error converting time\n");
+            }
         }
         else
         {
@@ -8721,7 +8772,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     printf("\t! = monitored condition met\n");
     printf("\t- = supports notification (DSN Feature)\n");
     printf("\t^ = supports reinitialization/reset\n");
-    printf("%s%-60s %-16s %-16s\n", flagPad , "Statistic Name:", "Threshold:", "Value:");
+    printf("%s%-60s %-16s %-16s\n", flagPad, "Statistic Name:", "Threshold:", "Value:");
     if (deviceStats->sataStatistics.generalStatisticsSupported)
     {
         printf("\n---General Statistics---\n");
@@ -8834,6 +8885,8 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
         print_Count_Statistic(deviceStats->sataStatistics.failedExplicitOpens, "Failed Explicit Opens", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.readRuleViolations, "Read Rule Violations", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", M_NULLPTR);
+        print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitOpenSequentialOrBeforeRequiredZones,
+                              "Max Implicitly Open Sequential or Before Required Zones", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.vendorSpecificStatisticsSupported)
     {
@@ -8856,7 +8909,23 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
             {
                 switch (vendorSpecificIter + 1)
                 {
-                case 1: // pressure
+                case 5:
+                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                                        "Servo Activation Stop Timestamp");
+                    break;
+                case 4:
+                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                                        "Servo Activation Start Timestamp");
+                    break;
+                case 3:
+                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                                        "Read Error Rate Head Failure Bit Map");
+                    break;
+                case 2:
+                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                                        "Number of Servo Unloads");
+                    break;
+                case 1:
                     snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
                                         "Pressure Min/Max Reached");
                     break;
@@ -9285,6 +9354,194 @@ eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics device
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         return print_SCSI_DeviceStatistics(device, deviceStats);
+    }
+    return ret;
+}
+
+static M_INLINE bool is_ATA_Timestamp_Supported(tDevice* device)
+{
+    bool supported = false;
+    // This command is supported when the date and time timestamp statistic is supported
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, devStats, ATA_LOG_PAGE_LEN_BYTES);
+    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, 0, devStats, ATA_LOG_PAGE_LEN_BYTES, 0))
+    {
+        // Check that general statistics page is supported, then read that page and check if the timestamp statistic
+        // is supported
+        bool generalStatsSupported = false;
+        for (uint8_t pageIter = UINT8_C(0); pageIter < devStats[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET]; ++pageIter)
+        {
+            if (devStats[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter] == ATA_DEVICE_STATS_LOG_GENERAL)
+            {
+                generalStatsSupported = true;
+                break;
+            }
+        }
+        if (generalStatsSupported)
+        {
+            // Now read this page and find the timestamp statistic to make sure it is supported.
+            safe_memset(devStats, ATA_LOG_PAGE_LEN_BYTES, 0, ATA_LOG_PAGE_LEN_BYTES);
+            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL,
+                                                     devStats, ATA_LOG_PAGE_LEN_BYTES, 0))
+            {
+                uint64_t* qwordPtr = M_REINTERPRET_CAST(uint64_t*, devStats);
+                if (M_Byte3(le64_to_host(*qwordPtr)) == ATA_DEVICE_STATS_LOG_GENERAL &&
+                    M_Word0(le64_to_host(*qwordPtr)) == ATA_DEV_STATS_VERSION_1)
+                {
+                    statistic dateAndTime;
+                    safe_memset(&dateAndTime, sizeof(statistic), 0, sizeof(statistic));
+                    if (set_ATA_Dev_Stat_Info(le64_to_host(*(qwordPtr + 7)), &dateAndTime))
+                    {
+                        supported = dateAndTime.isSupported;
+                    }
+                }
+            }
+        }
+    }
+    return supported;
+}
+
+static M_INLINE bool is_SCSI_Timestamp_Supported(tDevice* device)
+{
+    bool     supported = false;
+    uint32_t ctrlexLen = UINT32_C(0);
+    if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x01, &ctrlexLen))
+    {
+        uint8_t* mp = M_REINTERPRET_CAST(
+            uint8_t*, safe_calloc_aligned(ctrlexLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (mp != M_NULLPTR)
+        {
+            bool used6b = false;
+            if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x01, M_NULLPTR, M_NULLPTR, true,
+                                              mp, ctrlexLen, M_NULLPTR, &used6b))
+            {
+                uint16_t modeDataLen = UINT16_C(0);
+                uint16_t blkDescLen  = UINT16_C(0);
+                get_SBC_Mode_Header_Blk_Desc_Fields(used6b, mp, ctrlexLen, &modeDataLen, M_NULLPTR, M_NULLPTR,
+                                                    M_NULLPTR, &blkDescLen, M_NULLPTR, M_NULLPTR);
+                uint32_t mpOffset = MODE_PARAMETER_HEADER_6_LEN + blkDescLen;
+                if ((mp[mpOffset + 4] & BIT1) > 0) // SCSIP bit is set to 1
+                {
+                    supported = true;
+                }
+            }
+            safe_free_aligned(&mp);
+        }
+    }
+    return supported;
+}
+
+bool is_Timestamp_Supported(tDevice* device)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        supported = is_ATA_Timestamp_Supported(device);
+    }
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT6)
+        {
+            supported = true;
+        }
+    }
+    else // scsi drive
+    {
+        supported = is_SCSI_Timestamp_Supported(device);
+    }
+    return supported;
+}
+
+eReturnValues set_Date_And_Time_Timestamp(tDevice* device)
+{
+    eReturnValues ret  = NOT_SUPPORTED;
+    uint64_t      time = get_Milliseconds_Since_Unix_Epoch();
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        if (is_Timestamp_Supported(device))
+        {
+            ret = ata_Set_Date_And_Time(device, time);
+        }
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        // NOTE: Requires scsip bit on control extension mode page to be set to 1, otherwise you get an error
+        if (is_Timestamp_Supported(device))
+        {
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, timestampParam, 12);
+            timestampParam[4] = M_Byte5(time);
+            timestampParam[5] = M_Byte4(time);
+            timestampParam[6] = M_Byte3(time);
+            timestampParam[7] = M_Byte2(time);
+            timestampParam[8] = M_Byte1(time);
+            timestampParam[9] = M_Byte0(time);
+            ret               = scsi_Set_Timestamp(device, SIZE_OF_STACK_ARRAY(timestampParam), timestampParam);
+        }
+    }
+    else if (device->drive_info.drive_type == NVME_DRIVE)
+    {
+        if (is_Timestamp_Supported(device))
+        {
+            nvmeFeaturesCmdOpt setTimestamp;
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, timestampData, 8);
+            safe_memset(&setTimestamp, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+            timestampData[0]             = M_Byte0(time);
+            timestampData[1]             = M_Byte1(time);
+            timestampData[2]             = M_Byte2(time);
+            timestampData[3]             = M_Byte3(time);
+            timestampData[4]             = M_Byte4(time);
+            timestampData[5]             = M_Byte5(time);
+            setTimestamp.dataLength      = SIZE_OF_STACK_ARRAY(timestampData);
+            setTimestamp.dataPtr         = timestampData;
+            setTimestamp.nsid            = NVME_ALL_NAMESPACES;
+            setTimestamp.featSetGetValue = NVME_FEAT_TIMESTAMP_;
+            ret                          = nvme_Set_Features(device, &setTimestamp);
+        }
+    }
+    return ret;
+}
+
+// NOTE: If reinitializeRequest is the first page (page 0, list of supported pages), this means reset all pages - TJE
+// Next enhancement: Compare the values read during reinitialization to reading again afterwards. Determine which
+// statistics were reset to provide a list to share with the user
+// NOTE: While this log can be read with smart read log, it can only be reinitialized with read log ext commands - TJE
+eReturnValues ata_Device_Statistics_Reinitialize(tDevice* device, eDeviceStatisticsLog reinitializeRequest)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = SUCCESS;
+        if (reinitializeRequest == ATA_DEVICE_STATS_LOG_LIST)
+        {
+            // Reinitialize all pages
+            uint32_t devStatsFullLen = UINT32_C(0);
+            ret = get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &devStatsFullLen, true, false);
+            if (SUCCESS == ret)
+            {
+                uint8_t* devStats = M_REINTERPRET_CAST(
+                    uint8_t*, calloc_aligned(devStatsFullLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (devStats != M_NULLPTR)
+                {
+                    ret =
+                        get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, M_NULLPTR, M_NULLPTR, true, false, true,
+                                    devStats, devStatsFullLen, M_NULLPTR, 0, ATA_DEV_STATS_READ_AND_REINITIALIZE_FEAT);
+                    safe_free_aligned(&devStats);
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
+            }
+            else
+            {
+                ret = NOT_SUPPORTED;
+            }
+        }
+        else
+        {
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, devStats, ATA_LOG_PAGE_LEN_BYTES);
+            ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, reinitializeRequest, devStats,
+                                            ATA_LOG_PAGE_LEN_BYTES, ATA_DEV_STATS_READ_AND_REINITIALIZE_FEAT);
+        }
     }
     return ret;
 }
