@@ -31,14 +31,14 @@
 #include "operations_Common.h"
 #include "power_control.h"
 
-// There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see
+// There is no specific way to enable or disable this on SCSI, so this simulates the behavior according to what we see
 // with ATA
 static eReturnValues scsi_Enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_field, bool saveChanges)
 {
     eReturnValues ret = UNKNOWN;
     // setup the structure and send these changes to the drive.
     powerConditionTimers powerTimers;
-    memset(&powerTimers, 0, sizeof(powerConditionTimers));
+    safe_memset(&powerTimers, sizeof(powerConditionTimers), 0, sizeof(powerConditionTimers));
 
     if (lba_field == ENABLE_EPC)
     {
