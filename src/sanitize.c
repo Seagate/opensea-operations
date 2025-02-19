@@ -9,33 +9,36 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // ******************************************************************************************
-// 
+//
 // \file sanitize.c
 // \brief This file defines the functions for sanitize operations on SCSI and ATA drives
 
-#include "common_types.h"
-#include "precision_timer.h"
-#include "memory_safety.h"
-#include "type_conversion.h"
-#include "string_utils.h"
 #include "bit_manip.h"
 #include "code_attributes.h"
-#include "math_utils.h"
+#include "common_types.h"
 #include "error_translation.h"
 #include "io_utils.h"
-#include "time_utils.h"
+#include "math_utils.h"
+#include "memory_safety.h"
+#include "precision_timer.h"
 #include "sleep.h"
+#include "string_utils.h"
+#include "time_utils.h"
+#include "type_conversion.h"
 
 #include "operations_Common.h"
-#include "sanitize.h"
 #include "platform_helper.h"
+#include "sanitize.h"
 
-static eReturnValues get_ATA_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
+                                               double*          percentComplete,
+                                               eSanitizeStatus* sanitizeStatus)
 {
     eReturnValues result = ata_Sanitize_Status(device, false);
     if (result == SUCCESS)
     {
-        *percentComplete = M_BytesTo2ByteValue(device->drive_info.lastCommandRTFRs.lbaMid, device->drive_info.lastCommandRTFRs.lbaLow);
+        *percentComplete =
+            M_BytesTo2ByteValue(device->drive_info.lastCommandRTFRs.lbaMid, device->drive_info.lastCommandRTFRs.lbaLow);
         if (device->drive_info.lastCommandRTFRs.secCntExt & BIT7)
         {
             *sanitizeStatus = SANITIZE_STATUS_SUCCESS;
@@ -52,10 +55,10 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice *device, double *percentC
         {
             *sanitizeStatus = SANITIZE_STATUS_FREEZELOCK_FAILED_DUE_TO_ANTI_FREEZE_LOCK;
         }
-        //NOTE: If more status bits are added to the spec, then we will need to add support for detecting them here.
-        else if (M_GETBITRANGE(device->drive_info.lastCommandRTFRs.secCntExt, 4, 0) != 0)
+        // NOTE: If more status bits are added to the spec, then we will need to add support for detecting them here.
+        else if (get_bit_range_uint8(device->drive_info.lastCommandRTFRs.secCntExt, 4, 0) != 0)
         {
-            //unknown status
+            // unknown status
             *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
         }
         else
@@ -65,11 +68,12 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice *device, double *percentC
     }
     else
     {
-        //need to check if there was a reason reported for failing this command.
-        //first check that the abort bit was set because if that isn't there, then we won't be able to identify a reason due to a SATL issue
+        // need to check if there was a reason reported for failing this command.
+        // first check that the abort bit was set because if that isn't there, then we won't be able to identify a
+        // reason due to a SATL issue
         if (device->drive_info.lastCommandRTFRs.error & ATA_ERROR_BIT_ABORT)
         {
-            //LBA Low will have the failure reason, if any
+            // LBA Low will have the failure reason, if any
             switch (device->drive_info.lastCommandRTFRs.lbaLow)
             {
             case 0:
@@ -102,24 +106,26 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice *device, double *percentC
     return result;
 }
 
-static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static eReturnValues get_NVMe_Sanitize_Progress(tDevice*         device,
+                                                double*          percentComplete,
+                                                eSanitizeStatus* sanitizeStatus)
 {
     eReturnValues result = UNKNOWN;
-    //read the sanitize status log
+    // read the sanitize status log
     DECLARE_ZERO_INIT_ARRAY(uint8_t, sanitizeStatusLog, 512);
     nvmeGetLogPageCmdOpts getLogOpts;
-    memset(&getLogOpts, 0, sizeof(nvmeGetLogPageCmdOpts));
+    safe_memset(&getLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
     getLogOpts.dataLen = 512;
-    getLogOpts.lid = 0x81;
-    getLogOpts.addr = sanitizeStatusLog;
+    getLogOpts.lid     = 0x81;
+    getLogOpts.addr    = sanitizeStatusLog;
     if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
     {
-        result = SUCCESS;
-        uint16_t sprog = M_BytesTo2ByteValue(sanitizeStatusLog[1], sanitizeStatusLog[0]);
-        uint16_t sstat = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
+        result           = SUCCESS;
+        uint16_t sprog   = M_BytesTo2ByteValue(sanitizeStatusLog[1], sanitizeStatusLog[0]);
+        uint16_t sstat   = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
         *percentComplete = sprog;
 
-        switch (M_GETBITRANGE(sstat, 2, 0))
+        switch (get_8bit_range_uint16(sstat, 2, 0))
         {
         case 0:
             *sanitizeStatus = SANITIZE_STATUS_NEVER_SANITIZED;
@@ -147,32 +153,37 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice *device, double *percent
     return result;
 }
 
-static eReturnValues get_SCSI_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+static eReturnValues get_SCSI_Sanitize_Progress(tDevice*         device,
+                                                double*          percentComplete,
+                                                eSanitizeStatus* sanitizeStatus)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, req_sense_buf, SPC3_SENSE_LEN);
-    uint8_t acq = 0;
-    uint8_t ascq = 0;
-    uint8_t senseKey = 0;
-    uint8_t fru = 0;
-    eReturnValues result = scsi_Request_Sense_Cmd(device, false, req_sense_buf, SPC3_SENSE_LEN);//get fixed format sense data to make this easier to parse the progress from.
+    uint8_t       acq      = UINT8_C(0);
+    uint8_t       ascq     = UINT8_C(0);
+    uint8_t       senseKey = UINT8_C(0);
+    uint8_t       fru      = UINT8_C(0);
+    eReturnValues result   = scsi_Request_Sense_Cmd(
+        device, false, req_sense_buf,
+        SPC3_SENSE_LEN); // get fixed format sense data to make this easier to parse the progress from.
     get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
     result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
-    //set this for now. It will be changed below if necessary.
-    *sanitizeStatus = SANITIZE_STATUS_NOT_IN_PROGRESS;
+    // set this for now. It will be changed below if necessary.
+    *sanitizeStatus  = SANITIZE_STATUS_NOT_IN_PROGRESS;
     *percentComplete = 0;
     if (result == SUCCESS || result == IN_PROGRESS)
     {
-        if (acq == 0x04 && ascq == 0x1B) //this is making sure that a sanitize command is in progress
+        if (acq == 0x04 && ascq == 0x1B) // this is making sure that a sanitize command is in progress
         {
             *sanitizeStatus = SANITIZE_STATUS_IN_PROGRESS;
-            *percentComplete = M_BytesTo2ByteValue(req_sense_buf[16], req_sense_buf[17]);//sense key specific information
+            *percentComplete =
+                M_BytesTo2ByteValue(req_sense_buf[16], req_sense_buf[17]); // sense key specific information
         }
     }
     else
     {
         if (acq == 0x31 && ascq == 0x03)
         {
-            //sanitize command failed
+            // sanitize command failed
             *sanitizeStatus = SANITIZE_STATUS_FAILED;
         }
     }
@@ -181,10 +192,10 @@ static eReturnValues get_SCSI_Sanitize_Progress(tDevice *device, double *percent
     return result;
 }
 
-eReturnValues get_Sanitize_Progress(tDevice *device, double *percentComplete, eSanitizeStatus *sanitizeStatus)
+eReturnValues get_Sanitize_Progress(tDevice* device, double* percentComplete, eSanitizeStatus* sanitizeStatus)
 {
     eReturnValues result = UNKNOWN;
-    *sanitizeStatus = 0;
+    *sanitizeStatus      = 0;
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
@@ -206,10 +217,10 @@ eReturnValues get_Sanitize_Progress(tDevice *device, double *percentComplete, eS
     return result;
 }
 
-eReturnValues show_Sanitize_Progress(tDevice *device)
+eReturnValues show_Sanitize_Progress(tDevice* device)
 {
-    eReturnValues ret = UNKNOWN;
-    double percentComplete = 0;
+    eReturnValues   ret                = UNKNOWN;
+    double          percentComplete    = 0.0;
     eSanitizeStatus sanitizeInProgress = 0;
 
     ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
@@ -248,8 +259,10 @@ eReturnValues show_Sanitize_Progress(tDevice *device)
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
     {
-        //ATA- Completed with physical sectors that are available to be allocated for user data that were not successfully sanitized
-        printf("\tSanitize command failed: completed with physical sectors that are available for user data and were not successfully sanitized!\n");
+        // ATA- Completed with physical sectors that are available to be allocated for user data that were not
+        // successfully sanitized
+        printf("\tSanitize command failed: completed with physical sectors that are available for user data and were "
+               "not successfully sanitized!\n");
     }
     else
     {
@@ -258,12 +271,13 @@ eReturnValues show_Sanitize_Progress(tDevice *device)
     return ret;
 }
 
-eReturnValues get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOptions)
+eReturnValues get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
     eReturnValues ret = FAILURE;
-    if (device->drive_info.IdentifyData.ata.Word255 == 0)
+    if (le16_to_host(device->drive_info.IdentifyData.ata.Word255) == 0)
     {
-        ret = ata_Identify(device, C_CAST(uint8_t *, &device->drive_info.IdentifyData.ata.Word000), LEGACY_DRIVE_SEC_SIZE);
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
+        ret = ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
     }
     else
     {
@@ -271,40 +285,41 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeatures
     }
     if (ret == SUCCESS)
     {
-        if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word059) && device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_SANITIZE_SUPPORTED)
+        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word059)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_SANITIZE_SUPPORTED)
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
-            sanitizeOptions->exitFailMode = true;
-            sanitizeOptions->freezelock = true;
-            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_CRYPTO_SUPPORTED)
+            sanitizeOptions->exitFailMode       = true;
+            sanitizeOptions->freezelock         = true;
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_CRYPTO_SUPPORTED)
             {
                 sanitizeOptions->crypto = true;
             }
-            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
             {
-                sanitizeOptions->overwrite = true;
+                sanitizeOptions->overwrite              = true;
                 sanitizeOptions->maximumOverwritePasses = 16;
             }
-            if (device->drive_info.IdentifyData.ata.Word059 & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
             {
                 sanitizeOptions->blockErase = true;
             }
-            //bit 10 = antifreeze-lock command supported
-            //ata identify device data log also contains "Definitive ending pattern supported" bit on capabilities page
-            //ata identify device data log sets copies of word 59 on security page.
-            //another bit describes commands allowed matching ACS-2 or not. Modern drives should set this to one to match current standards. ACS-2 may set this to zero
-            if (device->drive_info.IdentifyData.ata.Word059 & BIT10)
+            // bit 10 = antifreeze-lock command supported
+            // ata identify device data log also contains "Definitive ending pattern supported" bit on capabilities page
+            // ata identify device data log sets copies of word 59 on security page.
+            // another bit describes commands allowed matching ACS-2 or not. Modern drives should set this to one to
+            // match current standards. ACS-2 may set this to zero
+            if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & BIT10)
             {
                 sanitizeOptions->antiFreezeLock = true;
             }
-            sanitizeOptions->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
-            sanitizeOptions->writeAfterBlockErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
-
+            sanitizeOptions->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
+            sanitizeOptions->writeAfterBlockErase  = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
         }
     }
     else
     {
-#if defined (_DEBUG)
+#if defined(_DEBUG)
         printf("ATA IDENTIFY Failed %d\n", ret);
 #endif
     }
@@ -312,179 +327,145 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice *device, sanitizeFeatures
     return ret;
 }
 
-eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
+eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)//check for this version of SPC first since the report supported Operation codes and Sanitize command should only be on drives with this version or highter.
+    if (device->drive_info.scsiVersion >=
+        SCSI_VERSION_SPC_3) // check for this version of SPC first since the report supported Operation codes and
+                            // Sanitize command should only be on drives with this version or highter.
     {
         if (device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)
         {
             return NOT_SUPPORTED;
         }
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCommands, 14);
-        ret = FAILURE;
-        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_OVERWRITE, 14, supportedCommands))
+        scsiOperationCodeInfoRequest sanitizeSupReq;
+        safe_memset(&sanitizeSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+        sanitizeSupReq.operationCode      = SANITIZE_CMD;
+        sanitizeSupReq.serviceActionValid = true;
+        sanitizeSupReq.serviceAction      = SCSI_SANITIZE_OVERWRITE;
+        eSCSICmdSupport sanitizeSupport   = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
+        if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            ret = SUCCESS;
-            switch (supportedCommands[1] & 0x07)
+            sanitizeOptions->definitiveEndingPattern = true;
+            sanitizeOptions->sanitizeCmdEnabled      = true;
+            sanitizeOptions->overwrite               = true;
+            if (strstr("ATA", device->drive_info.T10_vendor_ident) ||
+                strstr("NVMe", device->drive_info.T10_vendor_ident))
             {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-                sanitizeOpts->definitiveEndingPattern = true;//only setting this in this case since the "vendor specific mannor" may be that definitive ending pattern is not possible.-TJE
-                M_FALLTHROUGH;
-            case 5://supported in vendor specific mannor in same format as case 3
-                sanitizeOpts->sanitizeCmdEnabled = true;
-                sanitizeOpts->overwrite = true;
-                if (strstr("ATA", device->drive_info.T10_vendor_ident) || strstr("NVMe", device->drive_info.T10_vendor_ident))
-                {
-                    //Assuming that only a compliant translator will support this, so screening for ATA and NVMe which are limited to 16 passes
-                    sanitizeOpts->maximumOverwritePasses = 16;
-                }
-                else
-                {
-                    sanitizeOpts->maximumOverwritePasses = 31;
-                }
-                break;
-            default:
-                break;
+                // Assuming that only a compliant translator will support this, so screening for ATA and NVMe which
+                // are limited to 16 passes
+                sanitizeOptions->maximumOverwritePasses = 16;
+            }
+            else
+            {
+                sanitizeOptions->maximumOverwritePasses = 31;
             }
         }
-        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
+        sanitizeSupReq.serviceAction = SCSI_SANITIZE_BLOCK_ERASE;
+        sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
+        if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            ret = SUCCESS;
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                sanitizeOpts->sanitizeCmdEnabled = true;
-                sanitizeOpts->blockErase = true;
-                break;
-            default:
-                break;
-            }
+            sanitizeOptions->sanitizeCmdEnabled = true;
+            sanitizeOptions->blockErase         = true;
         }
-        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE, 14, supportedCommands))
+        sanitizeSupReq.serviceAction = SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE;
+        sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
+        if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            ret = SUCCESS;
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                sanitizeOpts->sanitizeCmdEnabled = true;
-                sanitizeOpts->crypto = true;
-                break;
-            default:
-                break;
-            }
+            sanitizeOptions->sanitizeCmdEnabled = true;
+            sanitizeOptions->crypto             = true;
         }
-        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_EXIT_FAILURE_MODE, 14, supportedCommands))
+        sanitizeSupReq.serviceAction = SCSI_SANITIZE_EXIT_FAILURE_MODE;
+        sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
+        if (sanitizeSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            ret = SUCCESS;
-            switch (supportedCommands[1] & 0x07)
-            {
-            case 0: //not available right now...so not supported
-            case 1://not supported
-                break;
-            case 3://supported according to spec
-            case 5://supported in vendor specific mannor in same format as case 3
-                sanitizeOpts->sanitizeCmdEnabled = true;
-                sanitizeOpts->exitFailMode = true;
-                break;
-            default:
-                break;
-            }
+            sanitizeOptions->sanitizeCmdEnabled = true;
+            sanitizeOptions->exitFailMode       = true;
         }
         writeAfterErase writeAfterEraseRequirements;
-        memset(&writeAfterEraseRequirements, 0, sizeof(writeAfterErase));
+        safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
         if (SUCCESS == is_Write_After_Erase_Required(device, &writeAfterEraseRequirements))
         {
-            sanitizeOpts->writeAfterBlockErase = writeAfterEraseRequirements.blockErase;
-            sanitizeOpts->writeAfterCryptoErase = writeAfterEraseRequirements.cryptoErase;
+            sanitizeOptions->writeAfterBlockErase  = writeAfterEraseRequirements.blockErase;
+            sanitizeOptions->writeAfterCryptoErase = writeAfterEraseRequirements.cryptoErase;
         }
-        if (sanitizeOpts->sanitizeCmdEnabled)
+        if (sanitizeOptions->sanitizeCmdEnabled)
         {
-            sanitizeOpts->antiFreezeLock = false;
-            sanitizeOpts->freezelock = false;
+            sanitizeOptions->antiFreezeLock = false;
+            sanitizeOptions->freezelock     = false;
         }
     }
     return ret;
 }
 
-eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice *device, sanitizeFeaturesSupported *sanitizeOpts)
+eReturnValues get_NVMe_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.IdentifyData.nvme.ctrl.sanicap > 0)
+    if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) > 0)
     {
-        ret = SUCCESS;
-        sanitizeOpts->sanitizeCmdEnabled = true;
-        sanitizeOpts->exitFailMode = true;
-        sanitizeOpts->antiFreezeLock = false;
-        sanitizeOpts->freezelock = false;
-        //Cntl identify bytes 331:328
-        //BIT0 = crypto
-        //bit1 = block erase
-        //bit 2 = overwrite
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT0)
+        ret                                 = SUCCESS;
+        sanitizeOptions->sanitizeCmdEnabled = true;
+        sanitizeOptions->exitFailMode       = true;
+        sanitizeOptions->antiFreezeLock     = false;
+        sanitizeOptions->freezelock         = false;
+        // Cntl identify bytes 331:328
+        // BIT0 = crypto
+        // bit1 = block erase
+        // bit 2 = overwrite
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT0)
         {
-            sanitizeOpts->crypto = true;
+            sanitizeOptions->crypto = true;
         }
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT1)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT1)
         {
-            sanitizeOpts->blockErase = true;
+            sanitizeOptions->blockErase = true;
         }
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT2)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT2)
         {
-            sanitizeOpts->overwrite = true;
-            sanitizeOpts->definitiveEndingPattern = true;
+            sanitizeOptions->overwrite               = true;
+            sanitizeOptions->definitiveEndingPattern = true;
         }
-        if (device->drive_info.IdentifyData.nvme.ctrl.sanicap & BIT29)
+        if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT29)
         {
-            sanitizeOpts->noDeallocateInhibited = true;
-
+            sanitizeOptions->noDeallocateInhibited = true;
         }
-        sanitizeOpts->nodmmas = C_CAST(noDeallocateModifiesAfterSanitize, M_GETBITRANGE(device->drive_info.IdentifyData.nvme.ctrl.sanicap, 31, 30));
-        sanitizeOpts->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
-        sanitizeOpts->writeAfterBlockErase = WAEREQ_NOT_SPECIFIED;//or WAEREQ_READ_COMPLETES_GOOD_STATUS???
-        if (sanitizeOpts->noDeallocateInhibited)
+        sanitizeOptions->nodmmas =
+            C_CAST(noDeallocateModifiesAfterSanitize,
+                   get_8bit_range_uint32(le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap), 31, 30));
+        sanitizeOptions->writeAfterCryptoErase = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
+        sanitizeOptions->writeAfterBlockErase  = WAEREQ_NOT_SPECIFIED; // or WAEREQ_READ_COMPLETES_GOOD_STATUS???
+        if (sanitizeOptions->noDeallocateInhibited)
         {
-            //get the sanitize config feature status to know which mode it is operating in.
+            // get the sanitize config feature status to know which mode it is operating in.
             nvmeFeaturesCmdOpt feat;
-            memset(&feat, 0, sizeof(nvmeFeaturesCmdOpt));
-            feat.fid = NVME_FEAT_SANITIZE_CONFIG_;
-            feat.nsid = NVME_ALL_NAMESPACES;
-            feat.sel = NVME_CURRENT_FEAT_SEL;
-            feat.dataPtr = M_NULLPTR;
+            safe_memset(&feat, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+            feat.fid        = NVME_FEAT_SANITIZE_CONFIG_;
+            feat.nsid       = NVME_ALL_NAMESPACES;
+            feat.sel        = NVME_CURRENT_FEAT_SEL;
+            feat.dataPtr    = M_NULLPTR;
             feat.dataLength = 0;
-            //reported in completion dword 0
+            // reported in completion dword 0
             if (SUCCESS == nvme_Get_Features(device, &feat))
             {
                 if (device->drive_info.lastNVMeResult.lastNVMeCommandSpecific & BIT0)
                 {
-                    sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_WARNING;
+                    sanitizeOptions->responseMode = NO_DEALLOC_RESPONSE_WARNING;
                 }
                 else
                 {
-                    sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_ERROR;
+                    sanitizeOptions->responseMode = NO_DEALLOC_RESPONSE_ERROR;
                 }
             }
-            else 
+            else
             {
-                sanitizeOpts->responseMode = NO_DEALLOC_RESPONSE_INV;
+                sanitizeOptions->responseMode = NO_DEALLOC_RESPONSE_INV;
             }
         }
     }
     return ret;
 }
 
-eReturnValues get_Sanitize_Device_Features(tDevice *device, sanitizeFeaturesSupported *opts)
+eReturnValues get_Sanitize_Device_Features(tDevice* device, sanitizeFeaturesSupported* opts)
 {
     eReturnValues ret = UNKNOWN;
     switch (device->drive_info.drive_type)
@@ -513,11 +494,7 @@ eReturnValues sanitize_Freezelock(tDevice* device)
         ret = ata_Sanitize_Freeze_Lock(device);
         if (ret != SUCCESS)
         {
-            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x00)
-            {
-                ret = FAILURE;
-            }
-            else if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
+            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
             {
                 ret = NOT_SUPPORTED;
             }
@@ -529,7 +506,7 @@ eReturnValues sanitize_Freezelock(tDevice* device)
             {
                 ret = ABORTED;
             }
-            else
+            else // || device->drive_info.lastCommandRTFRs.lbaLow == 0x00
             {
                 ret = FAILURE;
             }
@@ -546,11 +523,7 @@ eReturnValues sanitize_Anti_Freezelock(tDevice* device)
         ret = ata_Sanitize_Anti_Freeze_Lock(device);
         if (ret != SUCCESS)
         {
-            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x00)
-            {
-                ret = FAILURE;
-            }
-            else if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
+            if (device->drive_info.lastCommandRTFRs.lbaLow == 0x02)
             {
                 ret = NOT_SUPPORTED;
             }
@@ -562,7 +535,7 @@ eReturnValues sanitize_Anti_Freezelock(tDevice* device)
             {
                 ret = ABORTED;
             }
-            else
+            else // || device->drive_info.lastCommandRTFRs.lbaLow == 0x00
             {
                 ret = FAILURE;
             }
@@ -571,17 +544,21 @@ eReturnValues sanitize_Anti_Freezelock(tDevice* device)
     return ret;
 }
 
-eReturnValues run_Sanitize_Operation(tDevice* device, eSanitizeOperations sanitizeOperation, bool pollForProgress, uint8_t* pattern, uint32_t patternLength)
+eReturnValues run_Sanitize_Operation(tDevice*            device,
+                                     eSanitizeOperations sanitizeOperation,
+                                     bool                pollForProgress,
+                                     uint8_t*            pattern,
+                                     uint32_t            patternLength)
 {
-    //convert to calling new functions since this one is obsolete.
+    // convert to calling new functions since this one is obsolete.
     sanitizeOperationOptions sanitizeOptions;
-    memset(&sanitizeOptions, 0, sizeof(sanitizeOperationOptions));
-    sanitizeOptions.version = SANITIZE_OPERATION_OPTIONS_VERSION;
-    sanitizeOptions.size = sizeof(sanitizeOperationOptions);
+    safe_memset(&sanitizeOptions, sizeof(sanitizeOperationOptions), 0, sizeof(sanitizeOperationOptions));
+    sanitizeOptions.version                                     = SANITIZE_OPERATION_OPTIONS_VERSION;
+    sanitizeOptions.size                                        = sizeof(sanitizeOperationOptions);
     sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit = false;
-    sanitizeOptions.commonOptions.zoneNoReset = false;
-    sanitizeOptions.commonOptions.noDeallocate = false;
-    sanitizeOptions.pollForProgress = pollForProgress;
+    sanitizeOptions.commonOptions.zoneNoReset                   = false;
+    sanitizeOptions.commonOptions.noDeallocate                  = false;
+    sanitizeOptions.pollForProgress                             = pollForProgress;
     switch (sanitizeOperation)
     {
     case SANITIZE_BLOCK_ERASE:
@@ -591,12 +568,13 @@ eReturnValues run_Sanitize_Operation(tDevice* device, eSanitizeOperations saniti
         sanitizeOptions.sanitizeEraseOperation = CRYPTO_ERASE;
         break;
     case SANITIZE_OVERWRITE_ERASE:
-        sanitizeOptions.sanitizeEraseOperation = OVERWRITE_ERASE;
+        sanitizeOptions.sanitizeEraseOperation                      = OVERWRITE_ERASE;
         sanitizeOptions.overwriteOptions.invertPatternBetweenPasses = false;
-        sanitizeOptions.overwriteOptions.numberOfPasses = UINT8_C(1);
-        if (pattern)
+        sanitizeOptions.overwriteOptions.numberOfPasses             = UINT8_C(1);
+        if (pattern != M_NULLPTR)
         {
-            memcpy(&sanitizeOptions.overwriteOptions.pattern, pattern, M_Min(patternLength, sizeof(uint32_t)));
+            safe_memcpy(&sanitizeOptions.overwriteOptions.pattern, sizeof(uint32_t), pattern,
+                        M_Min(patternLength, sizeof(uint32_t)));
         }
         else
         {
@@ -615,10 +593,10 @@ eReturnValues run_Sanitize_Operation(tDevice* device, eSanitizeOperations saniti
 
 static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayTime)
 {
-    eReturnValues ret = IN_PROGRESS;
-    uint8_t minutes = 0;
-    uint8_t seconds = 0;
-    double percentComplete = 0;
+    eReturnValues ret             = IN_PROGRESS;
+    uint8_t       minutes         = UINT8_C(0);
+    uint8_t       seconds         = UINT8_C(0);
+    double        percentComplete = 0.0;
     convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
     printf("Sanitize progress will be updated every");
     print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
@@ -632,15 +610,17 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
         {
             if ((ret == SUCCESS || ret == IN_PROGRESS))
             {
-                if (sanitizeInProgress != SANITIZE_STATUS_IN_PROGRESS && percentComplete < 100)//if we get to the end, percent complete may not say 100%, so we need this condition to correct it
+                if (sanitizeInProgress != SANITIZE_STATUS_IN_PROGRESS &&
+                    percentComplete < 100) // if we get to the end, percent complete may not say 100%, so we need this
+                                           // condition to correct it
                 {
                     printf("\r\tSanitize Progress = 100.00%%");
-                    fflush(stdout);
+                    flush_stdout();
                 }
                 else
                 {
                     printf("\r\tSanitize Progress = %3.2f%%", percentComplete);
-                    fflush(stdout);
+                    flush_stdout();
                 }
             }
         }
@@ -661,42 +641,46 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     return ret;
 }
 
-//Sanitize API V1 structs/enums/defs
-//These must be preserved to offer backwards compatibility if this changes in the future -TJE
+// Sanitize API V1 structs/enums/defs
+// These must be preserved to offer backwards compatibility if this changes in the future -TJE
 
 #define SANITIZE_OPERATION_OPTIONS_VERSION_V1 (1)
-typedef struct _sanitizeOperationOptions_V1
+typedef struct s_sanitizeOperationOptions_V1
 {
-    size_t size;//sizeof(sanitizeOperationOptions)
-    uint32_t version;//SANITIZE_OPERATION_OPTIONS_VERSION
+    size_t         size;    // sizeof(sanitizeOperationOptions)
+    uint32_t       version; // SANITIZE_OPERATION_OPTIONS_VERSION
     eSanitizeErase sanitizeEraseOperation;
-    bool pollForProgress;//crypto, block, and overwrite erases
+    bool           pollForProgress; // crypto, block, and overwrite erases
     struct
     {
         bool allowUnrestrictedSanitizeExit;
-        bool zoneNoReset;//zoned devices only.
-        bool noDeallocate;//NVMe only today. May not be supported by a controller.
-    }commonOptions; //options that apply to all Sanitize erase's
+        bool zoneNoReset;  // zoned devices only.
+        bool noDeallocate; // NVMe only today. May not be supported by a controller.
+    } commonOptions;       // options that apply to all Sanitize erase's
     struct
     {
-        bool invertPatternBetweenPasses;//SATA note: Some drives may or may not set a definitive ending pattern upon completion. By default, this function will set the definitive ending pattern bit whenever possible-TJE
-        uint8_t numberOfPasses;//0 = BAD_PARAMETER, 1 = 1, 2 = 2, etc. NVMe and SATA max at 16. SCSI maxes at 32
+        bool invertPatternBetweenPasses; // SATA note: Some drives may or may not set a definitive ending pattern upon
+                                         // completion. By default, this function will set the definitive ending pattern
+                                         // bit whenever possible-TJE
+        uint8_t  numberOfPasses; // 0 = BAD_PARAMETER, 1 = 1, 2 = 2, etc. NVMe and SATA max at 16. SCSI maxes at 32
         uint32_t pattern;
-    }overwriteOptions; //overwrite unique options
-}sanitizeOperationOptions_V1;
+    } overwriteOptions; // overwrite unique options
+} sanitizeOperationOptions_V1;
 
 eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions sanitizeOptions)
 {
     eReturnValues ret = UNKNOWN;
-    if (sanitizeOptions.version >= SANITIZE_OPERATION_OPTIONS_VERSION_V1 && sanitizeOptions.size >= sizeof(sanitizeOperationOptions_V1))
+    if (sanitizeOptions.version >= SANITIZE_OPERATION_OPTIONS_VERSION_V1 &&
+        sanitizeOptions.size >= sizeof(sanitizeOperationOptions_V1))
     {
-        //NOTE: If sanitizeoptions changes version, need to adjust code to offer backwards compatibility when possible.-TJE
-        //      If new options are added, set to backwards compatible defaults.
-        uint32_t delayTime = 1;
-        double percentComplete = 0.0;
-        eSanitizeStatus sanitizeInProgress = 0;
-        bool sendExitFailureMode = false;
-        //first check if a sanitize test is in progress (and that the drive isn't frozen or in a failure state)
+        // NOTE: If sanitizeoptions changes version, need to adjust code to offer backwards compatibility when
+        // possible.-TJE
+        //       If new options are added, set to backwards compatible defaults.
+        uint32_t        delayTime           = UINT32_C(1);
+        double          percentComplete     = 0.0;
+        eSanitizeStatus sanitizeInProgress  = 0;
+        bool            sendExitFailureMode = false;
+        // first check if a sanitize test is in progress (and that the drive isn't frozen or in a failure state)
         ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
         if (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS || ret == IN_PROGRESS)
         {
@@ -709,14 +693,15 @@ eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions 
                 return IN_PROGRESS;
             }
         }
-        else if (sanitizeInProgress == SANITIZE_STATUS_FAILED || sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
+        else if (sanitizeInProgress == SANITIZE_STATUS_FAILED ||
+                 sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
         {
-            //failure mode need to be cleared
+            // failure mode need to be cleared
             sendExitFailureMode = true;
         }
         else if (sanitizeInProgress == SANITIZE_STATUS_FROZEN)
         {
-            //device is frozen.
+            // device is frozen.
             return FROZEN;
         }
         if (sendExitFailureMode)
@@ -725,25 +710,30 @@ eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions 
             if (ret != SUCCESS)
             {
                 ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
-                if (sanitizeInProgress == SANITIZE_STATUS_FAILED || sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
+                if (sanitizeInProgress == SANITIZE_STATUS_FAILED ||
+                    sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
                 {
-                    //need to run the sanitize command in restricted exit mode, so you can only get it to run by reissuing the command in restricted mode again.
-                    return DEVICE_ACCESS_DENIED;//use this to inform the user that you cannot use AUSE and need to retry sanitize without that field.
+                    // need to run the sanitize command in restricted exit mode, so you can only get it to run by
+                    // reissuing the command in restricted mode again.
+                    return DEVICE_ACCESS_DENIED; // use this to inform the user that you cannot use AUSE and need to
+                                                 // retry sanitize without that field.
                 }
             }
         }
 
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
-        //start the sanitize operation requested
+        // start the sanitize operation requested
         switch (sanitizeOptions.sanitizeEraseOperation)
         {
         case BLOCK_ERASE:
-            ret = send_Sanitize_Block_Erase(device, sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit, sanitizeOptions.commonOptions.zoneNoReset);
+            ret       = send_Sanitize_Block_Erase(device, sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit,
+                                                  sanitizeOptions.commonOptions.zoneNoReset);
             delayTime = 1;
             break;
         case CRYPTO_ERASE:
-            ret = send_Sanitize_Crypto_Erase(device, sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit, sanitizeOptions.commonOptions.zoneNoReset);
+            ret       = send_Sanitize_Crypto_Erase(device, sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit,
+                                                   sanitizeOptions.commonOptions.zoneNoReset);
             delayTime = 1;
             break;
         case OVERWRITE_ERASE:
@@ -751,7 +741,7 @@ eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions 
             {
                 return BAD_PARAMETER;
             }
-            if (sanitizeOptions.overwriteOptions.numberOfPasses >= 16)//16 is max number of passes for NVMe/SATA
+            if (sanitizeOptions.overwriteOptions.numberOfPasses >= 16) // 16 is max number of passes for NVMe/SATA
             {
                 if (device->drive_info.drive_type != SCSI_DRIVE)
                 {
@@ -761,21 +751,25 @@ eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions 
                     }
                     else
                     {
-                        //change to zero to do all 16 passes in NVMe and SATA
+                        // change to zero to do all 16 passes in NVMe and SATA
                         sanitizeOptions.overwriteOptions.numberOfPasses = 0;
                     }
                 }
                 else
                 {
-                    if (sanitizeOptions.overwriteOptions.numberOfPasses > 31)//31 passes is the maximum in SCSI
+                    if (sanitizeOptions.overwriteOptions.numberOfPasses > 31) // 31 passes is the maximum in SCSI
                     {
                         return BAD_PARAMETER;
                     }
-                    //In SCSI, a number of passes == 0 is reserved, so do not use this-TJE
+                    // In SCSI, a number of passes == 0 is reserved, so do not use this-TJE
                 }
             }
-            ret = send_Sanitize_Overwrite_Erase(device, sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit, sanitizeOptions.overwriteOptions.invertPatternBetweenPasses, sanitizeOptions.overwriteOptions.numberOfPasses, C_CAST(uint8_t*, &sanitizeOptions.overwriteOptions.pattern), sizeof(uint32_t), sanitizeOptions.commonOptions.zoneNoReset);
-            delayTime = 600;//this is 10 minute delay between progress updates
+            ret = send_Sanitize_Overwrite_Erase(device, sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit,
+                                                sanitizeOptions.overwriteOptions.invertPatternBetweenPasses,
+                                                sanitizeOptions.overwriteOptions.numberOfPasses,
+                                                C_CAST(uint8_t*, &sanitizeOptions.overwriteOptions.pattern),
+                                                sizeof(uint32_t), sanitizeOptions.commonOptions.zoneNoReset);
+            delayTime = 600; // this is 10 minute delay between progress updates
             break;
         }
 

@@ -9,15 +9,16 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // ******************************************************************************************
-// 
+//
 // \file host_erase.h
-// \brief This file defines the function for performing a host based erase functions (host issues a series of write commands)
+// \brief This file defines the function for performing a host based erase functions (host issues a series of write
+// commands)
 
 #pragma once
 
 #include "operations_Common.h"
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
@@ -26,24 +27,35 @@ extern "C"
     //
     //  is_Trim_Or_Unmap_Supported( tDevice * device )
     //
-    //! \brief   Get whether a device supports TRIM (ATA) or UNMAP (SCSI) commands. Can also tell you how many descriptors can be specified in the command.
+    //! \brief   Get whether a device supports TRIM (ATA) or UNMAP (SCSI) commands. Can also tell you how many
+    //! descriptors can be specified in the command.
     //
     //  Entry:
     //!   \param device - file descriptor
-    //!   \param maxTrimOrUnmapBlockDescriptors - pointer to a uint16_t to hold the number of decriptors that can be sent. This can be M_NULLPTR. On ATA, this will be a value divisible by 64 since 64 descriptors can be placed inside each TRIM command.
-    //!   \param maxLBACount - this is only for SAS since SAS can specify the maximum number of LBA's to unmap in a single command. If maxTrimOrUnmapBlockDescriptors is non-M_NULLPTR, this MUST be non-M_NULLPTR as well or neither value will be filled in
+    //!   \param maxTrimOrUnmapBlockDescriptors - pointer to a uint16_t to hold the number of decriptors that can be
+    //!   sent. This can be M_NULLPTR. On ATA, this will be a value divisible by 64 since 64 descriptors can be placed
+    //!   inside each TRIM command. \param maxLBACount - this is only for SAS since SAS can specify the maximum number
+    //!   of LBA's to unmap in a single command. If maxTrimOrUnmapBlockDescriptors is non-M_NULLPTR, this MUST be
+    //!   non-M_NULLPTR as well or neither value will be filled in
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API bool is_Trim_Or_Unmap_Supported(tDevice *device, uint32_t *maxTrimOrUnmapBlockDescriptors, uint32_t *maxLBACount);
+    M_NONNULL_PARAM_LIST(1, 2, 3)
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API bool is_Trim_Or_Unmap_Supported(tDevice*  device,
+                                                           uint32_t* maxTrimOrUnmapBlockDescriptors,
+                                                           uint32_t* maxLBACount);
 
     //-----------------------------------------------------------------------------
     //
     //  trim_unmap_range( tDevice * device )
     //
-    //! \brief   TRIM or UNMAP a range of LBAs from a starting LBA until the end of the range. This will auto detect ATA vs SCSI to send the appropriate command
+    //! \brief   TRIM or UNMAP a range of LBAs from a starting LBA until the end of the range. This will auto detect ATA
+    //! vs SCSI to send the appropriate command
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -54,13 +66,17 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
     //  scsi_Unmap_Range( tDevice * device )
     //
-    //! \brief   UNMAP a range of LBAs from a starting LBA until the end of the range. This will send the SCSI unmap command, possibly multiple times depending on the range. A SAT driver or interface may translate this to an ATA TRIM command, but that is beyond this library
+    //! \brief   UNMAP a range of LBAs from a starting LBA until the end of the range. This will send the SCSI unmap
+    //! command, possibly multiple times depending on the range. A SAT driver or interface may translate this to an ATA
+    //! TRIM command, but that is beyond this library
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -71,13 +87,16 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
     //  ata_Trim_Range( tDevice * device )
     //
-    //! \brief   TRIM a range of LBAs from a starting LBA until the end of the range. This will send the ATA data set management command with the TRIM bit set, possibly multiple times depending on the range.
+    //! \brief   TRIM a range of LBAs from a starting LBA until the end of the range. This will send the ATA data set
+    //! management command with the TRIM bit set, possibly multiple times depending on the range.
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -88,13 +107,17 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
     //  nvme_Deallocate_Range( tDevice * device )
     //
-    //! \brief   Deallocate a range of LBAs from a starting LBA until the end of the range. This will send the NVMe data set management command with the deallocate bit set. Currently, this will only issue a single command. NOTE: Lower level OS's might have limitations on this command.
+    //! \brief   Deallocate a range of LBAs from a starting LBA until the end of the range. This will send the NVMe data
+    //! set management command with the deallocate bit set. Currently, this will only issue a single command. NOTE:
+    //! Lower level OS's might have limitations on this command.
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -105,8 +128,10 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(tDevice *device, uint64_t startLBA, uint64_t range);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t range);
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
