@@ -58,55 +58,6 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Device_Power_Mode( tDevice * device )
-    //
-    //! \brief   Set the power modes, their timers, or restore default settings. This can only do EPC settings, and
-    //! single power states at a time.
-    //!          This function has been replaced by a set_EPC_Power_Conditions below which can handle changing multiple
-    //!          power states at a time.
-    //
-    //  Entry:
-    //!   \param device - file descriptor
-    //!   \param restoreDefaults - set to true to restore the drives default settings. All other options will be ignored
-    //!   \param enableDisable - set to true for enabling a powerCondition and false to disable one
-    //!   \param powerCondition - set to the power condition you wish to have changed
-    //!   \param powerModeTimer - the timer value to set. If this is zero, a timer value will not be set and the power
-    //!   mode will only be enabled. This option is ignored when enableDisable is false or when restoreDefaults is true
-    //!   \param powerModeTimerValid - when set to true, this means the incoming timer value is valid
-    //!
-    //  Exit:
-    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
-    //
-    //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_Device_Power_Mode(tDevice*          device,
-                                                               bool              restoreDefaults,
-                                                               bool              enableDisable,
-                                                               ePowerConditionID powerCondition,
-                                                               uint32_t          powerModeTimer,
-                                                               bool              powerModeTimerValid);
-
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Device_Power_Mode(tDevice*          device,
-                                                                    bool              restoreDefaults,
-                                                                    bool              enableDisable,
-                                                                    ePowerConditionID powerCondition,
-                                                                    uint32_t          powerModeTimer,
-                                                                    bool              powerModeTimerValid);
-
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Device_Power_Mode(tDevice*          device,
-                                                                   bool              restoreDefaults,
-                                                                   bool              enableDisable,
-                                                                   ePowerConditionID powerCondition,
-                                                                   uint32_t          powerModeTimer,
-                                                                   bool              powerModeTimerValid);
-
-    //-----------------------------------------------------------------------------
-    //
     //  transition_Power_State( tDevice * device, ePowerConditionID newState); )
     //
     //! \brief  Transition the device from one power state to another.
