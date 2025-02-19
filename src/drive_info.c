@@ -3673,6 +3673,7 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo
                 {
                     DECLARE_ZERO_INIT_ARRAY(char, versionDescriptorString, MAX_VERSION_DESCRIPTOR_STRING_LENGTH + 1);
                     decypher_SCSI_Version_Descriptors(versionDescriptor, versionDescriptorString);
+                    remove_Leading_And_Trailing_Whitespace(versionDescriptorString);
                     add_Specification_To_Supported_List(driveInfo->specificationsSupported,
                                                         &driveInfo->numberOfSpecificationsSupported,
                                                         versionDescriptorString);
