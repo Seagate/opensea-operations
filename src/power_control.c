@@ -31,38 +31,41 @@
 #include "operations_Common.h"
 #include "power_control.h"
 
-//There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see with ATA
-static eReturnValues scsi_Enable_Disable_EPC_Feature(tDevice *device, eEPCFeatureSet lba_field, bool saveChanges)
+// There is no specific way to enable or disable this on SCSI, so this simulates the bahaviour according to what we see
+// with ATA
+static eReturnValues scsi_Enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_field, bool saveChanges)
 {
     eReturnValues ret = UNKNOWN;
-    //setup the structure and send these changes to the drive.
+    // setup the structure and send these changes to the drive.
     powerConditionTimers powerTimers;
     memset(&powerTimers, 0, sizeof(powerConditionTimers));
 
     if (lba_field == ENABLE_EPC)
     {
-        //read the default mode page and write it back to the drive to set the default values from the drive...should be the same as enabling
+        // read the default mode page and write it back to the drive to set the default values from the drive...should
+        // be the same as enabling
         ret = scsi_Set_Power_Conditions(device, true, &powerTimers, saveChanges);
     }
     else if (lba_field == DISABLE_EPC)
     {
-        //read the current settings, disable any timers that are enabled and set the timer values to zero...should be the same as disabling.
-        powerTimers.idle_a.powerConditionValid = true;
-        powerTimers.idle_a.enable = false;
-        powerTimers.idle_a.enableValid = true;
-        powerTimers.idle_b.powerConditionValid = true;
-        powerTimers.idle_b.enable = false;
-        powerTimers.idle_b.enableValid = true;
-        powerTimers.idle_c.powerConditionValid = true;
-        powerTimers.idle_c.enable = false;
-        powerTimers.idle_c.enableValid = true;
+        // read the current settings, disable any timers that are enabled and set the timer values to zero...should be
+        // the same as disabling.
+        powerTimers.idle_a.powerConditionValid    = true;
+        powerTimers.idle_a.enable                 = false;
+        powerTimers.idle_a.enableValid            = true;
+        powerTimers.idle_b.powerConditionValid    = true;
+        powerTimers.idle_b.enable                 = false;
+        powerTimers.idle_b.enableValid            = true;
+        powerTimers.idle_c.powerConditionValid    = true;
+        powerTimers.idle_c.enable                 = false;
+        powerTimers.idle_c.enableValid            = true;
         powerTimers.standby_y.powerConditionValid = true;
-        powerTimers.standby_y.enable = false;
-        powerTimers.standby_y.enableValid = true;
+        powerTimers.standby_y.enable              = false;
+        powerTimers.standby_y.enableValid         = true;
         powerTimers.standby_z.powerConditionValid = true;
-        powerTimers.standby_z.enable = false;
-        powerTimers.standby_z.enableValid = true;
-        ret = scsi_Set_Power_Conditions(device, false, &powerTimers, saveChanges);
+        powerTimers.standby_z.enable              = false;
+        powerTimers.standby_z.enableValid         = true;
+        ret                                       = scsi_Set_Power_Conditions(device, false, &powerTimers, saveChanges);
     }
     else
     {
@@ -822,7 +825,7 @@ eReturnValues transition_NVM_Power_State(tDevice* device, uint8_t newState)
 static eReturnValues ata_Set_EPC_Power_Mode(tDevice*                  device,
                                             ePowerConditionID         powerCondition,
                                             ptrPowerConditionSettings powerConditionSettings,
-                                            bool saveChanges)
+                                            bool                      saveChanges)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE
@@ -876,18 +879,22 @@ static eReturnValues ata_Set_EPC_Power_Mode(tDevice*                  device,
             {
                 lbalo |= BIT5;
             }
-            if (saveChanges) //set the save bit
+            if (saveChanges) // set the save bit
             {
                 lbalo |= BIT4;
             }
-            //issue the command
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition), lbalo, lbaMid, lbaHi);
+            // issue the command
+            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition), lbalo, lbaMid,
+                                   lbaHi);
         }
     }
     return ret;
 }
 
-eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions, bool saveChanges)
+eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
+                                        bool                    restoreAllToDefaults,
+                                        ptrPowerConditionTimers powerConditions,
+                                        bool                    saveChanges)
 {
     // If restore all to defaults, then read the default mode page, then write it back.
     // Write all applicable changes back to the drive, checking each structure as it goes.
@@ -898,7 +905,9 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
     {
         if (scsi_MP_Reset_To_Defaults_Supported(device))
         {
-            ret = scsi_Mode_Select_10(device, 0, true, saveChanges, true, M_NULLPTR, 0);//RTD bit is set and supported by the drive which will reset the page to defaults for us without a data transfer or multiple commands.
+            ret = scsi_Mode_Select_10(device, 0, true, saveChanges, true, M_NULLPTR,
+                                      0); // RTD bit is set and supported by the drive which will reset the page to
+                                          // defaults for us without a data transfer or multiple commands.
         }
         else
         {
@@ -916,8 +925,9 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
             if (SUCCESS == (ret = scsi_Mode_Sense_10(device, MP_POWER_CONDTION, powerConditionsPageLength, 0, true,
                                                      false, MPC_DEFAULT_VALUES, powerConditionsPage)))
             {
-                //got the page, now send it to the drive with a mode select
-                ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, saveChanges, false, powerConditionsPage, powerConditionsPageLength);
+                // got the page, now send it to the drive with a mode select
+                ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, saveChanges, false,
+                                          powerConditionsPage, powerConditionsPageLength);
             }
             safe_free_aligned(&powerConditionsPage);
         }
@@ -1234,8 +1244,9 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
                         get_bit_range_uint8(powerConditions->checkConditionFlags.ccfStopMode, 1, 0) << 2;
                 }
             }
-            //send the modified data to the drive
-            ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, saveChanges, false, powerConditionsPage, powerConditionsPageLength);
+            // send the modified data to the drive
+            ret = scsi_Mode_Select_10(device, powerConditionsPageLength, true, saveChanges, false, powerConditionsPage,
+                                      powerConditionsPageLength);
             safe_free_aligned(&powerConditionsPage);
         }
         else
@@ -1249,14 +1260,20 @@ eReturnValues scsi_Set_Power_Conditions(tDevice *device, bool restoreAllToDefaul
     return ret;
 }
 
-static eReturnValues scsi_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions, bool saveChanges)
+static eReturnValues scsi_Set_EPC_Power_Conditions(tDevice*                device,
+                                                   bool                    restoreAllToDefaults,
+                                                   ptrPowerConditionTimers powerConditions,
+                                                   bool                    saveChanges)
 {
     return scsi_Set_Power_Conditions(device, restoreAllToDefaults, powerConditions, saveChanges);
 }
 
-//This function will go through and change each requested setting.
-//The first failure that happens will cause the function to fail and not proceed to set any other timer values.
-static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions, bool saveChanges)
+// This function will go through and change each requested setting.
+// The first failure that happens will cause the function to fail and not proceed to set any other timer values.
+static eReturnValues ata_Set_EPC_Power_Conditions(tDevice*                device,
+                                                  bool                    restoreAllToDefaults,
+                                                  ptrPowerConditionTimers powerConditions,
+                                                  bool                    saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
@@ -1270,7 +1287,7 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreA
                 powerConditionSettings allSettings;
                 safe_memset(&allSettings, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
                 allSettings.powerConditionValid = true;
-                allSettings.restoreToDefault = true;
+                allSettings.restoreToDefault    = true;
                 ret = ata_Set_EPC_Power_Mode(device, PWR_CND_ALL, &allSettings, saveChanges);
             }
             else
@@ -1290,7 +1307,8 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreA
                     }
                     if (powerConditions->standby_z.powerConditionValid)
                     {
-                        ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Z, &powerConditions->standby_z, saveChanges);
+                        ret =
+                            ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Z, &powerConditions->standby_z, saveChanges);
                         if (ret != SUCCESS)
                         {
                             return ret;
@@ -1314,7 +1332,8 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreA
                     }
                     if (powerConditions->standby_y.powerConditionValid)
                     {
-                        ret = ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Y, &powerConditions->standby_y, saveChanges);
+                        ret =
+                            ata_Set_EPC_Power_Mode(device, PWR_CND_STANDBY_Y, &powerConditions->standby_y, saveChanges);
                         if (ret != SUCCESS)
                         {
                             return ret;
@@ -1331,7 +1350,10 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice *device, bool restoreA
     return ret;
 }
 
-eReturnValues set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionTimers powerConditions, bool saveChanges)
+eReturnValues set_EPC_Power_Conditions(tDevice*                device,
+                                       bool                    restoreAllToDefaults,
+                                       ptrPowerConditionTimers powerConditions,
+                                       bool                    saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1340,7 +1362,7 @@ eReturnValues set_EPC_Power_Conditions(tDevice *device, bool restoreAllToDefault
     }
     else
     {
-        //assume and try SCSI method
+        // assume and try SCSI method
         ret = scsi_Set_EPC_Power_Conditions(device, restoreAllToDefaults, powerConditions, saveChanges);
     }
     return ret;
@@ -2371,7 +2393,11 @@ void print_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 // the VPD page as it doesn't exist on old drives.
 //             These functions should probaby be combined at some point
 
-eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice *device, bool restoreAllToDefaults, ptrPowerConditionSettings standbyTimer, ptrPowerConditionSettings idleTimer, bool saveChanges)
+eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice*                  device,
+                                               bool                      restoreAllToDefaults,
+                                               ptrPowerConditionSettings standbyTimer,
+                                               ptrPowerConditionSettings idleTimer,
+                                               bool                      saveChanges)
 {
     // Check the changable page for support of idle and standby timers before beginning???
     if (!restoreAllToDefaults || standbyTimer == M_NULLPTR || idleTimer == M_NULLPTR)
@@ -2453,7 +2479,7 @@ static eReturnValues ata_Set_Standby_Timer(tDevice* device, uint32_t hundredMill
     return ret;
 }
 
-eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable, bool saveChanges)
+eReturnValues scsi_Set_Standby_Timer_State(tDevice* device, bool enable, bool saveChanges)
 {
     powerConditionSettings standbyTimer;
     safe_memset(&standbyTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
@@ -2464,7 +2490,10 @@ eReturnValues scsi_Set_Standby_Timer_State(tDevice *device, bool enable, bool sa
     return scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, M_NULLPTR, saveChanges);
 }
 
-eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault, bool saveChanges)
+eReturnValues set_Standby_Timer(tDevice* device,
+                                uint32_t hundredMillisecondIncrements,
+                                bool     restoreToDefault,
+                                bool     saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2498,7 +2527,7 @@ eReturnValues set_Standby_Timer(tDevice *device, uint32_t hundredMillisecondIncr
     return ret;
 }
 
-eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable, bool saveChanges)
+eReturnValues scsi_Set_Idle_Timer_State(tDevice* device, bool enable, bool saveChanges)
 {
     powerConditionSettings idleTimer;
     safe_memset(&idleTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
@@ -2509,7 +2538,10 @@ eReturnValues scsi_Set_Idle_Timer_State(tDevice *device, bool enable, bool saveC
     return scsi_Set_Legacy_Power_Conditions(device, false, M_NULLPTR, &idleTimer, saveChanges);
 }
 
-eReturnValues set_Idle_Timer(tDevice *device, uint32_t hundredMillisecondIncrements, bool restoreToDefault, bool saveChanges)
+eReturnValues set_Idle_Timer(tDevice* device,
+                             uint32_t hundredMillisecondIncrements,
+                             bool     restoreToDefault,
+                             bool     saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
