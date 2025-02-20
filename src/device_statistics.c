@@ -28,6 +28,7 @@
 #include "device_statistics.h"
 #include "logs.h"
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -73,6 +74,7 @@ static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics devic
     return stat;
 }
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -88,6 +90,7 @@ static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics devi
     return stat;
 }
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -121,6 +124,7 @@ static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics devi
     return stat;
 }
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -139,6 +143,7 @@ static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics
     return stat;
 }
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -187,6 +192,7 @@ static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics d
     return stat;
 }
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -205,6 +211,7 @@ static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics dev
     return stat;
 }
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -217,6 +224,7 @@ static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceSta
     return stat;
 }
 
+M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
@@ -264,6 +272,7 @@ static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceS
 
 // this is ued to determine which device statistic is being talked about by the DSN log on ata
 // TODO: Make enum of all stat offsets on each page so it is easy to make sure all cases are handled correctly
+M_NONNULL_PARAM_LIST(1)
 static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
                                            uint8_t             ataDevStatPage,
                                            uint16_t            byteOffsetOnPage)
@@ -299,7 +308,7 @@ static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
         break;
     case ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC:
         // slightly different than case by case here -TJE
-        stat = &deviceStats->sataStatistics.vendorSpecificStatistics[byteOffsetOnPage / UINT8_C(8)];
+        stat = &deviceStats->sataStatistics.vendorSpecificStatistics[(byteOffsetOnPage / UINT8_C(8)) - 1];
         break;
     }
     return stat;
@@ -339,24 +348,28 @@ static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, stat
 }
 
 // NOTE: call le64 to host on qword when passing in to keep this simpler!
-M_NONNULL_PARAM_LIST(2)
 M_PARAM_WO(2)
 static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* stat)
 {
     bool statisticPopulated = false;
-    DISABLE_NONNULL_COMPARE
-    if (qword & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT && stat != M_NULLPTR)
+    if (stat != M_NULLPTR)
     {
-        stat->isSupported                = true;
-        stat->isValueValid               = qword & ATA_DEV_STATS_VALID_VALUE_BIT;
-        stat->isNormalized               = qword & ATA_DEV_STATS_NORMALIZED_STAT_BIT;
-        stat->supportsNotification       = qword & ATA_DEV_STATS_SUPPORTS_DSN;
-        stat->monitoredConditionMet      = qword & ATA_DEV_STATS_MONITORED_CONDITION_MET;
-        stat->supportsReadThenInitialize = qword & ATA_DEV_STATS_READ_THEN_INIT_SUPPORTED;
-        stat->statisticValue = get_bit_range_uint64(qword, ATA_DEV_STATS_VALUE_MSB, ATA_DEV_STATS_VALUE_LSB);
-        statisticPopulated   = true;
+        if (qword & ATA_DEV_STATS_STATISTIC_SUPPORTED_BIT)
+        {
+            stat->isSupported                = true;
+            stat->isValueValid               = M_ToBool(qword & ATA_DEV_STATS_VALID_VALUE_BIT);
+            stat->isNormalized               = M_ToBool(qword & ATA_DEV_STATS_NORMALIZED_STAT_BIT);
+            stat->supportsNotification       = M_ToBool(qword & ATA_DEV_STATS_SUPPORTS_DSN);
+            stat->monitoredConditionMet      = M_ToBool(qword & ATA_DEV_STATS_MONITORED_CONDITION_MET);
+            stat->supportsReadThenInitialize = M_ToBool(qword & ATA_DEV_STATS_READ_THEN_INIT_SUPPORTED);
+            stat->statisticValue = get_bit_range_uint64(qword, ATA_DEV_STATS_VALUE_MSB, ATA_DEV_STATS_VALUE_LSB);
+            statisticPopulated   = true;
+        }
+        else
+        {
+            stat->isSupported = false;
+        }
     }
-    RESTORE_NONNULL_COMPARE
     return statisticPopulated;
 }
 
@@ -370,7 +383,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
     uint32_t deviceStatsSize              = UINT32_C(0);
     uint32_t deviceStatsNotificationsSize = UINT32_C(0);
     // need to get the device statistics log
-    if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true))
+    if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true) && deviceStatsSize > UINT32_C(0))
     {
         bool     dsnFeatureSupported = M_ToBool(le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT9);
         bool     dsnFeatureEnabled   = M_ToBool(le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT9);
@@ -383,7 +396,8 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
         // this is to get the threshold stuff
         if (dsnFeatureSupported && dsnFeatureEnabled &&
             SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, &deviceStatsNotificationsSize,
-                                        true, false))
+                                        true, false) &&
+            deviceStatsNotificationsSize > UINT32_C(0))
         {
             uint8_t* devStatsNotificationsLog =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t),
@@ -424,38 +438,27 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
             for (uint8_t pageIter = UINT8_C(0); pageIter < deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_LEN_OFFSET];
                  ++pageIter)
             {
-                offset = deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter] * LEGACY_DRIVE_SEC_SIZE;
+                uint8_t statisticPage = deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter];
+                offset = statisticPage * LEGACY_DRIVE_SEC_SIZE;
                 if (offset > deviceStatsSize)
                 {
                     // this exists for the hack loop above
                     break;
                 }
                 qwordPtrDeviceStatsLog = C_CAST(uint64_t*, &deviceStatsLog[offset]);
-
-                for (uint16_t statisticOffset = UINT16_C(8); statisticOffset < LEGACY_DRIVE_SEC_SIZE;
-                     statisticOffset += UINT16_C(8))
-                {
-                    // TODO: Need to adjust min/max field offsets based on the attribute. For now selecting all 48
-                    // possible bits seems ok.
-                    //       Need more testing and to come back to this again later.
-                    if (set_ATA_Dev_Stat_Info(
-                            le64_to_host(qwordPtrDeviceStatsLog[statisticOffset / UINT16_C(8)]),
-                            dev_stat_page_offset_map(deviceStats,
-                                                     deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter],
-                                                     statisticOffset)))
-                    {
-                        ++deviceStats->sataStatistics.statisticsPopulated;
-                    }
-                }
-
-                switch (deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter])
+                switch (statisticPage)
                 {
                 case ATA_DEVICE_STATS_LOG_LIST: // supported pages page...
+                    continue;
                     break;
                 case ATA_DEVICE_STATS_LOG_GENERAL: // general statistics
                     if (ATA_DEVICE_STATS_LOG_GENERAL == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.generalStatisticsSupported = true;
+                    }
+                    else
+                    {
+                        continue;
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_FREE_FALL: // free fall statistics
@@ -463,11 +466,19 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                     {
                         deviceStats->sataStatistics.freeFallStatisticsSupported = true;
                     }
+                    else
+                    {
+                        continue;
+                    }
                     break;
                 case ATA_DEVICE_STATS_LOG_ROTATING_MEDIA: // rotating media statistics
                     if (ATA_DEVICE_STATS_LOG_ROTATING_MEDIA == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.rotatingMediaStatisticsSupported = true;
+                    }
+                    else
+                    {
+                        continue;
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_GEN_ERR: // general errors statistics
@@ -475,11 +486,19 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                     {
                         deviceStats->sataStatistics.generalErrorsStatisticsSupported = true;
                     }
+                    else
+                    {
+                        continue;
+                    }
                     break;
                 case ATA_DEVICE_STATS_LOG_TEMP: // temperature statistics
                     if (ATA_DEVICE_STATS_LOG_TEMP == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.temperatureStatisticsSupported = true;
+                    }
+                    else
+                    {
+                        continue;
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_TRANSPORT: // transport statistics
@@ -487,11 +506,19 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                     {
                         deviceStats->sataStatistics.transportStatisticsSupported = true;
                     }
+                    else
+                    {
+                        continue;
+                    }
                     break;
                 case ATA_DEVICE_STATS_LOG_SSD: // solid state device statistics
                     if (ATA_DEVICE_STATS_LOG_SSD == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.ssdStatisticsSupported = true;
+                    }
+                    else
+                    {
+                        continue;
                     }
                     break;
                 case ATA_DEVICE_STATS_LOG_ZONED_DEVICE: // ZAC statistics
@@ -499,16 +526,44 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                     {
                         deviceStats->sataStatistics.zonedDeviceStatisticsSupported = true;
                     }
+                    else
+                    {
+                        continue;
+                    }
                     break;
                 case ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC: // vendor specific
-                    if (is_Seagate_Family(device) == SEAGATE &&
-                        ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
+                    if (ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
                         deviceStats->sataStatistics.vendorSpecificStatisticsSupported = true;
                     }
+                    else
+                    {
+                        continue;
+                    }
                     break;
                 default:
+                    continue;
                     break;
+                }
+
+                for (uint16_t statisticOffset = UINT16_C(8); statisticOffset < LEGACY_DRIVE_SEC_SIZE;
+                     statisticOffset += UINT16_C(8))
+                {
+                    // TODO: Need to adjust min/max field offsets based on the attribute. For now selecting all 48
+                    // possible bits seems ok.
+                    //       Need more testing and to come back to this again later.
+                    uint16_t statisticNumberOnPage = statisticOffset / UINT16_C(8);
+                    if (set_ATA_Dev_Stat_Info(
+                            le64_to_host(qwordPtrDeviceStatsLog[statisticNumberOnPage]),
+                            dev_stat_page_offset_map(deviceStats, statisticPage,
+                                                     statisticOffset)))
+                    {
+                        ++deviceStats->sataStatistics.statisticsPopulated;
+                        if (statisticPage == ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC)
+                        {
+                            ++deviceStats->sataStatistics.vendorSpecificStatisticsPopulated;
+                        }
+                    }
                 }
             }
         }
