@@ -32,7 +32,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsGeneralOffsets, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_GENERAL_LIFETIME_POR:
         stat = &deviceStats->sataStatistics.lifetimePoweronResets;
@@ -78,7 +78,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsFreeFallOffset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_FREEFALL_NUM_FREEFALL_EVENTS:
         stat = &deviceStats->sataStatistics.numberOfFreeFallEventsDetected;
@@ -94,7 +94,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsRotatingOffset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_ROTATING_SPINDLE_MOTOR_POH:
         stat = &deviceStats->sataStatistics.spindleMotorPoweronHours;
@@ -128,7 +128,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsGeneralErrorOffset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_GENERR_NUM_REPORTED_UNCOR_ERR:
         stat = &deviceStats->sataStatistics.numberOfReportedUncorrectableErrors;
@@ -147,7 +147,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsTemperatureOffset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_TEMP_CURRENT_TEMP:
         stat = &deviceStats->sataStatistics.currentTemperature;
@@ -196,7 +196,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsTransportOffset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_TRANSPORT_NUM_HARD_RESET:
         stat = &deviceStats->sataStatistics.numberOfHardwareResets;
@@ -215,7 +215,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsSSDOffset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_SSD_ENDURANCE:
         stat = &deviceStats->sataStatistics.percentageUsedIndicator;
@@ -228,7 +228,7 @@ M_NONNULL_PARAM_LIST(1)
 static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (byteOffsetOnPage)
+    switch (M_STATIC_CAST(eDevStatsZonedOffset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_ZONED_MAX_OPEN_ZONES:
         stat = &deviceStats->sataStatistics.maximumOpenZones;
@@ -270,6 +270,376 @@ static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceS
     return stat;
 }
 
+static statistic* dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic *stat = M_NULLPTR;
+    switch (M_STATIC_CAST(eDevStatsCDL_0_1_Offset, byteOffsetOnPage))
+    {
+    case ATA_DEV_STAT_CDL_LOWEST_ACHIEVABLE_CMD_DUR:
+        stat = &deviceStats->sataStatistics.lowestAchievableCommandDuration;
+        break;
+    // Range 0 for STAT_A
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_A_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupA.writePolicy[6];
+        break;
+
+    // Range 0 for STAT_B
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE0_STAT_B_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[0].groupB.writePolicy[6];
+        break;
+
+    // Range 1 for STAT_A
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_A_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupA.writePolicy[6];
+        break;
+
+    // Range 1 for STAT_B
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE1_STAT_B_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[1].groupB.writePolicy[6];
+        break;
+    }
+    return stat;
+}
+
+static statistic* dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+{
+    statistic *stat = M_NULLPTR;
+    switch (M_STATIC_CAST(eDevStatsCDL_2_3_Offset, byteOffsetOnPage))
+    {
+        // Range 2 for STAT_A
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_A_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupA.writePolicy[6];
+        break;
+
+    // Range 2 for STAT_B
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE2_STAT_B_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[2].groupB.writePolicy[6];
+        break;
+
+    // Range 3 for STAT_A
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_A_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupA.writePolicy[6];
+        break;
+    // Range 3 for STAT_B
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_R1:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.readPolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_R2:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.readPolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_R3:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.readPolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_R4:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.readPolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_R5:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.readPolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_R6:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.readPolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_R7:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.readPolicy[6];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_W1:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.writePolicy[0];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_W2:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.writePolicy[1];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_W3:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.writePolicy[2];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_W4:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.writePolicy[3];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_W5:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.writePolicy[4];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_W6:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.writePolicy[5];
+        break;
+    case ATA_DEV_STAT_CDL_RANGE3_STAT_B_W7:
+        stat = &deviceStats->sataStatistics.cdlRange[3].groupB.writePolicy[6];
+        break;
+    }
+    return stat;
+}
+
 // this is ued to determine which device statistic is being talked about by the DSN log on ata
 // TODO: Make enum of all stat offsets on each page so it is easy to make sure all cases are handled correctly
 M_NONNULL_PARAM_LIST(1)
@@ -278,7 +648,7 @@ static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
                                            uint16_t            byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
-    switch (ataDevStatPage)
+    switch (M_STATIC_CAST(eDeviceStatisticsLog, ataDevStatPage))
     {
     case ATA_DEVICE_STATS_LOG_LIST:
         break;
@@ -305,6 +675,12 @@ static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
         break;
     case ATA_DEVICE_STATS_LOG_ZONED_DEVICE:
         stat = dev_stat_zoned_offset_map(deviceStats, byteOffsetOnPage);
+        break;
+    case ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_0_1:
+        stat = dev_stat_cdl_0_1_offset_map(deviceStats, byteOffsetOnPage);
+        break;
+    case ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_2_3:
+        stat = dev_stat_cdl_2_3_offset_map(deviceStats, byteOffsetOnPage);
         break;
     case ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC:
         // slightly different than case by case here -TJE
@@ -531,6 +907,26 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                         continue;
                     }
                     break;
+                case ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_0_1:
+                    if (ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_0_1 == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
+                    {
+                        deviceStats->sataStatistics.cdlStatisticsSupported = true;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                    break;
+                case ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_2_3:
+                    if (ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_2_3 == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
+                    {
+                        deviceStats->sataStatistics.cdlStatisticsSupported = true;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                    break;
                 case ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC: // vendor specific
                     if (ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC == M_Byte2(le64_to_host(qwordPtrDeviceStatsLog[0])))
                     {
@@ -562,6 +958,28 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                         if (statisticPage == ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC)
                         {
                             ++deviceStats->sataStatistics.vendorSpecificStatisticsPopulated;
+                        }
+                        else if (statisticPage == ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_0_1)
+                        {
+                            if (statisticOffset >= ATA_DEV_STAT_CDL_RANGE1_STAT_A_R1)
+                            {
+                                deviceStats->sataStatistics.cdlStatisticRanges = 2;
+                            }
+                            else if (statisticOffset >= ATA_DEV_STAT_CDL_RANGE0_STAT_A_R1)
+                            {
+                                deviceStats->sataStatistics.cdlStatisticRanges = 1;
+                            }
+                        }
+                        else if (statisticPage == ATA_DEVICE_STATS_LOG_CDL_LBA_RANGE_2_3)
+                        {
+                            if (statisticOffset >= ATA_DEV_STAT_CDL_RANGE3_STAT_A_R1)
+                            {
+                                deviceStats->sataStatistics.cdlStatisticRanges = 4;
+                            }
+                            else if (statisticOffset >= ATA_DEV_STAT_CDL_RANGE2_STAT_A_R1)
+                            {
+                                deviceStats->sataStatistics.cdlStatisticRanges = 3;
+                            }
                         }
                     }
                 }
@@ -8506,6 +8924,61 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, const char* sta
     }
 }
 
+static void print_Time_Microseconds_Statistic(statistic theStatistic, const char* statisticName)
+{
+    if (theStatistic.isSupported)
+    {
+        DECLARE_ZERO_INIT_ARRAY(char, displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH);
+        print_Statistic_Flags(theStatistic);
+        printf("%-60s", statisticName);
+        if (theStatistic.isThresholdValid)
+        {
+            switch (theStatistic.threshType)
+            {
+            case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
+                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
+                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
+                                    theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
+                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
+                                    theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
+                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
+                                    theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
+                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
+                                    theStatistic.threshold);
+                break;
+            case THRESHOLD_TYPE_NO_TRIGGER:
+            default:
+                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
+                                    theStatistic.threshold);
+                break;
+            }
+        }
+        else
+        {
+            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+        }
+        printf(" %-16s", displayThreshold);
+        if (theStatistic.isValueValid)
+        {
+            printf("%" PRIu64 " us", theStatistic.statisticValue);
+        }
+        else
+        {
+            printf("Invalid");
+        }
+        printf("\n");
+    }
+}
+
 // for accounting date and date of manufacture
 static void print_SCSI_Date_Statistic(statistic theStatistic, const char* statisticName)
 {
@@ -8942,6 +9415,58 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
         print_Count_Statistic(deviceStats->sataStatistics.writeRuleViolations, "Write Rule Violations", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.maximumImplicitOpenSequentialOrBeforeRequiredZones,
                               "Max Implicitly Open Sequential or Before Required Zones", M_NULLPTR);
+    }
+    if (deviceStats->sataStatistics.cdlStatisticsSupported)
+    {
+        printf("\n---Command Duration Limit Statistics---\n");
+        print_Time_Microseconds_Statistic(deviceStats->sataStatistics.lowestAchievableCommandDuration, "Lowest Achievable Command Duration");
+        // These are a bit more complicated of a structure, so printing is handled differently
+        // This is due to so much reuse of statistic formatting is in the spec that this was easier to handle this way.
+        for (uint8_t rangeIter = UINT8_C(0); rangeIter < deviceStats->sataStatistics.cdlStatisticRanges && rangeIter < MAX_CDL_STATISTIC_RANGES; ++rangeIter)
+        {
+            #define RANGE_ID_STR_LEN 16
+            DECLARE_ZERO_INIT_ARRAY(char, rangeID, RANGE_ID_STR_LEN);
+            if (deviceStats->sataStatistics.cdlStatisticRanges > 1)
+            {
+                // Only print out the per-range info when multiple ranges are supported.
+                // Otherwise these represent the whole device
+                snprintf_err_handle(rangeID, RANGE_ID_STR_LEN, "Range %" PRIu8, rangeIter);
+            }
+            else
+            {
+                snprintf_err_handle(rangeID, RANGE_ID_STR_LEN, "Device");
+            }
+            #define CDL_POLICY_STR_LEN 60
+            // Loop through r1-r7 stat a
+            for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat A", rangeID, policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.readPolicy[policyIter], policyName, "Invocations");
+            }
+            // loop through w1-w7 stat a
+            for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat A", rangeID, policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.writePolicy[policyIter], policyName, "Invocations");
+            }
+            // Loop through r1-r7 stat b
+            for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat B", rangeID, policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.readPolicy[policyIter], policyName, "Invocations");
+            }
+            // loop through w1-w7 stat b
+            for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
+            {
+                DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat B", rangeID, policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.writePolicy[policyIter], policyName, "Invocations");
+            }
+        }
+
     }
     if (deviceStats->sataStatistics.vendorSpecificStatisticsSupported)
     {
