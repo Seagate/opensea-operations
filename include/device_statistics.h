@@ -50,6 +50,23 @@ extern "C"
         uint64_t       threshold;      // may not be populated depending on drive support/code support
     } statistic;
 
+    #define MAX_CDL_RW_POLICIES 7
+
+    typedef struct s_cdlStatisticGroup
+    {
+        statistic readPolicy[MAX_CDL_RW_POLICIES];
+        statistic writePolicy[MAX_CDL_RW_POLICIES];
+    }cdlStatisticGroup;
+
+    typedef struct s_cdlStatistic
+    {
+        cdlStatisticGroup groupA;
+        cdlStatisticGroup groupB;
+    }cdlStatistic;
+
+    #define MAX_CDL_STATISTIC_RANGES 4
+    #define MAX_VENDOR_STATISTICS 64
+
     typedef struct s_sataDeviceStatistics
     {
         bool     generalStatisticsSupported;
@@ -60,6 +77,7 @@ extern "C"
         bool     transportStatisticsSupported;
         bool     ssdStatisticsSupported;
         bool     zonedDeviceStatisticsSupported;
+        bool     cdlStatisticsSupported;
         bool     vendorSpecificStatisticsSupported;
         uint16_t statisticsPopulated; // just a count of how many were populated...not any specific order
         // general statistics
@@ -124,9 +142,17 @@ extern "C"
         statistic readRuleViolations;
         statistic writeRuleViolations;
         statistic maximumImplicitOpenSequentialOrBeforeRequiredZones;
+        // CDL Statistics
+        // NOTE: These are a little complicated. They can apply to concurrent ranges (actuators) or whole device
+        //       So ranges beyond zero require concurrent positioning log and support for separate statistics per range
+        // Statistic A and B track different things depending on how they are configured in CDL
+        // Should this output capture the reasons for each statistic to increment??? -TJE
+        statistic lowestAchievableCommandDuration; // In ACS-5, but obsolete in ACS-6
+        uint8_t cdlStatisticRanges; // how many ranges were populated when reading CDL statistics
+        cdlStatistic cdlRange[MAX_CDL_STATISTIC_RANGES]; // see cdlStatisticRanges for how many were populated - TJE
         // vendor specific
         uint8_t   vendorSpecificStatisticsPopulated;
-        statistic vendorSpecificStatistics[64];
+        statistic vendorSpecificStatistics[MAX_VENDOR_STATISTICS];
     } sataDeviceStatistics;
 
     typedef enum eProtocolSpecificStatisticsTypeEnum
