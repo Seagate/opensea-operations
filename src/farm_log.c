@@ -2494,6 +2494,36 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* 
     return printed;
 }
 
+#define MICRO_SECONDS_PER_HOUR 3600000000.0
+#define MICRO_SECONDS_PER_MINUTE 60000000.0 
+#define MICRO_SECONDS_PER_SECOND 1000000.0
+#define MICRO_SECONDS_PER_MILLI_SECONDS 1000.0
+
+static M_INLINE bool print_Stat_If_Supported_And_Valid_Time(const char* statisticname, uint64_t statisticData, double conversionToMicroseconds)
+{
+    bool printed = false;
+    uint8_t status = get_Farm_Status_Byte(statisticData);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
+    {
+        print_Statistic_Name(statisticname);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            // Take the input time in an integer, multiply it by the conversion factor to get the microsecond time as the base unit.
+            // From there we can forward convert to hours.
+            // The reason for this is because to keep some of the output simpler and different statistics use different units,
+            // microseconds is lowest seen unit and hours is the most common output unit -TJE
+            double timeMicroseconds = M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData)) * conversionToMicroseconds;
+            
+            printed = printf("\t\t%0.02f\n", timeMicroseconds / MICRO_SECONDS_PER_HOUR) > 0 ? true : false;
+        }
+        else
+        {
+            printed = printf("\t\tInvalid\n") > 0 ? true : false;
+        }
+    }
+    return printed;
+}
+
 static M_INLINE bool print_Stat_If_Supported_And_Valid_HexUint64(const char* statisticname, uint64_t statisticData)
 {
     bool printed = false;
@@ -2675,7 +2705,8 @@ typedef enum eFARMByHeadOutputFormat
     FARM_BY_HEAD_INT64,
     FARM_BY_HEAD_INT64_FACTOR,
     FARM_BY_HEAD_HEX,
-    FARM_BY_HEAD_FLOAT
+    FARM_BY_HEAD_FLOAT,
+    FARM_BY_HEAD_TIME
 }eFARMByHeadOutputFormat;
 
 #define BY_HEAD_INFO_STR_LEN 8 //max length of " Head xx"
@@ -2724,6 +2755,9 @@ static void print_Stat_If_Supported_And_Valid_By_Head(const char* statisticname,
             case FARM_BY_HEAD_FLOAT:
                 printed = print_Stat_If_Supported_And_Valid_Float(byheadstatname, byhead[headiter]);
                 break;
+            case FARM_BY_HEAD_TIME:
+                printed = print_Stat_If_Supported_And_Valid_Time(byheadstatname, byhead[headiter], conversionfactor);
+                break;
             }
             M_USE_UNUSED(printed);
         }
@@ -2763,9 +2797,9 @@ static void print_Farm_Drive_Info(farmDriveInfo *driveInfo, eFARMDriveInterface 
             print_Stat_If_Supported_And_Valid_HexUint64("ATA Security State", driveInfo->ataSecurityState);
             print_Stat_If_Supported_And_Valid_HexUint64("ATA Features Supported", driveInfo->ataFeaturesSupported);
             print_Stat_If_Supported_And_Valid_HexUint64("ATA Features Enabled", driveInfo->ataFeaturesEnabled);
-            print_Stat_If_Supported_And_Valid_Uint64("Power On Hours", driveInfo->powerOnHours);
-            print_Stat_If_Supported_And_Valid_Uint64("Spindle Power On Hours", driveInfo->spindlePowerOnHours);
-            print_Stat_If_Supported_And_Valid_Uint64("Head Flight Hours", driveInfo->headFlightHours);
+            print_Stat_If_Supported_And_Valid_Time("Power On Hours", driveInfo->powerOnHours, MICRO_SECONDS_PER_HOUR);
+            print_Stat_If_Supported_And_Valid_Time("Spindle Power On Hours", driveInfo->spindlePowerOnHours, MICRO_SECONDS_PER_HOUR);
+            print_Stat_If_Supported_And_Valid_Time("Head Flight Hours", driveInfo->headFlightHours, MICRO_SECONDS_PER_HOUR);
             print_Stat_If_Supported_And_Valid_Uint64("Head Load Events", driveInfo->headLoadEvents);
             print_Stat_If_Supported_And_Valid_Uint64("Power Cycle Count", driveInfo->powerCycleCount);
             print_Stat_If_Supported_And_Valid_Uint64("Hardware Reset Count", driveInfo->hardwareResetCount);
@@ -2775,8 +2809,8 @@ static void print_Farm_Drive_Info(farmDriveInfo *driveInfo, eFARMDriveInterface 
                 print_Stat_If_Supported_And_Valid_Uint64("NVC Status at Power On", driveInfo->nvcStatusOnPoweron);
                 print_Stat_If_Supported_And_Valid_Uint64("Time Availabe to Save User Data To NVMem", driveInfo->timeAvailableToSaveUDToNVMem);//100us
             }
-            print_Stat_If_Supported_And_Valid_Uint64("Lowest POH timestamp (ms)", driveInfo->lowestPOHForTimeRestrictedParameters);
-            print_Stat_If_Supported_And_Valid_Uint64("Highest POH timestamp (ms)", driveInfo->highestPOHForTimeRestrictedParameters);
+            print_Stat_If_Supported_And_Valid_Time("Lowest POH timestamp (Hours)", driveInfo->lowestPOHForTimeRestrictedParameters, MICRO_SECONDS_PER_MILLI_SECONDS);
+            print_Stat_If_Supported_And_Valid_Time("Highest POH timestamp (Hours)", driveInfo->highestPOHForTimeRestrictedParameters, MICRO_SECONDS_PER_MILLI_SECONDS);
             print_Stat_If_Supported_And_Valid_Uint64("Time to ready, last power cycle (ms)", driveInfo->timeToReadyOfLastPowerCycle);
             print_Stat_If_Supported_And_Valid_Uint64("Time in staggered spinup, last power on sequence (ms)", driveInfo->timeDriveHeldInStaggeredSpinDuringLastPowerOnSequence);
             print_Stat_If_Supported_And_Valid_Recording_Type("Drive Recording Type", driveInfo->driveRecordingType);
@@ -2784,12 +2818,12 @@ static void print_Farm_Drive_Info(farmDriveInfo *driveInfo, eFARMDriveInterface 
             print_Stat_If_Supported_And_Valid_Uint64("Max # Available Disc Sectors for Reassignment", driveInfo->maxAvailableSectorsForReassignment);
             print_Stat_If_Supported_And_Valid_ASCII("Date of Assembly", &driveInfo->dateOfAssembly, 1);
             print_Stat_If_Supported_And_Valid_HexUint64("Depop Head Mask", driveInfo->depopulationHeadMask);
-            print_Stat_If_Supported_And_Valid_Uint64("Head Flight Hours, Actuator 1", driveInfo->headFlightHoursActuator1);
+            print_Stat_If_Supported_And_Valid_Time("Head Flight Hours, Actuator 1", driveInfo->headFlightHoursActuator1, MICRO_SECONDS_PER_HOUR);
             print_Stat_If_Supported_And_Valid_Uint64("Head Load Events, Actuator 1", driveInfo->headLoadEventsActuator1);
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus, "Data Protect", "No Data Protect");
             print_Stat_If_Supported_And_Valid_HexUint64("Regen Head Mask", driveInfo->regenHeadMask);
-            print_Stat_If_Supported_And_Valid_Uint64("Power On Hours of Most Recent FARM Time Series Frame", driveInfo->pohOfMostRecentTimeseriesFrame);
-            print_Stat_If_Supported_And_Valid_Uint64("Power On Hours of 2nd Most Recent FARM Time Series Frame", driveInfo->pohOfSecondMostRecentTimeseriesFrame);
+            print_Stat_If_Supported_And_Valid_Time("Power On Hours of Most Recent FARM Time Series Frame", driveInfo->pohOfMostRecentTimeseriesFrame, MICRO_SECONDS_PER_MILLI_SECONDS);
+            print_Stat_If_Supported_And_Valid_Time("Power On Hours of 2nd Most Recent FARM Time Series Frame", driveInfo->pohOfSecondMostRecentTimeseriesFrame, MICRO_SECONDS_PER_MILLI_SECONDS);
             print_Stat_If_Supported_And_Valid_Uint64("Seq or Before Req for Active Zone Config", driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
             print_Stat_If_Supported_And_Valid_Uint64("Seq Write ReqActive Zone Config", driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
             print_Stat_If_Supported_And_Valid_Uint64("Number of LBAs (HSMR SWR capacity)", driveInfo->numberOfLBAs);
@@ -3014,8 +3048,8 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics *env)
             print_Stat_If_Supported_And_Valid_Uint64("Lowest Average Short Term Temperature (C)", env->lowestAvgShortTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Highest Average Long Term Temperature (C)", env->highestAvgLongTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Lowest Average Long Term Temperature (C)", env->lowestAvgLongTermTemp);
-            print_Stat_If_Supported_And_Valid_Uint64("Time in Over Temperature (m)", env->timeOverTemp);
-            print_Stat_If_Supported_And_Valid_Uint64("Time in Under Temperature (m)", env->timeUnderTemp);
+            print_Stat_If_Supported_And_Valid_Time("Time in Over Temperature (Hours)", env->timeOverTemp, MICRO_SECONDS_PER_MINUTE);
+            print_Stat_If_Supported_And_Valid_Time("Time in Under Temperature (Hours)", env->timeUnderTemp, MICRO_SECONDS_PER_MINUTE);
             print_Stat_If_Supported_And_Valid_Uint64("Specified Max Temperature (C)", env->specifiedMaxTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Specified Min Temperature (C)", env->specifiedMinTemp);
             print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Relative Humidity (%)", env->currentRelativeHumidity, 0.1);
@@ -3101,7 +3135,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics *reli, uint64_
             print_Stat_If_Supported_And_Valid_By_Head("# DOS Ought To Scan", reli->dosOughtScanCountByHead, numheads, FARM_BY_HEAD_UINT64, 0.0);
             print_Stat_If_Supported_And_Valid_By_Head("# DOS Need To Scan", reli->dosNeedToScanCountByHead, numheads, FARM_BY_HEAD_UINT64, 0.0);
             print_Stat_If_Supported_And_Valid_By_Head("# DOS Write Fault Scans", reli->dosWriteFaultScansByHead, numheads, FARM_BY_HEAD_UINT64, 0.0);
-            print_Stat_If_Supported_And_Valid_By_Head("Write Workload Power-on Time Seconds", reli->writeWorkloadPowerOnTimeByHead, numheads, FARM_BY_HEAD_UINT64, 0.0);
+            print_Stat_If_Supported_And_Valid_By_Head("Write Workload Power-on Time (Hours)", reli->writeWorkloadPowerOnTimeByHead, numheads, FARM_BY_HEAD_TIME, MICRO_SECONDS_PER_SECOND);
             print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector", reli->numLBAsCorrectedByParitySector);
             print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector Actuator 1s", reli->numLBAsCorrectedByParitySectorActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("Primary Super Parity Coverage %", reli->superParityCoveragePercent);
