@@ -2832,7 +2832,7 @@ static void print_Farm_Drive_Info(farmDriveInfo *driveInfo, eFARMDriveInterface 
     }
 }
 
-static void print_FARM_Workload_Info(farmWorkload *work)
+static void print_FARM_Workload_Info(farmWorkload *work, uint64_t timerestrictedRangems)
 {
     if (work != M_NULLPTR)
     {
@@ -2850,41 +2850,61 @@ static void print_FARM_Workload_Info(farmWorkload *work)
             print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle", work->numberOfDitherEventsInCurrentPowerCycle);
             print_Stat_If_Supported_And_Valid_Uint64("# of times dither held off durring random workloads in power cycle", work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycle);
             print_Stat_If_Supported_And_Valid_Uint64("# of times dither held off durring sequential workloads in power cycle", work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycle);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 0-3.125% LBA space", work->numReadsInLBA0To3125PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 3.125-25% LBA space", work->numReadsInLBA3125To25PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 25-50% LBA space", work->numReadsInLBA25To50PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 50-100% LBA space", work->numReadsInLBA50To100PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 0-3.125% LBA space",  work->numWritesInLBA0To3125PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 3.125-25% LBA space", work->numWritesInLBA3125To25PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 25-50% LBA space",    work->numWritesInLBA25To50PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 50-100% LBA space",   work->numWritesInLBA50To100PercentRange);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length <= 16KiB", work->numReadsOfXferLenLT16KB);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length 16Kib - 512KiB", work->numReadsOfXferLen16KBTo512KB);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB);
-            print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length > 2MiB", work->numReadsOfXferLenGT2MB);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length <= 16KiB", work->numWritesOfXferLenLT16KB);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length 16Kib - 512KiB", work->numWritesOfXferLen16KBTo512KB);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length 512KiB - 2MiB", work->numWritesOfXferLen512KBTo2MB);
-            print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length > 2MiB", work->numWritesOfXferLenGT2MB);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth = 1 in 30s intervals", work->countQD1at30sInterval);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth = 2 in 30s intervals", work->countQD2at30sInterval);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 3-4 in 30s intervals", work->countQD3To4at30sInterval);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 5-8 in 30s intervals", work->countQD5To8at30sInterval);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 9-16 in 30s intervals", work->countQD9To16at30sInterval);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 17-32 in 30s intervals", work->countQD17To32at30sInterval);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 33-64 in 30s intervals", work->countQD33To64at30sInterval);
-            print_Stat_If_Supported_And_Valid_Uint64("Queue Depth > 64 in 30s intervals", work->countGTQD64at30sInterval);
+            bool commandCover = false;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 0-3.125% LBA space", work->numReadsInLBA0To3125PercentRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 3.125-25% LBA space", work->numReadsInLBA3125To25PercentRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 25-50% LBA space", work->numReadsInLBA25To50PercentRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 50-100% LBA space", work->numReadsInLBA50To100PercentRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 0-3.125% LBA space",  work->numWritesInLBA0To3125PercentRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 3.125-25% LBA space", work->numWritesInLBA3125To25PercentRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 25-50% LBA space",    work->numWritesInLBA25To50PercentRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands between 50-100% LBA space",   work->numWritesInLBA50To100PercentRange) ? true : commandCover;
+            if (commandCover)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time that Commands Cover (Hours)", timerestrictedRangems ^ (BIT63 | BIT62), MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+            commandCover = false;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length <= 16KiB", work->numReadsOfXferLenLT16KB) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length 16Kib - 512KiB", work->numReadsOfXferLen16KBTo512KB) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length > 2MiB", work->numReadsOfXferLenGT2MB) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length <= 16KiB", work->numWritesOfXferLenLT16KB) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length 16Kib - 512KiB", work->numWritesOfXferLen16KBTo512KB) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length 512KiB - 2MiB", work->numWritesOfXferLen512KBTo2MB) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length > 2MiB", work->numWritesOfXferLenGT2MB) ? true : commandCover;
+            if (commandCover)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time that Commands Cover (Hours)", timerestrictedRangems ^ (BIT63 | BIT62), MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+            commandCover = false;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth = 1 in 30s intervals", work->countQD1at30sInterval) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth = 2 in 30s intervals", work->countQD2at30sInterval) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 3-4 in 30s intervals", work->countQD3To4at30sInterval) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 5-8 in 30s intervals", work->countQD5To8at30sInterval) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 9-16 in 30s intervals", work->countQD9To16at30sInterval) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 17-32 in 30s intervals", work->countQD17To32at30sInterval) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth 33-64 in 30s intervals", work->countQD33To64at30sInterval) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("Queue Depth > 64 in 30s intervals", work->countGTQD64at30sInterval) ? true : commandCover;
+            if (commandCover)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time that Queue Bins Cover (Hours)", timerestrictedRangems ^ (BIT63 | BIT62), MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
             print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle, Actuator 1", work->numberOfDitherEventsInCurrentPowerCycleActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("# of times dither held off durring random workloads in power cycle, Actuator 1", work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycleActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("# of times dither held off durring sequential workloads in power cycle, Actuator 1", work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycleActuator1);
-            print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 4, last 3 SMART Summary Frames", work->numReadsXferLenBin4Last3SMARTSummaryFrames);
-            print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 5, last 3 SMART Summary Frames", work->numReadsXferLenBin5Last3SMARTSummaryFrames);
-            print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 6, last 3 SMART Summary Frames", work->numReadsXferLenBin6Last3SMARTSummaryFrames);
-            print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 7, last 3 SMART Summary Frames", work->numReadsXferLenBin7Last3SMARTSummaryFrames);
-            print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 4, last 3 SMART Summary Frames", work->numWritesXferLenBin4Last3SMARTSummaryFrames);
-            print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 5, last 3 SMART Summary Frames", work->numWritesXferLenBin5Last3SMARTSummaryFrames);
-            print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 6, last 3 SMART Summary Frames", work->numWritesXferLenBin6Last3SMARTSummaryFrames);
-            print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 7, last 3 SMART Summary Frames", work->numWritesXferLenBin7Last3SMARTSummaryFrames);
+            commandCover = false;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 4, last 3 SMART Summary Frames", work->numReadsXferLenBin4Last3SMARTSummaryFrames) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 5, last 3 SMART Summary Frames", work->numReadsXferLenBin5Last3SMARTSummaryFrames) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 6, last 3 SMART Summary Frames", work->numReadsXferLenBin6Last3SMARTSummaryFrames) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of transfer length bin 7, last 3 SMART Summary Frames", work->numReadsXferLenBin7Last3SMARTSummaryFrames) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 4, last 3 SMART Summary Frames", work->numWritesXferLenBin4Last3SMARTSummaryFrames) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 5, last 3 SMART Summary Frames", work->numWritesXferLenBin5Last3SMARTSummaryFrames) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 6, last 3 SMART Summary Frames", work->numWritesXferLenBin6Last3SMARTSummaryFrames) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of transfer length bin 7, last 3 SMART Summary Frames", work->numWritesXferLenBin7Last3SMARTSummaryFrames) ? true : commandCover;
+            if (commandCover)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time that XFer Bins Cover (Hours)", timerestrictedRangems ^ (BIT63 | BIT62), MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
         }
     }
 }
@@ -3157,6 +3177,13 @@ void print_FARM_Data(farmLogData *farmdata)
         uint64_t maxHeads = get_Farm_Qword_Data(farmdata->header.maxDriveHeadsSupported);
         uint64_t numheads = get_Farm_Qword_Data(farmdata->driveinfo.numberOfHeads);
         uint64_t headcnt = M_Min(M_Min(numheads, maxHeads), FARM_MAX_HEADS);
+        uint64_t timeRestrictedRangeMS = get_Farm_Qword_Data(farmdata->driveinfo.highestPOHForTimeRestrictedParameters) - get_Farm_Qword_Data(farmdata->driveinfo.lowestPOHForTimeRestrictedParameters);
+        if (timeRestrictedRangeMS == 0 || 
+            !(get_Farm_Status_Byte(farmdata->driveinfo.highestPOHForTimeRestrictedParameters) & (FARM_FIELD_SUPPORTED_BIT | FARM_FIELD_VALID_BIT)) ||
+            !(get_Farm_Status_Byte(farmdata->driveinfo.lowestPOHForTimeRestrictedParameters) & (FARM_FIELD_SUPPORTED_BIT | FARM_FIELD_VALID_BIT)))
+        {
+            timeRestrictedRangeMS |= BIT63 | BIT62;
+        }
         eFARMDriveInterface farminterface = FARM_DRIVE_INTERFACE_SATA;
         if (headcnt == 0)
         {
@@ -3165,7 +3192,7 @@ void print_FARM_Data(farmLogData *farmdata)
         printf("=== Field Accessible Reliability Metrics ===\n");
         printf("FARM Version: %" PRIu64 ".%" PRIu64 "\n", get_Farm_Qword_Data(farmdata->header.majorVersion), get_Farm_Qword_Data(farmdata->header.minorVersion));
         print_Farm_Drive_Info(&farmdata->driveinfo, &farminterface);
-        print_FARM_Workload_Info(&farmdata->workload);
+        print_FARM_Workload_Info(&farmdata->workload, timeRestrictedRangeMS);
         print_FARM_Error_Info(&farmdata->error, headcnt, farminterface);
         print_FARM_Environment_Info(&farmdata->environment);
         print_FARM_Reliability_Info(&farmdata->reliability, headcnt, farminterface);
