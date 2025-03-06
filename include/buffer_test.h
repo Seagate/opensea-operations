@@ -9,7 +9,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
 // ******************************************************************************************
-// 
+//
 // \file buffer_test.h
 // \brief This file defines the function calls for performing buffer/cabling tests
 
@@ -17,48 +17,49 @@
 
 #include "operations_Common.h"
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 extern "C"
 {
 #endif
 
-#define ALL_0_TEST_COUNT 2
-#define ALL_F_TEST_COUNT 2
-#define ALL_5_TEST_COUNT 2
-#define ALL_A_TEST_COUNT 2
-#define ZERO_F_5_A_TEST_COUNT 2
-#define WALKING_1_TEST_COUNT 1
-#define WALKING_0_TEST_COUNT 1
-#define RANDOM_TEST_COUNT 5
+#define ALL_0_TEST_COUNT      10
+#define ALL_F_TEST_COUNT      10
+#define ALL_5_TEST_COUNT      10
+#define ALL_A_TEST_COUNT      10
+#define ZERO_F_5_A_TEST_COUNT 10
+#define WALKING_1_TEST_COUNT  5
+#define WALKING_0_TEST_COUNT  5
+#define RANDOM_TEST_COUNT     10
 
-    typedef struct _patternTestResults
+    typedef struct s_patternTestResults
     {
         uint64_t totalTimeNS;
-        uint32_t totalCommandsSent;//read and write commands
-        uint32_t totalCommandTimeouts;//how many take longer than the timeout set for the drive
-        uint32_t totalCommandCRCErrors;//how many commands return a CRC error
-        uint32_t totalBufferComparisons;//how many write-read buffer, then compare the two have been done in the test;
-        uint32_t totalBufferMiscompares;//how many times did the buffer miscompare.
-    }patternTestResults, *ptrPatternTestResults;
+        uint32_t totalCommandsSent;      // read and write commands
+        uint32_t totalCommandTimeouts;   // how many take longer than the timeout set for the drive
+        uint32_t totalCommandCRCErrors;  // how many commands return a CRC error
+        uint32_t totalBufferComparisons; // how many write-read buffer, then compare the two have been done in the test;
+        uint32_t totalBufferMiscompares; // how many times did the buffer miscompare.
+    } patternTestResults, *ptrPatternTestResults;
 
-    typedef struct _cableTestResults
+    typedef struct s_cableTestResults
     {
-        uint64_t totalTestTimeNS;
-        patternTestResults zerosTest[ALL_0_TEST_COUNT];//all zeros tested
-        patternTestResults fTest[ALL_F_TEST_COUNT];//all F's tested
-        patternTestResults fivesTest[ALL_5_TEST_COUNT];//all 5's tested
-        patternTestResults aTest[ALL_A_TEST_COUNT];//all A's tested
-        patternTestResults zeroF5ATest[ZERO_F_5_A_TEST_COUNT];//pattern of 00FF55AA tested
+        uint64_t           totalTestTimeNS;
+        patternTestResults zerosTest[ALL_0_TEST_COUNT];        // all zeros tested
+        patternTestResults fTest[ALL_F_TEST_COUNT];            // all F's tested
+        patternTestResults fivesTest[ALL_5_TEST_COUNT];        // all 5's tested
+        patternTestResults aTest[ALL_A_TEST_COUNT];            // all A's tested
+        patternTestResults zeroF5ATest[ZERO_F_5_A_TEST_COUNT]; // pattern of 00FF55AA tested
         patternTestResults walking1sTest[WALKING_1_TEST_COUNT];
         patternTestResults walking0sTest[WALKING_0_TEST_COUNT];
         patternTestResults randomTest[RANDOM_TEST_COUNT];
-    }cableTestResults, *ptrCableTestResults;
+    } cableTestResults, *ptrCableTestResults;
 
     //-----------------------------------------------------------------------------
     //
     //  perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
     //
-    //! \brief   Description: Perform a cable/buffer test using read/write buffer commands to check for mismatches and other bus errors
+    //! \brief   Description: Perform a cable/buffer test using read/write buffer commands to check for mismatches and
+    //! other bus errors
     //
     //  Entry:
     //!   \param[in] device = file descriptor
@@ -68,7 +69,8 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    eReturnValues perform_Cable_Test(tDevice *device, ptrCableTestResults testResults);
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1) M_PARAM_WO(2) eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResults);
 
     //-----------------------------------------------------------------------------
     //
@@ -84,6 +86,6 @@ extern "C"
     //-----------------------------------------------------------------------------
     void print_Cable_Test_Results(cableTestResults testResults);
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
