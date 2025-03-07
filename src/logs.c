@@ -3959,7 +3959,8 @@ eReturnValues pull_FARM_LogPage(tDevice*     device,
                                 uint32_t     issueFactory,
                                 uint16_t     logPage,
                                 uint8_t      logAddress,
-                                eLogPullMode mode)
+                                eLogPullMode mode,
+                                eLogFileNamingConvention fileNameType)
 {
     bool            fileOpened         = false;
     secureFileInfo* fp_log             = M_NULLPTR;
@@ -4093,11 +4094,13 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                             uint32_t     transferSizeBytes,
                             uint32_t     issueFactory,
                             uint8_t      logAddress,
-                            eLogPullMode mode)
+                            eLogPullMode mode,
+                            eLogFileNamingConvention fileNameType)
 {
     eReturnValues ret           = UNKNOWN;
     uint32_t      logSize       = UINT32_C(0);
     uint8_t*      genericLogBuf = M_NULLPTR;
+    const char* logName = M_NULLPTR;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
 
