@@ -44,6 +44,12 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
+   
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    M_NULL_TERM_STRING(2)
+    M_PARAM_RO(2)
+    
     OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(tDevice *device, const char * const filePath, uint32_t transferSizeBytes, int sataFarmCopyType, eLogFileNamingConvention fileNameType);
 
     #define FARM_LOG_SIGNATURE_VAL_QWORD UINT64_C(0x00004641524D4552)

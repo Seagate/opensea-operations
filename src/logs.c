@@ -897,8 +897,7 @@ eReturnValues get_SCSI_Error_History_Size(tDevice*  device,
                                           uint32_t* errorHistorySize,
                                           bool      createNewSnapshot,
                                           bool      useReadBuffer16)
-
-                                          {
+{
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
     if (errorHistorySize == M_NULLPTR)
@@ -4022,7 +4021,7 @@ eReturnValues pull_FARM_LogPage(tDevice*     device,
                     if (!fileOpened)
                     {
                         if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(
-                                           device, &fp_log, NAMING_SERIAL_NUMBER_DATE_TIME, filePath, logType, "bin"))
+                                           device, &fp_log, fileNameType, filePath, logType, "bin"))
                         {
                             fileOpened = true;
                         }

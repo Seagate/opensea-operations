@@ -339,9 +339,9 @@ extern "C"
         ERASE_MAX_VALUE = -1
     } eEraseMethod;
 
-    #define MAX_SUPPORTED_ERASE_METHODS 13
-    #define MAX_ERASE_NAME_LENGTH 30
-    #define MAX_ERASE_WARNING_LENGTH 80
+    #define MAX_SUPPORTED_ERASE_METHODS   13
+    #define MAX_ERASE_NAME_LENGTH 	  30
+    #define MAX_ERASE_WARNING_LENGTH 	  80
     #define MAX_OS_SUPPORT_WARNING_LENGTH 80
 
     // This is based on IEEE 2883 and assumes the device firmware is compliant according to the specifications
