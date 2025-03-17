@@ -726,13 +726,13 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice*     device,
-                                                           const char*  filePath,
-                                                           uint32_t     transferSizeBytes,
-                                                           uint32_t     issueFactory,
-                                                           uint16_t     logPage,
-                                                           uint8_t      logAddress,
-                                                           eLogPullMode mode,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice*                 device,
+                                                           const char*              filePath,
+                                                           uint32_t                 transferSizeBytes,
+                                                           uint32_t                 issueFactory,
+                                                           uint16_t                 logPage,
+                                                           uint8_t                  logAddress,
+                                                           eLogPullMode             mode,
                                                            eLogFileNamingConvention fileNameType);
 
     //-----------------------------------------------------------------------------
@@ -759,12 +759,12 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice*     device,
-                                                       const char*  filePath,
-                                                       uint32_t     transferSizeBytes,
-                                                       uint32_t     issueFactory,
-                                                       uint8_t      logAddress,
-                                                       eLogPullMode mode,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice*                 device,
+                                                       const char*              filePath,
+                                                       uint32_t                 transferSizeBytes,
+                                                       uint32_t                 issueFactory,
+                                                       uint8_t                  logAddress,
+                                                       eLogPullMode             mode,
                                                        eLogFileNamingConvention fileNameType);
 
     //-----------------------------------------------------------------------------
