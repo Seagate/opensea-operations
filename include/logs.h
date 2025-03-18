@@ -732,7 +732,8 @@ extern "C"
                                                            uint32_t     issueFactory,
                                                            uint16_t     logPage,
                                                            uint8_t      logAddress,
-                                                           eLogPullMode mode);
+                                                           eLogPullMode mode,
+                                                           eLogFileNamingConvention fileNameType);
 
     //-----------------------------------------------------------------------------
     //
@@ -763,7 +764,8 @@ extern "C"
                                                        uint32_t     transferSizeBytes,
                                                        uint32_t     issueFactory,
                                                        uint8_t      logAddress,
-                                                       eLogPullMode mode);
+                                                       eLogPullMode mode,
+                                                       eLogFileNamingConvention fileNameType);
 
     //-----------------------------------------------------------------------------
     //
