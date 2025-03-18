@@ -51,6 +51,7 @@ eReturnValues get_SMART_Attributes(tDevice* device, smartLogData* smartAttrs)
         ret = ata_SMART_Read_Data(device, ATAdataBuffer, LEGACY_DRIVE_SEC_SIZE);
         if (ret == SUCCESS)
         {
+            smartAttrs->attributes.ataSMARTAttr.smartVersion = M_BytesTo2ByteValue(ATAdataBuffer[1], ATAdataBuffer[0]);
             for (smartIter = ATA_SMART_BEGIN_ATTRIBUTES; smartIter < ATA_SMART_END_ATTRIBUTES;
                  smartIter += ATA_SMART_ATTRIBUTE_SIZE)
             {
@@ -1490,20 +1491,21 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     printf("\t  AF  - threshold is always failing (value of 255)\n");
     printf("\t  INV - threshold is set to an invalid value (value of 254)\n");
     printf("\tOther indicators:\n");
-    printf("\t  ? - See analyzed output for more information on an attribute's raw data\n");
+    printf("\t  ? - See analyzed output for more information on raw data\n");
     printf("\t  ! - attribute is currently failing\n");
     printf("\t  ^ - attribute has previously failed\n");
     printf("\t  %% - attribute is currently issuing a warning\n");
     printf("\t  ~ - attribute has previously warned about its condition\n");
-    printf("\tTemperature:\n");
+    printf("\tTemperature: (Celcius unless specified)\n");
     printf("\t  m = minimum\n");
     printf("\t  M = maximum\n");
-    printf("\t  All temperatures are reported in Celcius unless otherwise specified.\n");
     printf("\tColumns:\n");
     printf("\t  CV - current value (Also called nominal value in specifications)\n");
     printf("\t  WV - worst ever value\n");
     printf("\t  TV - threshold value (requires support of thresholds data)\n");
-    printf("\t  Raw - raw data associated with the attribute. Vendor specific definition.\n");
+    printf("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
+
+    printf("SMART Version: %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
     printf("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
     printf("--------------------------------------------------------------------------------\n");
     for (uint8_t iter = UINT8_C(0); iter < 255; ++iter)
@@ -1521,6 +1523,17 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 {
                 case 1:   // read error rate
                 case 7:   // seek error rate
+                    if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
+                    {
+                        print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
+                                                        attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 2, 0, true);
+                    }
+                    else
+                    {
+                        print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
+                                                        attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
+                    }
+                    break;
                 case 195: // ECC On the Fly Count
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
                                                      attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
@@ -1768,6 +1781,7 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
 
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
 
+    printf("SMART Version: %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
     for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
     {
         if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -1845,17 +1859,28 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                     switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                     {
                     case 1: // read error rate
-                        printf(
-                            "\tNumber Of Sector Reads: %" PRIu32 "\n",
-                            M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
-                        printf(
-                            "\tNumber Of Read Errors: %" PRIu32 "\n",
-                            M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                        if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
+                        {
+                            printf(
+                                "\tNumber Of Read Errors: %" PRIu32 "\n",
+                                M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        }
+                        else
+                        {
+                            printf(
+                                "\tNumber Of Sector Reads: %" PRIu32 "\n",
+                                M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf(
+                                "\tNumber Of Read Errors: %" PRIu32 "\n",
+                                M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                        }
                         break;
                     case 4: // start stop count
                         printf(
@@ -1872,16 +1897,26 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 7: // seek error rate
-                        printf(
-                            "\tNumber Of Seeks: %" PRIu32 "\n",
-                            M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
-                        printf(
-                            "\tNumber Of Seek Errors: %" PRIu16 "\n",
-                            M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                        if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
+                        {
+                            printf(
+                                "\tNumber Of Seek Errors: %" PRIu16 "\n",
+                                M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        }
+                        else
+                        {
+                            printf(
+                                "\tNumber Of Seeks: %" PRIu32 "\n",
+                                M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf(
+                                "\tNumber Of Seek Errors: %" PRIu16 "\n",
+                                M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                        }
                         break;
                     case 9: // power on hours
                     {
