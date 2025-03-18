@@ -1563,6 +1563,49 @@ eReturnValues get_ATA_Log(tDevice*    device,
                             }
                         }
                     }
+                    if (!toBuffer && !fileOpened)
+                    {
+                        if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log,
+                                                                              NAMING_SERIAL_NUMBER_DATE_TIME, filePath,
+                                                                              logName, fileExtension))
+                        {
+                            fileOpened = true;
+                        }
+                        else
+                        {
+                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            {
+                                printf("Failed to open file!\n");
+                            }
+                            ret = FAILURE;
+                            safe_free_aligned(&logBuffer);
+                            free_Secure_File_Info(&fp_log);
+                            return FILE_OPEN_ERROR;
+                        }
+                    }
+                    if (fileOpened)
+                    {
+                        // write out to a file
+                        if (SEC_FILE_SUCCESS !=
+                            secure_Write_File(fp_log, &logBuffer[uint16_to_sizet(currentPage) * LEGACY_DRIVE_SEC_SIZE],
+                                              uint16_to_sizet(pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t),
+                                              uint16_to_sizet(pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE, M_NULLPTR))
+                        {
+                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            {
+                                perror("Error writing a file!\n");
+                            }
+                            if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                            {
+                                printf("Error closing file!\n");
+                            }
+                            fileOpened = false;
+                            safe_free_aligned(&logBuffer);
+                            free_Secure_File_Info(&fp_log);
+                            return ERROR_WRITING_FILE;
+                        }
+                        ret = SUCCESS;
+                    }
                     if (toBuffer)
                     {
                         if (0 != safe_memcpy(&myBuf[uint16_to_sizet(currentPage) * LEGACY_DRIVE_SEC_SIZE],
@@ -1684,6 +1727,11 @@ eReturnValues get_ATA_Log(tDevice*    device,
             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
             {
                 printf("Error closing file!\n");
+            }
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                printf("\n");
+                printf("Binary log saved to: %s\n", fp_log->fullpath);
             }
             fileOpened = false;
         }
