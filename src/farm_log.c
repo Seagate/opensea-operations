@@ -2115,9 +2115,10 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
 {
     if (ptrData != M_NULLPTR)
     {
-        uint64_t* qwordptr  = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-        uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
-        uint8_t   paramlen  = ptrData[3];
+        uint64_t* qwordptr = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
+        ;
+        uint16_t parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint8_t  paramlen  = ptrData[3];
         switch (parameter)
         {
         case 0x0005:
@@ -2240,9 +2241,9 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
 }
 
 // NOTE: All fields in SAS are big endian.
-//      Unlike SATA, there is not as much padding or reserved bytes around to deal with.
-//      ASCII data may require special handling in both SAS and SATA FARM logs. These are mostly on page 1 (generic
-//      drive info)
+//       Unlike SATA, there is not as much padding or reserved bytes around to deal with.
+//       ASCII data may require special handling in both SAS and SATA FARM logs. These are mostly on page 1 (generic
+//       drive info)
 static farmLogData* sas_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, farmLogData* farmdata)
 {
     DISABLE_NONNULL_COMPARE
@@ -3494,10 +3495,10 @@ void print_FARM_Data(farmLogData* farmdata)
     if (farmdata != M_NULLPTR)
     {
         // TODO: Validate signature
-        // TODO: Determine number of actuators so we can output "Actuator #" when necessary
-        // TODO: Save drive interface from drive info section to populate other fields correctly
-        // TODO: Pass farm major/minor versions along. Ex: SAS before major version 3 uses different ASCII string
-        // formatting
+        //  TODO: Determine number of actuators so we can output "Actuator #" when necessary
+        //  TODO: Save drive interface from drive info section to populate other fields correctly
+        //  TODO: Pass farm major/minor versions along. Ex: SAS before major version 3 uses different ASCII string
+        //  formatting
         uint64_t maxHeads = get_Farm_Qword_Data(farmdata->header.maxDriveHeadsSupported);
         uint64_t numheads = get_Farm_Qword_Data(farmdata->driveinfo.numberOfHeads);
         uint64_t headcnt  = M_Min(M_Min(numheads, maxHeads), FARM_MAX_HEADS);
