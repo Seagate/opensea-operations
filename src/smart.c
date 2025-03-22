@@ -1086,12 +1086,1312 @@ void get_Attribute_Name(tDevice* device, uint8_t attributeNumber, char** attribu
     }
 }
 
+void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitType uintType, char** unitString)
+{
+    safe_memset(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, 0, MAX_RAW_FEILD_UNIT_STRING_LENGTH);
+    switch (uintType)
+    {
+    case RAW_FIELD_UNIT_TIME_IN_MILLISECONDS:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "ms");
+        break;
+    case RAW_FIELD_UNIT_TIME_IN_SECONDS:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "sec");
+        break;
+    case RAW_FIELD_UNIT_TIME_IN_MINUTE:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "min");
+        break;
+    case RAW_FIELD_UNIT_TIME_IN_HOURS:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "hr");
+        break;
+    case RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "C");
+        break;
+    case RAW_FIELD_UNIT_GB:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "GB");
+        break;
+    case RAW_FIELD_UNIT_MB:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "MB");
+        break;
+    case RAW_FIELD_UNIT_GiB:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "GiB");
+        break;
+    case RAW_FIELD_UNIT_MiB:
+        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "MiB");
+        break;
+    case RAW_FIELD_UNIT_NONE:
+    case RAW_FIELD_UNIT_LBA:
+    default:
+        break;
+    }
+}
+
+M_DECLARE_ENUM(eRawFieldStartEndBit,
+               /*!< Unknown Start and End. */
+               START_UNKNOWN_END_UNKNOWN = 0,
+               /*!< Raw Byte 1. */
+               START_1_END_1 = 1,
+               /*!< Raw Byte 2. */
+               START_2_END_2 = 2,
+               /*!< Raw Byte 3. */
+               START_3_END_3 = 3,
+               /*!< Raw Byte 0:1. */
+               START_0_END_1 = 4,
+               /*!< Raw Byte 2:3. */
+               START_2_END_3 = 5,
+               /*!< Raw Byte 4:5. */
+               START_4_END_5 = 6,
+               /*!< Raw Byte 0:2. */
+               START_0_END_2 = 7,
+               /*!< Raw Byte 0:3. */
+               START_0_END_3 = 8,
+               /*!< Raw Byte 3:6. */
+               START_3_END_6 = 9,
+               /*!< Raw Byte 4:6. */
+               START_4_END_6 = 10,
+               /*!< Raw Byte 0:4. */
+               START_0_END_4 = 11,
+               /*!< Raw Byte 0:6. */
+               START_0_END_6 = 12);
+
+static void get_ata_AttributeType_From_Status_Bit(uint16_t status, ataAttributeTypeData* attributeDataType)
+{
+    if (status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
+    {
+        attributeDataType->preFailAttribute = true;
+    }
+    if (status & ATA_SMART_STATUS_FLAG_ONLINE_DATA_COLLECTION)
+    {
+        attributeDataType->onlineDataCollection = true;
+    }
+    if (status & ATA_SMART_STATUS_FLAG_PERFORMANCE)
+    {
+        attributeDataType->performanceIndicator = true;
+    }
+    if (status & ATA_SMART_STATUS_FLAG_ERROR_RATE)
+    {
+        attributeDataType->errorRateIndicator = true;
+    }
+    if (status & ATA_SMART_STATUS_FLAG_EVENT_COUNT)
+    {
+        attributeDataType->eventCounter = true;
+    }
+    if (status & ATA_SMART_STATUS_FLAG_SELF_PRESERVING)
+    {
+        attributeDataType->selfPreserving = true;
+    }
+}
+
+static void get_ata_Attribute_Threshold_From_Threshold_Data(uint8_t                    thresholdValue,
+                                                            uint8_t                    nominal,
+                                                            uint8_t                    worst,
+                                                            bool                       isWarrantied,
+                                                            ataAttributeThresholdInfo* thresholdInfo)
+{
+    thresholdInfo->thresholdValue = thresholdValue;
+    if (thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_PASSING)
+    {
+        thresholdInfo->thresholdType = THRESHOLD_ALWAYS_PASSING;
+    }
+    else if (thresholdValue == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+    {
+        thresholdInfo->thresholdType = THRESHOLD_ALWAYS_FAILING;
+    }
+    else if (thresholdValue == ATA_SMART_THRESHOLD_INVALID)
+    {
+        thresholdInfo->thresholdType = THRESHOLD_INVALID;
+    }
+    else
+    {
+        thresholdInfo->thresholdType = THRESHOLD_SET;
+        // if we get the valid threshold value, then evalute the Fail status
+        if (thresholdValue >= nominal)
+        {
+            thresholdInfo->isFailStatusValid = true;
+            if (isWarrantied)
+            {
+                thresholdInfo->failStatus = ATTRIBUTE_FAILING_NOW;
+                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                            "Attribute is currently failing.");
+            }
+            else
+            {
+                thresholdInfo->failStatus = ATTRIBUTE_WARNING_NOW;
+                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                            "Attribute is currently issuing warning.");
+            }
+        }
+        else if (thresholdValue >= worst)
+        {
+            thresholdInfo->isFailStatusValid = true;
+            if (isWarrantied)
+            {
+                thresholdInfo->failStatus = ATTRIBUTE_FAILED_IN_PAST;
+                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                            "Attribute has previously failed.");
+            }
+            else
+            {
+                thresholdInfo->failStatus = ATTRIBUTE_WARNED_IN_PAST;
+                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                            "Attribute has previously warned about it's condition.");
+            }
+        }
+    }
+}
+
+static void get_Int64_From_Raw_7_Byte(const uint8_t* rawData, eRawFieldStartEndBit startEndBitType, int64_t* value)
+{
+    switch (startEndBitType)
+    {
+    case START_1_END_1:
+        *value = C_CAST(int64_t, rawData[1]);
+        break;
+    case START_2_END_2:
+        *value = C_CAST(int64_t, rawData[2]);
+        break;
+    case START_3_END_3:
+        *value = C_CAST(int64_t, rawData[3]);
+        break;
+    case START_0_END_1:
+        *value = C_CAST(int64_t, M_BytesTo2ByteValue(rawData[1], rawData[0]));
+        break;
+    case START_2_END_3:
+        *value = C_CAST(int64_t, M_BytesTo2ByteValue(rawData[3], rawData[2]));
+        break;
+    case START_4_END_5:
+        *value = C_CAST(int64_t, M_BytesTo2ByteValue(rawData[5], rawData[4]));
+        break;
+    case START_0_END_2:
+        *value = C_CAST(int64_t, M_BytesTo4ByteValue(0, rawData[2], rawData[1], rawData[0]));
+        break;
+    case START_0_END_3:
+        *value = C_CAST(int64_t, M_BytesTo4ByteValue(rawData[3], rawData[2], rawData[1], rawData[0]));
+        break;
+    case START_3_END_6:
+        *value = C_CAST(int64_t, M_BytesTo4ByteValue(rawData[6], rawData[5], rawData[4], rawData[3]));
+        break;
+    case START_4_END_6:
+        *value = C_CAST(int64_t, M_BytesTo4ByteValue(0, rawData[6], rawData[5], rawData[4]));
+        break;
+    case START_0_END_4:
+        *value =
+            C_CAST(int64_t, M_BytesTo8ByteValue(0, 0, 0, rawData[4], rawData[3], rawData[2], rawData[1], rawData[0]));
+        break;
+    case START_0_END_6:
+        *value = C_CAST(int64_t, M_BytesTo8ByteValue(0, rawData[6], rawData[5], rawData[4], rawData[3], rawData[2],
+                                                     rawData[1], rawData[0]));
+        break;
+    default:
+        break;
+    }
+}
+
+static void get_Raw_Field_From_RawData(const uint8_t*                rawData,
+                                       ataAttributeRawData*          analyzedRawData,
+                                       uint8_t                       maxField,
+                                       uint8_t                       fieldToCopyInHybridRawString,
+                                       const char*                   field1Name,
+                                       eRawFieldStartEndBit          field1Type,
+                                       eATAAttributeRawFieldUnitType field1Unit,
+                                       const char*                   field2Name,
+                                       eRawFieldStartEndBit          field2Type,
+                                       eATAAttributeRawFieldUnitType field2Unit,
+                                       const char*                   field3Name,
+                                       eRawFieldStartEndBit          field3Type,
+                                       eATAAttributeRawFieldUnitType field3Unit,
+                                       const char*                   field4Name,
+                                       eRawFieldStartEndBit          field4Type,
+                                       eATAAttributeRawFieldUnitType field4Unit)
+{
+    analyzedRawData->userFieldCount = maxField;
+    if (field1Name != M_NULLPTR && safe_strlen(field1Name) > 0)
+    {
+        safe_strcpy(analyzedRawData->rawField[0].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field1Name);
+        get_Int64_From_Raw_7_Byte(rawData, field1Type, &analyzedRawData->rawField[0].fieldValue);
+        analyzedRawData->rawField[0].fieldUnit = field1Unit;
+    }
+
+    if (field2Name != M_NULLPTR && safe_strlen(field2Name) > 0)
+    {
+        safe_strcpy(analyzedRawData->rawField[1].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field2Name);
+        get_Int64_From_Raw_7_Byte(rawData, field2Type, &analyzedRawData->rawField[1].fieldValue);
+        analyzedRawData->rawField[1].fieldUnit = field2Unit;
+    }
+
+    if (field3Name != M_NULLPTR && safe_strlen(field3Name) > 0)
+    {
+        safe_strcpy(analyzedRawData->rawField[2].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field3Name);
+        get_Int64_From_Raw_7_Byte(rawData, field3Type, &analyzedRawData->rawField[2].fieldValue);
+        analyzedRawData->rawField[2].fieldUnit = field3Unit;
+    }
+
+    if (field4Name != M_NULLPTR && safe_strlen(field4Name) > 0)
+    {
+        safe_strcpy(analyzedRawData->rawField[3].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field4Name);
+        get_Int64_From_Raw_7_Byte(rawData, field4Type, &analyzedRawData->rawField[3].fieldValue);
+        analyzedRawData->rawField[3].fieldUnit = field4Unit;
+    }
+
+    if (fieldToCopyInHybridRawString != MAX_RAW_FEILD_COUNT && fieldToCopyInHybridRawString < maxField &&
+        safe_strlen(analyzedRawData->rawField[fieldToCopyInHybridRawString].fieldName) > 0)
+    {
+        // copy this into hybrid raw string
+        snprintf_err_handle(analyzedRawData->rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64,
+                            C_CAST(uint64_t, analyzedRawData->rawField[fieldToCopyInHybridRawString].fieldValue));
+    }
+}
+
+// TODO - see if we can avoid this, or find a better approch
+static bool get_See_Analyzed_Flag(tDevice* device, uint8_t attributeID)
+{
+    bool seeAnalyzedFlag = false;
+    switch (is_Seagate_Family(device))
+    {
+    case SEAGATE:
+        switch (attributeID)
+        {
+        case 1:
+        case 7:
+        case 190:
+        case 194:
+        case 195:
+            seeAnalyzedFlag = true;
+            break;
+        default:
+            seeAnalyzedFlag = false;
+            break;
+        }
+        break;
+    case SEAGATE_VENDOR_G:
+        switch (attributeID)
+        {
+        case 183:
+        case 177:
+        case 195:
+        case 231:
+            seeAnalyzedFlag = true;
+            break;
+        default:
+            seeAnalyzedFlag = false;
+            break;
+        }
+        break;
+    case MAXTOR:
+    case SEAGATE_VENDOR_K:
+    case SEAGATE_VENDOR_D:
+    case SEAGATE_VENDOR_E:
+    default:
+        seeAnalyzedFlag = false;
+        break;
+    }
+
+    return seeAnalyzedFlag;
+}
+
+static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*              device,
+                                                                     const smartLogData*   smartData,
+                                                                     ataSMARTAnalyzedData* smartAnylyzedData,
+                                                                     bool*                 dataFormatVerified)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
+        char*          attributeName  = M_REINTERPRET_CAST(char*, safe_calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
+        if (attributeName == M_NULLPTR)
+            return MEMORY_FAILURE;
+
+        for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
+        {
+            if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
+            {
+                smartAnylyzedData->attributes[iter].attributeNumber = iter;
+                smartAnylyzedData->attributes[iter].isValid         = true;
+
+                get_Attribute_Name(device, iter, &attributeName);
+                safe_strcpy(smartAnylyzedData->attributes[iter].attributeName, MAX_ATTRIBUTE_NAME_LENGTH,
+                            attributeName);
+                get_ata_AttributeType_From_Status_Bit(smartData->attributes.ataSMARTAttr.attributes[iter].data.status,
+                                                      &smartAnylyzedData->attributes[iter].attributeType);
+                smartAnylyzedData->attributes[iter].isWarrantied =
+                    smartData->attributes.ataSMARTAttr.attributes[iter].isWarrantied;
+                smartAnylyzedData->attributes[iter].nominal =
+                    smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal;
+                smartAnylyzedData->attributes[iter].worstEver =
+                    smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver;
+                smartAnylyzedData->attributes[iter].status =
+                    smartData->attributes.ataSMARTAttr.attributes[iter].data.status;
+                if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdDataValid)
+                {
+                    get_ata_Attribute_Threshold_From_Threshold_Data(
+                        smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue,
+                        smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal,
+                        smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver,
+                        smartData->attributes.ataSMARTAttr.attributes[iter].isWarrantied,
+                        &smartAnylyzedData->attributes[iter].thresholdInfo);
+                }
+                safe_memcpy(smartAnylyzedData->attributes[iter].rawData.rawData,
+                            uint8_to_sizet(SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT * UINT8_C(1)),
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            uint8_to_sizet(SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT));
+                // Note : this flag is being used when we try to print Hybrid data
+                // If this flag is set, then '?' will be added for attribute in console output
+                smartAnylyzedData->attributes[iter].seeAnalyzedFlag = get_See_Analyzed_Flag(device, iter);
+                switch (isSeagateDrive)
+                {
+                case SEAGATE:
+                    *dataFormatVerified = true;
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 1: // read error rate
+                        smartAnylyzedData->attributes[iter].seeAnalyzedFlag = true;
+                        if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
+                        {
+                            get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                       &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                       "Number Of Read Errors", START_0_END_2, RAW_FIELD_UNIT_NONE,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        }
+                        else
+                        {
+                            get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                       &smartAnylyzedData->attributes[iter].rawData, 2, 1,
+                                                       "Number Of Sector Reads", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                       "Number Of Read Errors", START_4_END_6, RAW_FIELD_UNIT_NONE,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        }
+                        break;
+                    case 4: // start stop count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Spin Up Count",
+                                                   START_0_END_1, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 5: // retired sectors count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Current Retired Sector Count", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 7: // seek error rate
+                        if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
+                        {
+                            get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                       &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                       "Number Of Seek Errors", START_0_END_1, RAW_FIELD_UNIT_NONE,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        }
+                        else
+                        {
+                            get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                       &smartAnylyzedData->attributes[iter].rawData, 2, 1,
+                                                       "Number Of Seeks", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                       "Number Of Seek Errors", START_4_END_5, RAW_FIELD_UNIT_NONE,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        }
+                        break;
+                    case 9: // power on hours
+                    {
+                        uint32_t millisecondsSinceIncrement =
+                            M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]);
+                        uint64_t powerOnMinutes =
+                            C_CAST(uint64_t, M_BytesTo4ByteValue(
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])) *
+                            UINT64_C(60);
+                        powerOnMinutes += (millisecondsSinceIncrement / UINT32_C(60000));
+
+                        smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValueValid = true;
+                        smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValue =
+                            C_CAST(double, powerOnMinutes) / 60.0;
+                        smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValueUnit =
+                            RAW_FIELD_UNIT_TIME_IN_HOURS;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleAnalysedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Power On Hours");
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRIu64,
+                            C_CAST(uint64_t, M_BytesTo4ByteValue(
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])));
+                    }
+                    break;
+                    case 12: // Drive Power Cycle Count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Power Cycle Count", START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 18: // Head health self-assessment
+                    {
+                        uint32_t headBitmap =
+                            M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                        if (headBitmap != 0)
+                        {
+                            uint8_t badHeadCounter = UINT16_C(0);
+                            DECLARE_ZERO_INIT_ARRAY(char, failedHeadString, MAX_RAW_ANALYZED_STRING_LENGTH);
+                            // starting at raw 0, bit 0, 0 = passing head, 1 = failing head
+                            for (uint8_t bitIter = UINT8_C(0); bitIter < 32; ++bitIter)
+                            {
+                                if (headBitmap & M_BitN(bitIter))
+                                {
+                                    ++badHeadCounter;
+                                    char head[3];
+                                    snprintf_err_handle(head, 3, "%" PRIu8 "", bitIter);
+                                    if (safe_strlen(failedHeadString) > 0)
+                                    {
+                                        safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_LENGTH, ", ");
+                                    }
+                                    safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_LENGTH, head);
+                                }
+                            }
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                                MAX_RAW_ANALYZED_STRING_LENGTH, "Failed Heads: %s", failedHeadString);
+                        }
+                        else
+                        {
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Failed Heads: No Failed Heads");
+                        }
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                    }
+                    break;
+                    case 174: // Unexpected power loss
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Unexpected Power Loss Count", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                        if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4])
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Standby received before power off");
+                        else
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Standby not received before power off");
+                        break;
+                    case 183: // Reported Phy Event Counter
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Phy Event Count", START_0_END_1, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 184: // IOEDC Count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Lifetime IOEDC Count", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 187: // Reported Un-correctable
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                            "Reported Uncorrectable Errors To The Host", START_0_END_1, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                            START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
+                        {
+                            smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
+                        }
+                        break;
+                    case 188: // Command Timeout
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 3, 0, "Command Timeout Count", START_0_END_1,
+                            RAW_FIELD_UNIT_NONE, "Command Timeout Count > 5 second completion", START_2_END_3,
+                            RAW_FIELD_UNIT_NONE, "Command Timeout Count > 7.5 second completion", START_4_END_5,
+                            RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
+                        {
+                            smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
+                        }
+                        break;
+                    case 189: // High Fly Writes
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "High Fly Writes Detected", START_0_END_1, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
+                        {
+                            smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
+                        }
+                        break;
+                    case 190: // Airflow Temperature
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 4, MAX_RAW_FEILD_COUNT, "Current Temperature",
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS,
+                            "Lowest Temperature during this power cycle", START_2_END_2,
+                            RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Highest Temperature during this power cycle",
+                            START_3_END_3, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS,
+                            "Number of times attribute below threshold", START_4_END_5, RAW_FIELD_UNIT_NONE);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                        break;
+                    case 191: // Shock Sensor Counter
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Number Of Shock Events", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 192: // Emergency Retract Count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Emergency Retract Count", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 193: // Load-Unload Count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Load Count",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 194: // Temperature
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 2, MAX_RAW_FEILD_COUNT, "Current Temperature",
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Worst Lowest Temperature",
+                            START_4_END_5, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        smartAnylyzedData->attributes[iter].rawData.int64AnalyzedValueValid = true;
+                        smartAnylyzedData->attributes[iter].rawData.int64AnalyzedValue =
+                            C_CAST(int64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
+                        smartAnylyzedData->attributes[iter].rawData.int64AnalyzedValueUnit =
+                            RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.int64AnalysedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Worst Highest Temperature");
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.int64AnalyzedValue));
+                        break;
+                    case 195: // ECC On the Fly Count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 2, 1,
+                                                   "Number Of Sector Reads", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   "Number Of ECC OTF Errors", START_4_END_6, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 197: // Pending-Sparing Count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Current Pending Spare Count", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 198: // offlince uncorrectable sectors
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Current Uncorrectable Sector Count",
+                            START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 199: // Ultra DMA CRC Error
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Current CRC/R_Errs Error Count", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 231: // SSD Life Left
+                        smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue =
+                            C_CAST(int64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal);
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldName,
+                                    MAX_RAW_FIELD_NAME_LENGTH, "SSD Life Left");
+                        smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldUnit = RAW_FIELD_UNIT_NONE;
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRIu64,
+                            C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        break;
+                    case 240: // Head flight Hours
+                    {
+                        uint32_t millisecondsSinceIncrement =
+                            M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]);
+                        uint64_t powerOnMinutes =
+                            C_CAST(uint64_t, M_BytesTo4ByteValue(
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])) *
+                            UINT64_C(60);
+                        powerOnMinutes += (millisecondsSinceIncrement / UINT32_C(60000));
+
+                        smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValueValid = true;
+                        smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValue =
+                            C_CAST(double, powerOnMinutes) / 60.0;
+                        smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValueUnit =
+                            RAW_FIELD_UNIT_TIME_IN_HOURS;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleAnalysedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Head Flight Hours");
+
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRIu64,
+                            C_CAST(uint64_t, M_BytesTo4ByteValue(
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])));
+                    }
+                    break;
+                    case 241: // Lifetime Writes from Host
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Lifetime LBAs Written", START_0_END_6, RAW_FIELD_UNIT_LBA,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 242: // Lifetime Reads from Host
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Lifetime LBAs Read", START_0_END_6, RAW_FIELD_UNIT_LBA, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 254: // Free Fall Event
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Current Free Fall Event Counter",
+                            START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 3:   // spin up time
+                    case 10:  // spin retry count
+                    case 200: // Pressure Measurement Limit
+                    case 230: // Life Curve Status
+                    case 235: // SSD Power Loss Mgmt Life Left
+                    default:
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        break;
+                    }
+                    break;
+                case SEAGATE_VENDOR_G:
+                    *dataFormatVerified = true;
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 1:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Correctable, Soft LDPC correctable errors since last power cycle",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 9:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Power On Hours",
+                                                   START_0_END_3, RAW_FIELD_UNIT_TIME_IN_HOURS, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 11:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 2, 0, "Successful Power Fail Backup Events",
+                            START_0_END_3, RAW_FIELD_UNIT_NONE, "Unsuccessful Power Fail Backup Events", START_4_END_5,
+                            RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 12:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Power Cycles",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 100:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Erases of Flash", START_0_END_3, RAW_FIELD_UNIT_GB, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 101:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Dev Sleep Exits", START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 102:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "PS4 Entries",
+                                                   START_0_END_4, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 103:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "PS3 Entries",
+                                                   START_0_END_4, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 171:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Program Fail Count", START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 172:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Erase Failure Events", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 173:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                            "Program/Erase Cycles on All Good Blocks", START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                            START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 174:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Unexpected Power Loss Power Cycles",
+                            START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 177:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Wear Range delta calculated as 100 * [(MW - LW)/MRW]",
+                                                   START_0_END_1, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 183:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 2, 0,
+                                                   "Interface Downshift Events this Power Cycle", START_0_END_2,
+                                                   RAW_FIELD_UNIT_NONE, "Interface Downshift Events Lifetime",
+                                                   START_3_END_6, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 184:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Detected End-To-End CRC Errors", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 187:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Uncorrectable Codewords", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 194:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 3, MAX_RAW_FEILD_COUNT, "Current Temperature",
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Lifetime Maximum Temperature",
+                            START_2_END_3, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Lifetime Minimum Temperature",
+                            START_4_END_5, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                        break;
+                    case 195:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 3, 0, "RAISE-1 Recoveries", START_0_END_1,
+                            RAW_FIELD_UNIT_NONE, "RAISE-2 Recoveries", START_2_END_3, RAW_FIELD_UNIT_NONE,
+                            "Number of Times RAISE is Used to Restore Date Being Programmed After a Program Failure",
+                            START_4_END_5, RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 198:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Uncorrectable Read Errors", START_0_END_3, RAW_FIELD_UNIT_NONE,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 199:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, 0, "SATA Interface CRC Errors Count",
+                            START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 231:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 2, MAX_RAW_FEILD_COUNT,
+                                                   "Term A value", START_1_END_1, RAW_FIELD_UNIT_NONE, "Term B value",
+                                                   START_2_END_2, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                        if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Life driven by Free Space (Term B dominated)");
+                        else
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                                        MAX_RAW_ANALYZED_STRING_LENGTH,
+                                        "Life driven by Program-Erase Cycles (Term A dominated)");
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRIu64,
+                            C_CAST(uint64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        break;
+                    case 233:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Written of Flash", START_0_END_3, RAW_FIELD_UNIT_GB, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 241:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Written to Drive by Host", START_0_END_3, RAW_FIELD_UNIT_GB,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 242:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                   "Read from Drive by Host", START_0_END_3, RAW_FIELD_UNIT_GB,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 243:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 2, 0, "Free Space", START_0_END_3,
+                            RAW_FIELD_UNIT_NONE, "Free Space Percentage in Hundreths of a Percent", START_4_END_5,
+                            RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    default:
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        break;
+                    }
+                    break;
+                case MAXTOR:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT, "Current Temperature",
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRId16,
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        break;
+                    default:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Count",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    }
+                    break;
+                case SEAGATE_VENDOR_K:
+                    *dataFormatVerified = true;
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 2, MAX_RAW_FEILD_COUNT, "Current Temperature",
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Maximum Temperature", START_4_END_5,
+                            RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRId16 " (M %" PRId16 ")",
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                        // Note : this can be read from nominal/worst or raw 1:0 and raw 5:4
+                        break;
+                    case 169:
+                    case 231:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "Percent", START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRIu64 "%%",
+                            C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        break;
+                    case 233:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "NAND Written", START_0_END_6, RAW_FIELD_UNIT_MB, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        {
+                            // get the correct metric unit
+                            DECLARE_ZERO_INIT_ARRAY(char, dataUnitBuffer, UNIT_STRING_LENGTH);
+                            char*  dataUnits = &dataUnitBuffer[0];
+                            double dataConversion =
+                                C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
+                                1000.0 * 1000.0 * 32.0;
+                            metric_Unit_Convert(&dataConversion, &dataUnits);
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                        }
+                        smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue *= INT64_C(32);
+                        // Note : why multiplication with 32?
+                        break;
+                    case 241:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "Total LBAs Written", START_0_END_6, RAW_FIELD_UNIT_MB, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        {
+                            // get the correct metric unit
+                            DECLARE_ZERO_INIT_ARRAY(char, dataUnitBuffer, UNIT_STRING_LENGTH);
+                            char*  dataUnits = &dataUnitBuffer[0];
+                            double dataConversion =
+                                C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
+                                1000.0 * 1000.0 * 32.0;
+                            metric_Unit_Convert(&dataConversion, &dataUnits);
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                        }
+                        smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue *= INT64_C(32);
+                        // Note : why multiplication with 32?
+                        break;
+                    case 242:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "Total LBAs Read", START_0_END_6, RAW_FIELD_UNIT_MB, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        {
+                            // get the correct metric unit
+                            DECLARE_ZERO_INIT_ARRAY(char, dataUnitBuffer, UNIT_STRING_LENGTH);
+                            char*  dataUnits = &dataUnitBuffer[0];
+                            double dataConversion =
+                                C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
+                                1000.0 * 1000.0 * 32.0;
+                            metric_Unit_Convert(&dataConversion, &dataUnits);
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                        }
+                        smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue *= INT64_C(32);
+                        // Note : why multiplication with 32?
+                        break;
+                    default:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Count",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    }
+                    break;
+                case SEAGATE_VENDOR_D:
+                case SEAGATE_VENDOR_E:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 194:
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 2, MAX_RAW_FEILD_COUNT, "Current Temperature",
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Maximum Temperature", START_2_END_3,
+                            RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRId16 " (M %" PRId16 ")",
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                        // Note : this can be read from nominal/worst or raw 1:0 and raw 2:3
+                        break;
+                    case 231:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "Percent", START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRIu64 "%%",
+                            C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        break;
+                    case 234:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "Lifetime Writes To Flash", START_0_END_6, RAW_FIELD_UNIT_GiB,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        {
+                            // get the correct metric unit
+                            DECLARE_ZERO_INIT_ARRAY(char, dataUnitBuffer, UNIT_STRING_LENGTH);
+                            char*  dataUnits = &dataUnitBuffer[0];
+                            double dataConversion =
+                                C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
+                                1024.0 * 1024.0 * 1024.0;
+                            metric_Unit_Convert(&dataConversion, &dataUnits);
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                        }
+                        break;
+                    case 241:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "Lifetime Writes From Host", START_0_END_6, RAW_FIELD_UNIT_GiB,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        {
+                            // get the correct metric unit
+                            DECLARE_ZERO_INIT_ARRAY(char, dataUnitBuffer, UNIT_STRING_LENGTH);
+                            char*  dataUnits = &dataUnitBuffer[0];
+                            double dataConversion =
+                                C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
+                                1024.0 * 1024.0 * 1024.0;
+                            metric_Unit_Convert(&dataConversion, &dataUnits);
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                        }
+                        break;
+                    case 242:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT,
+                                                   "Lifetime Reads From Host", START_0_END_6, RAW_FIELD_UNIT_GiB,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        {
+                            // get the correct metric unit
+                            DECLARE_ZERO_INIT_ARRAY(char, dataUnitBuffer, UNIT_STRING_LENGTH);
+                            char*  dataUnits = &dataUnitBuffer[0];
+                            double dataConversion =
+                                C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
+                                1024.0 * 1024.0 * 1024.0;
+                            metric_Unit_Convert(&dataConversion, &dataUnits);
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                        }
+                        break;
+                    default:
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Count",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    }
+                    break;
+                default:
+                    switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
+                    {
+                    case 1:   // Read Error Rate
+                    case 4:   // Start/Stop Count
+                    case 5:   // Retired Sectors Count
+                    case 7:   // Seek Error Rate
+                    case 10:  // Spin Retry Count
+                    case 12:  // Drive Power Cycle Count
+                    case 187: // Reported Un-correctable
+                    case 197: // Pending-Sparing Count
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Count",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        break;
+                    case 3: // Spin Up Time
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Time",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        // TODO - check if unit will be hours/minutes/seconds/milliseconds or none
+                        break;
+                    case 9: // Power On Hours
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Hours",
+                                                   START_0_END_3, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        // TODO - check if unit will be hours or none
+                        break;
+                    case 194: // Temperature
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, MAX_RAW_FEILD_COUNT, "Current Temperature",
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                            RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                            M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%" PRId16,
+                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        // current temp is most commonly supported.
+                        // min/max varies by vendor so it is ommitted in this case
+                        break;
+                    default:
+                        snprintf_err_handle(
+                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
+                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        break;
+                    }
+                    break;
+                }
+
+                safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH);
+            }
+        }
+
+        safe_free(&attributeName);
+        return SUCCESS;
+    }
+    else
+    {
+        return NOT_SUPPORTED;
+    }
+}
+
+#if defined(OLD_ATA_SMART_ATTRIBUTE_API)
 static void print_ATA_SMART_Attribute_Raw(ataSMARTValue* currentAttribute, char* attributeName)
 {
     uint8_t rawIter = UINT8_C(0);
     if (currentAttribute->data.attributeNumber != 0)
     {
-#define ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN (5)
+#    define ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN (5)
         DECLARE_ZERO_INIT_ARRAY(char, flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN);
         if (currentAttribute->isWarrantied)
         {
@@ -1152,6 +2452,7 @@ static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
         perror("Calloc Failure!\n");
         return;
     }
+    printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
     printf("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
     for (uint8_t iter = UINT8_C(0); iter < 255; ++iter)
     {
@@ -1202,6 +2503,7 @@ typedef enum eATASMARTAttributeRawInterpretationEnum
     ATA_SMART_ATTRIBUTE_PERCENTAGE,               // attribute reports a percentage value
     ATA_SMART_ATTRIBUTE_TEMPERATURE_RAW_HIGH_CUR, // reports current in raw 1:0 and highest in 3:2. No lowest
     ATA_SMART_ATTRIBUTE_DECIMAL_UNIT_GIB,         // Reports a decimal counter using the units GiB NOT GB
+    ATA_SMART_ATTRIBUTE_NOMINAL,                  // Reports nominal value
     // Reserved? To show when a field is unused???
 } eATASMARTAttributeRawInterpretation;
 //
@@ -1214,13 +2516,13 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue*                     
 {
     if (currentAttribute->data.attributeNumber != 0)
     {
-#define ATTR_HYBRID_RAW_STRING_LENGTH                                                                                  \
-    24 // Setting 24 to prevent truncation warnings from the temperature setup, but real max is 16
-#define ATTR_HYBRID_ATTR_FLAG_LENGTH       8
-#define ATTR_HYBRID_THRESHOLD_VALUE_LENGTH 4
-#define ATTR_HYBRID_NOMINAL_VALUE_LENGTH   4
-#define ATTR_HYBRID_WORST_VALUE_LENGTH     4
-#define ATTR_HYBRID_OTHER_FLAGS_LENGTH     4
+#    define ATTR_HYBRID_RAW_STRING_LENGTH                                                                              \
+        24 // Setting 24 to prevent truncation warnings from the temperature setup, but real max is 16
+#    define ATTR_HYBRID_ATTR_FLAG_LENGTH       8
+#    define ATTR_HYBRID_THRESHOLD_VALUE_LENGTH 4
+#    define ATTR_HYBRID_NOMINAL_VALUE_LENGTH   4
+#    define ATTR_HYBRID_WORST_VALUE_LENGTH     4
+#    define ATTR_HYBRID_OTHER_FLAGS_LENGTH     4
         DECLARE_ZERO_INIT_ARRAY(char, rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH);
         DECLARE_ZERO_INIT_ARRAY(char, attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH);
         DECLARE_ZERO_INIT_ARRAY(char, thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH);
@@ -1450,6 +2752,10 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue*                     
             snprintf_err_handle(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")",
                                 currentTemp, highestTemp);
             break;
+        case ATA_SMART_ATTRIBUTE_NOMINAL:
+            snprintf_err_handle(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH, "%" PRIu8,
+                                currentAttribute->data.nominal);
+            break;
         case ATA_SMART_ATTRIBUTE_RAW_HEX:
         default: // if not known, use hex
             snprintf_err_handle(rawDataString, ATTR_HYBRID_RAW_STRING_LENGTH,
@@ -1504,8 +2810,8 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     printf("\t  WV - worst ever value\n");
     printf("\t  TV - threshold value (requires support of thresholds data)\n");
     printf("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
-
-    printf("SMART Version: %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
+    printf("--------------------------------------------------------------------------------\n");
+    printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
     printf("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
     printf("--------------------------------------------------------------------------------\n");
     for (uint8_t iter = UINT8_C(0); iter < 255; ++iter)
@@ -1521,17 +2827,28 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 dataFormatVerified = true;
                 switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                 {
-                case 1:   // read error rate
-                case 7:   // seek error rate
+                case 1: // read error rate
                     if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
                     {
                         print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
-                                                        attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 2, 0, true);
+                                                         attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 2, 0, true);
                     }
                     else
                     {
                         print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
-                                                        attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
+                                                         attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
+                    }
+                    break;
+                case 7: // seek error rate
+                    if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
+                    {
+                        print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
+                                                         attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 1, 0, true);
+                    }
+                    else
+                    {
+                        print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
+                                                         attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 5, 4, true);
                     }
                     break;
                 case 195: // ECC On the Fly Count
@@ -1576,12 +2893,15 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
                                                      attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 0, false);
                     break;
+                case 231: // SSD Life Left
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
+                                                     attributeName, ATA_SMART_ATTRIBUTE_NOMINAL, 6, 0, false);
+                    break;
                 case 3:   // spin up time
                 case 10:  // spin retry count
                 case 18:  // Head health self-assessment
                 case 200: // Pressure Measurement Limit
                 case 230: // Life Curve Status
-                case 231: // SSD Life Left
                 case 235: // SSD Power Loss Mgmt Life Left
                 default:
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
@@ -1602,8 +2922,8 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
                                                      attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 2, 0, true);
                     break;
-
                 case 194:
+                    // worst and 2:3 both represents Max temp
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
                                                      attributeName, ATA_SMART_ATTRIBUTE_TEMPERATURE_WST_LOW, 3, 0,
                                                      false);
@@ -1669,9 +2989,12 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                                                      false);
                     break;
                 case 169:
-                case 231:
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
                                                      attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 6, 0, false);
+                    break;
+                case 231:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
+                                                     attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 3, 0, false);
                     break;
                 case 241:
                 case 242:
@@ -1710,7 +3033,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     break;
                 case 231: // SSD Life Left
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
-                                                     attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 6, 0, false);
+                                                     attributeName, ATA_SMART_ATTRIBUTE_PERCENTAGE, 3, 0, false);
                     break;
                 case 234: // Lifetime Write to Flash
                 case 241: // Lifetime Writes from Host
@@ -1720,6 +3043,8 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                     break;
                     break;
                 default:
+                    print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
+                                                     attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
                 }
                 break;
@@ -1728,11 +3053,12 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 switch (iter)
                 {
                 case 1:
+                case 3:
                 case 4:
                 case 7:
                 case 187:
                     print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
-                                                     attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 1, 0, false);
+                                                     attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 3, 0, false);
                     break;
                 case 5:
                 case 9:
@@ -1781,7 +3107,7 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
 
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
 
-    printf("SMART Version: %" PRIu16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
+    printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
     for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
     {
         if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -1861,25 +3187,25 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                     case 1: // read error rate
                         if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
                         {
-                            printf(
-                                "\tNumber Of Read Errors: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Read Errors: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         }
                         else
                         {
-                            printf(
-                                "\tNumber Of Sector Reads: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
-                            printf(
-                                "\tNumber Of Read Errors: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                            printf("\tNumber Of Sector Reads: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Read Errors: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         }
                         break;
                     case 4: // start stop count
@@ -1899,23 +3225,23 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                     case 7: // seek error rate
                         if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
                         {
-                            printf(
-                                "\tNumber Of Seek Errors: %" PRIu16 "\n",
-                                M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Seek Errors: %" PRIu16 "\n",
+                                   M_BytesTo2ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         }
                         else
                         {
-                            printf(
-                                "\tNumber Of Seeks: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
-                            printf(
-                                "\tNumber Of Seek Errors: %" PRIu16 "\n",
-                                M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                            printf("\tNumber Of Seeks: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Seek Errors: %" PRIu16 "\n",
+                                   M_BytesTo2ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         }
                         break;
                     case 9: // power on hours
@@ -2346,6 +3672,7 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 194:
+                        // worst and 2:3 both represents Max temp
                         printf(
                             "\tCurrent Temperature (C): %" PRIu16 "\n",
                             M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
@@ -2623,6 +3950,467 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
     }
     safe_free(&attributeName);
 }
+#else
+static void print_ATA_SMART_Attribute_Raw(ataSMARTAnalyzedAttribute smartAnalyzedAttribute)
+{
+#    define ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN (5)
+    DECLARE_ZERO_INIT_ARRAY(char, flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN);
+    if (smartAnalyzedAttribute.isWarrantied)
+    {
+        safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*");
+    }
+
+    if (smartAnalyzedAttribute.thresholdInfo.thresholdType != THRESHOLD_UNKNOWN)
+    {
+        if (smartAnalyzedAttribute.nominal <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
+        {
+            if (smartAnalyzedAttribute.isWarrantied)
+            {
+                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
+            }
+            else
+            {
+                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
+            }
+        }
+        if (smartAnalyzedAttribute.worstEver <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
+        {
+            if (smartAnalyzedAttribute.isWarrantied)
+            {
+                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
+            }
+            else
+            {
+                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
+            }
+        }
+        printf("%-5s%3" PRIu8 " %-35s  %04" PRIX16 "h    %02" PRIX8 "h     %02" PRIX8 "h     %02" PRIX8 "h   ", flags,
+               smartAnalyzedAttribute.attributeNumber, smartAnalyzedAttribute.attributeName,
+               smartAnalyzedAttribute.status, smartAnalyzedAttribute.nominal, smartAnalyzedAttribute.worstEver,
+               smartAnalyzedAttribute.thresholdInfo.thresholdValue);
+    }
+    else
+    {
+        printf("%-5s%3" PRIu8 " %-35s  %04" PRIX16 "h    %02" PRIX8 "h     %02" PRIX8 "h     N/A   ", flags,
+               smartAnalyzedAttribute.attributeNumber, smartAnalyzedAttribute.attributeName,
+               smartAnalyzedAttribute.status, smartAnalyzedAttribute.nominal, smartAnalyzedAttribute.worstEver);
+    }
+
+    for (uint8_t rawIter = 0; rawIter < 7; rawIter++)
+    {
+        printf("%02" PRIX8 "", smartAnalyzedAttribute.rawData.rawData[6 - rawIter]);
+    }
+    printf("h\n");
+}
+
+static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        bool                  dataFormatVerified = false;
+        ataSMARTAnalyzedData* smartAnalyzedData =
+            M_REINTERPRET_CAST(ataSMARTAnalyzedData*, safe_calloc(1, sizeof(ataSMARTAnalyzedData)));
+
+        if (smartAnalyzedData == M_NULLPTR)
+        {
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                printf("Memory Failure");
+            }
+
+            return;
+        }
+
+        if (SUCCESS ==
+            get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(device, smartData, smartAnalyzedData, &dataFormatVerified))
+        {
+            printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
+            printf("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
+
+            // Now print this on console
+            for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
+            {
+                if (smartAnalyzedData->attributes[iter].isValid)
+                {
+                    print_ATA_SMART_Attribute_Raw(smartAnalyzedData->attributes[iter]);
+                }
+            }
+
+            printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
+            printf("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
+            printf("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
+            printf("%% - attribute is currently issuing a warning (thresholds required)\n");
+            printf("~ - attribute has previously warned about its condition (thresholds required)\n");
+            printf("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
+        }
+
+        safe_free(&smartAnalyzedData);
+    }
+}
+
+static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedAttribute smartAnalyzedAttribute)
+{
+    if (safe_strlen(smartAnalyzedAttribute.attributeName))
+    {
+        printf("%u - %s\n", number, smartAnalyzedAttribute.attributeName);
+    }
+    else
+    {
+        printf("%u - Unknown Attribute\n", number);
+    }
+
+    printf("\tAttribute Type(s):\n");
+    if (smartAnalyzedAttribute.attributeType.preFailAttribute)
+    {
+        printf("\t\tPre-fail/warranty. Indicates a cause of known impending failure.\n");
+    }
+    if (smartAnalyzedAttribute.attributeType.onlineDataCollection)
+    {
+        printf("\t\tOnline Data Collection. Updates as the drive runs.\n");
+    }
+    if (smartAnalyzedAttribute.attributeType.performanceIndicator)
+    {
+        printf("\t\tPerformance. Degredation of this attribute will affect performance.\n");
+    }
+    if (smartAnalyzedAttribute.attributeType.errorRateIndicator)
+    {
+        printf("\t\tError Rate. Attribute tracks and error rate.\n");
+    }
+    if (smartAnalyzedAttribute.attributeType.eventCounter)
+    {
+        printf("\t\tEvent Count. Attribute is a counter.\n");
+    }
+    if (smartAnalyzedAttribute.attributeType.selfPreserving)
+    {
+        printf("\t\tSelf-Preserving. Saves between power cycles.\n");
+    }
+
+    printf("\tCurrent (Nominal) Value: %" PRIu8 "\n", smartAnalyzedAttribute.nominal);
+    printf("\tWorst Ever Value:        %" PRIu8 "\n", smartAnalyzedAttribute.worstEver);
+
+    switch (smartAnalyzedAttribute.thresholdInfo.thresholdType)
+    {
+    case THRESHOLD_SET:
+        printf("\tThreshold:               %" PRIu8 "\n", smartAnalyzedAttribute.thresholdInfo.thresholdValue);
+        break;
+    case THRESHOLD_ALWAYS_PASSING:
+        printf("\tThreshold set to always passing\n");
+        break;
+    case THRESHOLD_ALWAYS_FAILING:
+        printf("\tThreshold set to always failing\n");
+        break;
+    case THRESHOLD_INVALID:
+        printf("\tThreshold set to invalid value\n");
+        break;
+    default:
+        break;
+    }
+
+    // print raw field data
+    for (uint8_t iter = 0; iter < smartAnalyzedAttribute.rawData.userFieldCount; iter++)
+    {
+        char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.rawField[iter].fieldUnit, &unitString);
+        printf("\t%s: %" PRId64 " %s\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName,
+               smartAnalyzedAttribute.rawData.rawField[iter].fieldValue, unitString);
+        safe_free(&unitString);
+    }
+
+    // print analyzed values if any available
+    if (smartAnalyzedAttribute.rawData.boolAnalyzedValueValid)
+    {
+        printf("\t%s \n", smartAnalyzedAttribute.rawData.boolAnalysedString);
+    }
+    if (smartAnalyzedAttribute.rawData.int64AnalyzedValueValid)
+    {
+        char* analyzedUnitString =
+            M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.int64AnalyzedValueUnit, &analyzedUnitString);
+        printf("\t%s: %" PRId64 " %s\n", smartAnalyzedAttribute.rawData.int64AnalysedString,
+               smartAnalyzedAttribute.rawData.int64AnalyzedValue, analyzedUnitString);
+        safe_free(&analyzedUnitString);
+    }
+    if (smartAnalyzedAttribute.rawData.doubleAnalyzedValueValid)
+    {
+        char* analyzedUnitString =
+            M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.doubleAnalyzedValueUnit, &analyzedUnitString);
+        printf("\t%s: %f %s\n", smartAnalyzedAttribute.rawData.doubleAnalysedString,
+               smartAnalyzedAttribute.rawData.doubleAnalyzedValue, analyzedUnitString);
+        safe_free(&analyzedUnitString);
+    }
+}
+
+static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartData)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        bool                  dataFormatVerified;
+        ataSMARTAnalyzedData* smartAnalyzedData =
+            M_REINTERPRET_CAST(ataSMARTAnalyzedData*, safe_calloc(1, sizeof(ataSMARTAnalyzedData)));
+
+        if (smartAnalyzedData == M_NULLPTR)
+        {
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                printf("Memory Failure");
+            }
+
+            return;
+        }
+
+        if (SUCCESS ==
+            get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(device, smartData, smartAnalyzedData, &dataFormatVerified))
+        {
+            printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
+            // Now print this on console
+            for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
+            {
+                if (smartAnalyzedData->attributes[iter].isValid)
+                {
+                    print_ATA_SMART_Attribute_Analyzed(iter, smartAnalyzedData->attributes[iter]);
+                }
+            }
+        }
+
+        safe_free(&smartAnalyzedData);
+    }
+}
+
+static void print_ATA_SMART_Attribute_Hybrid(ataSMARTAnalyzedAttribute smartAnalyzedAttribute)
+{
+#    define ATTR_HYBRID_ATTR_FLAG_LENGTH              8
+#    define ATTR_HYBRID_THRESHOLD_VALUE_LENGTH        4
+#    define ATTR_HYBRID_NOMINAL_VALUE_LENGTH          4
+#    define ATTR_HYBRID_WORST_VALUE_LENGTH            4
+#    define ATTR_HYBRID_OTHER_FLAGS_LENGTH            4
+    DECLARE_ZERO_INIT_ARRAY(char, attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(char, thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(char, otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(char, nominalValue, ATTR_HYBRID_NOMINAL_VALUE_LENGTH);
+    DECLARE_ZERO_INIT_ARRAY(char, worstValue, ATTR_HYBRID_WORST_VALUE_LENGTH);
+
+    if (smartAnalyzedAttribute.thresholdInfo.thresholdType != THRESHOLD_UNKNOWN)
+    {
+        // setup threshold output
+        switch (smartAnalyzedAttribute.thresholdInfo.thresholdType)
+        {
+        case THRESHOLD_SET:
+            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
+                                smartAnalyzedAttribute.thresholdInfo.thresholdValue);
+            break;
+        case THRESHOLD_ALWAYS_PASSING:
+            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
+            break;
+        case THRESHOLD_ALWAYS_FAILING:
+            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+            break;
+        case THRESHOLD_INVALID:
+            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+            break;
+        default:
+            break;
+        }
+
+        if (smartAnalyzedAttribute.thresholdInfo.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING &&
+            smartAnalyzedAttribute.nominal <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
+        {
+            if (smartAnalyzedAttribute.isWarrantied)
+            {
+                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+            }
+            else
+            {
+                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
+            }
+        }
+        if (smartAnalyzedAttribute.thresholdInfo.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING &&
+            smartAnalyzedAttribute.worstEver <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
+        {
+            if (smartAnalyzedAttribute.isWarrantied)
+            {
+                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+            }
+            else
+            {
+                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
+            }
+        }
+    }
+    else
+    {
+        snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "N/A");
+    }
+
+    // setup current value
+    if (smartAnalyzedAttribute.nominal == ATA_SMART_THRESHOLD_ALWAYS_PASSING ||
+        smartAnalyzedAttribute.nominal == ATA_SMART_THRESHOLD_INVALID)
+    {
+        // original smart specification says valid values are 1-253
+        snprintf_err_handle(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+    }
+    else if (smartAnalyzedAttribute.nominal == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+    {
+        snprintf_err_handle(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+    }
+    else
+    {
+        snprintf_err_handle(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
+                            smartAnalyzedAttribute.nominal);
+    }
+
+    // setup worst value
+    if (smartAnalyzedAttribute.worstEver == ATA_SMART_THRESHOLD_ALWAYS_PASSING ||
+        smartAnalyzedAttribute.worstEver == ATA_SMART_THRESHOLD_INVALID)
+    {
+        // original smart specification says valid values are 1-253
+        snprintf_err_handle(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+    }
+    else if (smartAnalyzedAttribute.worstEver == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
+    {
+        snprintf_err_handle(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+    }
+    else
+    {
+        snprintf_err_handle(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
+                            smartAnalyzedAttribute.worstEver);
+    }
+
+    // setup warranty and "see analyzed" flags
+    if (smartAnalyzedAttribute.seeAnalyzedFlag)
+    {
+        safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "?");
+    }
+
+    // setup status flags
+    if (smartAnalyzedAttribute.attributeType.preFailAttribute)
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "P");
+    }
+    else
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+    }
+    if (smartAnalyzedAttribute.attributeType.onlineDataCollection)
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "O");
+    }
+    else
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+    }
+    if (smartAnalyzedAttribute.attributeType.performanceIndicator)
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "S");
+    }
+    else
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+    }
+    if (smartAnalyzedAttribute.attributeType.errorRateIndicator)
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "R");
+    }
+    else
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+    }
+    if (smartAnalyzedAttribute.attributeType.eventCounter)
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "C");
+    }
+    else
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+    }
+    if (smartAnalyzedAttribute.attributeType.selfPreserving)
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "K");
+    }
+    else
+    {
+        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+    }
+
+    printf("%-3s%3" PRIu8 " %-35s %-8s %-3s %-3s %-3s %-16.16s\n", otherFlags, smartAnalyzedAttribute.attributeNumber,
+           smartAnalyzedAttribute.attributeName, attributeFlags, nominalValue, worstValue, thresholdValue,
+           smartAnalyzedAttribute.rawData.rawHybridString);
+}
+
+static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        bool                  dataFormatVerified = false;
+        ataSMARTAnalyzedData* smartAnalyzedData =
+            M_REINTERPRET_CAST(ataSMARTAnalyzedData*, safe_calloc(1, sizeof(ataSMARTAnalyzedData)));
+
+        if (smartAnalyzedData == M_NULLPTR)
+        {
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                printf("Memory Failure");
+            }
+
+            return;
+        }
+
+        if (SUCCESS ==
+            get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(device, smartData, smartAnalyzedData, &dataFormatVerified))
+        {
+
+            printf("=======Key======\n");
+            printf("\tFlags:\n");
+            printf("\t  P - pre-fail/warranty indicator\n");
+            printf("\t  O - online collection of data while device is running\n");
+            printf("\t  S - Performance degrades as current value decreases\n");
+            printf("\t  R - Error Rate - indicates tracking of an error rate\n");
+            printf("\t  C - Event Count - attribute represents a counter of events\n");
+            printf("\t  K - Self Preservation (saved across power-cycles)\n");
+            printf("\tThresholds/Current/Worst:\n");
+            printf("\t  N/A - thresholds not available for this attribute/device\n");
+            printf("\t  AP  - threshold is always passing (value of zero)\n");
+            printf("\t  AF  - threshold is always failing (value of 255)\n");
+            printf("\t  INV - threshold is set to an invalid value (value of 254)\n");
+            printf("\tOther indicators:\n");
+            printf("\t  ? - See analyzed output for more information on raw data\n");
+            printf("\t  ! - attribute is currently failing\n");
+            printf("\t  ^ - attribute has previously failed\n");
+            printf("\t  %% - attribute is currently issuing a warning\n");
+            printf("\t  ~ - attribute has previously warned about its condition\n");
+            printf("\tTemperature: (Celcius unless specified)\n");
+            printf("\t  m = minimum\n");
+            printf("\t  M = maximum\n");
+            printf("\tColumns:\n");
+            printf("\t  CV - current value (Also called nominal value in specifications)\n");
+            printf("\t  WV - worst ever value\n");
+            printf("\t  TV - threshold value (requires support of thresholds data)\n");
+            printf("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
+            printf("--------------------------------------------------------------------------------\n");
+            printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
+            printf("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
+            printf("--------------------------------------------------------------------------------\n");
+
+            // Now print this on console
+            for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
+            {
+                if (smartAnalyzedData->attributes[iter].isValid)
+                {
+                    print_ATA_SMART_Attribute_Hybrid(smartAnalyzedData->attributes[iter]);
+                }
+            }
+
+            if (!dataFormatVerified)
+            {
+                printf("WARNING: Interpretation of RAW data has not been verified on this device/firmware.\n");
+                printf("         Product manuals and/or specifications are required for full data verification.\n");
+            }
+        }
+
+        safe_free(&smartAnalyzedData);
+    }
+}
+#endif
 
 eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMode)
 {
@@ -2668,6 +4456,28 @@ eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMo
             ret = NOT_SUPPORTED;
         }
     }
+    return ret;
+}
+
+eReturnValues get_ATA_Analyzed_SMART_Attributes(tDevice* device, ataSMARTAnalyzedData* smartAnylyzedData)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+
+    if (device->drive_info.drive_type == ATA_DRIVE && is_SMART_Enabled(device))
+    {
+        bool          dataFormatVerified = false;
+        smartLogData* smartData          = M_REINTERPRET_CAST(smartLogData*, safe_calloc(1, sizeof(smartLogData)));
+        if (smartData == M_NULLPTR)
+            return MEMORY_FAILURE;
+        ret = get_SMART_Attributes(device, smartData);
+        if (ret == SUCCESS)
+        {
+            ret = get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(device, smartData, smartAnylyzedData,
+                                                                  &dataFormatVerified);
+        }
+        safe_free(&smartData);
+    }
+
     return ret;
 }
 
@@ -4678,7 +6488,7 @@ eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         printf("\n===SMART Info===\n");
-        printf("SMART Version: %" PRIu16 "\n", smartInfo->smartVersion);
+        printf("SMART Version: 0x02%" PRIX16 "\n", smartInfo->smartVersion);
         // off-line data collection status
         printf("Off-line Data Collection Status: \n\t%" PRIX8 "h - ", smartInfo->offlineDataCollectionStatus);
         bool autoOfflineEnabled = smartInfo->offlineDataCollectionStatus & BIT7;
@@ -9310,12 +11120,12 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                         commandOpCode = errorLogData->extSmartError[iter].extCommand[commandIter].contentWritten;
                         device        = errorLogData->extSmartError[iter].extCommand[commandIter].device;
                         lba           = M_BytesTo8ByteValue(0, 0,
-                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt,
-                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt,
-                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt,
-                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi,
-                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid,
-                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
+                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt,
+                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt,
+                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt,
+                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi,
+                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid,
+                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
                         timestampMilliseconds =
                             errorLogData->extSmartError[iter].extCommand[commandIter].timestampMilliseconds;
                         isSoftReset = errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl &
@@ -9332,8 +11142,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                         commandOpCode = errorLogData->smartError[iter].command[commandIter].contentWritten;
                         device        = errorLogData->smartError[iter].command[commandIter].device;
                         lba         = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi,
-                                                          errorLogData->smartError[iter].command[commandIter].lbaMid,
-                                                          errorLogData->smartError[iter].command[commandIter].lbaLow);
+                                                  errorLogData->smartError[iter].command[commandIter].lbaMid,
+                                                  errorLogData->smartError[iter].command[commandIter].lbaLow);
                         isSoftReset = errorLogData->smartError[iter].command[commandIter].transportSpecific &
                                       DEVICE_CONTROL_SOFT_RESET;
                         timestampMilliseconds =
@@ -9418,13 +11228,13 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     error              = errorLogData->extSmartError[iter].extError.error;
                     errorDevice        = errorLogData->extSmartError[iter].extError.device;
                     errorCount         = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extError.countExt,
-                                                             errorLogData->extSmartError[iter].extError.count);
+                                                     errorLogData->extSmartError[iter].extError.count);
                     errorlba           = M_BytesTo8ByteValue(0, 0, errorLogData->extSmartError[iter].extError.lbaHiExt,
-                                                             errorLogData->extSmartError[iter].extError.lbaMidExt,
-                                                             errorLogData->extSmartError[iter].extError.lbaLowExt,
-                                                             errorLogData->extSmartError[iter].extError.lbaHi,
-                                                             errorLogData->extSmartError[iter].extError.lbaMid,
-                                                             errorLogData->extSmartError[iter].extError.lbaLow);
+                                                   errorLogData->extSmartError[iter].extError.lbaMidExt,
+                                                   errorLogData->extSmartError[iter].extError.lbaLowExt,
+                                                   errorLogData->extSmartError[iter].extError.lbaHi,
+                                                   errorLogData->extSmartError[iter].extError.lbaMid,
+                                                   errorLogData->extSmartError[iter].extError.lbaLow);
                     errorDeviceControl = errorLogData->extSmartError[iter].extError.transportSpecific;
                 }
                 else
@@ -9435,8 +11245,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     errorDevice = errorLogData->smartError[iter].error.device;
                     errorCount  = errorLogData->smartError[iter].error.count;
                     errorlba    = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].error.lbaHi,
-                                                      errorLogData->smartError[iter].error.lbaMid,
-                                                      errorLogData->smartError[iter].error.lbaLow);
+                                                   errorLogData->smartError[iter].error.lbaMid,
+                                                   errorLogData->smartError[iter].error.lbaLow);
                     // errorDeviceControl is not available here.
                 }
                 if (genericOutput)
@@ -9643,8 +11453,8 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     commandOpCode    = errorLogData->smartError[iter].command[commandIter].contentWritten;
                     device           = errorLogData->smartError[iter].command[commandIter].device;
                     lba              = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi,
-                                                           errorLogData->smartError[iter].command[commandIter].lbaMid,
-                                                           errorLogData->smartError[iter].command[commandIter].lbaLow);
+                                              errorLogData->smartError[iter].command[commandIter].lbaMid,
+                                              errorLogData->smartError[iter].command[commandIter].lbaLow);
                     isSoftReset      = errorLogData->smartError[iter].command[commandIter].transportSpecific &
                                   DEVICE_CONTROL_SOFT_RESET;
                     timestampMilliseconds = errorLogData->smartError[iter].command[commandIter].timestampMilliseconds;
@@ -9699,8 +11509,8 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 errorDevice                 = errorLogData->smartError[iter].error.device;
                 errorCount                  = errorLogData->smartError[iter].error.count;
                 errorlba                    = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].error.lbaHi,
-                                                                  errorLogData->smartError[iter].error.lbaMid,
-                                                                  errorLogData->smartError[iter].error.lbaLow);
+                                               errorLogData->smartError[iter].error.lbaMid,
+                                               errorLogData->smartError[iter].error.lbaLow);
                 // errorDeviceControl is not available here.
                 if (genericOutput)
                 {
