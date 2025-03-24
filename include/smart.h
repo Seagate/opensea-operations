@@ -70,7 +70,8 @@ extern "C"
     {
         SMART_ATTR_OUTPUT_RAW,
         SMART_ATTR_OUTPUT_ANALYZED,
-        SMART_ATTR_OUTPUT_HYBRID
+        SMART_ATTR_OUTPUT_HYBRID,
+        SMART_ATTR_OUTPUT_JSON,
     } eSMARTAttrOutMode;
 
     //-----------------------------------------------------------------------------
@@ -96,7 +97,7 @@ extern "C"
 #define MAX_RAW_ANALYZED_STRING_LENGTH          131 // This leaves room for a M_NULLPTR terminating character
 #define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91  // This leaves room for a M_NULLPTR terminating character
 #define MAX_HYBRID_RAW_STRING_LENGTH            24  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        11  // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        5   // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_FEILD_COUNT                     4   // Right now we have identified maximum 4 field for attributes
 
     M_DECLARE_ENUM(eATAAttributeRawFieldUnitType,
@@ -141,13 +142,13 @@ extern "C"
         bool                          int64AnalyzedValueValid;
         int64_t                       int64AnalyzedValue;
         eATAAttributeRawFieldUnitType int64AnalyzedValueUnit;
-        char                          int64AnalysedString[MAX_RAW_ANALYZED_STRING_LENGTH];
+        char                          int64AnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
         bool                          boolAnalyzedValueValid;
-        char                          boolAnalysedString[MAX_RAW_ANALYZED_STRING_LENGTH];
+        char                          boolAnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
         bool                          doubleAnalyzedValueValid;
         double                        doubleAnalyzedValue;
         eATAAttributeRawFieldUnitType doubleAnalyzedValueUnit;
-        char                          doubleAnalysedString[MAX_RAW_ANALYZED_STRING_LENGTH];
+        char                          doubleAnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
     } ataAttributeRawData;
 
     typedef struct s_ataAttributeTypeData
@@ -174,21 +175,22 @@ extern "C"
 
     M_DECLARE_ENUM(
         eATAAttributeFailStatus,
+        /*!< Attribute Fail Status Not Set. */
+        FAIL_STATUS_NOT_SET = 0,
         /*!< Attribute Failing now, nominal is less than threshold value(warranty attribute). */
-        ATTRIBUTE_FAILING_NOW = 0,
+        FAIL_STATUS_ATTRIBUTE_FAILING_NOW = 1,
         /*!< Attribute is issuing Warning now, nominal is less than threshold value(non-warranty attribute). */
-        ATTRIBUTE_WARNING_NOW = 1,
+        FAIL_STATUS_ATTRIBUTE_WARNING_NOW = 2,
         /*!< Attribute Failed in past, worst is less than threshold value(warranty attribute). */
-        ATTRIBUTE_FAILED_IN_PAST = 2,
+        FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST = 3,
         /*!< Attribute has issued Warning in past, worst is less than threshold value(non-warranty attribute). */
-        ATTRIBUTE_WARNED_IN_PAST = 3);
+        FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST = 4);
 
     typedef struct s_ataAttributeThresholdInfo
     {
         uint8_t thresholdValue;
         eATAAttributeThresholdType
-             thresholdType; // Since we have added this enum, no need to add threshold valid boolean flag
-        bool isFailStatusValid;
+            thresholdType; // Since we have added this enum, no need to add threshold valid boolean flag
         eATAAttributeFailStatus
              failStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
         char failStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
@@ -204,7 +206,6 @@ extern "C"
         ataAttributeThresholdInfo thresholdInfo;
         uint8_t                   nominal;
         uint8_t                   worstEver;
-        bool                      isWarrantied;
         bool                      seeAnalyzedFlag;
         ataAttributeRawData       rawData;
     } ataSMARTAnalyzedAttribute;

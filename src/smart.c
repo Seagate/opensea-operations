@@ -1206,32 +1206,30 @@ static void get_ata_Attribute_Threshold_From_Threshold_Data(uint8_t             
         // if we get the valid threshold value, then evalute the Fail status
         if (thresholdValue >= nominal)
         {
-            thresholdInfo->isFailStatusValid = true;
             if (isWarrantied)
             {
-                thresholdInfo->failStatus = ATTRIBUTE_FAILING_NOW;
+                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_FAILING_NOW;
                 safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute is currently failing.");
             }
             else
             {
-                thresholdInfo->failStatus = ATTRIBUTE_WARNING_NOW;
+                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_WARNING_NOW;
                 safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute is currently issuing warning.");
             }
         }
         else if (thresholdValue >= worst)
         {
-            thresholdInfo->isFailStatusValid = true;
             if (isWarrantied)
             {
-                thresholdInfo->failStatus = ATTRIBUTE_FAILED_IN_PAST;
+                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST;
                 safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute has previously failed.");
             }
             else
             {
-                thresholdInfo->failStatus = ATTRIBUTE_WARNED_IN_PAST;
+                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST;
                 safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute has previously warned about it's condition.");
             }
@@ -1412,8 +1410,6 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             attributeName);
                 get_ata_AttributeType_From_Status_Bit(smartData->attributes.ataSMARTAttr.attributes[iter].data.status,
                                                       &smartAnylyzedData->attributes[iter].attributeType);
-                smartAnylyzedData->attributes[iter].isWarrantied =
-                    smartData->attributes.ataSMARTAttr.attributes[iter].isWarrantied;
                 smartAnylyzedData->attributes[iter].nominal =
                     smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal;
                 smartAnylyzedData->attributes[iter].worstEver =
@@ -1519,7 +1515,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             C_CAST(double, powerOnMinutes) / 60.0;
                         smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValueUnit =
                             RAW_FIELD_UNIT_TIME_IN_HOURS;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleAnalysedString,
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedString,
                                     MAX_RAW_ANALYZED_STRING_LENGTH, "Power On Hours");
                         snprintf_err_handle(
                             smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
@@ -1566,12 +1562,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                     safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_LENGTH, head);
                                 }
                             }
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                                 MAX_RAW_ANALYZED_STRING_LENGTH, "Failed Heads: %s", failedHeadString);
                         }
                         else
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH, "Failed Heads: No Failed Heads");
                         }
                         snprintf_err_handle(
@@ -1595,10 +1591,10 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4])
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH, "Standby received before power off");
                         else
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH, "Standby not received before power off");
                         break;
                     case 183: // Reported Phy Event Counter
@@ -1627,7 +1623,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
                             smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
                         }
                         break;
@@ -1641,7 +1637,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
                             smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
                         }
                         break;
@@ -1655,7 +1651,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
                             smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
                         }
                         break;
@@ -1711,7 +1707,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             C_CAST(int64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
                         smartAnylyzedData->attributes[iter].rawData.int64AnalyzedValueUnit =
                             RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.int64AnalysedString,
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.int64AnalyzedString,
                                     MAX_RAW_ANALYZED_STRING_LENGTH, "Worst Highest Temperature");
                         snprintf_err_handle(
                             smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
@@ -1783,7 +1779,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             C_CAST(double, powerOnMinutes) / 60.0;
                         smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedValueUnit =
                             RAW_FIELD_UNIT_TIME_IN_HOURS;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleAnalysedString,
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleAnalyzedString,
                                     MAX_RAW_ANALYZED_STRING_LENGTH, "Head Flight Hours");
 
                         snprintf_err_handle(
@@ -2023,10 +2019,10 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH, "Life driven by Free Space (Term B dominated)");
                         else
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalysedString,
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
                                         MAX_RAW_ANALYZED_STRING_LENGTH,
                                         "Life driven by Program-Erase Cycles (Term A dominated)");
                         snprintf_err_handle(
@@ -3951,38 +3947,33 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
     safe_free(&attributeName);
 }
 #else
-static void print_ATA_SMART_Attribute_Raw(ataSMARTAnalyzedAttribute smartAnalyzedAttribute)
+static void print_ATA_SMART_Attribute_Raw(bool isWarrantied, ataSMARTAnalyzedAttribute smartAnalyzedAttribute)
 {
 #    define ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN (5)
     DECLARE_ZERO_INIT_ARRAY(char, flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN);
-    if (smartAnalyzedAttribute.isWarrantied)
+    if (isWarrantied)
     {
         safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*");
     }
 
     if (smartAnalyzedAttribute.thresholdInfo.thresholdType != THRESHOLD_UNKNOWN)
     {
-        if (smartAnalyzedAttribute.nominal <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
+        switch (smartAnalyzedAttribute.thresholdInfo.failStatus)
         {
-            if (smartAnalyzedAttribute.isWarrantied)
-            {
-                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
-            }
-            else
-            {
-                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
-            }
-        }
-        if (smartAnalyzedAttribute.worstEver <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
-        {
-            if (smartAnalyzedAttribute.isWarrantied)
-            {
-                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
-            }
-            else
-            {
-                safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
-            }
+        case FAIL_STATUS_ATTRIBUTE_FAILING_NOW:
+            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
+            break;
+        case FAIL_STATUS_ATTRIBUTE_WARNING_NOW:
+            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
+            break;
+        case FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST:
+            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
+            break;
+        case FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST:
+            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
+            break;
+        default:
+            break;
         }
         printf("%-5s%3" PRIu8 " %-35s  %04" PRIX16 "h    %02" PRIX8 "h     %02" PRIX8 "h     %02" PRIX8 "h   ", flags,
                smartAnalyzedAttribute.attributeNumber, smartAnalyzedAttribute.attributeName,
@@ -4032,7 +4023,8 @@ static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
             {
                 if (smartAnalyzedData->attributes[iter].isValid)
                 {
-                    print_ATA_SMART_Attribute_Raw(smartAnalyzedData->attributes[iter]);
+                    print_ATA_SMART_Attribute_Raw(smartData->attributes.ataSMARTAttr.attributes[iter].isWarrantied,
+                                                  smartAnalyzedData->attributes[iter]);
                 }
             }
 
@@ -4111,23 +4103,31 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
     {
         char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
         get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.rawField[iter].fieldUnit, &unitString);
-        printf("\t%s: %" PRId64 " %s\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName,
-               smartAnalyzedAttribute.rawData.rawField[iter].fieldValue, unitString);
+        if (safe_strlen(unitString) > 0) // to not print space at the end of value
+            printf("\t%s: %" PRId64 " %s\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName,
+                   smartAnalyzedAttribute.rawData.rawField[iter].fieldValue, unitString);
+        else
+            printf("\t%s: %" PRId64 "\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName,
+                   smartAnalyzedAttribute.rawData.rawField[iter].fieldValue);
         safe_free(&unitString);
     }
 
     // print analyzed values if any available
     if (smartAnalyzedAttribute.rawData.boolAnalyzedValueValid)
     {
-        printf("\t%s \n", smartAnalyzedAttribute.rawData.boolAnalysedString);
+        printf("\t%s \n", smartAnalyzedAttribute.rawData.boolAnalyzedString);
     }
     if (smartAnalyzedAttribute.rawData.int64AnalyzedValueValid)
     {
         char* analyzedUnitString =
             M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
         get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.int64AnalyzedValueUnit, &analyzedUnitString);
-        printf("\t%s: %" PRId64 " %s\n", smartAnalyzedAttribute.rawData.int64AnalysedString,
-               smartAnalyzedAttribute.rawData.int64AnalyzedValue, analyzedUnitString);
+        if (safe_strlen(analyzedUnitString) > 0) // to not print space at the end of value
+            printf("\t%s: %" PRId64 " %s\n", smartAnalyzedAttribute.rawData.int64AnalyzedString,
+                   smartAnalyzedAttribute.rawData.int64AnalyzedValue, analyzedUnitString);
+        else
+            printf("\t%s: %" PRId64 "\n", smartAnalyzedAttribute.rawData.int64AnalyzedString,
+                   smartAnalyzedAttribute.rawData.int64AnalyzedValue);
         safe_free(&analyzedUnitString);
     }
     if (smartAnalyzedAttribute.rawData.doubleAnalyzedValueValid)
@@ -4135,8 +4135,12 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
         char* analyzedUnitString =
             M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
         get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.doubleAnalyzedValueUnit, &analyzedUnitString);
-        printf("\t%s: %f %s\n", smartAnalyzedAttribute.rawData.doubleAnalysedString,
-               smartAnalyzedAttribute.rawData.doubleAnalyzedValue, analyzedUnitString);
+        if (safe_strlen(analyzedUnitString) > 0) // to not print space at the end of value
+            printf("\t%s: %f %s\n", smartAnalyzedAttribute.rawData.doubleAnalyzedString,
+                   smartAnalyzedAttribute.rawData.doubleAnalyzedValue, analyzedUnitString);
+        else
+            printf("\t%s: %f\n", smartAnalyzedAttribute.rawData.doubleAnalyzedString,
+                   smartAnalyzedAttribute.rawData.doubleAnalyzedValue);
         safe_free(&analyzedUnitString);
     }
 }
@@ -4212,29 +4216,22 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTAnalyzedAttribute smartAnal
             break;
         }
 
-        if (smartAnalyzedAttribute.thresholdInfo.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING &&
-            smartAnalyzedAttribute.nominal <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
+        switch (smartAnalyzedAttribute.thresholdInfo.failStatus)
         {
-            if (smartAnalyzedAttribute.isWarrantied)
-            {
-                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
-            }
-            else
-            {
-                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
-            }
-        }
-        if (smartAnalyzedAttribute.thresholdInfo.thresholdValue != ATA_SMART_THRESHOLD_ALWAYS_PASSING &&
-            smartAnalyzedAttribute.worstEver <= smartAnalyzedAttribute.thresholdInfo.thresholdValue)
-        {
-            if (smartAnalyzedAttribute.isWarrantied)
-            {
-                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
-            }
-            else
-            {
-                safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
-            }
+        case FAIL_STATUS_ATTRIBUTE_FAILING_NOW:
+            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+            break;
+        case FAIL_STATUS_ATTRIBUTE_WARNING_NOW:
+            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
+            break;
+        case FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST:
+            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+            break;
+        case FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST:
+            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
+            break;
+        default:
+            break;
         }
     }
     else
