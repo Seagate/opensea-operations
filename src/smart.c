@@ -1542,11 +1542,13 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
-                        smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                        smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValueValid = true;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Failed Heads");
                         if (headBitmap != 0)
                         {
                             uint8_t badHeadCounter = UINT16_C(0);
-                            DECLARE_ZERO_INIT_ARRAY(char, failedHeadString, MAX_RAW_ANALYZED_STRING_LENGTH);
+                            DECLARE_ZERO_INIT_ARRAY(char, failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH);
                             // starting at raw 0, bit 0, 0 = passing head, 1 = failing head
                             for (uint8_t bitIter = UINT8_C(0); bitIter < 32; ++bitIter)
                             {
@@ -1557,18 +1559,18 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                     snprintf_err_handle(head, 3, "%" PRIu8 "", bitIter);
                                     if (safe_strlen(failedHeadString) > 0)
                                     {
-                                        safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_LENGTH, ", ");
+                                        safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, ", ");
                                     }
-                                    safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_LENGTH, head);
+                                    safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, head);
                                 }
                             }
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                                MAX_RAW_ANALYZED_STRING_LENGTH, "Failed Heads: %s", failedHeadString);
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, failedHeadString);
                         }
                         else
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Failed Heads: No Failed Heads");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No Failed Heads");
                         }
                         snprintf_err_handle(
                             smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
@@ -1589,13 +1591,15 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                        smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValueValid = true;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Standby received before power off");
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4])
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Standby received before power off");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
                         else
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Standby not received before power off");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
                         break;
                     case 183: // Reported Phy Event Counter
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -1620,11 +1624,18 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             "Reported Uncorrectable Errors To The Host", START_0_END_1, RAW_FIELD_UNIT_NONE, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                             RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValueValid = true;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
-                            smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
+                        }
+                        else
+                        {
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
                         }
                         break;
                     case 188: // Command Timeout
@@ -1634,11 +1645,18 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             RAW_FIELD_UNIT_NONE, "Command Timeout Count > 5 second completion", START_2_END_3,
                             RAW_FIELD_UNIT_NONE, "Command Timeout Count > 7.5 second completion", START_4_END_5,
                             RAW_FIELD_UNIT_NONE, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValueValid = true;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
-                            smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
+                        }
+                        else
+                        {
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
                         }
                         break;
                     case 189: // High Fly Writes
@@ -1648,11 +1666,18 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValueValid = true;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
-                            smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Counter is Maxed Out");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
+                        }
+                        else
+                        {
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
                         }
                         break;
                     case 190: // Airflow Temperature
@@ -2017,14 +2042,16 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                                    START_2_END_2, RAW_FIELD_UNIT_NONE, M_NULLPTR,
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        smartAnylyzedData->attributes[iter].rawData.boolAnalyzedValueValid = true;
+                        smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValueValid = true;
+                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedString,
+                                    MAX_RAW_ANALYZED_STRING_LENGTH, "Life driven by");
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH, "Life driven by Free Space (Term B dominated)");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Free Space (Term B dominated)");
                         else
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.boolAnalyzedString,
-                                        MAX_RAW_ANALYZED_STRING_LENGTH,
-                                        "Life driven by Program-Erase Cycles (Term A dominated)");
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringAnalyzedValue,
+                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH,
+                                        "Program-Erase Cycles (Term A dominated)");
                         snprintf_err_handle(
                             smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
                             "%" PRIu64,
@@ -4113,9 +4140,10 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
     }
 
     // print analyzed values if any available
-    if (smartAnalyzedAttribute.rawData.boolAnalyzedValueValid)
+    if (smartAnalyzedAttribute.rawData.stringAnalyzedValueValid)
     {
-        printf("\t%s \n", smartAnalyzedAttribute.rawData.boolAnalyzedString);
+        printf("\t%s: %s\n", smartAnalyzedAttribute.rawData.stringAnalyzedString,
+               smartAnalyzedAttribute.rawData.stringAnalyzedValue);
     }
     if (smartAnalyzedAttribute.rawData.int64AnalyzedValueValid)
     {

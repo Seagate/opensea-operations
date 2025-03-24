@@ -94,7 +94,8 @@ extern "C"
 
 #define MAX_SMART_STATUS_STRING_LENGTH          21  // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_FIELD_NAME_LENGTH               91  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_ANALYZED_STRING_LENGTH          131 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_ANALYZED_STRING_LENGTH          41  // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    129 // This leaves room for a M_NULLPTR terminating character
 #define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91  // This leaves room for a M_NULLPTR terminating character
 #define MAX_HYBRID_RAW_STRING_LENGTH            24  // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_FEILD_UNIT_STRING_LENGTH        5   // This leaves room for a M_NULLPTR terminating character
@@ -135,18 +136,20 @@ extern "C"
 
     typedef struct s_ataAttributeRawData
     {
-        uint8_t                       rawData[SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT];
-        char                          rawHybridString[MAX_HYBRID_RAW_STRING_LENGTH];
-        uint8_t                       userFieldCount; // maximum allowed MAX_RAW_FEILD_COUNT
-        ataAttributeRawFieldData      rawField[MAX_RAW_FEILD_COUNT];
-        bool                          int64AnalyzedValueValid;
-        int64_t                       int64AnalyzedValue;
+        uint8_t                  rawData[SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT];
+        char                     rawHybridString[MAX_HYBRID_RAW_STRING_LENGTH];
+        uint8_t                  userFieldCount; // maximum allowed MAX_RAW_FEILD_COUNT
+        ataAttributeRawFieldData rawField[MAX_RAW_FEILD_COUNT];
+        bool    int64AnalyzedValueValid; // will be true if raw data has any field representable in int64_t format
+        int64_t int64AnalyzedValue;
         eATAAttributeRawFieldUnitType int64AnalyzedValueUnit;
         char                          int64AnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
-        bool                          boolAnalyzedValueValid;
-        char                          boolAnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
-        bool                          doubleAnalyzedValueValid;
-        double                        doubleAnalyzedValue;
+        bool
+            stringAnalyzedValueValid; // will be true if raw data has any field representable in some string information
+        char   stringAnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
+        char   stringAnalyzedValue[MAX_RAW_ANALYZED_STRING_VALUE_LENGTH];
+        bool   doubleAnalyzedValueValid; // will be true if raw data has any field representable in double format
+        double doubleAnalyzedValue;
         eATAAttributeRawFieldUnitType doubleAnalyzedValueUnit;
         char                          doubleAnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
     } ataAttributeRawData;
