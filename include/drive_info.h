@@ -213,7 +213,7 @@ extern "C"
 #define MAX_FEATURE_LENGTH UINT8_C(50) // maximum number of characters to allow for use when storing feature names.
 
 #define MAX_SPECS          UINT8_C(40)
-#define MAX_SPEC_LENGTH    UINT8_C(40)
+#define MAX_SPEC_LENGTH    MAX_VERSION_DESCRIPTOR_STRING_LENGTH // Upped to 65 to match SCSI version descriptors maximum length-TJE
 
     typedef struct s_driveInformationSAS_SATA
     {
