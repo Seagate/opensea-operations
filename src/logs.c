@@ -1728,11 +1728,6 @@ eReturnValues get_ATA_Log(tDevice*    device,
             {
                 printf("Error closing file!\n");
             }
-            if (device->deviceVerbosity > VERBOSITY_QUIET)
-            {
-                printf("\n");
-                printf("Binary log saved to: %s\n", fp_log->fullpath);
-            }
             fileOpened = false;
         }
         safe_free_aligned(&logBuffer);
@@ -1820,8 +1815,8 @@ eReturnValues get_SCSI_Log(tDevice*    device,
                                C_CAST(uint16_t, pageLen)) == SUCCESS)
         {
             uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + LOG_PAGE_HEADER_LENGTH;
-            ret = SUCCESS;
-            if (!toBuffer && logName && fileExtension) //Because you can also get a log file & get it in buffer. 
+            ret                         = SUCCESS;
+            if (!toBuffer && logName && fileExtension) // Because you can also get a log file & get it in buffer.
             {
                 if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, NAMING_SERIAL_NUMBER_DATE_TIME,
                                                                       filePath, logName, fileExtension))
@@ -4000,13 +3995,13 @@ eReturnValues pull_Generic_Error_History(tDevice*     device,
     return retStatus;
 }
 
-eReturnValues pull_FARM_LogPage(tDevice*     device,
-                                const char*  filePath,
-                                uint32_t     transferSizeBytes,
-                                uint32_t     issueFactory,
-                                uint16_t     logPage,
-                                uint8_t      logAddress,
-                                eLogPullMode mode,
+eReturnValues pull_FARM_LogPage(tDevice*                 device,
+                                const char*              filePath,
+                                uint32_t                 transferSizeBytes,
+                                uint32_t                 issueFactory,
+                                uint16_t                 logPage,
+                                uint8_t                  logAddress,
+                                eLogPullMode             mode,
                                 eLogFileNamingConvention fileNameType)
 {
     bool            fileOpened         = false;
@@ -4068,8 +4063,8 @@ eReturnValues pull_FARM_LogPage(tDevice*     device,
                 {
                     if (!fileOpened)
                     {
-                        if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(
-                                           device, &fp_log, fileNameType, filePath, logType, "bin"))
+                        if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath,
+                                                                              logType, "bin"))
                         {
                             fileOpened = true;
                         }
@@ -4136,202 +4131,66 @@ eReturnValues pull_FARM_LogPage(tDevice*     device,
     return ret;
 }
 
-eReturnValues pull_FARM_Log(tDevice*     device,
-                            const char*  filePath,
-                            uint32_t     transferSizeBytes,
-                            uint32_t     issueFactory,
-                            uint8_t      logAddress,
-                            eLogPullMode mode,
+eReturnValues pull_FARM_Log(tDevice*                 device,
+                            const char*              filePath,
+                            uint32_t                 transferSizeBytes,
+                            uint32_t                 issueFactory,
+                            uint8_t                  logAddress,
+                            eLogPullMode             mode,
                             eLogFileNamingConvention fileNameType)
 {
     eReturnValues ret           = UNKNOWN;
     uint32_t      logSize       = UINT32_C(0);
     uint8_t*      genericLogBuf = M_NULLPTR;
-    const char* logName = M_NULLPTR;
+    const char*   logName       = M_NULLPTR;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-
         switch (logAddress)
         {
-
         case SEAGATE_ATA_LOG_FARM_TIME_SERIES:
-
             ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
             if (ret == SUCCESS && logSize > 0)
             {
-                genericLogBuf = C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                genericLogBuf =
+                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
             }
-            else {
-                return ret;
+            else
+            {
+                return NOT_SUPPORTED;
             }
-
 
             if (genericLogBuf)
             {
                 if (issueFactory == 2)
                 {
-                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_TIME_SERIES_FLASH);
-
+                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf,
+                                      logSize, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_FLASH);
                 }
                 else if (issueFactory == 3)
                 {
-                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_TIME_SERIES_WLTR);
+                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf,
+                                      logSize, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_WLTR);
                 }
                 else if (issueFactory == 4)
                 {
-                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_TIME_SERIES_NEURAL_NW);
+                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf,
+                                      logSize, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_NEURAL_NW);
                 }
                 else
                 {
-                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_TIME_SERIES_DISC);
-                }
-            }
-            else {
-                ret = MEMORY_FAILURE;
-            }
-
-            switch (mode)
-            {
-            case PULL_LOG_PIPE_MODE:
-            case PULL_LOG_RAW_MODE:
-
-                if (SUCCESS == ret)
-                {
-                    if (mode == PULL_LOG_PIPE_MODE)
-                    {
-                        print_Pipe_Data(genericLogBuf, logSize);
-                    }
-                    else
-                    {
-                        print_Data_Buffer(genericLogBuf, logSize, true);
-                    }
-                }
-                break;
-            case PULL_LOG_BIN_FILE_MODE:
-            default:
-                //FARM pull time series subpages   
-                //1 (feature register 0) - Default: Report all FARM frames from disc (~250ms) (SATA only)
-                //2 (feature register 1) - Report all FARM data (~250ms)(SATA only)
-                //3 (feature register 2) - Return WLTR data (SATA only)
-                //4 (feature register 3) - Return Neural N/W data (SATA only)
-
-
-
-                if (issueFactory == 2)
-                {
-
-                    logName = "FARM_TIME_SERIES_FLASH";
-
-                }
-                else if (issueFactory == 3)
-                {
-
-                    logName = "FARM_WLTR";
-                }
-                else if (issueFactory == 4)
-                {
-
-                    logName = "FARM_NEURAL_NW";
-                }
-                else
-                {
-
-                    logName = "FARM_TIME_SERIES_DISC";
-
-                }
-
-
-                if (ret == SUCCESS)
-                {
-                    bool fileOpened = false;
-                    secureFileInfo* fp_log = M_NULLPTR;
-                    uint16_t pagesToReadNow = 1;
-                    if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
-                    {
-                        fileOpened = true;
-                    }
-                    else
-                    {
-                        if (VERBOSITY_QUIET < device->deviceVerbosity)
-                        {
-                            printf("Failed to open file!\n");
-                        }
-                        ret = FAILURE;
-                        free_Secure_File_Info(&fp_log);
-                        return FILE_OPEN_ERROR;
-                    }
-                    if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, genericLogBuf, C_CAST(size_t, pagesToReadNow) * logSize, sizeof(uint8_t), logSize, M_NULLPTR))
-                    {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
-                        {
-                            perror("Error writing data to a file!\n");
-                        }
-                        if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
-                        {
-                            printf("Error closing file!\n");
-                        }
-                        free_Secure_File_Info(&fp_log);
-                        fileOpened = false;
-                        safe_free_aligned(&genericLogBuf);
-                        return ERROR_WRITING_FILE;
-
-                        break;
-                    }
-                }
-
-                break;
-            }
-            break;
-        default:
-            ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
-            if (ret == SUCCESS && logSize > 0)
-            {
-                genericLogBuf = C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            }
-            else {
-                return ret;
-            }
-
-            if (genericLogBuf)
-            {
-                if (issueFactory == 1)
-                {
-                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_GENERATE_NEW_AND_SAVE);
-
-
-                }
-                else if (issueFactory == 2)
-                {
-                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_REPORT_SAVED);
-
-
-                }
-                else if (issueFactory == 3)
-                {
-                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_REPORT_FACTORY_DATA);
-                }
-                else
-                {
-                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR, logSize, SEAGATE_FARM_CURRENT);
+                    ret = get_ATA_Log(device, logAddress, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf,
+                                      logSize, M_NULLPTR, transferSizeBytes, SEAGATE_FARM_TIME_SERIES_DISC);
                 }
             }
             else
             {
                 ret = MEMORY_FAILURE;
             }
+
             switch (mode)
             {
-
             case PULL_LOG_PIPE_MODE:
             case PULL_LOG_RAW_MODE:
-                //FARM pull Factory subpages   
-                //0 - Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-                //1 - Generate and report new FARM data and save to disc(~45ms)(SATA only)
-                //2 - Report previous FARM data from disc(~20ms)(SATA only)
-                //3 - Report FARM factory data from disc(~20ms)(SATA only)
-
-
-
                 if (SUCCESS == ret)
                 {
                     if (mode == PULL_LOG_PIPE_MODE)
@@ -4344,47 +4203,76 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                     }
                 }
                 break;
+
             case PULL_LOG_BIN_FILE_MODE:
             default:
-                //FARM pull Factory subpages   
-                //0 - Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-                //1 - Generate and report new FARM data and save to disc(~45ms)(SATA only)
-                //2 - Report previous FARM data from disc(~20ms)(SATA only)
-                //3 - Report FARM factory data from disc(~20ms)(SATA only)
-
-
-
-                if (issueFactory == 1)
+                // FARM pull time series subpages
+                // 1 (feature register 0) - Default: Report all FARM frames from disc (~250ms) (SATA only)
+                // 2 (feature register 1) - Report all FARM data (~250ms)(SATA only)
+                // 3 (feature register 2) - Return WLTR data (SATA only)
+                // 4 (feature register 3) - Return Neural N/W data (SATA only)
+                if (issueFactory == 2)
                 {
-
-                    logName = "P_AND_S_FARM";
-                }
-                else if (issueFactory == 2)
-                {
-
-                    logName = "PREVIOUS_FARM";
+                    logName = "FARM_TIME_SERIES_FLASH";
                 }
                 else if (issueFactory == 3)
                 {
-
-                    logName = "FACTORY_FARM";
+                    logName = "FARM_WLTR";
+                }
+                else if (issueFactory == 4)
+                {
+                    logName = "FARM_NEURAL_NW";
                 }
                 else
                 {
-
-                    logName = "FARM";
+                    logName = "FARM_TIME_SERIES_DISC";
                 }
-
 
                 if (ret == SUCCESS)
                 {
-                    bool fileOpened = false;
                     secureFileInfo* fp_log = M_NULLPTR;
-                    uint16_t pagesToReadNow = 1;
-
-                    if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
+                    if (SUCCESS ==
+                        create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
                     {
-                        fileOpened = true;
+                        if (SEC_FILE_SUCCESS !=
+                            secure_Write_File(fp_log, genericLogBuf, logSize, sizeof(uint8_t), logSize, M_NULLPTR))
+                        {
+                            if (device->deviceVerbosity > VERBOSITY_QUIET)
+                            {
+                                perror("Error writing data to a file!\n");
+                            }
+                            if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                            {
+                                printf("Error closing file!\n");
+                            }
+                            free_Secure_File_Info(&fp_log);
+                            safe_free_aligned(&genericLogBuf);
+                            return ERROR_WRITING_FILE;
+                        }
+                        if (SEC_FILE_SUCCESS != secure_Flush_File(fp_log))
+                        {
+                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            {
+                                perror("Error flushing data!\n");
+                            }
+                            if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                            {
+                                printf("Error closing file!\n");
+                            }
+
+                            free_Secure_File_Info(&fp_log);
+                            safe_free_aligned(&genericLogBuf);
+                            return ERROR_WRITING_FILE;
+                        }
+                        if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                        {
+                            printf("Error closing file!\n");
+                        }
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            printf("\n");
+                            printf("Binary log saved to: %s\n", fp_log->fullpath);
+                        }
                     }
                     else
                     {
@@ -4392,26 +4280,160 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                         {
                             printf("Failed to open file!\n");
                         }
-                        ret = FAILURE;
                         free_Secure_File_Info(&fp_log);
+                        safe_free_aligned(&genericLogBuf);
                         return FILE_OPEN_ERROR;
                     }
-                    if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, genericLogBuf, C_CAST(size_t, pagesToReadNow) * logSize, sizeof(uint8_t), logSize, M_NULLPTR))
+                }
+                break;
+            }
+            break;
+
+        default:
+            ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
+            if (ret == SUCCESS && logSize > 0)
+            {
+                genericLogBuf =
+                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            }
+            else
+            {
+                return NOT_SUPPORTED;
+            }
+
+            if (genericLogBuf)
+            {
+                if (issueFactory == 1)
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR,
+                                      M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR,
+                                      transferSizeBytes, SEAGATE_FARM_GENERATE_NEW_AND_SAVE);
+                }
+                else if (issueFactory == 2)
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR,
+                                      M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR,
+                                      transferSizeBytes, SEAGATE_FARM_REPORT_SAVED);
+                }
+                else if (issueFactory == 3)
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR,
+                                      M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR,
+                                      transferSizeBytes, SEAGATE_FARM_REPORT_FACTORY_DATA);
+                }
+                else
+                {
+                    ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR,
+                                      M_NULLPTR, true, false, true, genericLogBuf, logSize, M_NULLPTR,
+                                      transferSizeBytes, SEAGATE_FARM_CURRENT);
+                }
+            }
+            else
+            {
+                ret = MEMORY_FAILURE;
+            }
+
+            switch (mode)
+            {
+            case PULL_LOG_PIPE_MODE:
+            case PULL_LOG_RAW_MODE:
+                // FARM pull Factory subpages
+                // 0 - Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+                // 1 - Generate and report new FARM data and save to disc(~45ms)(SATA only)
+                // 2 - Report previous FARM data from disc(~20ms)(SATA only)
+                // 3 - Report FARM factory data from disc(~20ms)(SATA only)
+                if (SUCCESS == ret)
+                {
+                    if (mode == PULL_LOG_PIPE_MODE)
                     {
-                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        print_Pipe_Data(genericLogBuf, logSize);
+                    }
+                    else
+                    {
+                        print_Data_Buffer(genericLogBuf, logSize, true);
+                    }
+                }
+                break;
+
+            case PULL_LOG_BIN_FILE_MODE:
+            default:
+                // FARM pull Factory subpages
+                // 0 - Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+                // 1 - Generate and report new FARM data and save to disc(~45ms)(SATA only)
+                // 2 - Report previous FARM data from disc(~20ms)(SATA only)
+                // 3 - Report FARM factory data from disc(~20ms)(SATA only)
+                if (issueFactory == 1)
+                {
+                    logName = "P_AND_S_FARM";
+                }
+                else if (issueFactory == 2)
+                {
+                    logName = "PREVIOUS_FARM";
+                }
+                else if (issueFactory == 3)
+                {
+                    logName = "FACTORY_FARM";
+                }
+                else
+                {
+                    logName = "FARM";
+                }
+
+                if (ret == SUCCESS)
+                {
+                    secureFileInfo* fp_log = M_NULLPTR;
+                    if (SUCCESS ==
+                        create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
+                    {
+                        if (SEC_FILE_SUCCESS !=
+                            secure_Write_File(fp_log, genericLogBuf, logSize, sizeof(uint8_t), logSize, M_NULLPTR))
                         {
-                            perror("Error writing data to a file!\n");
+                            if (device->deviceVerbosity > VERBOSITY_QUIET)
+                            {
+                                perror("Error writing data to a file!\n");
+                            }
+                            if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                            {
+                                printf("Error closing file!\n");
+                            }
+                            free_Secure_File_Info(&fp_log);
+                            safe_free_aligned(&genericLogBuf);
+                            return ERROR_WRITING_FILE;
+                        }
+                        if (SEC_FILE_SUCCESS != secure_Flush_File(fp_log))
+                        {
+                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            {
+                                perror("Error flushing data!\n");
+                            }
+                            if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
+                            {
+                                printf("Error closing file!\n");
+                            }
+
+                            free_Secure_File_Info(&fp_log);
+                            safe_free_aligned(&genericLogBuf);
+                            return ERROR_WRITING_FILE;
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
                             printf("Error closing file!\n");
                         }
+                        if (device->deviceVerbosity > VERBOSITY_QUIET)
+                        {
+                            printf("\n");
+                            printf("Binary log saved to: %s\n", fp_log->fullpath);
+                        }
+                    }
+                    else
+                    {
+                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        {
+                            printf("Failed to open file!\n");
+                        }
                         free_Secure_File_Info(&fp_log);
-                        fileOpened = false;
                         safe_free_aligned(&genericLogBuf);
-                        return ERROR_WRITING_FILE;
-
-                        break;
+                        return FILE_OPEN_ERROR;
                     }
                 }
             }
@@ -4419,44 +4441,56 @@ eReturnValues pull_FARM_Log(tDevice*     device,
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-
         if (issueFactory == 4)
         {
             if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
             {
-                genericLogBuf = C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                genericLogBuf =
+                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (genericLogBuf)
                 {
-                    ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, M_NULLPTR, M_NULLPTR, true, genericLogBuf, logSize, M_NULLPTR);
+                    ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, M_NULLPTR, M_NULLPTR, true,
+                                       genericLogBuf, logSize, M_NULLPTR);
                 }
-                else {
-                    return ret;
+                else
+                {
+                    return MEMORY_FAILURE;
                 }
+            }
+            else
+            {
+                return NOT_SUPPORTED;
             }
         }
         else
         {
             if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
             {
-                genericLogBuf = C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                genericLogBuf =
+                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
                 if (genericLogBuf)
                 {
-                    ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, M_NULLPTR, M_NULLPTR, true, genericLogBuf, logSize, M_NULLPTR);
+                    ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, M_NULLPTR, M_NULLPTR, true,
+                                       genericLogBuf, logSize, M_NULLPTR);
                 }
-                else {
-                    return ret;
+                else
+                {
+                    return MEMORY_FAILURE;
                 }
-
+            }
+            else
+            {
+                return NOT_SUPPORTED;
             }
         }
+
         switch (mode)
         {
         case PULL_LOG_PIPE_MODE:
         case PULL_LOG_RAW_MODE:
-            //FARM pull Factory subpages   
-            //0 - Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
-            //4 - factory subpage (SAS only)
-
+            // FARM pull Factory subpages
+            // 0 - Default: Generate and report new FARM data but do not save to disc (~7ms) (SATA only)
+            // 4 - factory subpage (SAS only)
             if (SUCCESS == ret)
             {
                 if (mode == PULL_LOG_PIPE_MODE)
@@ -4469,6 +4503,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                 }
             }
             break;
+
         case PULL_LOG_BIN_FILE_MODE:
         default:
             // FARM pull Factory subpages
@@ -4476,27 +4511,25 @@ eReturnValues pull_FARM_Log(tDevice*     device,
             // 4 - factory subpage (SAS only)
             if (issueFactory == 4)
             {
-
                 logName = "FACTORY_FARM";
-
             }
             else
             {
-
                 logName = "FARM";
             }
 
-            if (ret == SUCCESS) {
-                bool fileOpened = false;
+            if (ret == SUCCESS)
+            {
                 secureFileInfo* fp_log = M_NULLPTR;
-                uint16_t pagesToReadNow = 1;
-                int16_t returnedPageLength = M_BytesTo2ByteValue(genericLogBuf[2], genericLogBuf[3]) + LOG_PAGE_HEADER_LENGTH;
+                uint16_t        returnedPageLength =
+                    M_BytesTo2ByteValue(genericLogBuf[2], genericLogBuf[3]) + LOG_PAGE_HEADER_LENGTH;
 
-
-                if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
+                if (SUCCESS ==
+                    create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
                 {
-                    //write the log to a file
-                    if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, genericLogBuf, C_CAST(size_t, pagesToReadNow) * logSize, sizeof(uint8_t), M_Min(logSize, returnedPageLength), M_NULLPTR))
+                    // write the log to a file
+                    if (SEC_FILE_SUCCESS != secure_Write_File(fp_log, genericLogBuf, logSize, sizeof(uint8_t),
+                                                              M_Min(logSize, returnedPageLength), M_NULLPTR))
                     {
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
@@ -4508,6 +4541,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                         }
 
                         free_Secure_File_Info(&fp_log);
+                        safe_free_aligned(&genericLogBuf);
                         return ERROR_WRITING_FILE;
                     }
                     if (SEC_FILE_SUCCESS != secure_Flush_File(fp_log))
@@ -4522,6 +4556,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                         }
 
                         free_Secure_File_Info(&fp_log);
+                        safe_free_aligned(&genericLogBuf);
                         return ERROR_WRITING_FILE;
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
@@ -4540,11 +4575,10 @@ eReturnValues pull_FARM_Log(tDevice*     device,
                     {
                         printf("Failed to open file!\n");
                     }
-                    ret = FAILURE;
                     safe_free_aligned(&genericLogBuf);
                     free_Secure_File_Info(&fp_log);
+                    return FILE_OPEN_ERROR;
                 }
-
             }
             break;
         }
@@ -4553,6 +4587,7 @@ eReturnValues pull_FARM_Log(tDevice*     device,
     {
         ret = NOT_SUPPORTED;
     }
+
     safe_free_aligned(&genericLogBuf);
     return ret;
 }
