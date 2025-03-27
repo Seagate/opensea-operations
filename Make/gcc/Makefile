@@ -128,6 +128,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)drive_info.c\
 	$(SRC_DIR)format.c\
 	$(SRC_DIR)device_statistics.c\
+	$(SRC_DIR)cdl.c\
 	$(SRC_DIR)sas_phy.c\
 	$(SRC_DIR)depopulate.c\
 	$(SRC_DIR)zoned_operations.c\
