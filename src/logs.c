@@ -1728,11 +1728,6 @@ eReturnValues get_ATA_Log(tDevice*    device,
             {
                 printf("Error closing file!\n");
             }
-            if (device->deviceVerbosity > VERBOSITY_QUIET)
-            {
-                printf("\n");
-                printf("Binary log saved to: %s\n", fp_log->fullpath);
-            }
             fileOpened = false;
         }
         safe_free_aligned(&logBuffer);
