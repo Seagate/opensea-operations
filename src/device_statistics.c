@@ -8843,10 +8843,15 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
             }
             else
             {
-                //TODO: ACS-6 says this may report POH in milliseconds until first date and time timestamp command is sent.
                 printf("Error converting time\n");
             }
             set_Constraint_Handler(handler);
+        }
+        else if (theStatistic.statisticValue > UINT64_C(0))
+        {
+            // ACS-6 says this may report POH in milliseconds until first date and time timestamp command is sent.
+            // Through observation it seems that if the "valid" bit is not set, then this is what gets reported -TJE
+            printf("%" PRIu64 " power on ms\n", theStatistic.statisticValue);
         }
         else
         {
@@ -9975,8 +9980,8 @@ static M_INLINE bool is_ATA_Timestamp_Supported(tDevice* device)
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL,
                                                      devStats, ATA_LOG_PAGE_LEN_BYTES, 0))
             {
-                uint64_t* qwordPtr = M_REINTERPRET_CAST(uint64_t*, devStats);
-                if (M_Byte3(le64_to_host(*qwordPtr)) == ATA_DEVICE_STATS_LOG_GENERAL &&
+                uint64_t* qwordPtr = M_REINTERPRET_CAST(uint64_t*, &devStats[0]);
+                if (M_Byte2(le64_to_host(*qwordPtr)) == ATA_DEVICE_STATS_LOG_GENERAL &&
                     M_Word0(le64_to_host(*qwordPtr)) == ATA_DEV_STATS_VERSION_1)
                 {
                     statistic dateAndTime;
