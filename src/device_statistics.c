@@ -272,7 +272,7 @@ static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceS
 
 static statistic* dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
-    statistic *stat = M_NULLPTR;
+    statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsCDL_0_1_Offset, byteOffsetOnPage))
     {
     case ATA_DEV_STAT_CDL_LOWEST_ACHIEVABLE_CMD_DUR:
@@ -459,7 +459,7 @@ static statistic* dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics deviceStats, u
 
 static statistic* dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
 {
-    statistic *stat = M_NULLPTR;
+    statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsCDL_2_3_Offset, byteOffsetOnPage))
     {
         // Range 2 for STAT_A
@@ -759,7 +759,8 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
     uint32_t deviceStatsSize              = UINT32_C(0);
     uint32_t deviceStatsNotificationsSize = UINT32_C(0);
     // need to get the device statistics log
-    if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true) && deviceStatsSize > UINT32_C(0))
+    if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &deviceStatsSize, true, true) &&
+        deviceStatsSize > UINT32_C(0))
     {
         bool     dsnFeatureSupported = M_ToBool(le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT9);
         bool     dsnFeatureEnabled   = M_ToBool(le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT9);
@@ -815,7 +816,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                  ++pageIter)
             {
                 uint8_t statisticPage = deviceStatsLog[ATA_DEV_STATS_SUP_PG_LIST_OFFSET + pageIter];
-                offset = statisticPage * LEGACY_DRIVE_SEC_SIZE;
+                offset                = statisticPage * LEGACY_DRIVE_SEC_SIZE;
                 if (offset > deviceStatsSize)
                 {
                     // this exists for the hack loop above
@@ -949,10 +950,8 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
                     // possible bits seems ok.
                     //       Need more testing and to come back to this again later.
                     uint16_t statisticNumberOnPage = statisticOffset / UINT16_C(8);
-                    if (set_ATA_Dev_Stat_Info(
-                            le64_to_host(qwordPtrDeviceStatsLog[statisticNumberOnPage]),
-                            dev_stat_page_offset_map(deviceStats, statisticPage,
-                                                     statisticOffset)))
+                    if (set_ATA_Dev_Stat_Info(le64_to_host(qwordPtrDeviceStatsLog[statisticNumberOnPage]),
+                                              dev_stat_page_offset_map(deviceStats, statisticPage, statisticOffset)))
                     {
                         ++deviceStats->sataStatistics.statisticsPopulated;
                         if (statisticPage == ATA_DEVICE_STATS_LOG_VENDOR_SPECIFIC)
@@ -8836,6 +8835,7 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
             struct tm time;
             DECLARE_ZERO_INIT_ARRAY(char, timestr, TIME_STRING_LENGTH);
             safe_memset(&time, sizeof(struct tm), 0, sizeof(struct tm));
+            eConstraintHandler handler = set_Constraint_Handler(ERR_IGNORE);
             if (0 == safe_asctime(timestr, TIME_STRING_LENGTH,
                                   milliseconds_Since_Unix_Epoch_To_Struct_TM(theStatistic.statisticValue, &time)))
             {
@@ -8843,8 +8843,10 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
             }
             else
             {
+                //TODO: ACS-6 says this may report POH in milliseconds until first date and time timestamp command is sent.
                 printf("Error converting time\n");
             }
+            set_Constraint_Handler(handler);
         }
         else
         {
@@ -9336,7 +9338,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
         print_Count_Statistic(deviceStats->sataStatistics.headFlyingHours, "Head Flying Hours", "hours");
         print_Count_Statistic(deviceStats->sataStatistics.headLoadEvents, "Head Load Events", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocatedLogicalSectors,
-                              "Number Of Reallocated Logical Sectors", M_NULLPTR);
+                              "Number Of Reallocated Logical Sectors", deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isNormalized ? "%" : M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.readRecoveryAttempts, "Read Recovery Attempts", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.numberOfMechanicalStartFailures,
                               "Number Of Mechanical Start Failures", M_NULLPTR);
@@ -9419,12 +9421,15 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     if (deviceStats->sataStatistics.cdlStatisticsSupported)
     {
         printf("\n---Command Duration Limit Statistics---\n");
-        print_Time_Microseconds_Statistic(deviceStats->sataStatistics.lowestAchievableCommandDuration, "Lowest Achievable Command Duration");
+        print_Time_Microseconds_Statistic(deviceStats->sataStatistics.lowestAchievableCommandDuration,
+                                          "Lowest Achievable Command Duration");
         // These are a bit more complicated of a structure, so printing is handled differently
         // This is due to so much reuse of statistic formatting is in the spec that this was easier to handle this way.
-        for (uint8_t rangeIter = UINT8_C(0); rangeIter < deviceStats->sataStatistics.cdlStatisticRanges && rangeIter < MAX_CDL_STATISTIC_RANGES; ++rangeIter)
+        for (uint8_t rangeIter = UINT8_C(0);
+             rangeIter < deviceStats->sataStatistics.cdlStatisticRanges && rangeIter < MAX_CDL_STATISTIC_RANGES;
+             ++rangeIter)
         {
-            #define RANGE_ID_STR_LEN 16
+#define RANGE_ID_STR_LEN 16
             DECLARE_ZERO_INIT_ARRAY(char, rangeID, RANGE_ID_STR_LEN);
             if (deviceStats->sataStatistics.cdlStatisticRanges > 1)
             {
@@ -9436,37 +9441,44 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
             {
                 snprintf_err_handle(rangeID, RANGE_ID_STR_LEN, "Device");
             }
-            #define CDL_POLICY_STR_LEN 60
+#define CDL_POLICY_STR_LEN 60
             // Loop through r1-r7 stat a
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat A", rangeID, policyIter);
-                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.readPolicy[policyIter], policyName, "Invocations");
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat A", rangeID,
+                                    policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.readPolicy[policyIter],
+                                      policyName, "Invocations");
             }
             // loop through w1-w7 stat a
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat A", rangeID, policyIter);
-                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.writePolicy[policyIter], policyName, "Invocations");
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat A", rangeID,
+                                    policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.writePolicy[policyIter],
+                                      policyName, "Invocations");
             }
             // Loop through r1-r7 stat b
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat B", rangeID, policyIter);
-                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.readPolicy[policyIter], policyName, "Invocations");
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat B", rangeID,
+                                    policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.readPolicy[policyIter],
+                                      policyName, "Invocations");
             }
             // loop through w1-w7 stat b
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat B", rangeID, policyIter);
-                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.writePolicy[policyIter], policyName, "Invocations");
+                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat B", rangeID,
+                                    policyIter);
+                print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.writePolicy[policyIter],
+                                      policyName, "Invocations");
             }
         }
-
     }
     if (deviceStats->sataStatistics.vendorSpecificStatisticsSupported)
     {
