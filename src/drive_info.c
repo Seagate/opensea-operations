@@ -3180,6 +3180,7 @@ static eReturnValues get_Security_Features_From_Security_Protocol(tDevice*      
                 break;
             }
         }
+	ret = SUCCESS;
     }
     return ret;
 }
@@ -7278,7 +7279,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
                     supportedOpRequest.operationCode      = 0xA2;
                     supportedOpRequest.serviceActionValid = false;
                     eSCSICmdSupport secProtSupported = is_SCSI_Operation_Code_Supported(device, &supportedOpRequest);
-                    if (secProtSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+                    if (secProtSupported != SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
                     {
                         driveInfo->trustedCommandsBeingBlocked = true;
                     }
@@ -7378,7 +7379,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
 
     get_SCSI_Read_Capacity_Data(device, driveInfo, &scsiInfo);
 
-    if (scsiInfo.version == 6 &&
+    if (scsiInfo.version >= 6 &&
         (device->drive_info.passThroughHacks.scsiHacks.securityProtocolSupported ||
          SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, 0,
                                              M_NULLPTR))) // security protocol commands introduced in SPC4. TODO: may
