@@ -4287,7 +4287,7 @@ eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice* device, uint32_t* minRcvT
             uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatus[1], sctStatus[0]);
             if (sctFormatVersion > 2)
             {
-                *minRcvTimeLmtMilliseconds = M_BytesTo2ByteValue(sctStatus[216], sctStatus[217]);
+                *minRcvTimeLmtMilliseconds = M_BytesTo2ByteValue(sctStatus[217], sctStatus[216]);
                 *minRcvTimeLmtMilliseconds *= 100;
                 ret = SUCCESS;
             }
