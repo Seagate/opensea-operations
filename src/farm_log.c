@@ -2820,6 +2820,7 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_ASCII("Firmware Revision", &driveInfo->fwrev[0],
                                                     FARM_DRIVE_INFO_FWREV_ASCII_LEN);
             print_Stat_If_Supported_And_Valid_2Qwords_To_UINT64_Hex("World Wide Name", &driveInfo->wwn[0]);
+            print_Stat_If_Supported_And_Valid_ASCII("Date of Assembly", &driveInfo->dateOfAssembly, 1);
             print_Stat_If_Supported_And_Valid_ASCII("Drive Interface", &driveInfo->driveInterface, 1);
             // This is a very overly simple hack to detect interface.
             // It's a string set to "SAS" or "SATA" so this will work for now - TJE
@@ -2833,10 +2834,12 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                 *farmInterface = FARM_DRIVE_INTERFACE_SATA;
             }
             print_Stat_If_Supported_And_Valid_Uint64("Device Capacity (LBAs)", driveInfo->driveCapacity);
+            print_Stat_If_Supported_And_Valid_Uint64("Number of LBAs (HSMR SWR capacity)", driveInfo->numberOfLBAs);
             print_Stat_If_Supported_And_Valid_Uint64("Physical Sector Size (B)", driveInfo->physicalSectorSize);
             print_Stat_If_Supported_And_Valid_Uint64("Logical Sector Size (B)", driveInfo->logicalSectorSize);
             print_Stat_If_Supported_And_Valid_Uint64("Device Buffer Size (B)", driveInfo->deviceBufferSize);
             print_Stat_If_Supported_And_Valid_Uint64("Number Of Heads", driveInfo->numberOfHeads);
+            print_Stat_If_Supported_And_Valid_Recording_Type("Drive Recording Type", driveInfo->driveRecordingType);
             print_Stat_If_Supported_And_Valid_HexUint64("Form Factor", driveInfo->deviceFormFactor);
             print_Stat_If_Supported_And_Valid_Uint64("Rotation Rate", driveInfo->rotationRate);
             print_Stat_If_Supported_And_Valid_HexUint64("ATA Security State", driveInfo->ataSecurityState);
@@ -2847,10 +2850,18 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                                                    MICRO_SECONDS_PER_HOUR);
             print_Stat_If_Supported_And_Valid_Time("Head Flight Hours", driveInfo->headFlightHours,
                                                    MICRO_SECONDS_PER_HOUR);
+            print_Stat_If_Supported_And_Valid_Time("Head Flight Hours, Actuator 1", driveInfo->headFlightHoursActuator1,
+                                                   MICRO_SECONDS_PER_HOUR);
             print_Stat_If_Supported_And_Valid_Uint64("Head Load Events", driveInfo->headLoadEvents);
+            print_Stat_If_Supported_And_Valid_Uint64("Head Load Events, Actuator 1",
+                                                     driveInfo->headLoadEventsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("Power Cycle Count", driveInfo->powerCycleCount);
             print_Stat_If_Supported_And_Valid_Uint64("Hardware Reset Count", driveInfo->hardwareResetCount);
             print_Stat_If_Supported_And_Valid_Uint64("Spin up time (ms)", driveInfo->spinUpTimeMilliseconds);
+            print_Stat_If_Supported_And_Valid_Uint64("Time to ready, last power cycle (ms)",
+                                                     driveInfo->timeToReadyOfLastPowerCycle);
+            print_Stat_If_Supported_And_Valid_Uint64("Time in staggered spinup, last power on sequence (ms)",
+                                                     driveInfo->timeDriveHeldInStaggeredSpinDuringLastPowerOnSequence);
             if (*farmInterface == FARM_DRIVE_INTERFACE_SAS)
             {
                 print_Stat_If_Supported_And_Valid_Uint64("NVC Status at Power On", driveInfo->nvcStatusOnPoweron);
@@ -2863,24 +2874,17 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_Time("Highest POH timestamp (Hours)",
                                                    driveInfo->highestPOHForTimeRestrictedParameters,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Uint64("Time to ready, last power cycle (ms)",
-                                                     driveInfo->timeToReadyOfLastPowerCycle);
-            print_Stat_If_Supported_And_Valid_Uint64("Time in staggered spinup, last power on sequence (ms)",
-                                                     driveInfo->timeDriveHeldInStaggeredSpinDuringLastPowerOnSequence);
-            print_Stat_If_Supported_And_Valid_Recording_Type("Drive Recording Type", driveInfo->driveRecordingType);
             print_Stat_If_Supported_And_Valid_Bool("Depop Status", driveInfo->isDriveDepopulated, "Depoped",
                                                    "Not Depoped");
+            print_Stat_If_Supported_And_Valid_HexUint64("Depop Head Mask", driveInfo->depopulationHeadMask);
+            print_Stat_If_Supported_And_Valid_HexUint64("Regen Head Mask", driveInfo->regenHeadMask);
+            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status",
+                                                      driveInfo->getPhysicalElementStatusByHead,
+                                                      driveInfo->numberOfHeads, FARM_BY_HEAD_HEX, 0.0);
             print_Stat_If_Supported_And_Valid_Uint64("Max # Available Disc Sectors for Reassignment",
                                                      driveInfo->maxAvailableSectorsForReassignment);
-            print_Stat_If_Supported_And_Valid_ASCII("Date of Assembly", &driveInfo->dateOfAssembly, 1);
-            print_Stat_If_Supported_And_Valid_HexUint64("Depop Head Mask", driveInfo->depopulationHeadMask);
-            print_Stat_If_Supported_And_Valid_Time("Head Flight Hours, Actuator 1", driveInfo->headFlightHoursActuator1,
-                                                   MICRO_SECONDS_PER_HOUR);
-            print_Stat_If_Supported_And_Valid_Uint64("Head Load Events, Actuator 1",
-                                                     driveInfo->headLoadEventsActuator1);
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus,
                                                    "Data Protect", "No Data Protect");
-            print_Stat_If_Supported_And_Valid_HexUint64("Regen Head Mask", driveInfo->regenHeadMask);
             print_Stat_If_Supported_And_Valid_Time("Power On Hours of Most Recent FARM Time Series Frame",
                                                    driveInfo->pohOfMostRecentTimeseriesFrame,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
@@ -2891,12 +2895,10 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                 "Seq or Before Req for Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "Seq Write ReqActive Zone Config",
+                "Seq Write Req Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
-            print_Stat_If_Supported_And_Valid_Uint64("Number of LBAs (HSMR SWR capacity)", driveInfo->numberOfLBAs);
-            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status",
-                                                      driveInfo->getPhysicalElementStatusByHead,
-                                                      driveInfo->numberOfHeads, FARM_BY_HEAD_HEX, 0.0);
+            
+            
         }
     }
 }
@@ -2919,12 +2921,20 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
             print_Stat_If_Supported_And_Valid_Uint64("LBAs Read", work->logicalSectorsRead);
             print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle",
                                                      work->numberOfDitherEventsInCurrentPowerCycle);
+            print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle, Actuator 1",
+                                                     work->numberOfDitherEventsInCurrentPowerCycleActuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring random workloads in power cycle",
+                "# dither pause - random workloads in power cycle",
                 work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycle);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring sequential workloads in power cycle",
+                "# dither pause - random workloads in power cycle, Actuator 1",
+                work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycleActuator1);
+            print_Stat_If_Supported_And_Valid_Uint64(
+                "# dither pause - sequential workloads in power cycle",
                 work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycle);
+            print_Stat_If_Supported_And_Valid_Uint64(
+                "# dither pause - sequential workloads in power cycle, Actuator 1",
+                work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycleActuator1);
             bool commandCover = false;
             commandCover =
                 true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 0-3.125% LBA space",
@@ -2974,41 +2984,41 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
             }
             commandCover = false;
             commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length <= 16KiB",
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer <= 16KiB",
                                                                  work->numReadsOfXferLenLT16KB)
                     ? true
                     : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of read commands with transfer length 16Kib - 512KiB",
+                                       "# of read commands with xfer 16Kib - 512KiB",
                                        work->numReadsOfXferLen16KBTo512KB)
                                ? true
                                : commandCover;
             commandCover =
                 true == print_Stat_If_Supported_And_Valid_Uint64(
-                            "# of read commands with transfer length 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB)
+                            "# of read commands with xfer 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB)
                     ? true
                     : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of read commands with transfer length > 2MiB", work->numReadsOfXferLenGT2MB)
+                                       "# of read commands with xfer > 2MiB", work->numReadsOfXferLenGT2MB)
                                ? true
                                : commandCover;
             commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length <= 16KiB",
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer <= 16KiB",
                                                                  work->numWritesOfXferLenLT16KB)
                     ? true
                     : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with transfer length 16Kib - 512KiB",
+                                       "# of write commands with xfer 16Kib - 512KiB",
                                        work->numWritesOfXferLen16KBTo512KB)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with transfer length 512KiB - 2MiB",
+                                       "# of write commands with xfer 512KiB - 2MiB",
                                        work->numWritesOfXferLen512KBTo2MB)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with transfer length > 2MiB", work->numWritesOfXferLenGT2MB)
+                                       "# of write commands with xfer > 2MiB", work->numWritesOfXferLenGT2MB)
                                ? true
                                : commandCover;
             if (commandCover)
@@ -3056,52 +3066,45 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
-            print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle, Actuator 1",
-                                                     work->numberOfDitherEventsInCurrentPowerCycleActuator1);
-            print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring random workloads in power cycle, Actuator 1",
-                work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycleActuator1);
-            print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring sequential workloads in power cycle, Actuator 1",
-                work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycleActuator1);
+            
             commandCover = false;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 4, last 3 SMART Summary Frames",
+                                       "# of reads of xfer bin 4, last 3 SSF",
                                        work->numReadsXferLenBin4Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 5, last 3 SMART Summary Frames",
+                                       "# of reads of xfer bin 5, last 3 SSF",
                                        work->numReadsXferLenBin5Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 6, last 3 SMART Summary Frames",
+                                       "# of reads of xfer bin 6, last 3 SSF",
                                        work->numReadsXferLenBin6Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 7, last 3 SMART Summary Frames",
+                                       "# of reads of xfer bin 7, last 3 SSF",
                                        work->numReadsXferLenBin7Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 4, last 3 SMART Summary Frames",
+                                       "# of writes of xfer bin 4, last 3 SSF",
                                        work->numWritesXferLenBin4Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 5, last 3 SMART Summary Frames",
+                                       "# of writes of xfer bin 5, last 3 SSF",
                                        work->numWritesXferLenBin5Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 6, last 3 SMART Summary Frames",
+                                       "# of writes of xfer bin 6, last 3 SSF",
                                        work->numWritesXferLenBin6Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 7, last 3 SMART Summary Frames",
+                                       "# of writes of xfer bin 7, last 3 SSF",
                                        work->numWritesXferLenBin7Last3SMARTSummaryFrames)
                                ? true
                                : commandCover;
@@ -3215,14 +3218,14 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
             print_Stat_If_Supported_And_Valid_Uint64("# of Unrecoverable Write Errors",
                                                      error->numberOfUnrecoverableWriteErrors);
             print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Sectors", error->numberOfReallocatedSectors);
+            print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Sectors, Actuator 1",
+                                                     error->numberOfReallocatedSectorsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("# of Read Recovery Attempts",
                                                      error->numberOfReadRecoveryAttempts);
             print_Stat_If_Supported_And_Valid_Uint64("# of Mechanical Start Retries",
                                                      error->numberOfMechanicalStartRetries);
             print_Stat_If_Supported_And_Valid_Uint64("# of Reallocation Candidate Sectors",
                                                      error->numberOfReallocationCandidateSectors);
-            print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Sectors, Actuator 1",
-                                                     error->numberOfReallocatedSectorsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Candidate Sectors, Actuator 1",
                                                      error->numberOfReallocationCandidateSectorsActuator1);
             if (driveInterface == FARM_DRIVE_INTERFACE_SATA)
@@ -3294,10 +3297,10 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
                 "# Reallocation Candidate between N & N-1 FARM Time Series Frame",
                 error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocated Sectors since last FARM Time Series Frame",
+                "# Reallocated Sectors since last FARM Time Series Frame, Actuator 1",
                 error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSavedActuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocated Sectors between N & N-1 FARM Time Series Frame",
+                "# Reallocated Sectors between N & N-1 FARM Time Series Frame, Actuator 1",
                 error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "# Reallocation Candidate Sectors since last FARM Time Series Frame Actuator 1",
@@ -3477,7 +3480,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                                       MICRO_SECONDS_PER_SECOND);
             print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector",
                                                      reli->numLBAsCorrectedByParitySector);
-            print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector Actuator 1s",
+            print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector Actuator 1",
                                                      reli->numLBAsCorrectedByParitySectorActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("Primary Super Parity Coverage %",
                                                      reli->superParityCoveragePercent);
