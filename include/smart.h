@@ -98,7 +98,7 @@ extern "C"
 #define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    129 // This leaves room for a M_NULLPTR terminating character
 #define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91  // This leaves room for a M_NULLPTR terminating character
 #define MAX_HYBRID_RAW_STRING_LENGTH            24  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        5   // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        9   // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_FEILD_COUNT                     4   // Right now we have identified maximum 4 field for attributes
 
     M_DECLARE_ENUM(eATAAttributeRawFieldUnitType,
@@ -124,8 +124,10 @@ extern "C"
                    RAW_FIELD_UNIT_GiB = 9,
                    /*!< Value in MiB. */
                    RAW_FIELD_UNIT_MiB = 10,
+                   /*!< Value in Sectors. */
+                   RAW_FIELD_UNIT_SECTORS = 11,
                    /*!< Unknown Unit. */
-                   RAW_FIELD_UNIT_UNKNOWN = 11);
+                   RAW_FIELD_UNIT_UNKNOWN = 12);
 
     typedef struct s_ataAttributeRawFieldData
     {
