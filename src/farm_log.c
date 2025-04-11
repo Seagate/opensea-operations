@@ -2747,7 +2747,7 @@ typedef enum eFARMByHeadOutputFormat
 } eFARMByHeadOutputFormat;
 
 #define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
-static void print_Stat_If_Supported_And_Valid_By_Head(const char*             statisticname,
+static bool print_Stat_If_Supported_And_Valid_By_Head(const char*             statisticname,
                                                       uint64_t                byhead[FARM_MAX_HEADS],
                                                       uint64_t                numberOfHeads,
                                                       eFARMByHeadOutputFormat outputFormat,
@@ -2755,6 +2755,7 @@ static void print_Stat_If_Supported_And_Valid_By_Head(const char*             st
 {
     if (byhead != M_NULLPTR)
     {
+        uint64_t printCount = UINT64_C(0);
         for (uint64_t headiter = UINT64_C(0); headiter < FARM_MAX_HEADS && headiter < numberOfHeads; ++headiter)
         {
             size_t byheadstatstrlen = safe_strlen(statisticname);
@@ -2802,9 +2803,17 @@ static void print_Stat_If_Supported_And_Valid_By_Head(const char*             st
                 printed = print_Stat_If_Supported_And_Valid_Time(byheadstatname, byhead[headiter], conversionfactor);
                 break;
             }
-            M_USE_UNUSED(printed);
+            if (printed)
+            {
+                ++printCount;
+            }
+        }
+        if (printCount > UINT64_C(0))
+        {
+            return true;
         }
     }
+    return false;
 }
 
 static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface* farmInterface)
@@ -2865,7 +2874,7 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             if (*farmInterface == FARM_DRIVE_INTERFACE_SAS)
             {
                 print_Stat_If_Supported_And_Valid_Uint64("NVC Status at Power On", driveInfo->nvcStatusOnPoweron);
-                print_Stat_If_Supported_And_Valid_Uint64("Time Availabe to Save User Data To NVMem",
+                print_Stat_If_Supported_And_Valid_Uint64("Time Availabe to Save User Data To NV Mem",
                                                          driveInfo->timeAvailableToSaveUDToNVMem); // 100us
             }
             print_Stat_If_Supported_And_Valid_Time("Lowest POH timestamp (Hours)",
@@ -2874,10 +2883,10 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_Time("Highest POH timestamp (Hours)",
                                                    driveInfo->highestPOHForTimeRestrictedParameters,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Bool("Depop Status", driveInfo->isDriveDepopulated, "Depoped",
-                                                   "Not Depoped");
-            print_Stat_If_Supported_And_Valid_HexUint64("Depop Head Mask", driveInfo->depopulationHeadMask);
-            print_Stat_If_Supported_And_Valid_HexUint64("Regen Head Mask", driveInfo->regenHeadMask);
+            print_Stat_If_Supported_And_Valid_Bool("Depopulation Status", driveInfo->isDriveDepopulated, "Depopulated",
+                                                   "Not Depopulated");
+            print_Stat_If_Supported_And_Valid_HexUint64("Depopulation Head Mask", driveInfo->depopulationHeadMask);
+            print_Stat_If_Supported_And_Valid_HexUint64("Regeneration Head Mask", driveInfo->regenHeadMask);
             print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status",
                                                       driveInfo->getPhysicalElementStatusByHead,
                                                       driveInfo->numberOfHeads, FARM_BY_HEAD_HEX, 0.0);
@@ -2897,8 +2906,6 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_Uint64(
                 "Seq Write Req Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
-            
-            
         }
     }
 }
@@ -2923,9 +2930,8 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
                                                      work->numberOfDitherEventsInCurrentPowerCycle);
             print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle, Actuator 1",
                                                      work->numberOfDitherEventsInCurrentPowerCycleActuator1);
-            print_Stat_If_Supported_And_Valid_Uint64(
-                "# dither pause - random workloads in power cycle",
-                work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycle);
+            print_Stat_If_Supported_And_Valid_Uint64("# dither pause - random workloads in power cycle",
+                                                     work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycle);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "# dither pause - random workloads in power cycle, Actuator 1",
                 work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycleActuator1);
@@ -2983,42 +2989,39 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
             commandCover = false;
-            commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer <= 16KiB",
-                                                                 work->numReadsOfXferLenLT16KB)
-                    ? true
-                    : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of read commands with xfer 16Kib - 512KiB",
-                                       work->numReadsOfXferLen16KBTo512KB)
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer <= 16KiB",
+                                                                            work->numReadsOfXferLenLT16KB)
                                ? true
                                : commandCover;
             commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64(
-                            "# of read commands with xfer 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB)
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer 16Kib - 512KiB",
+                                                                 work->numReadsOfXferLen16KBTo512KB)
                     ? true
                     : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of read commands with xfer > 2MiB", work->numReadsOfXferLenGT2MB)
+                                       "# of read commands with xfer 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB)
+                               ? true
+                               : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer > 2MiB",
+                                                                            work->numReadsOfXferLenGT2MB)
+                               ? true
+                               : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer <= 16KiB",
+                                                                            work->numWritesOfXferLenLT16KB)
                                ? true
                                : commandCover;
             commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer <= 16KiB",
-                                                                 work->numWritesOfXferLenLT16KB)
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer 16Kib - 512KiB",
+                                                                 work->numWritesOfXferLen16KBTo512KB)
                     ? true
                     : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with xfer 16Kib - 512KiB",
-                                       work->numWritesOfXferLen16KBTo512KB)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with xfer 512KiB - 2MiB",
-                                       work->numWritesOfXferLen512KBTo2MB)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with xfer > 2MiB", work->numWritesOfXferLenGT2MB)
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer 512KiB - 2MiB",
+                                                                 work->numWritesOfXferLen512KBTo2MB)
+                    ? true
+                    : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer > 2MiB",
+                                                                            work->numWritesOfXferLenGT2MB)
                                ? true
                                : commandCover;
             if (commandCover)
@@ -3066,48 +3069,48 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
-            
+
             commandCover = false;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of xfer bin 4, last 3 SSF",
-                                       work->numReadsXferLenBin4Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of xfer bin 5, last 3 SSF",
-                                       work->numReadsXferLenBin5Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of xfer bin 6, last 3 SSF",
-                                       work->numReadsXferLenBin6Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of xfer bin 7, last 3 SSF",
-                                       work->numReadsXferLenBin7Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of xfer bin 4, last 3 SSF",
-                                       work->numWritesXferLenBin4Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of xfer bin 5, last 3 SSF",
-                                       work->numWritesXferLenBin5Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of xfer bin 6, last 3 SSF",
-                                       work->numWritesXferLenBin6Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of xfer bin 7, last 3 SSF",
-                                       work->numWritesXferLenBin7Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 4, last 3 SSF",
+                                                                 work->numReadsXferLenBin4Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 5, last 3 SSF",
+                                                                 work->numReadsXferLenBin5Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 6, last 3 SSF",
+                                                                 work->numReadsXferLenBin6Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 7, last 3 SSF",
+                                                                 work->numReadsXferLenBin7Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 4, last 3 SSF",
+                                                                 work->numWritesXferLenBin4Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 5, last 3 SSF",
+                                                                 work->numWritesXferLenBin5Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 6, last 3 SSF",
+                                                                 work->numWritesXferLenBin6Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 7, last 3 SSF",
+                                                                 work->numWritesXferLenBin7Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
             if (commandCover)
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time that XFer Bins Cover (Hours)",
@@ -3118,10 +3121,10 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
     }
 }
 
-#define FLED_INFO_STR_LEN        10
-#define RWRETRY_INFO_STR_LEN     10
-#define FLEDTIMESTAMP_STR_LEN    10
-#define FLED_POWER_CYCLE_STR_LEN 10
+#define FLED_INFO_STR_LEN        20
+#define RWRETRY_INFO_STR_LEN     20
+#define FLEDTIMESTAMP_STR_LEN    20
+#define FLED_POWER_CYCLE_STR_LEN 20
 
 static char* get_Farm_FLED_Info_String(char* str, size_t strlen, uint64_t fledqword)
 {
@@ -3183,6 +3186,7 @@ static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator actuator,
         return;
     }
     uint8_t eventCount = UINT8_C(0);
+    printf("%*s                %-*s  %-*s  %-*s  %-*s\n", M_STATIC_CAST(int, safe_strlen(farmActuatorStr)), "", FLED_INFO_STR_LEN, "FLED", RWRETRY_INFO_STR_LEN, "RW Retry", FLEDTIMESTAMP_STR_LEN, "Timestamp", FLED_POWER_CYCLE_STR_LEN, "Power Cycle");
     while (eventCount < FARM_FLED_EVENTS && index < FARM_FLED_EVENTS)
     {
         DECLARE_ZERO_INIT_ARRAY(char, fledInfoStr, FLED_INFO_STR_LEN);
@@ -3190,11 +3194,11 @@ static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator actuator,
         DECLARE_ZERO_INIT_ARRAY(char, timestampStr, FLEDTIMESTAMP_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, powerCycleStr, FLED_POWER_CYCLE_STR_LEN);
 
-        printf("%sFlash LED Info:\t%s\t%s\t%s\t%s\n", farmActuatorStr,
-               get_Farm_FLED_Info_String(fledInfoStr, FLED_INFO_STR_LEN, fledInfo[index]),
-               get_Farm_FLED_Info_String(rwRetryStr, FLED_INFO_STR_LEN, rwRetry[index]),
-               get_Farm_FLED_Info_String(timestampStr, FLED_INFO_STR_LEN, fledtimestamp[index]),
-               get_Farm_FLED_Info_String(powerCycleStr, FLED_INFO_STR_LEN, powerCycleFLED[index]));
+        printf("%sFlash LED Info: %-*s  %-*s  %-*s  %-*s\n", farmActuatorStr,
+               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(fledInfoStr, FLED_INFO_STR_LEN, fledInfo[index]),
+               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(rwRetryStr, RWRETRY_INFO_STR_LEN, rwRetry[index]),
+               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(timestampStr, FLEDTIMESTAMP_STR_LEN, fledtimestamp[index]),
+               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(powerCycleStr, FLED_POWER_CYCLE_STR_LEN, powerCycleFLED[index]));
 
         // increment index. Reset to zero if we go past the last event since this is a wrapping array.
         ++index;
@@ -3320,7 +3324,7 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
     }
 }
 
-static void print_FARM_Environment_Info(farmEnvironmentStatistics* env)
+static void print_FARM_Environment_Info(farmEnvironmentStatistics* env, uint64_t timerestrictedRangems)
 {
     if (env != M_NULLPTR)
     {
@@ -3348,18 +3352,50 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env)
             print_Stat_If_Supported_And_Valid_Uint64("Specified Min Temperature (C)", env->specifiedMinTemp);
             print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Relative Humidity (%)",
                                                             env->currentRelativeHumidity, 0.1);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 12v input (V)", env->current12Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v input (V)", env->min12Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v input (V)", env->max12Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 5v input (V)", env->current5Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v input (V)", env->min5Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v input (V)", env->max5Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 12v power (W)", env->average12Vpwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v power (W)", env->min12VPwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v power (W)", env->max12VPwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 5v power (W)", env->average5Vpwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v power (W)", env->min5Vpwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v power (W)", env->max5Vpwr, 0.001);
+            if (print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Motor Power (W)", env->currentMotorPowerFromMostRecentSMARTSummaryFrame, 0.001))
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Motor Power (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+            bool powerCov = false;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 12v input (V)", env->current12Vinput, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v input (V)", env->min12Vinput, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v input (V)", env->max12Vinput, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 5v input (V)", env->current5Vinput, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v input (V)", env->min5Vinput, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v input (V)", env->max5Vinput, 0.001) ? true : powerCov;
+            if (powerCov)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for 12v & 5v voltage (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+            powerCov = false;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 12v power (W)", env->average12Vpwr, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v power (W)", env->min12VPwr, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v power (W)", env->max12VPwr, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 5v power (W)", env->average5Vpwr, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v power (W)", env->min5Vpwr, 0.001) ? true : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v power (W)", env->max5Vpwr, 0.001) ? true : powerCov;
+            if (powerCov)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for 12v & 5v power (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
         }
     }
 }
@@ -3383,7 +3419,8 @@ static void print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(uint64_
 
 static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                         uint64_t                   numheads,
-                                        eFARMDriveInterface        farminterface)
+                                        eFARMDriveInterface        farminterface,
+                                        uint64_t                   timerestrictedRangems)
 {
     if (reli != M_NULLPTR)
     {
@@ -3422,10 +3459,20 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
             print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(reli->mrHeadResistanceByHead, numheads);
             print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(reli->secondHeadMRHeadResistanceByHead,
                                                                          numheads);
-            print_Stat_If_Supported_And_Valid_By_Head("Velocity Observer", reli->velocityObserverByHead, numheads,
-                                                      FARM_BY_HEAD_UINT64, 0.0);
-            print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer", reli->numberOfVelocityObserverByHead,
-                                                      numheads, FARM_BY_HEAD_UINT64, 0.0);
+            bool velObs = false;
+
+            velObs =
+                true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer", reli->velocityObserverByHead, numheads,
+                                                      FARM_BY_HEAD_UINT64, 0.0) ? true : velObs;
+            velObs =
+                true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer No TMD", reli->numberOfVelocityObserverNoTMDByHead,
+                                                      numheads, FARM_BY_HEAD_UINT64, 0.0) ? true : velObs;
+            if (velObs)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Velocity Observer (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
             print_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error Zone 0",
                                                       reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone1, numheads,
                                                       FARM_BY_HEAD_UINT64_FACTOR, 0.10);
@@ -3527,8 +3574,8 @@ void print_FARM_Data(farmLogData* farmdata)
         print_Farm_Drive_Info(&farmdata->driveinfo, &farminterface);
         print_FARM_Workload_Info(&farmdata->workload, timeRestrictedRangeMS);
         print_FARM_Error_Info(&farmdata->error, headcnt, farminterface);
-        print_FARM_Environment_Info(&farmdata->environment);
-        print_FARM_Reliability_Info(&farmdata->reliability, headcnt, farminterface);
+        print_FARM_Environment_Info(&farmdata->environment, timeRestrictedRangeMS);
+        print_FARM_Reliability_Info(&farmdata->reliability, headcnt, farminterface, timeRestrictedRangeMS);
     }
     RESTORE_NONNULL_COMPARE
 }

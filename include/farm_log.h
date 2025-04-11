@@ -488,7 +488,7 @@ extern "C"
         uint64_t mrHeadResistanceByHead[FARM_MAX_HEADS]; // on SAS in by param 1Ah
         uint64_t reserved4[FARM_RELI_RESERVED4];
         uint64_t velocityObserverByHead[FARM_MAX_HEADS];
-        uint64_t numberOfVelocityObserverByHead[FARM_MAX_HEADS];
+        uint64_t numberOfVelocityObserverNoTMDByHead[FARM_MAX_HEADS];
         uint64_t currentH2SATtrimmedMeanBitsInErrorByHeadZone1[FARM_MAX_HEADS]; // on SAS in by param 20h
         uint64_t currentH2SATtrimmedMeanBitsInErrorByHeadZone2[FARM_MAX_HEADS]; // on SAS in by param 31h
         uint64_t currentH2SATtrimmedMeanBitsInErrorByHeadZone3[FARM_MAX_HEADS]; // on SAS in by param 32h
