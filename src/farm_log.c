@@ -2006,6 +2006,22 @@ static M_INLINE void sas_Fill_By_Head_Data(uint8_t* paramptr, uint8_t paramlen, 
     }
 }
 
+static M_INLINE void sas_Fill_By_Head_Data_2D_Array(uint8_t*     paramptr,
+                                                    uint8_t      paramlen,
+                                                    uint64_t**   byheadarray,
+                                                    unsigned int dimension)
+{
+    if (paramptr != M_NULLPTR && byheadarray != M_NULLPTR && dimension < 3U)
+    {
+        uint64_t* qwordptr = M_REINTERPRET_CAST(uint64_t*, &paramptr[0]);
+        uint8_t   maxHeads = paramlen / UINT8_C(8);
+        for (uint8_t headiter = UINT8_C(0); headiter < maxHeads && headiter < FARM_MAX_HEADS; ++headiter)
+        {
+            byheadarray[headiter][dimension] = qwordptr[headiter];
+        }
+    }
+}
+
 static void sas_Read_FARM_Error_Info(uint8_t* ptrData, farmErrorStatistics* error)
 {
     if (ptrData != M_NULLPTR && error != M_NULLPTR)
@@ -2158,22 +2174,34 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
             sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->writeWorkloadPowerOnTimeByHead);
             break;
         case 0x0030: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone1);
+            sas_Fill_By_Head_Data_2D_Array(
+                ptrData + 4, paramlen,
+                M_REINTERPRET_CAST(uint64_t**, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone), 0);
             break;
         case 0x0031: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone2);
+            sas_Fill_By_Head_Data_2D_Array(
+                ptrData + 4, paramlen,
+                M_REINTERPRET_CAST(uint64_t**, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone), 1);
             break;
         case 0x0032: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone3);
+            sas_Fill_By_Head_Data_2D_Array(
+                ptrData + 4, paramlen,
+                M_REINTERPRET_CAST(uint64_t**, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone), 2);
             break;
         case 0x0033: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATiterationsToConvergeByHeadZone1);
+            sas_Fill_By_Head_Data_2D_Array(
+                ptrData + 4, paramlen, M_REINTERPRET_CAST(uint64_t**, reli->currentH2SATiterationsToConvergeByHeadZone),
+                0);
             break;
         case 0x0034: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATiterationsToConvergeByHeadZone2);
+            sas_Fill_By_Head_Data_2D_Array(
+                ptrData + 4, paramlen, M_REINTERPRET_CAST(uint64_t**, reli->currentH2SATiterationsToConvergeByHeadZone),
+                1);
             break;
         case 0x0035: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATiterationsToConvergeByHeadZone3);
+            sas_Fill_By_Head_Data_2D_Array(
+                ptrData + 4, paramlen, M_REINTERPRET_CAST(uint64_t**, reli->currentH2SATiterationsToConvergeByHeadZone),
+                2);
             break;
         case 0x0043: // second mr head resistance by head (reliability)
             sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->secondHeadMRHeadResistanceByHead);
@@ -2473,13 +2501,15 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64_Factor(const char*
             int precision = 2;
             if (conversionFactor <= 0.001)
             {
-                // printed = printf("\t\t%0.03f\n", M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData)) *
-                // conversionFactor) > 0 ? true : false;
                 precision = 3;
             }
             if (conversionFactor <= 0.0001)
             {
                 precision = 4;
+            }
+            if (conversionFactor <= 0.00001)
+            {
+                precision = 5;
             }
             printed = printf("\t\t%.*f\n", precision,
                              M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData)) * conversionFactor) > 0
@@ -2505,6 +2535,19 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* 
         print_Statistic_Name(statisticname);
         if ((status & FARM_FIELD_VALID_BIT) > 0)
         {
+            int precision = 2;
+            if (conversionFactor <= 0.001)
+            {
+                precision = 3;
+            }
+            if (conversionFactor <= 0.0001)
+            {
+                precision = 4;
+            }
+            if (conversionFactor <= 0.00001)
+            {
+                precision = 5;
+            }
             int64_t signedval = M_STATIC_CAST(int64_t, get_Farm_Qword_Data(statisticData));
             if (M_Byte6(M_STATIC_CAST(uint64_t, signedval)) & BIT7)
             {
@@ -2512,7 +2555,8 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* 
                 // bit of the host is set properly.
                 signedval = M_STATIC_CAST(int64_t, M_STATIC_CAST(uint64_t, signedval) | UINT64_C(0xFFFF000000000000));
             }
-            printed = printf("\t\t%0.02f\n", M_STATIC_CAST(double, signedval) * conversionFactor) > 0 ? true : false;
+            printed = printf("\t\t%0.*f\n", precision, M_STATIC_CAST(double, signedval) * conversionFactor) > 0 ? true
+                                                                                                                : false;
         }
         else
         {
@@ -2574,8 +2618,16 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_HexUint64(const char* sta
     return printed;
 }
 
+#define FARM_FLOAT_PERCENT_DELTA_FACTORY_BIT BIT0
+#define FARM_FLOAT_NEGATIVE_BIT              BIT1
+
+static M_INLINE uint8_t get_Farm_Float_Bits(uint64_t floatData)
+{
+    return M_Byte6(floatData);
+}
+
 // For Mrheadresistance type output
-static M_INLINE bool print_Stat_If_Supported_And_Valid_Float(const char* statisticname, uint64_t statisticData)
+static bool print_Stat_If_Supported_And_Valid_Float(const char* statisticname, uint64_t statisticData)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2584,16 +2636,24 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Float(const char* statist
         print_Statistic_Name(statisticname);
         if ((status & FARM_FIELD_VALID_BIT) > 0)
         {
-            double  calculated  = 0.0;
-            double  decimalPart = M_STATIC_CAST(double, get_DWord0(statisticData));
-            int16_t wholePart   = M_STATIC_CAST(int16_t, M_Word2(statisticData));
-            uint8_t bits        = get_Farm_MR_Head_Resistance_Bits(statisticData);
-            calculated          = M_STATIC_CAST(double, wholePart) + (decimalPart * 0.0001);
-            if (bits & MR_HEAD_RESISTANCE_NEGATIVE_BIT)
+            uint8_t bits = get_Farm_Float_Bits(statisticData);
+            if (bits & FARM_FLOAT_PERCENT_DELTA_FACTORY_BIT || bits & FARM_FLOAT_NEGATIVE_BIT)
             {
-                calculated *= -1.0;
+                double  calculated  = 0.0;
+                double  decimalPart = M_STATIC_CAST(double, get_DWord0(statisticData));
+                int16_t wholePart   = M_STATIC_CAST(int16_t, M_Word2(statisticData));
+
+                calculated = M_STATIC_CAST(double, wholePart) + (decimalPart * 0.0001);
+                if (bits & FARM_FLOAT_NEGATIVE_BIT)
+                {
+                    calculated *= -1.0;
+                }
+                printed = printf("\t\t%0.02f\n", calculated) > 0 ? true : false;
             }
-            printed = printf("\t\t%0.02f\n", calculated) > 0 ? true : false;
+            else
+            {
+                printed = printf("\t\t%" PRIu16 "\n", M_Word0(statisticData)) > 0 ? true : false;
+            }
         }
         else
         {
@@ -2605,7 +2665,7 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Float(const char* statist
 
 static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* statisticname, uint64_t firstqword)
 {
-    size_t asciilen      = (SIZE_T_C(5));
+    size_t asciilen      = SIZE_T_C(5);
     char*  farmASCIIData = M_REINTERPRET_CAST(char*, safe_calloc(asciilen, sizeof(char)));
     if (farmASCIIData != M_NULLPTR)
     {
@@ -2648,6 +2708,30 @@ static void print_Stat_If_Supported_And_Valid_ASCII(const char* statisticname, u
                 safe_free(&farmASCIIData);
             }
         }
+    }
+}
+
+static void print_Stat_If_Supported_And_Valid_Date_Of_Assembly(uint64_t doaQword)
+{
+    size_t asciilen      = (SIZE_T_C(5));
+    char*  farmASCIIData = M_REINTERPRET_CAST(char*, safe_calloc(asciilen, sizeof(char)));
+    if (farmASCIIData != M_NULLPTR)
+    {
+        size_t   asciioffset = SIZE_T_C(0);
+        uint32_t rawdata     = M_DoubleWord0(doaQword);
+        safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
+        farmASCIIData[asciilen] = 0;
+        print_Statistic_Name("Date Of Assembly\t\t");
+        // first 2 digits are year
+        DECLARE_ZERO_INIT_ARRAY(char, year, 5);
+        year[0] = '2';
+        year[1] = '0';
+        safe_memcpy(&year[2], 3, farmASCIIData, 2);
+        // second 2 digits are week of the year
+        DECLARE_ZERO_INIT_ARRAY(char, week, 3);
+        safe_memcpy(&week[0], 3, &farmASCIIData[2], 2);
+        printf("Week %s, %s\n", week, year);
+        safe_free(&farmASCIIData);
     }
 }
 
@@ -2829,7 +2913,7 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_ASCII("Firmware Revision", &driveInfo->fwrev[0],
                                                     FARM_DRIVE_INFO_FWREV_ASCII_LEN);
             print_Stat_If_Supported_And_Valid_2Qwords_To_UINT64_Hex("World Wide Name", &driveInfo->wwn[0]);
-            print_Stat_If_Supported_And_Valid_ASCII("Date of Assembly", &driveInfo->dateOfAssembly, 1);
+            print_Stat_If_Supported_And_Valid_Date_Of_Assembly(driveInfo->dateOfAssembly);
             print_Stat_If_Supported_And_Valid_ASCII("Drive Interface", &driveInfo->driveInterface, 1);
             // This is a very overly simple hack to detect interface.
             // It's a string set to "SAS" or "SATA" so this will work for now - TJE
@@ -2894,10 +2978,10 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                                                      driveInfo->maxAvailableSectorsForReassignment);
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus,
                                                    "Data Protect", "No Data Protect");
-            print_Stat_If_Supported_And_Valid_Time("Power On Hours of Most Recent FARM Time Series Frame",
+            print_Stat_If_Supported_And_Valid_Time("POH of Most Recent FARM Time Series Frame",
                                                    driveInfo->pohOfMostRecentTimeseriesFrame,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Time("Power On Hours of 2nd Most Recent FARM Time Series Frame",
+            print_Stat_If_Supported_And_Valid_Time("POH of 2nd Most Recent FARM Time Series Frame",
                                                    driveInfo->pohOfSecondMostRecentTimeseriesFrame,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
             print_Stat_If_Supported_And_Valid_Uint64(
@@ -3175,36 +3259,38 @@ static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator actuator,
         printf("%s\n", farmActuatorStr);
         print_Stat_If_Supported_And_Valid_Uint64("Total Flash LED Events", totalFLEDs);
     }
-    uint64_t index  = UINT64_C(0);
-    uint8_t  status = get_Farm_Status_Byte(fledIndex);
+    int64_t index  = INT64_C(0);
+    uint8_t status = get_Farm_Status_Byte(fledIndex);
     if (status & FARM_FIELD_SUPPORTED_BIT && status & FARM_FIELD_VALID_BIT)
     {
-        index = get_Farm_Qword_Data(fledIndex);
+        index = M_STATIC_CAST(int64_t, get_Farm_Qword_Data(fledIndex));
     }
     else
     {
         return;
     }
     uint8_t eventCount = UINT8_C(0);
-    printf("%*s                %-*s  %-*s  %-*s  %-*s\n", M_STATIC_CAST(int, safe_strlen(farmActuatorStr)), "", FLED_INFO_STR_LEN, "FLED", RWRETRY_INFO_STR_LEN, "RW Retry", FLEDTIMESTAMP_STR_LEN, "Timestamp", FLED_POWER_CYCLE_STR_LEN, "Power Cycle");
-    while (eventCount < FARM_FLED_EVENTS && index < FARM_FLED_EVENTS)
+    printf("%*s                %-*s  %-*s  %-*s  %-*s\n", M_STATIC_CAST(int, safe_strlen(farmActuatorStr)), "",
+           FLED_INFO_STR_LEN, "FLED", RWRETRY_INFO_STR_LEN, "RW Retry", FLEDTIMESTAMP_STR_LEN, "Timestamp",
+           FLED_POWER_CYCLE_STR_LEN, "Power Cycle");
+    while (eventCount < FARM_FLED_EVENTS && index < FARM_FLED_EVENTS && index > INT64_C(0))
     {
         DECLARE_ZERO_INIT_ARRAY(char, fledInfoStr, FLED_INFO_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, rwRetryStr, RWRETRY_INFO_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, timestampStr, FLEDTIMESTAMP_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, powerCycleStr, FLED_POWER_CYCLE_STR_LEN);
 
-        printf("%sFlash LED Info: %-*s  %-*s  %-*s  %-*s\n", farmActuatorStr,
-               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(fledInfoStr, FLED_INFO_STR_LEN, fledInfo[index]),
-               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(rwRetryStr, RWRETRY_INFO_STR_LEN, rwRetry[index]),
-               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(timestampStr, FLEDTIMESTAMP_STR_LEN, fledtimestamp[index]),
-               FLED_INFO_STR_LEN, get_Farm_FLED_Info_String(powerCycleStr, FLED_POWER_CYCLE_STR_LEN, powerCycleFLED[index]));
+        printf("%sFlash LED Info: %-*s  %-*s  %-*s  %-*s\n", farmActuatorStr, FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(fledInfoStr, FLED_INFO_STR_LEN, fledInfo[index]), FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(rwRetryStr, RWRETRY_INFO_STR_LEN, rwRetry[index]), FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(timestampStr, FLEDTIMESTAMP_STR_LEN, fledtimestamp[index]), FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(powerCycleStr, FLED_POWER_CYCLE_STR_LEN, powerCycleFLED[index]));
 
-        // increment index. Reset to zero if we go past the last event since this is a wrapping array.
-        ++index;
-        if (index >= FARM_FLED_EVENTS)
+        // decrement index. Reset to zero if we go past the last event since this is a wrapping array.
+        --index;
+        if (index < INT64_C(0))
         {
-            index = UINT64_C(0);
+            index = FARM_FLED_EVENTS;
         }
         ++eventCount;
     }
@@ -3352,25 +3438,38 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env, uint64_t
             print_Stat_If_Supported_And_Valid_Uint64("Specified Min Temperature (C)", env->specifiedMinTemp);
             print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Relative Humidity (%)",
                                                             env->currentRelativeHumidity, 0.1);
-            if (print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Motor Power (W)", env->currentMotorPowerFromMostRecentSMARTSummaryFrame, 0.001))
+            if (print_Stat_If_Supported_And_Valid_Uint64_Factor(
+                    "Current Motor Power (W)", env->currentMotorPowerFromMostRecentSMARTSummaryFrame, 0.001))
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Motor Power (Hours)",
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
             bool powerCov = false;
+            powerCov      = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 12v input (V)",
+                                                                                    env->current12Vinput, 0.001)
+                                ? true
+                                : powerCov;
             powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 12v input (V)", env->current12Vinput, 0.001) ? true : powerCov;
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v input (V)", env->min12Vinput, 0.001)
+                    ? true
+                    : powerCov;
             powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v input (V)", env->min12Vinput, 0.001) ? true : powerCov;
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v input (V)", env->max12Vinput, 0.001)
+                    ? true
+                    : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 5v input (V)",
+                                                                               env->current5Vinput, 0.001)
+                           ? true
+                           : powerCov;
             powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v input (V)", env->max12Vinput, 0.001) ? true : powerCov;
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v input (V)", env->min5Vinput, 0.001)
+                    ? true
+                    : powerCov;
             powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 5v input (V)", env->current5Vinput, 0.001) ? true : powerCov;
-            powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v input (V)", env->min5Vinput, 0.001) ? true : powerCov;
-            powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v input (V)", env->max5Vinput, 0.001) ? true : powerCov;
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v input (V)", env->max5Vinput, 0.001)
+                    ? true
+                    : powerCov;
             if (powerCov)
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time Coverage for 12v & 5v voltage (Hours)",
@@ -3378,18 +3477,28 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env, uint64_t
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
             powerCov = false;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 12v power (W)",
+                                                                               env->average12Vpwr, 0.001)
+                           ? true
+                           : powerCov;
             powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 12v power (W)", env->average12Vpwr, 0.001) ? true : powerCov;
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v power (W)", env->min12VPwr, 0.001)
+                    ? true
+                    : powerCov;
             powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v power (W)", env->min12VPwr, 0.001) ? true : powerCov;
-            powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v power (W)", env->max12VPwr, 0.001) ? true : powerCov;
-            powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 5v power (W)", env->average5Vpwr, 0.001) ? true : powerCov;
-            powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v power (W)", env->min5Vpwr, 0.001) ? true : powerCov;
-            powerCov =
-                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v power (W)", env->max5Vpwr, 0.001) ? true : powerCov;
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v power (W)", env->max12VPwr, 0.001)
+                    ? true
+                    : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 5v power (W)",
+                                                                               env->average5Vpwr, 0.001)
+                           ? true
+                           : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v power (W)", env->min5Vpwr, 0.001)
+                           ? true
+                           : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v power (W)", env->max5Vpwr, 0.001)
+                           ? true
+                           : powerCov;
             if (powerCov)
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time Coverage for 12v & 5v power (Hours)",
@@ -3400,21 +3509,215 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env, uint64_t
     }
 }
 
-// get_Decimal_From_4_byte_Float
-
-static void print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(uint64_t byhead[FARM_MAX_HEADS],
-                                                                         uint64_t numberOfHeads)
+// unitStr should be the units this field is in if it is NOT % delta
+static bool print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(const char* fieldStr,
+                                                                            const char* unitStr,
+                                                                            uint64_t    byhead[FARM_MAX_HEADS],
+                                                                            uint64_t    numberOfHeads)
 {
-    if (get_Farm_MR_Head_Resistance_Bits(byhead[0]) & MR_HEAD_RESISTANCE_PERCENT_DELTA_FACTORY_BIT)
+    bool   printed = false;
+    size_t len     = safe_strlen(fieldStr) + M_Max(safe_strlen(unitStr), safe_strlen("% delta")) +
+                 SIZE_T_C(4); //+4 for parens, spaces, null terminator
+    char* fieldNameAndUnit = M_STATIC_CAST(char*, safe_calloc(len, sizeof(char)));
+    if (fieldNameAndUnit != M_NULLPTR)
     {
-        print_Stat_If_Supported_And_Valid_By_Head("MR Head Resistance (% delta)", byhead, numberOfHeads,
-                                                  FARM_BY_HEAD_FLOAT, 0.0);
+        if (get_Farm_Float_Bits(byhead[0]) & FARM_FLOAT_PERCENT_DELTA_FACTORY_BIT ||
+            get_Farm_Float_Bits(byhead[0]) & FARM_FLOAT_NEGATIVE_BIT)
+        {
+            snprintf_err_handle(fieldNameAndUnit, len, "%s (%% delta)", fieldStr);
+            printed = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
+                                                                FARM_BY_HEAD_FLOAT, 0.0);
+        }
+        else
+        {
+            snprintf_err_handle(fieldNameAndUnit, len, "%s (%s)", fieldStr, unitStr);
+            printed = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
+                                                                FARM_BY_HEAD_UINT64, 0.001);
+        }
     }
-    else
+    return printed;
+}
+
+static M_INLINE bool print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(uint64_t byhead[FARM_MAX_HEADS],
+                                                                                  uint64_t numberOfHeads)
+{
+    return print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("MR Head Resistance", "ohms", byhead,
+                                                                           numberOfHeads);
+}
+
+#define THREE_STATS_IN_ONE 3
+static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(const char* statisticname,
+                                                                      uint64_t    statisticData[THREE_STATS_IN_ONE],
+                                                                      double      conversionFactor)
+{
+    bool    printed = false;
+    uint8_t status  = get_Farm_Status_Byte(statisticData[0]);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
     {
-        print_Stat_If_Supported_And_Valid_By_Head("MR Head Resistance (ohms)", byhead, numberOfHeads,
-                                                  FARM_BY_HEAD_UINT64, 0.0);
+        print_Statistic_Name(statisticname);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            int printCnt  = 0;
+            int precision = 2;
+            if (conversionFactor <= 0.001)
+            {
+                precision = 3;
+            }
+            if (conversionFactor <= 0.0001)
+            {
+                precision = 4;
+            }
+            if (conversionFactor <= 0.00001)
+            {
+                precision = 5;
+            }
+            printf("\t");
+            for (int statNum = 0; statNum < THREE_STATS_IN_ONE; ++statNum)
+            {
+                int64_t signedval = M_STATIC_CAST(int64_t, get_Farm_Qword_Data(statisticData[statNum]));
+                if (M_Byte6(M_STATIC_CAST(uint64_t, signedval)) & BIT7)
+                {
+                    // sign bit is set. To make sure this converts as we expect it to we need to make sure the int64_t
+                    // sign bit of the host is set properly.
+                    signedval =
+                        M_STATIC_CAST(int64_t, M_STATIC_CAST(uint64_t, signedval) | UINT64_C(0xFFFF000000000000));
+                }
+                printCnt = printf("\t%0.*f", precision, M_STATIC_CAST(double, signedval) * conversionFactor);
+            }
+            printf("\n");
+            if (printCnt > 0)
+            {
+                printed = true;
+            }
+        }
+        else
+        {
+            printed = printf("\t\tInvalid\tInvalid\tInvalid\n") > 0 ? true : false;
+        }
     }
+    return printed;
+}
+
+// If a statistic is a counter in 1/1000 or .1%, etc can provide a conversion factor with this
+static M_INLINE bool print_3_Stat_If_Supported_And_Valid_Uint64_Factor(const char* statisticname,
+                                                                       uint64_t    statisticData[THREE_STATS_IN_ONE],
+                                                                       double      conversionFactor)
+{
+    bool    printed = false;
+    uint8_t status  = get_Farm_Status_Byte(statisticData[0]);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
+    {
+        print_Statistic_Name(statisticname);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            int precision = 2;
+            if (conversionFactor <= 0.001)
+            {
+                precision = 3;
+            }
+            if (conversionFactor <= 0.0001)
+            {
+                precision = 4;
+            }
+            int printCnt = 0;
+            printf("\t");
+            for (int statNum = 0; statNum < THREE_STATS_IN_ONE; ++statNum)
+            {
+                printCnt =
+                    printf("\t%.*f", precision,
+                           M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData[statNum])) * conversionFactor);
+            }
+            printf("\n");
+            if (printCnt > 0)
+            {
+                printed = true;
+            }
+        }
+        else
+        {
+            printed = printf("\t\tInvalid\n") > 0 ? true : false;
+        }
+    }
+    return printed;
+}
+
+#define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
+static bool print_3_Stat_If_Supported_And_Valid_By_Head(const char* statisticname,
+                                                        uint64_t    byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
+                                                        uint64_t    numberOfHeads,
+                                                        eFARMByHeadOutputFormat outputFormat,
+                                                        double                  conversionfactor)
+{
+    if (byhead != M_NULLPTR)
+    {
+        uint64_t printCount = UINT64_C(0);
+        for (uint64_t headiter = UINT64_C(0); headiter < FARM_MAX_HEADS && headiter < numberOfHeads; ++headiter)
+        {
+            size_t byheadstatstrlen = safe_strlen(statisticname);
+            if (byheadstatstrlen == 0)
+            {
+                byheadstatstrlen = safe_strlen("Unknown Statistic");
+            }
+            byheadstatstrlen += BY_HEAD_INFO_STR_LEN + 1; // +1 for null terminator
+            char* byheadstatname = safe_calloc(byheadstatstrlen, sizeof(char));
+            if (byheadstatname != M_NULLPTR)
+            {
+                if (statisticname != M_NULLPTR)
+                {
+                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "%s Head %2" PRIu64, statisticname, headiter);
+                }
+                else
+                {
+                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "Unknown Statistic Head %2" PRIu64, headiter);
+                }
+            }
+            bool printed = false;
+            switch (outputFormat)
+            {
+            case FARM_BY_HEAD_UINT64:
+                printed = print_3_Stat_If_Supported_And_Valid_Uint64_Factor(byheadstatname, byhead[headiter], 1.0);
+                break;
+            case FARM_BY_HEAD_UINT64_FACTOR:
+                printed = print_3_Stat_If_Supported_And_Valid_Uint64_Factor(byheadstatname, byhead[headiter],
+                                                                            conversionfactor);
+                break;
+            case FARM_BY_HEAD_INT64:
+                printed = print_3_Stat_If_Supported_And_Valid_int64_Factor(byheadstatname, byhead[headiter], 1.0);
+                break;
+            case FARM_BY_HEAD_INT64_FACTOR:
+                printed = print_3_Stat_If_Supported_And_Valid_int64_Factor(byheadstatname, byhead[headiter],
+                                                                           conversionfactor);
+                break;
+            case FARM_BY_HEAD_HEX:
+                // TODO: Add this in when we have a field that needs this.
+                break;
+            case FARM_BY_HEAD_FLOAT:
+                // TODO: Add this in when we have a field that needs this.
+                break;
+            case FARM_BY_HEAD_TIME:
+                // TODO: Add this in when we have a field that needs this.
+                break;
+            }
+            if (printed)
+            {
+                ++printCount;
+            }
+        }
+        if (printCount > UINT64_C(0))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static M_INLINE bool print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
+    const char* fieldStr,
+    uint64_t    byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
+    uint64_t    numberOfHeads)
+{
+    return print_3_Stat_If_Supported_And_Valid_By_Head(fieldStr, byhead, numberOfHeads, FARM_BY_HEAD_INT64_FACTOR,
+                                                       0.001);
 }
 
 static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
@@ -3461,36 +3764,28 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                                                          numheads);
             bool velObs = false;
 
-            velObs =
-                true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer", reli->velocityObserverByHead, numheads,
-                                                      FARM_BY_HEAD_UINT64, 0.0) ? true : velObs;
-            velObs =
-                true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer No TMD", reli->numberOfVelocityObserverNoTMDByHead,
-                                                      numheads, FARM_BY_HEAD_UINT64, 0.0) ? true : velObs;
+            velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer",
+                                                                       reli->velocityObserverByHead, numheads,
+                                                                       FARM_BY_HEAD_UINT64, 0.0)
+                         ? true
+                         : velObs;
+            velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer No TMD",
+                                                                       reli->numberOfVelocityObserverNoTMDByHead,
+                                                                       numheads, FARM_BY_HEAD_UINT64, 0.0)
+                         ? true
+                         : velObs;
             if (velObs)
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Velocity Observer (Hours)",
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error Zone 0",
-                                                      reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone1, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error Zone 1",
-                                                      reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone2, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error Zone 2",
-                                                      reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone3, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge Zone 0",
-                                                      reli->currentH2SATiterationsToConvergeByHeadZone1, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge Zone 1",
-                                                      reli->currentH2SATiterationsToConvergeByHeadZone2, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge Zone 2",
-                                                      reli->currentH2SATiterationsToConvergeByHeadZone3, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
+            print_3_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error (Z1, Z2, Z3)",
+                                                        reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone, numheads,
+                                                        FARM_BY_HEAD_UINT64_FACTOR, 0.10);
+            print_3_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge (Z1, Z2, Z3)",
+                                                        reli->currentH2SATiterationsToConvergeByHeadZone, numheads,
+                                                        FARM_BY_HEAD_UINT64_FACTOR, 0.10);
             print_Stat_If_Supported_And_Valid_By_Head("Average H2SAT % Codeword at Iteration Level",
                                                       reli->currentH2SATpercentCodewordsPerIterByHeadTZAvg, numheads,
                                                       FARM_BY_HEAD_UINT64, 0.0);
@@ -3498,15 +3793,9 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                                       numheads, FARM_BY_HEAD_UINT64, 0.0);
             print_Stat_If_Supported_And_Valid_By_Head("Average H2SAT Asymmetry", reli->currentH2SATasymmetryByHeadTZAvg,
                                                       numheads, FARM_BY_HEAD_INT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("Applied Fly Height Clearance Delta Outer (Angstrom)",
-                                                      reli->appliedFlyHeightClearanceDeltaByHeadOuter, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.001);
-            print_Stat_If_Supported_And_Valid_By_Head("Applied Fly Height Clearance Delta Middle (Angstrom)",
-                                                      reli->appliedFlyHeightClearanceDeltaByHeadMiddle, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.001);
-            print_Stat_If_Supported_And_Valid_By_Head("Applied Fly Height Clearance Delta Inner (Angstrom)",
-                                                      reli->appliedFlyHeightClearanceDeltaByHeadInner, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.001);
+            print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
+                "Applied Fly Height Clearance Delta (Angstroms) (OD, ID, MD)",
+                reli->appliedFlyHeightClearanceDeltaByHead, numheads);
             print_Stat_If_Supported_And_Valid_Uint64("# Disc Slip Recalibrations Performed",
                                                      reli->numDiscSlipRecalibrationsPerformed);
             print_Stat_If_Supported_And_Valid_By_Head("# Reallocated Sectors", reli->numReallocatedSectorsByHead,

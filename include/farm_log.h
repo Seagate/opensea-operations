@@ -443,23 +443,21 @@ extern "C"
 
     M_STATIC_ASSERT(sizeof(farmEnvironmentStatistics) == FARM_PAGE_LEN, farm_environment_stats_stuct_is_not_16kib);
 
-#define FARM_RELI_RESERVED1                          58
-#define FARM_RELI_RESERVED2                          26
-#define FARM_RELI_RESERVED3                          73
-#define FARM_RELI_RESERVED4                          24
-#define FARM_RELI_RESERVED5                          27
-#define FARM_RELI_RESERVED6                          264
-#define FARM_RELI_RESERVED7                          178
-#define FARM_RELI_RESERVED8                          4
-#define FARM_RELI_RESERVED9                          241
-#define FARM_RELI_RESERVED10                         485
+#define FARM_RELI_RESERVED1  58
+#define FARM_RELI_RESERVED2  26
+#define FARM_RELI_RESERVED3  73
+#define FARM_RELI_RESERVED4  24
+#define FARM_RELI_RESERVED5  27
+#define FARM_RELI_RESERVED6  264
+#define FARM_RELI_RESERVED7  178
+#define FARM_RELI_RESERVED8  4
+#define FARM_RELI_RESERVED9  241
+#define FARM_RELI_RESERVED10 485
 
-#define MR_HEAD_RESISTANCE_PERCENT_DELTA_FACTORY_BIT BIT0
-#define MR_HEAD_RESISTANCE_NEGATIVE_BIT              BIT1
-    static M_INLINE uint8_t get_Farm_MR_Head_Resistance_Bits(uint64_t mrHeadData)
-    {
-        return M_Byte6(mrHeadData);
-    }
+// OD, ID, MD = outter diameter, inner diameter, middle diameter
+#define FARM_DIAMETERS 3
+// Zone 1, 2, 3...
+#define FARM_TEST_ZONES 3
 
     typedef struct s_farmReliabilityStatistics
     {
@@ -489,18 +487,14 @@ extern "C"
         uint64_t reserved4[FARM_RELI_RESERVED4];
         uint64_t velocityObserverByHead[FARM_MAX_HEADS];
         uint64_t numberOfVelocityObserverNoTMDByHead[FARM_MAX_HEADS];
-        uint64_t currentH2SATtrimmedMeanBitsInErrorByHeadZone1[FARM_MAX_HEADS]; // on SAS in by param 20h
-        uint64_t currentH2SATtrimmedMeanBitsInErrorByHeadZone2[FARM_MAX_HEADS]; // on SAS in by param 31h
-        uint64_t currentH2SATtrimmedMeanBitsInErrorByHeadZone3[FARM_MAX_HEADS]; // on SAS in by param 32h
-        uint64_t currentH2SATiterationsToConvergeByHeadZone1[FARM_MAX_HEADS];   // on SAS in by param 33h
-        uint64_t currentH2SATiterationsToConvergeByHeadZone2[FARM_MAX_HEADS];   // on SAS in by param 34h
-        uint64_t currentH2SATiterationsToConvergeByHeadZone3[FARM_MAX_HEADS];   // on SAS in by param 35h
+        uint64_t currentH2SATtrimmedMeanBitsInErrorByHeadZone[FARM_MAX_HEADS]
+                                                             [FARM_TEST_ZONES]; // on SAS in by param 30h, 31h, 32h
+        uint64_t currentH2SATiterationsToConvergeByHeadZone[FARM_MAX_HEADS]
+                                                           [FARM_TEST_ZONES]; // on SAS in by param 33h, 34h, 35h
         uint64_t currentH2SATpercentCodewordsPerIterByHeadTZAvg[FARM_MAX_HEADS];
         uint64_t currentH2SATamplitudeByHeadTZAvg[FARM_MAX_HEADS]; // on SAS in by param 1Fh
         uint64_t currentH2SATasymmetryByHeadTZAvg[FARM_MAX_HEADS]; // on SAS in by param 20h
-        uint64_t appliedFlyHeightClearanceDeltaByHeadOuter[FARM_MAX_HEADS];
-        uint64_t appliedFlyHeightClearanceDeltaByHeadInner[FARM_MAX_HEADS];
-        uint64_t appliedFlyHeightClearanceDeltaByHeadMiddle[FARM_MAX_HEADS];
+        uint64_t appliedFlyHeightClearanceDeltaByHead[FARM_MAX_HEADS][FARM_DIAMETERS];
         uint64_t numDiscSlipRecalibrationsPerformed;                    // ON SAS
         uint64_t numReallocatedSectorsByHead[FARM_MAX_HEADS];           // on SAS in by param 21h
         uint64_t numReallocationCandidateSectorsByHead[FARM_MAX_HEADS]; // on SAS in by param 22h
@@ -532,22 +526,24 @@ extern "C"
                     farm_reli_dosscan_perf_wrong_offset);
     M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, dvgaSkipWriteDetectByHead) == 704,
                     farm_reli_dvgaSkipWriteDetectByHead_wrong_offset);
+    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, rvgaSkipWriteDetectByHead) == 896,
+                    farm_reli_rvgaSkipWriteDetectByHead_wrong_offset);
+    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, fvgaSkipWriteDetectByHead) == 1088,
+                    farm_reli_fvgaSkipWriteDetectByHead_wrong_offset);
+    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, highPriorityUnloadEvents) == 1520,
+                    farm_reli_highPriorityUnloadEvents_wrong_offset);
     M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, mrHeadResistanceByHead) == 2112,
                     farm_reli_mrHeadResistanceByHead_wrong_offset);
     M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, velocityObserverByHead) == 2496,
                     farm_reli_velocityObserverByHead_wrong_offset);
-    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATtrimmedMeanBitsInErrorByHeadZone1) == 2880,
+    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATtrimmedMeanBitsInErrorByHeadZone) == 2880,
                     farm_reli_h2sattrimMeanBitsHeadZ1_wrong_offset);
-    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATtrimmedMeanBitsInErrorByHeadZone2) == 3072,
-                    farm_reli_h2sattrimMeanBitsHeadZ2_wrong_offset);
-    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATtrimmedMeanBitsInErrorByHeadZone3) == 3264,
-                    farm_reli_h2sattrimMeanBitsHeadZ3_wrong_offset);
-    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATiterationsToConvergeByHeadZone1) == 3456,
+    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATiterationsToConvergeByHeadZone) == 3456,
                     farm_reli_h2satiterConvHeadZ1_wrong_offset);
-    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATiterationsToConvergeByHeadZone2) == 3648,
-                    farm_reli_h2satiterConvHeadZ2_wrong_offset);
-    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, currentH2SATiterationsToConvergeByHeadZone3) == 3840,
-                    farm_reli_h2satiterConvHeadZ3_wrong_offset);
+    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, appliedFlyHeightClearanceDeltaByHead) == 4608,
+                    farm_reli_appliedFlyHeightClearanceDeltaByHead_wrong_offset);
+    M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, numDiscSlipRecalibrationsPerformed) == 5184,
+                    farm_reli_numDiscSlipRecalibrationsPerformed_wrong_offset);
     M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, secondHeadMRHeadResistanceByHead) == 6568,
                     farm_reli_secondHeadMRHeadResistanceByHead_wrong_offset);
     M_STATIC_ASSERT(offsetof(farmReliabilityStatistics, numLBAsCorrectedByParitySector) == 8872,
