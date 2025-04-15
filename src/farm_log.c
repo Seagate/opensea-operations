@@ -3481,16 +3481,16 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
     }
 }
 
-static void print_FARM_Environment_Info(farmEnvironmentStatistics* env, uint64_t timerestrictedRangems)
+static void print_FARM_Environment_Info(farmEnvironmentStatistics* env, uint64_t timerestrictedRangems, eFARMDriveInterface farminterface)
 {
     if (env != M_NULLPTR)
     {
         if (get_Farm_Qword_Data(env->pageNumber) == FARM_PAGE_ENVIRONMENT_STATS)
         {
             printf("---Environment Info---\n");
-            print_Stat_If_Supported_And_Valid_Uint64("Current Temperature (C)", env->currentTemperature);
-            print_Stat_If_Supported_And_Valid_Uint64("Highest Temperature (C)", env->highestTemperature);
-            print_Stat_If_Supported_And_Valid_Uint64("Lowest Temperature (C)", env->lowestTemperature);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Current Temperature (C)", env->currentTemperature, farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Highest Temperature (C)", env->highestTemperature, farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Lowest Temperature (C)", env->lowestTemperature, farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
             print_Stat_If_Supported_And_Valid_Uint64("Average Short Term Temperature (C)", env->avgShortTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Average Long Term Temperature (C)", env->avgLongTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Highest Average Short Term Temperature (C)",
@@ -3934,7 +3934,7 @@ void print_FARM_Data(farmLogData* farmdata)
         print_Farm_Drive_Info(&farmdata->driveinfo, &farminterface);
         print_FARM_Workload_Info(&farmdata->workload, timeRestrictedRangeMS);
         print_FARM_Error_Info(&farmdata->error, headcnt, farminterface);
-        print_FARM_Environment_Info(&farmdata->environment, timeRestrictedRangeMS);
+        print_FARM_Environment_Info(&farmdata->environment, timeRestrictedRangeMS, farminterface);
         print_FARM_Reliability_Info(&farmdata->reliability, headcnt, farminterface, timeRestrictedRangeMS);
     }
     RESTORE_NONNULL_COMPARE
