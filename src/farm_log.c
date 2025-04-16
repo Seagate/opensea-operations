@@ -2089,7 +2089,6 @@ static M_INLINE void sas_Fill_By_Head_Data_2D_Array(uint8_t* paramptr,
         for (uint8_t headiter = UINT8_C(0); headiter < maxHeads && headiter < FARM_MAX_HEADS; ++headiter)
         {
             (byheadarray[headiter])[dimension] = be64_to_host(qwordptr[headiter]);
-            printf("2D by head: head %" PRIu8 "\tdata: %016" PRIX64 "\n", headiter, be64_to_host(qwordptr[headiter]));
         }
     }
 }
