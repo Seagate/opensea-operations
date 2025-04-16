@@ -1901,53 +1901,53 @@ static M_INLINE uint32_t sas_ASCII_DWord_Replace_Null_With_Space(uint32_t asciiD
     return asciiDWord;
 }
 
-//NOTE: Assumes each FARM ASCII str is 2 qwords long
-static M_INLINE void sas_FARM_ASCII_Field(uint64_t *firstQword, uint64_t *firstSTR64)
+// NOTE: Assumes each FARM ASCII str is 2 qwords long
+static M_INLINE void sas_FARM_ASCII_Field(uint64_t* firstQword, uint64_t* firstSTR64)
 {
     if (firstQword != M_NULLPTR && firstSTR64 != M_NULLPTR)
     {
         uint32_t asciidword = UINT32_C(0);
-        //start with the SECOND qword
-        *(firstSTR64 + 1)  = be64_to_host(*firstQword);
-        asciidword = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*(firstSTR64 + 1)));
+        // start with the SECOND qword
+        *(firstSTR64 + 1) = be64_to_host(*firstQword);
+        asciidword        = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*(firstSTR64 + 1)));
         *(firstSTR64 + 1) &= UINT64_C(0xFFFFFFFF00000000);
         *(firstSTR64 + 1) |= w_swap_32(asciidword);
-        //now the first
-        *firstSTR64  = be64_to_host(*(firstQword + 1));
-        asciidword = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*firstSTR64));
+        // now the first
+        *firstSTR64 = be64_to_host(*(firstQword + 1));
+        asciidword  = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*firstSTR64));
         *firstSTR64 &= UINT64_C(0xFFFFFFFF00000000);
         *firstSTR64 |= w_swap_32(asciidword);
     }
 }
 
-static M_INLINE void sas_FARM_ASCII_Field_In_Order(uint64_t *firstQword, uint64_t *firstSTR64, size_t maxFieldLen)
+static M_INLINE void sas_FARM_ASCII_Field_In_Order(uint64_t* firstQword, uint64_t* firstSTR64, size_t maxFieldLen)
 {
     if (firstQword != M_NULLPTR && firstSTR64 != M_NULLPTR)
     {
         for (size_t offset = UINT64_C(0); offset < maxFieldLen; ++offset)
         {
-            uint32_t asciidword = UINT32_C(0);
-            *(firstSTR64 + offset)  = be64_to_host(*(firstQword + offset));
-            asciidword = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*(firstSTR64 + offset)));
+            uint32_t asciidword    = UINT32_C(0);
+            *(firstSTR64 + offset) = be64_to_host(*(firstQword + offset));
+            asciidword             = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*(firstSTR64 + offset)));
             *(firstSTR64 + offset) &= UINT64_C(0xFFFFFFFF00000000);
             *(firstSTR64 + offset) |= w_swap_32(asciidword);
         }
     }
 }
 
-static M_INLINE void sas_FARM_WWN_Field(uint64_t *firstQword, uint64_t *firstSTR64)
+static M_INLINE void sas_FARM_WWN_Field(uint64_t* firstQword, uint64_t* firstSTR64)
 {
     if (firstQword != M_NULLPTR && firstSTR64 != M_NULLPTR)
     {
         uint32_t asciidword = UINT32_C(0);
-        //start with the SECOND qword
-        *(firstSTR64 + 1)  = be64_to_host(*firstQword);
-        asciidword = get_DWord0(*(firstSTR64 + 1));
+        // start with the SECOND qword
+        *(firstSTR64 + 1) = be64_to_host(*firstQword);
+        asciidword        = get_DWord0(*(firstSTR64 + 1));
         *(firstSTR64 + 1) &= UINT64_C(0xFFFFFFFF00000000);
         *(firstSTR64 + 1) |= w_swap_32(asciidword);
-        //now the first
-        *firstSTR64  = be64_to_host(*(firstQword + 1));
-        asciidword = get_DWord0(*firstSTR64);
+        // now the first
+        *firstSTR64 = be64_to_host(*(firstQword + 1));
+        asciidword  = get_DWord0(*firstSTR64);
         *firstSTR64 &= UINT64_C(0xFFFFFFFF00000000);
         *firstSTR64 |= w_swap_32(asciidword);
     }
@@ -1966,8 +1966,8 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
             info->copyNumber = be64_to_host(qwordptr[1]);
             sas_FARM_ASCII_Field(&qwordptr[2], info->sn);
             sas_FARM_WWN_Field(&qwordptr[4], info->wwn);
-            info->driveInterface     = be64_to_host(qwordptr[6]);
-            uint32_t asciidword = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->driveInterface));
+            info->driveInterface = be64_to_host(qwordptr[6]);
+            uint32_t asciidword  = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->driveInterface));
             info->driveInterface &= UINT64_C(0xFFFFFFFF00000000);
             info->driveInterface |= asciidword;
             info->driveCapacity      = be64_to_host(qwordptr[7]);
@@ -1986,8 +1986,8 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
             info->lowestPOHForTimeRestrictedParameters  = be64_to_host(qwordptr[28]);
             info->highestPOHForTimeRestrictedParameters = be64_to_host(qwordptr[29]);
 
-            info->dateOfAssembly                        = be64_to_host(qwordptr[30]);
-            asciidword = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->dateOfAssembly));
+            info->dateOfAssembly = be64_to_host(qwordptr[30]);
+            asciidword           = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->dateOfAssembly));
             info->dateOfAssembly &= UINT64_C(0xFFFFFFFF00000000);
             info->dateOfAssembly |= b_swap_32(asciidword);
         }
@@ -1995,7 +1995,7 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
         {
             qwordptr = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
             // emulating SATA so skip page number and copy
-            info->depopulationHeadMask                                  = be64_to_host(qwordptr[2]);
+            info->depopulationHeadMask = be64_to_host(qwordptr[2]);
             sas_FARM_ASCII_Field_In_Order(&qwordptr[3], info->modelNumber, 4);
             info->driveRecordingType                                    = be64_to_host(qwordptr[7]);
             info->isDriveDepopulated                                    = be64_to_host(qwordptr[8]);
@@ -2077,9 +2077,9 @@ static M_INLINE void sas_Fill_By_Head_Data(uint8_t* paramptr, uint8_t paramlen, 
     }
 }
 
-static M_INLINE void sas_Fill_By_Head_Data_2D_Array(uint8_t*     paramptr,
-                                                    uint8_t      paramlen,
-                                                    uint64_t*   byheadarray[3],
+static M_INLINE void sas_Fill_By_Head_Data_2D_Array(uint8_t* paramptr,
+                                                    uint8_t  paramlen,
+                                                    uint64_t (*byheadarray)[3],
                                                     unsigned int dimension)
 {
     if (paramptr != M_NULLPTR && byheadarray != M_NULLPTR && dimension < 3U)
@@ -2088,7 +2088,8 @@ static M_INLINE void sas_Fill_By_Head_Data_2D_Array(uint8_t*     paramptr,
         uint8_t   maxHeads = paramlen / UINT8_C(8);
         for (uint8_t headiter = UINT8_C(0); headiter < maxHeads && headiter < FARM_MAX_HEADS; ++headiter)
         {
-            byheadarray[headiter][dimension] = be64_to_host(qwordptr[headiter]);
+            (byheadarray[headiter])[dimension] = be64_to_host(qwordptr[headiter]);
+            printf("2D by head: head %" PRIu8 "\tdata: %016" PRIX64 "\n", headiter, be64_to_host(qwordptr[headiter]));
         }
     }
 }
@@ -2202,9 +2203,9 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
 {
     if (ptrData != M_NULLPTR)
     {
-        uint64_t* qwordptr = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-        uint16_t parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
-        uint8_t  paramlen  = ptrData[3];
+        uint64_t* qwordptr  = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
+        uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint8_t   paramlen  = ptrData[3];
         switch (parameter)
         {
         case 0x0005:
@@ -2243,36 +2244,30 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
         case 0x0026: // write workload by head (reliability)
             sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->writeWorkloadPowerOnTimeByHead);
             break;
-        // case 0x0030: // h2SAT by head (reliability)
-        //     sas_Fill_By_Head_Data_2D_Array(
-        //         ptrData + 4, paramlen,
-        //         &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 0);
-        //     break;
-        // case 0x0031: // h2SAT by head (reliability)
-        //     sas_Fill_By_Head_Data_2D_Array(
-        //         ptrData + 4, paramlen,
-        //         &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 1);
-        //     break;
-        // case 0x0032: // h2SAT by head (reliability)
-        //     sas_Fill_By_Head_Data_2D_Array(
-        //         ptrData + 4, paramlen,
-        //         &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 2);
-        //     break;
-        // case 0x0033: // h2SAT by head (reliability)
-        //     sas_Fill_By_Head_Data_2D_Array(
-        //         ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
-        //         0);
-        //     break;
-        // case 0x0034: // h2SAT by head (reliability)
-        //     sas_Fill_By_Head_Data_2D_Array(
-        //         ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
-        //         1);
-        //     break;
-        // case 0x0035: // h2SAT by head (reliability)
-        //     sas_Fill_By_Head_Data_2D_Array(
-        //         ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
-        //         2);
-        //     break;
+        case 0x0030: // h2SAT by head (reliability)
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+                                           &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 0);
+            break;
+        case 0x0031: // h2SAT by head (reliability)
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+                                           &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 1);
+            break;
+        case 0x0032: // h2SAT by head (reliability)
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+                                           &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 2);
+            break;
+        case 0x0033: // h2SAT by head (reliability)
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+                                           0);
+            break;
+        case 0x0034: // h2SAT by head (reliability)
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+                                           1);
+            break;
+        case 0x0035: // h2SAT by head (reliability)
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+                                           2);
+            break;
         case 0x0043: // second mr head resistance by head (reliability)
             sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->secondHeadMRHeadResistanceByHead);
             break;
@@ -2353,14 +2348,14 @@ static farmLogData* sas_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, far
         if (page == 0x3D && (subpage == 0x03 || subpage == 0x04))
         {
             uint16_t pagelen      = bytes_To_Uint16(ptrData[2], ptrData[3]);
-            uint16_t  parameterlen = UINT8_C(0);
+            uint16_t parameterlen = UINT8_C(0);
             for (uint32_t farmoffset = LOG_PAGE_HEADER_LENGTH;
                  farmoffset < (M_STATIC_CAST(uint32_t, pagelen) + LOG_PAGE_HEADER_LENGTH) && farmoffset < dataLength;
                  farmoffset += parameterlen + 4)
             {
                 uint16_t parameterCode = bytes_To_Uint16(ptrData[farmoffset], ptrData[farmoffset + 1]);
                 parameterlen           = ptrData[farmoffset + 3];
-                //printf("Parameter %" PRIX16 "h = len %" PRIu8 "\n", parameterCode, parameterlen);
+                // printf("Parameter %" PRIX16 "h = len %" PRIu8 "\n", parameterCode, parameterlen);
                 if (parameterlen == UINT8_C(0))
                 {
                     break;
@@ -3481,16 +3476,21 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
     }
 }
 
-static void print_FARM_Environment_Info(farmEnvironmentStatistics* env, uint64_t timerestrictedRangems, eFARMDriveInterface farminterface)
+static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
+                                        uint64_t                   timerestrictedRangems,
+                                        eFARMDriveInterface        farminterface)
 {
     if (env != M_NULLPTR)
     {
         if (get_Farm_Qword_Data(env->pageNumber) == FARM_PAGE_ENVIRONMENT_STATS)
         {
             printf("---Environment Info---\n");
-            print_Stat_If_Supported_And_Valid_int64_Factor("Current Temperature (C)", env->currentTemperature, farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
-            print_Stat_If_Supported_And_Valid_int64_Factor("Highest Temperature (C)", env->highestTemperature, farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
-            print_Stat_If_Supported_And_Valid_int64_Factor("Lowest Temperature (C)", env->lowestTemperature, farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Current Temperature (C)", env->currentTemperature,
+                                                           farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Highest Temperature (C)", env->highestTemperature,
+                                                           farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Lowest Temperature (C)", env->lowestTemperature,
+                                                           farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
             print_Stat_If_Supported_And_Valid_Uint64("Average Short Term Temperature (C)", env->avgShortTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Average Long Term Temperature (C)", env->avgLongTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Highest Average Short Term Temperature (C)",
@@ -3823,10 +3823,10 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
             print_Stat_If_Supported_And_Valid_Uint64("Seek Error Rate Normalized", reli->seekErrorRateNormalized);
             print_Stat_If_Supported_And_Valid_Uint64("Seek Error Rate Worst Ever", reli->seekErrorRateWorstEver);
             print_Stat_If_Supported_And_Valid_Uint64("High Priority Unload Events", reli->highPriorityUnloadEvents);
-            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("MR Head Resistance", "ohms", reli->mrHeadResistanceByHead,
-                                                                           numheads);
-            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("2nd MR Head Resistance", "ohms", reli->secondHeadMRHeadResistanceByHead,
-                                                                           numheads);
+            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("MR Head Resistance", "ohms",
+                                                                            reli->mrHeadResistanceByHead, numheads);
+            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(
+                "2nd MR Head Resistance", "ohms", reli->secondHeadMRHeadResistanceByHead, numheads);
             bool velObs = false;
 
             velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer",
