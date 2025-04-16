@@ -1100,7 +1100,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
 }
 
 eReturnValues pull_FARM_Combined_Log(tDevice*                 device,
-                                     const char*              filePath,
+                                     const char* const        filePath,
                                      uint32_t                 transferSizeBytes,
                                      int                      sataFarmCopyType,
                                      eLogFileNamingConvention fileNameType)
