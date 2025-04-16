@@ -2072,7 +2072,7 @@ static M_INLINE void sas_Fill_By_Head_Data(uint8_t* paramptr, uint8_t paramlen, 
         uint8_t   maxHeads = paramlen / UINT8_C(8);
         for (uint8_t headiter = UINT8_C(0); headiter < maxHeads && headiter < FARM_MAX_HEADS; ++headiter)
         {
-            byheadarray[headiter] = qwordptr[headiter];
+            byheadarray[headiter] = be64_to_host(qwordptr[headiter]);
         }
     }
 }
@@ -2088,7 +2088,7 @@ static M_INLINE void sas_Fill_By_Head_Data_2D_Array(uint8_t*     paramptr,
         uint8_t   maxHeads = paramlen / UINT8_C(8);
         for (uint8_t headiter = UINT8_C(0); headiter < maxHeads && headiter < FARM_MAX_HEADS; ++headiter)
         {
-            byheadarray[headiter][dimension] = qwordptr[headiter];
+            byheadarray[headiter][dimension] = be64_to_host(qwordptr[headiter]);
         }
     }
 }
@@ -3609,13 +3609,6 @@ static bool print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(cons
     return printed;
 }
 
-static M_INLINE bool print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(uint64_t byhead[FARM_MAX_HEADS],
-                                                                                  uint64_t numberOfHeads)
-{
-    return print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("MR Head Resistance", "ohms", byhead,
-                                                                           numberOfHeads);
-}
-
 #define THREE_STATS_IN_ONE 3
 static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(const char* statisticname,
                                                                       uint64_t    statisticData[THREE_STATS_IN_ONE],
@@ -3830,9 +3823,10 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
             print_Stat_If_Supported_And_Valid_Uint64("Seek Error Rate Normalized", reli->seekErrorRateNormalized);
             print_Stat_If_Supported_And_Valid_Uint64("Seek Error Rate Worst Ever", reli->seekErrorRateWorstEver);
             print_Stat_If_Supported_And_Valid_Uint64("High Priority Unload Events", reli->highPriorityUnloadEvents);
-            print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(reli->mrHeadResistanceByHead, numheads);
-            print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(reli->secondHeadMRHeadResistanceByHead,
-                                                                         numheads);
+            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("MR Head Resistance", "ohms", reli->mrHeadResistanceByHead,
+                                                                           numheads);
+            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("2nd MR Head Resistance", "ohms", reli->secondHeadMRHeadResistanceByHead,
+                                                                           numheads);
             bool velObs = false;
 
             velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer",
