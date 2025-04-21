@@ -9342,8 +9342,9 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
                               "hours");
         print_Count_Statistic(deviceStats->sataStatistics.headFlyingHours, "Head Flying Hours", "hours");
         print_Count_Statistic(deviceStats->sataStatistics.headLoadEvents, "Head Load Events", M_NULLPTR);
-        print_Count_Statistic(deviceStats->sataStatistics.numberOfReallocatedLogicalSectors,
-                              "Number Of Reallocated Logical Sectors", deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isNormalized ? "%" : M_NULLPTR);
+        print_Count_Statistic(
+            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors, "Number Of Reallocated Logical Sectors",
+            deviceStats->sataStatistics.numberOfReallocatedLogicalSectors.isNormalized ? "%" : M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.readRecoveryAttempts, "Read Recovery Attempts", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.numberOfMechanicalStartFailures,
                               "Number Of Mechanical Start Failures", M_NULLPTR);
