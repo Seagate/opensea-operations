@@ -1100,7 +1100,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
 }
 
 eReturnValues pull_FARM_Combined_Log(tDevice*                 device,
-                                     const char*              filePath,
+                                     const char* const        filePath,
                                      uint32_t                 transferSizeBytes,
                                      int                      sataFarmCopyType,
                                      eLogFileNamingConvention fileNameType)
@@ -1880,6 +1880,79 @@ static void sas_Read_FARM_Header_Param(uint8_t* ptrData, farmHeader* header)
     }
 }
 
+static M_INLINE uint32_t sas_ASCII_DWord_Replace_Null_With_Space(uint32_t asciiDWord)
+{
+    if (M_Byte0(asciiDWord) == UINT8_C(0))
+    {
+        asciiDWord |= UINT32_C(0x20);
+    }
+    if (M_Byte1(asciiDWord) == UINT8_C(0))
+    {
+        asciiDWord |= UINT32_C(0x2000);
+    }
+    if (M_Byte2(asciiDWord) == UINT8_C(0))
+    {
+        asciiDWord |= UINT32_C(0x200000);
+    }
+    if (M_Byte3(asciiDWord) == UINT8_C(0))
+    {
+        asciiDWord |= UINT32_C(0x20000000);
+    }
+    return asciiDWord;
+}
+
+// NOTE: Assumes each FARM ASCII str is 2 qwords long
+static M_INLINE void sas_FARM_ASCII_Field(uint64_t* firstQword, uint64_t* firstSTR64)
+{
+    if (firstQword != M_NULLPTR && firstSTR64 != M_NULLPTR)
+    {
+        uint32_t asciidword = UINT32_C(0);
+        // start with the SECOND qword
+        *(firstSTR64 + 1) = be64_to_host(*firstQword);
+        asciidword        = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*(firstSTR64 + 1)));
+        *(firstSTR64 + 1) &= UINT64_C(0xFFFFFFFF00000000);
+        *(firstSTR64 + 1) |= w_swap_32(asciidword);
+        // now the first
+        *firstSTR64 = be64_to_host(*(firstQword + 1));
+        asciidword  = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*firstSTR64));
+        *firstSTR64 &= UINT64_C(0xFFFFFFFF00000000);
+        *firstSTR64 |= w_swap_32(asciidword);
+    }
+}
+
+static M_INLINE void sas_FARM_ASCII_Field_In_Order(uint64_t* firstQword, uint64_t* firstSTR64, size_t maxFieldLen)
+{
+    if (firstQword != M_NULLPTR && firstSTR64 != M_NULLPTR)
+    {
+        for (size_t offset = UINT64_C(0); offset < maxFieldLen; ++offset)
+        {
+            uint32_t asciidword    = UINT32_C(0);
+            *(firstSTR64 + offset) = be64_to_host(*(firstQword + offset));
+            asciidword             = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(*(firstSTR64 + offset)));
+            *(firstSTR64 + offset) &= UINT64_C(0xFFFFFFFF00000000);
+            *(firstSTR64 + offset) |= w_swap_32(asciidword);
+        }
+    }
+}
+
+static M_INLINE void sas_FARM_WWN_Field(uint64_t* firstQword, uint64_t* firstSTR64)
+{
+    if (firstQword != M_NULLPTR && firstSTR64 != M_NULLPTR)
+    {
+        uint32_t asciidword = UINT32_C(0);
+        // start with the SECOND qword
+        *(firstSTR64 + 1) = be64_to_host(*firstQword);
+        asciidword        = get_DWord0(*(firstSTR64 + 1));
+        *(firstSTR64 + 1) &= UINT64_C(0xFFFFFFFF00000000);
+        *(firstSTR64 + 1) |= w_swap_32(asciidword);
+        // now the first
+        *firstSTR64 = be64_to_host(*(firstQword + 1));
+        asciidword  = get_DWord0(*firstSTR64);
+        *firstSTR64 &= UINT64_C(0xFFFFFFFF00000000);
+        *firstSTR64 |= w_swap_32(asciidword);
+    }
+}
+
 static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* info)
 {
     if (ptrData != M_NULLPTR && info != M_NULLPTR)
@@ -1891,13 +1964,12 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
             qwordptr         = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
             info->pageNumber = be64_to_host(qwordptr[0]);
             info->copyNumber = be64_to_host(qwordptr[1]);
-            // TODO: SN may not need be64_to_host to read
-            info->sn[0]  = be64_to_host(qwordptr[2]);
-            info->sn[1]  = be64_to_host(qwordptr[3]);
-            info->wwn[0] = be64_to_host(qwordptr[4]);
-            info->wwn[1] = be64_to_host(qwordptr[5]);
-            // TODO: interface may not need be64_to_host to read
-            info->driveInterface     = be64_to_host(qwordptr[6]);
+            sas_FARM_ASCII_Field(&qwordptr[2], info->sn);
+            sas_FARM_WWN_Field(&qwordptr[4], info->wwn);
+            info->driveInterface = be64_to_host(qwordptr[6]);
+            uint32_t asciidword  = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->driveInterface));
+            info->driveInterface &= UINT64_C(0xFFFFFFFF00000000);
+            info->driveInterface |= asciidword;
             info->driveCapacity      = be64_to_host(qwordptr[7]);
             info->physicalSectorSize = be64_to_host(qwordptr[8]);
             info->logicalSectorSize  = be64_to_host(qwordptr[9]);
@@ -1905,9 +1977,7 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
             info->numberOfHeads      = be64_to_host(qwordptr[11]);
             info->deviceFormFactor   = be64_to_host(qwordptr[12]);
             info->rotationRate       = be64_to_host(qwordptr[13]);
-            // TODO: FWRev may not need be64_to_host to read
-            info->fwrev[0]                              = be64_to_host(qwordptr[14]);
-            info->fwrev[1]                              = be64_to_host(qwordptr[15]);
+            sas_FARM_ASCII_Field(&qwordptr[14], info->fwrev);
             info->powerOnHours                          = be64_to_host(qwordptr[19]);
             info->powerCycleCount                       = be64_to_host(qwordptr[23]);
             info->hardwareResetCount                    = be64_to_host(qwordptr[24]);
@@ -1915,17 +1985,18 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
             info->timeAvailableToSaveUDToNVMem          = be64_to_host(qwordptr[27]);
             info->lowestPOHForTimeRestrictedParameters  = be64_to_host(qwordptr[28]);
             info->highestPOHForTimeRestrictedParameters = be64_to_host(qwordptr[29]);
-            info->dateOfAssembly                        = be64_to_host(qwordptr[30]);
+
+            info->dateOfAssembly = be64_to_host(qwordptr[30]);
+            asciidword           = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->dateOfAssembly));
+            info->dateOfAssembly &= UINT64_C(0xFFFFFFFF00000000);
+            info->dateOfAssembly |= b_swap_32(asciidword);
         }
         else if (parameter == 0x0006)
         {
             qwordptr = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
             // emulating SATA so skip page number and copy
-            info->depopulationHeadMask                                  = be64_to_host(qwordptr[2]);
-            info->modelNumber[0]                                        = be64_to_host(qwordptr[3]);
-            info->modelNumber[1]                                        = be64_to_host(qwordptr[4]);
-            info->modelNumber[2]                                        = be64_to_host(qwordptr[5]);
-            info->modelNumber[3]                                        = be64_to_host(qwordptr[6]);
+            info->depopulationHeadMask = be64_to_host(qwordptr[2]);
+            sas_FARM_ASCII_Field_In_Order(&qwordptr[3], info->modelNumber, 4);
             info->driveRecordingType                                    = be64_to_host(qwordptr[7]);
             info->isDriveDepopulated                                    = be64_to_host(qwordptr[8]);
             info->maxAvailableSectorsForReassignment                    = be64_to_host(qwordptr[9]);
@@ -2001,7 +2072,23 @@ static M_INLINE void sas_Fill_By_Head_Data(uint8_t* paramptr, uint8_t paramlen, 
         uint8_t   maxHeads = paramlen / UINT8_C(8);
         for (uint8_t headiter = UINT8_C(0); headiter < maxHeads && headiter < FARM_MAX_HEADS; ++headiter)
         {
-            byheadarray[headiter] = qwordptr[headiter];
+            byheadarray[headiter] = be64_to_host(qwordptr[headiter]);
+        }
+    }
+}
+
+static M_INLINE void sas_Fill_By_Head_Data_2D_Array(uint8_t* paramptr,
+                                                    uint8_t  paramlen,
+                                                    uint64_t (*byheadarray)[3],
+                                                    unsigned int dimension)
+{
+    if (paramptr != M_NULLPTR && byheadarray != M_NULLPTR && dimension < 3U)
+    {
+        uint64_t* qwordptr = M_REINTERPRET_CAST(uint64_t*, &paramptr[0]);
+        uint8_t   maxHeads = paramlen / UINT8_C(8);
+        for (uint8_t headiter = UINT8_C(0); headiter < maxHeads && headiter < FARM_MAX_HEADS; ++headiter)
+        {
+            (byheadarray[headiter])[dimension] = be64_to_host(qwordptr[headiter]);
         }
     }
 }
@@ -2115,10 +2202,9 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
 {
     if (ptrData != M_NULLPTR)
     {
-        uint64_t* qwordptr = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-        ;
-        uint16_t parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
-        uint8_t  paramlen  = ptrData[3];
+        uint64_t* qwordptr  = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
+        uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint8_t   paramlen  = ptrData[3];
         switch (parameter)
         {
         case 0x0005:
@@ -2158,22 +2244,28 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
             sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->writeWorkloadPowerOnTimeByHead);
             break;
         case 0x0030: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone1);
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+                                           &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 0);
             break;
         case 0x0031: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone2);
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+                                           &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 1);
             break;
         case 0x0032: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone3);
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+                                           &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 2);
             break;
         case 0x0033: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATiterationsToConvergeByHeadZone1);
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+                                           0);
             break;
         case 0x0034: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATiterationsToConvergeByHeadZone2);
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+                                           1);
             break;
         case 0x0035: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATiterationsToConvergeByHeadZone3);
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+                                           2);
             break;
         case 0x0043: // second mr head resistance by head (reliability)
             sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->secondHeadMRHeadResistanceByHead);
@@ -2250,18 +2342,19 @@ static farmLogData* sas_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, far
     if (ptrData != M_NULLPTR && farmdata != M_NULLPTR)
     {
         // First verify page/subpage codes
-        uint8_t page    = get_bit_range_uint8(ptrData[0], 5, 4);
+        uint8_t page    = get_bit_range_uint8(ptrData[0], 5, 0);
         uint8_t subpage = ptrData[1];
         if (page == 0x3D && (subpage == 0x03 || subpage == 0x04))
         {
             uint16_t pagelen      = bytes_To_Uint16(ptrData[2], ptrData[3]);
-            uint8_t  parameterlen = UINT8_C(0);
+            uint16_t parameterlen = UINT8_C(0);
             for (uint32_t farmoffset = LOG_PAGE_HEADER_LENGTH;
                  farmoffset < (M_STATIC_CAST(uint32_t, pagelen) + LOG_PAGE_HEADER_LENGTH) && farmoffset < dataLength;
-                 farmoffset += parameterlen)
+                 farmoffset += parameterlen + 4)
             {
                 uint16_t parameterCode = bytes_To_Uint16(ptrData[farmoffset], ptrData[farmoffset + 1]);
-                parameterlen           = ptrData[farmoffset + 2];
+                parameterlen           = ptrData[farmoffset + 3];
+                // printf("Parameter %" PRIX16 "h = len %" PRIu8 "\n", parameterCode, parameterlen);
                 if (parameterlen == UINT8_C(0))
                 {
                     break;
@@ -2473,13 +2566,15 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64_Factor(const char*
             int precision = 2;
             if (conversionFactor <= 0.001)
             {
-                // printed = printf("\t\t%0.03f\n", M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData)) *
-                // conversionFactor) > 0 ? true : false;
                 precision = 3;
             }
             if (conversionFactor <= 0.0001)
             {
                 precision = 4;
+            }
+            if (conversionFactor <= 0.00001)
+            {
+                precision = 5;
             }
             printed = printf("\t\t%.*f\n", precision,
                              M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData)) * conversionFactor) > 0
@@ -2505,6 +2600,19 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* 
         print_Statistic_Name(statisticname);
         if ((status & FARM_FIELD_VALID_BIT) > 0)
         {
+            int precision = 2;
+            if (conversionFactor <= 0.001)
+            {
+                precision = 3;
+            }
+            if (conversionFactor <= 0.0001)
+            {
+                precision = 4;
+            }
+            if (conversionFactor <= 0.00001)
+            {
+                precision = 5;
+            }
             int64_t signedval = M_STATIC_CAST(int64_t, get_Farm_Qword_Data(statisticData));
             if (M_Byte6(M_STATIC_CAST(uint64_t, signedval)) & BIT7)
             {
@@ -2512,7 +2620,8 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* 
                 // bit of the host is set properly.
                 signedval = M_STATIC_CAST(int64_t, M_STATIC_CAST(uint64_t, signedval) | UINT64_C(0xFFFF000000000000));
             }
-            printed = printf("\t\t%0.02f\n", M_STATIC_CAST(double, signedval) * conversionFactor) > 0 ? true : false;
+            printed = printf("\t\t%0.*f\n", precision, M_STATIC_CAST(double, signedval) * conversionFactor) > 0 ? true
+                                                                                                                : false;
         }
         else
         {
@@ -2574,8 +2683,16 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_HexUint64(const char* sta
     return printed;
 }
 
+#define FARM_FLOAT_PERCENT_DELTA_FACTORY_BIT BIT0
+#define FARM_FLOAT_NEGATIVE_BIT              BIT1
+
+static M_INLINE uint8_t get_Farm_Float_Bits(uint64_t floatData)
+{
+    return M_Byte6(floatData);
+}
+
 // For Mrheadresistance type output
-static M_INLINE bool print_Stat_If_Supported_And_Valid_Float(const char* statisticname, uint64_t statisticData)
+static bool print_Stat_If_Supported_And_Valid_Float(const char* statisticname, uint64_t statisticData)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2584,16 +2701,24 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Float(const char* statist
         print_Statistic_Name(statisticname);
         if ((status & FARM_FIELD_VALID_BIT) > 0)
         {
-            double  calculated  = 0.0;
-            double  decimalPart = M_STATIC_CAST(double, get_DWord0(statisticData));
-            int16_t wholePart   = M_STATIC_CAST(int16_t, M_Word2(statisticData));
-            uint8_t bits        = get_Farm_MR_Head_Resistance_Bits(statisticData);
-            calculated          = M_STATIC_CAST(double, wholePart) + (decimalPart * 0.0001);
-            if (bits & MR_HEAD_RESISTANCE_NEGATIVE_BIT)
+            uint8_t bits = get_Farm_Float_Bits(statisticData);
+            if (bits & FARM_FLOAT_PERCENT_DELTA_FACTORY_BIT || bits & FARM_FLOAT_NEGATIVE_BIT)
             {
-                calculated *= -1.0;
+                double  calculated  = 0.0;
+                double  decimalPart = M_STATIC_CAST(double, get_DWord0(statisticData));
+                int16_t wholePart   = M_STATIC_CAST(int16_t, M_Word2(statisticData));
+
+                calculated = M_STATIC_CAST(double, wholePart) + (decimalPart * 0.0001);
+                if (bits & FARM_FLOAT_NEGATIVE_BIT)
+                {
+                    calculated *= -1.0;
+                }
+                printed = printf("\t\t%0.02f\n", calculated) > 0 ? true : false;
             }
-            printed = printf("\t\t%0.02f\n", calculated) > 0 ? true : false;
+            else
+            {
+                printed = printf("\t\t%" PRIu16 "\n", M_Word0(statisticData)) > 0 ? true : false;
+            }
         }
         else
         {
@@ -2605,7 +2730,7 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Float(const char* statist
 
 static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* statisticname, uint64_t firstqword)
 {
-    size_t asciilen      = (SIZE_T_C(5));
+    size_t asciilen      = SIZE_T_C(5);
     char*  farmASCIIData = M_REINTERPRET_CAST(char*, safe_calloc(asciilen, sizeof(char)));
     if (farmASCIIData != M_NULLPTR)
     {
@@ -2648,6 +2773,30 @@ static void print_Stat_If_Supported_And_Valid_ASCII(const char* statisticname, u
                 safe_free(&farmASCIIData);
             }
         }
+    }
+}
+
+static void print_Stat_If_Supported_And_Valid_Date_Of_Assembly(uint64_t doaQword)
+{
+    size_t asciilen      = (SIZE_T_C(5));
+    char*  farmASCIIData = M_REINTERPRET_CAST(char*, safe_calloc(asciilen, sizeof(char)));
+    if (farmASCIIData != M_NULLPTR)
+    {
+        size_t   asciioffset = SIZE_T_C(0);
+        uint32_t rawdata     = M_DoubleWord0(doaQword);
+        safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
+        farmASCIIData[asciilen] = 0;
+        print_Statistic_Name("Date Of Assembly\t\t");
+        // first 2 digits are year
+        DECLARE_ZERO_INIT_ARRAY(char, year, 5);
+        year[0] = '2';
+        year[1] = '0';
+        safe_memcpy(&year[2], 3, farmASCIIData, 2);
+        // second 2 digits are week of the year
+        DECLARE_ZERO_INIT_ARRAY(char, week, 3);
+        safe_memcpy(&week[0], 3, &farmASCIIData[2], 2);
+        printf("Week %s, %s\n", week, year);
+        safe_free(&farmASCIIData);
     }
 }
 
@@ -2747,7 +2896,7 @@ typedef enum eFARMByHeadOutputFormat
 } eFARMByHeadOutputFormat;
 
 #define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
-static void print_Stat_If_Supported_And_Valid_By_Head(const char*             statisticname,
+static bool print_Stat_If_Supported_And_Valid_By_Head(const char*             statisticname,
                                                       uint64_t                byhead[FARM_MAX_HEADS],
                                                       uint64_t                numberOfHeads,
                                                       eFARMByHeadOutputFormat outputFormat,
@@ -2755,6 +2904,7 @@ static void print_Stat_If_Supported_And_Valid_By_Head(const char*             st
 {
     if (byhead != M_NULLPTR)
     {
+        uint64_t printCount = UINT64_C(0);
         for (uint64_t headiter = UINT64_C(0); headiter < FARM_MAX_HEADS && headiter < numberOfHeads; ++headiter)
         {
             size_t byheadstatstrlen = safe_strlen(statisticname);
@@ -2802,9 +2952,17 @@ static void print_Stat_If_Supported_And_Valid_By_Head(const char*             st
                 printed = print_Stat_If_Supported_And_Valid_Time(byheadstatname, byhead[headiter], conversionfactor);
                 break;
             }
-            M_USE_UNUSED(printed);
+            if (printed)
+            {
+                ++printCount;
+            }
+        }
+        if (printCount > UINT64_C(0))
+        {
+            return true;
         }
     }
+    return false;
 }
 
 static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface* farmInterface)
@@ -2820,6 +2978,7 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_ASCII("Firmware Revision", &driveInfo->fwrev[0],
                                                     FARM_DRIVE_INFO_FWREV_ASCII_LEN);
             print_Stat_If_Supported_And_Valid_2Qwords_To_UINT64_Hex("World Wide Name", &driveInfo->wwn[0]);
+            print_Stat_If_Supported_And_Valid_Date_Of_Assembly(driveInfo->dateOfAssembly);
             print_Stat_If_Supported_And_Valid_ASCII("Drive Interface", &driveInfo->driveInterface, 1);
             // This is a very overly simple hack to detect interface.
             // It's a string set to "SAS" or "SATA" so this will work for now - TJE
@@ -2833,10 +2992,12 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                 *farmInterface = FARM_DRIVE_INTERFACE_SATA;
             }
             print_Stat_If_Supported_And_Valid_Uint64("Device Capacity (LBAs)", driveInfo->driveCapacity);
+            print_Stat_If_Supported_And_Valid_Uint64("Number of LBAs (HSMR SWR capacity)", driveInfo->numberOfLBAs);
             print_Stat_If_Supported_And_Valid_Uint64("Physical Sector Size (B)", driveInfo->physicalSectorSize);
             print_Stat_If_Supported_And_Valid_Uint64("Logical Sector Size (B)", driveInfo->logicalSectorSize);
             print_Stat_If_Supported_And_Valid_Uint64("Device Buffer Size (B)", driveInfo->deviceBufferSize);
             print_Stat_If_Supported_And_Valid_Uint64("Number Of Heads", driveInfo->numberOfHeads);
+            print_Stat_If_Supported_And_Valid_Recording_Type("Drive Recording Type", driveInfo->driveRecordingType);
             print_Stat_If_Supported_And_Valid_HexUint64("Form Factor", driveInfo->deviceFormFactor);
             print_Stat_If_Supported_And_Valid_Uint64("Rotation Rate", driveInfo->rotationRate);
             print_Stat_If_Supported_And_Valid_HexUint64("ATA Security State", driveInfo->ataSecurityState);
@@ -2847,14 +3008,22 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                                                    MICRO_SECONDS_PER_HOUR);
             print_Stat_If_Supported_And_Valid_Time("Head Flight Hours", driveInfo->headFlightHours,
                                                    MICRO_SECONDS_PER_HOUR);
+            print_Stat_If_Supported_And_Valid_Time("Head Flight Hours, Actuator 1", driveInfo->headFlightHoursActuator1,
+                                                   MICRO_SECONDS_PER_HOUR);
             print_Stat_If_Supported_And_Valid_Uint64("Head Load Events", driveInfo->headLoadEvents);
+            print_Stat_If_Supported_And_Valid_Uint64("Head Load Events, Actuator 1",
+                                                     driveInfo->headLoadEventsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("Power Cycle Count", driveInfo->powerCycleCount);
             print_Stat_If_Supported_And_Valid_Uint64("Hardware Reset Count", driveInfo->hardwareResetCount);
             print_Stat_If_Supported_And_Valid_Uint64("Spin up time (ms)", driveInfo->spinUpTimeMilliseconds);
+            print_Stat_If_Supported_And_Valid_Uint64("Time to ready, last power cycle (ms)",
+                                                     driveInfo->timeToReadyOfLastPowerCycle);
+            print_Stat_If_Supported_And_Valid_Uint64("Time in staggered spinup, last power on sequence (ms)",
+                                                     driveInfo->timeDriveHeldInStaggeredSpinDuringLastPowerOnSequence);
             if (*farmInterface == FARM_DRIVE_INTERFACE_SAS)
             {
                 print_Stat_If_Supported_And_Valid_Uint64("NVC Status at Power On", driveInfo->nvcStatusOnPoweron);
-                print_Stat_If_Supported_And_Valid_Uint64("Time Availabe to Save User Data To NVMem",
+                print_Stat_If_Supported_And_Valid_Uint64("Time Availabe to Save User Data To NV Mem",
                                                          driveInfo->timeAvailableToSaveUDToNVMem); // 100us
             }
             print_Stat_If_Supported_And_Valid_Time("Lowest POH timestamp (Hours)",
@@ -2863,40 +3032,29 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_Time("Highest POH timestamp (Hours)",
                                                    driveInfo->highestPOHForTimeRestrictedParameters,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Uint64("Time to ready, last power cycle (ms)",
-                                                     driveInfo->timeToReadyOfLastPowerCycle);
-            print_Stat_If_Supported_And_Valid_Uint64("Time in staggered spinup, last power on sequence (ms)",
-                                                     driveInfo->timeDriveHeldInStaggeredSpinDuringLastPowerOnSequence);
-            print_Stat_If_Supported_And_Valid_Recording_Type("Drive Recording Type", driveInfo->driveRecordingType);
-            print_Stat_If_Supported_And_Valid_Bool("Depop Status", driveInfo->isDriveDepopulated, "Depoped",
-                                                   "Not Depoped");
+            print_Stat_If_Supported_And_Valid_Bool("Depopulation Status", driveInfo->isDriveDepopulated, "Depopulated",
+                                                   "Not Depopulated");
+            print_Stat_If_Supported_And_Valid_HexUint64("Depopulation Head Mask", driveInfo->depopulationHeadMask);
+            print_Stat_If_Supported_And_Valid_HexUint64("Regeneration Head Mask", driveInfo->regenHeadMask);
+            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status",
+                                                      driveInfo->getPhysicalElementStatusByHead,
+                                                      driveInfo->numberOfHeads, FARM_BY_HEAD_HEX, 0.0);
             print_Stat_If_Supported_And_Valid_Uint64("Max # Available Disc Sectors for Reassignment",
                                                      driveInfo->maxAvailableSectorsForReassignment);
-            print_Stat_If_Supported_And_Valid_ASCII("Date of Assembly", &driveInfo->dateOfAssembly, 1);
-            print_Stat_If_Supported_And_Valid_HexUint64("Depop Head Mask", driveInfo->depopulationHeadMask);
-            print_Stat_If_Supported_And_Valid_Time("Head Flight Hours, Actuator 1", driveInfo->headFlightHoursActuator1,
-                                                   MICRO_SECONDS_PER_HOUR);
-            print_Stat_If_Supported_And_Valid_Uint64("Head Load Events, Actuator 1",
-                                                     driveInfo->headLoadEventsActuator1);
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus,
                                                    "Data Protect", "No Data Protect");
-            print_Stat_If_Supported_And_Valid_HexUint64("Regen Head Mask", driveInfo->regenHeadMask);
-            print_Stat_If_Supported_And_Valid_Time("Power On Hours of Most Recent FARM Time Series Frame",
+            print_Stat_If_Supported_And_Valid_Time("POH of Most Recent FARM Time Series Frame",
                                                    driveInfo->pohOfMostRecentTimeseriesFrame,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Time("Power On Hours of 2nd Most Recent FARM Time Series Frame",
+            print_Stat_If_Supported_And_Valid_Time("POH of 2nd Most Recent FARM Time Series Frame",
                                                    driveInfo->pohOfSecondMostRecentTimeseriesFrame,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "Seq or Before Req for Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "Seq Write ReqActive Zone Config",
+                "Seq Write Req Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
-            print_Stat_If_Supported_And_Valid_Uint64("Number of LBAs (HSMR SWR capacity)", driveInfo->numberOfLBAs);
-            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status",
-                                                      driveInfo->getPhysicalElementStatusByHead,
-                                                      driveInfo->numberOfHeads, FARM_BY_HEAD_HEX, 0.0);
         }
     }
 }
@@ -2919,12 +3077,19 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
             print_Stat_If_Supported_And_Valid_Uint64("LBAs Read", work->logicalSectorsRead);
             print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle",
                                                      work->numberOfDitherEventsInCurrentPowerCycle);
+            print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle, Actuator 1",
+                                                     work->numberOfDitherEventsInCurrentPowerCycleActuator1);
+            print_Stat_If_Supported_And_Valid_Uint64("# dither pause - random workloads in power cycle",
+                                                     work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycle);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring random workloads in power cycle",
-                work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycle);
+                "# dither pause - random workloads in power cycle, Actuator 1",
+                work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycleActuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring sequential workloads in power cycle",
+                "# dither pause - sequential workloads in power cycle",
                 work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycle);
+            print_Stat_If_Supported_And_Valid_Uint64(
+                "# dither pause - sequential workloads in power cycle, Actuator 1",
+                work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycleActuator1);
             bool commandCover = false;
             commandCover =
                 true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands between 0-3.125% LBA space",
@@ -2973,42 +3138,39 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
             commandCover = false;
-            commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with transfer length <= 16KiB",
-                                                                 work->numReadsOfXferLenLT16KB)
-                    ? true
-                    : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of read commands with transfer length 16Kib - 512KiB",
-                                       work->numReadsOfXferLen16KBTo512KB)
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer <= 16KiB",
+                                                                            work->numReadsOfXferLenLT16KB)
                                ? true
                                : commandCover;
             commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64(
-                            "# of read commands with transfer length 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB)
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer 16Kib - 512KiB",
+                                                                 work->numReadsOfXferLen16KBTo512KB)
                     ? true
                     : commandCover;
             commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of read commands with transfer length > 2MiB", work->numReadsOfXferLenGT2MB)
+                                       "# of read commands with xfer 512KiB - 2MiB", work->numReadsOfXferLen512KBTo2MB)
+                               ? true
+                               : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of read commands with xfer > 2MiB",
+                                                                            work->numReadsOfXferLenGT2MB)
+                               ? true
+                               : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer <= 16KiB",
+                                                                            work->numWritesOfXferLenLT16KB)
                                ? true
                                : commandCover;
             commandCover =
-                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with transfer length <= 16KiB",
-                                                                 work->numWritesOfXferLenLT16KB)
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer 16Kib - 512KiB",
+                                                                 work->numWritesOfXferLen16KBTo512KB)
                     ? true
                     : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with transfer length 16Kib - 512KiB",
-                                       work->numWritesOfXferLen16KBTo512KB)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with transfer length 512KiB - 2MiB",
-                                       work->numWritesOfXferLen512KBTo2MB)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of write commands with transfer length > 2MiB", work->numWritesOfXferLenGT2MB)
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer 512KiB - 2MiB",
+                                                                 work->numWritesOfXferLen512KBTo2MB)
+                    ? true
+                    : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of write commands with xfer > 2MiB",
+                                                                            work->numWritesOfXferLenGT2MB)
                                ? true
                                : commandCover;
             if (commandCover)
@@ -3056,55 +3218,48 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
                                                        MICRO_SECONDS_PER_MILLI_SECONDS);
             }
-            print_Stat_If_Supported_And_Valid_Uint64("# of Dither events in power cycle, Actuator 1",
-                                                     work->numberOfDitherEventsInCurrentPowerCycleActuator1);
-            print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring random workloads in power cycle, Actuator 1",
-                work->numberDitherHeldOffDueToRandomWorkloadsInCurrentPowerCycleActuator1);
-            print_Stat_If_Supported_And_Valid_Uint64(
-                "# of times dither held off durring sequential workloads in power cycle, Actuator 1",
-                work->numberDitherHeldOffDueToSequentialWorkloadsInCurrentPowerCycleActuator1);
+
             commandCover = false;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 4, last 3 SMART Summary Frames",
-                                       work->numReadsXferLenBin4Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 5, last 3 SMART Summary Frames",
-                                       work->numReadsXferLenBin5Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 6, last 3 SMART Summary Frames",
-                                       work->numReadsXferLenBin6Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of reads of transfer length bin 7, last 3 SMART Summary Frames",
-                                       work->numReadsXferLenBin7Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 4, last 3 SMART Summary Frames",
-                                       work->numWritesXferLenBin4Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 5, last 3 SMART Summary Frames",
-                                       work->numWritesXferLenBin5Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 6, last 3 SMART Summary Frames",
-                                       work->numWritesXferLenBin6Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
-            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64(
-                                       "# of writes of transfer length bin 7, last 3 SMART Summary Frames",
-                                       work->numWritesXferLenBin7Last3SMARTSummaryFrames)
-                               ? true
-                               : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 4, last 3 SSF",
+                                                                 work->numReadsXferLenBin4Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 5, last 3 SSF",
+                                                                 work->numReadsXferLenBin5Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 6, last 3 SSF",
+                                                                 work->numReadsXferLenBin6Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 7, last 3 SSF",
+                                                                 work->numReadsXferLenBin7Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 4, last 3 SSF",
+                                                                 work->numWritesXferLenBin4Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 5, last 3 SSF",
+                                                                 work->numWritesXferLenBin5Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 6, last 3 SSF",
+                                                                 work->numWritesXferLenBin6Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
+            commandCover =
+                true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 7, last 3 SSF",
+                                                                 work->numWritesXferLenBin7Last3SMARTSummaryFrames)
+                    ? true
+                    : commandCover;
             if (commandCover)
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time that XFer Bins Cover (Hours)",
@@ -3115,10 +3270,10 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
     }
 }
 
-#define FLED_INFO_STR_LEN        10
-#define RWRETRY_INFO_STR_LEN     10
-#define FLEDTIMESTAMP_STR_LEN    10
-#define FLED_POWER_CYCLE_STR_LEN 10
+#define FLED_INFO_STR_LEN        20
+#define RWRETRY_INFO_STR_LEN     20
+#define FLEDTIMESTAMP_STR_LEN    20
+#define FLED_POWER_CYCLE_STR_LEN 20
 
 static char* get_Farm_FLED_Info_String(char* str, size_t strlen, uint64_t fledqword)
 {
@@ -3169,35 +3324,38 @@ static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator actuator,
         printf("%s\n", farmActuatorStr);
         print_Stat_If_Supported_And_Valid_Uint64("Total Flash LED Events", totalFLEDs);
     }
-    uint64_t index  = UINT64_C(0);
-    uint8_t  status = get_Farm_Status_Byte(fledIndex);
+    int64_t index  = INT64_C(0);
+    uint8_t status = get_Farm_Status_Byte(fledIndex);
     if (status & FARM_FIELD_SUPPORTED_BIT && status & FARM_FIELD_VALID_BIT)
     {
-        index = get_Farm_Qword_Data(fledIndex);
+        index = M_STATIC_CAST(int64_t, get_Farm_Qword_Data(fledIndex));
     }
     else
     {
         return;
     }
     uint8_t eventCount = UINT8_C(0);
-    while (eventCount < FARM_FLED_EVENTS && index < FARM_FLED_EVENTS)
+    printf("%*s                %-*s  %-*s  %-*s  %-*s\n", M_STATIC_CAST(int, safe_strlen(farmActuatorStr)), "",
+           FLED_INFO_STR_LEN, "FLED", RWRETRY_INFO_STR_LEN, "RW Retry", FLEDTIMESTAMP_STR_LEN, "Timestamp",
+           FLED_POWER_CYCLE_STR_LEN, "Power Cycle");
+    while (eventCount < FARM_FLED_EVENTS && index < FARM_FLED_EVENTS && index > INT64_C(0))
     {
         DECLARE_ZERO_INIT_ARRAY(char, fledInfoStr, FLED_INFO_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, rwRetryStr, RWRETRY_INFO_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, timestampStr, FLEDTIMESTAMP_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, powerCycleStr, FLED_POWER_CYCLE_STR_LEN);
 
-        printf("%sFlash LED Info:\t%s\t%s\t%s\t%s\n", farmActuatorStr,
-               get_Farm_FLED_Info_String(fledInfoStr, FLED_INFO_STR_LEN, fledInfo[index]),
-               get_Farm_FLED_Info_String(rwRetryStr, FLED_INFO_STR_LEN, rwRetry[index]),
-               get_Farm_FLED_Info_String(timestampStr, FLED_INFO_STR_LEN, fledtimestamp[index]),
-               get_Farm_FLED_Info_String(powerCycleStr, FLED_INFO_STR_LEN, powerCycleFLED[index]));
+        printf("%sFlash LED Info: %-*s  %-*s  %-*s  %-*s\n", farmActuatorStr, FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(fledInfoStr, FLED_INFO_STR_LEN, fledInfo[index]), FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(rwRetryStr, RWRETRY_INFO_STR_LEN, rwRetry[index]), FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(timestampStr, FLEDTIMESTAMP_STR_LEN, fledtimestamp[index]), FLED_INFO_STR_LEN,
+               get_Farm_FLED_Info_String(powerCycleStr, FLED_POWER_CYCLE_STR_LEN, powerCycleFLED[index]));
 
-        // increment index. Reset to zero if we go past the last event since this is a wrapping array.
-        ++index;
-        if (index >= FARM_FLED_EVENTS)
+        // decrement index. Reset to zero if we go past the last event since this is a wrapping array.
+        --index;
+        if (index < INT64_C(0))
         {
-            index = UINT64_C(0);
+            index = FARM_FLED_EVENTS;
         }
         ++eventCount;
     }
@@ -3215,14 +3373,14 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
             print_Stat_If_Supported_And_Valid_Uint64("# of Unrecoverable Write Errors",
                                                      error->numberOfUnrecoverableWriteErrors);
             print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Sectors", error->numberOfReallocatedSectors);
+            print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Sectors, Actuator 1",
+                                                     error->numberOfReallocatedSectorsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("# of Read Recovery Attempts",
                                                      error->numberOfReadRecoveryAttempts);
             print_Stat_If_Supported_And_Valid_Uint64("# of Mechanical Start Retries",
                                                      error->numberOfMechanicalStartRetries);
             print_Stat_If_Supported_And_Valid_Uint64("# of Reallocation Candidate Sectors",
                                                      error->numberOfReallocationCandidateSectors);
-            print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Sectors, Actuator 1",
-                                                     error->numberOfReallocatedSectorsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("# of Reallocated Candidate Sectors, Actuator 1",
                                                      error->numberOfReallocationCandidateSectorsActuator1);
             if (driveInterface == FARM_DRIVE_INTERFACE_SATA)
@@ -3294,10 +3452,10 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
                 "# Reallocation Candidate between N & N-1 FARM Time Series Frame",
                 error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocated Sectors since last FARM Time Series Frame",
+                "# Reallocated Sectors since last FARM Time Series Frame, Actuator 1",
                 error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSavedActuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocated Sectors between N & N-1 FARM Time Series Frame",
+                "# Reallocated Sectors between N & N-1 FARM Time Series Frame, Actuator 1",
                 error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "# Reallocation Candidate Sectors since last FARM Time Series Frame Actuator 1",
@@ -3317,16 +3475,21 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
     }
 }
 
-static void print_FARM_Environment_Info(farmEnvironmentStatistics* env)
+static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
+                                        uint64_t                   timerestrictedRangems,
+                                        eFARMDriveInterface        farminterface)
 {
     if (env != M_NULLPTR)
     {
         if (get_Farm_Qword_Data(env->pageNumber) == FARM_PAGE_ENVIRONMENT_STATS)
         {
             printf("---Environment Info---\n");
-            print_Stat_If_Supported_And_Valid_Uint64("Current Temperature (C)", env->currentTemperature);
-            print_Stat_If_Supported_And_Valid_Uint64("Highest Temperature (C)", env->highestTemperature);
-            print_Stat_If_Supported_And_Valid_Uint64("Lowest Temperature (C)", env->lowestTemperature);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Current Temperature (C)", env->currentTemperature,
+                                                           farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Highest Temperature (C)", env->highestTemperature,
+                                                           farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
+            print_Stat_If_Supported_And_Valid_int64_Factor("Lowest Temperature (C)", env->lowestTemperature,
+                                                           farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
             print_Stat_If_Supported_And_Valid_Uint64("Average Short Term Temperature (C)", env->avgShortTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Average Long Term Temperature (C)", env->avgLongTermTemp);
             print_Stat_If_Supported_And_Valid_Uint64("Highest Average Short Term Temperature (C)",
@@ -3345,42 +3508,285 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env)
             print_Stat_If_Supported_And_Valid_Uint64("Specified Min Temperature (C)", env->specifiedMinTemp);
             print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Relative Humidity (%)",
                                                             env->currentRelativeHumidity, 0.1);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 12v input (V)", env->current12Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v input (V)", env->min12Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v input (V)", env->max12Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 5v input (V)", env->current5Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v input (V)", env->min5Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v input (V)", env->max5Vinput, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 12v power (W)", env->average12Vpwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v power (W)", env->min12VPwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v power (W)", env->max12VPwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 5v power (W)", env->average5Vpwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v power (W)", env->min5Vpwr, 0.001);
-            print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v power (W)", env->max5Vpwr, 0.001);
+            if (print_Stat_If_Supported_And_Valid_Uint64_Factor(
+                    "Current Motor Power (W)", env->currentMotorPowerFromMostRecentSMARTSummaryFrame, 0.001))
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Motor Power (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+            bool powerCov = false;
+            powerCov      = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 12v input (V)",
+                                                                                    env->current12Vinput, 0.001)
+                                ? true
+                                : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v input (V)", env->min12Vinput, 0.001)
+                    ? true
+                    : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v input (V)", env->max12Vinput, 0.001)
+                    ? true
+                    : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Current 5v input (V)",
+                                                                               env->current5Vinput, 0.001)
+                           ? true
+                           : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v input (V)", env->min5Vinput, 0.001)
+                    ? true
+                    : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v input (V)", env->max5Vinput, 0.001)
+                    ? true
+                    : powerCov;
+            if (powerCov)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for 12v & 5v voltage (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+            powerCov = false;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 12v power (W)",
+                                                                               env->average12Vpwr, 0.001)
+                           ? true
+                           : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 12v power (W)", env->min12VPwr, 0.001)
+                    ? true
+                    : powerCov;
+            powerCov =
+                true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 12v power (W)", env->max12VPwr, 0.001)
+                    ? true
+                    : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Average 5v power (W)",
+                                                                               env->average5Vpwr, 0.001)
+                           ? true
+                           : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Min 5v power (W)", env->min5Vpwr, 0.001)
+                           ? true
+                           : powerCov;
+            powerCov = true == print_Stat_If_Supported_And_Valid_Uint64_Factor("Max 5v power (W)", env->max5Vpwr, 0.001)
+                           ? true
+                           : powerCov;
+            if (powerCov)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for 12v & 5v power (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
         }
     }
 }
 
-// get_Decimal_From_4_byte_Float
-
-static void print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(uint64_t byhead[FARM_MAX_HEADS],
-                                                                         uint64_t numberOfHeads)
+// unitStr should be the units this field is in if it is NOT % delta
+static bool print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(const char* fieldStr,
+                                                                            const char* unitStr,
+                                                                            uint64_t    byhead[FARM_MAX_HEADS],
+                                                                            uint64_t    numberOfHeads)
 {
-    if (get_Farm_MR_Head_Resistance_Bits(byhead[0]) & MR_HEAD_RESISTANCE_PERCENT_DELTA_FACTORY_BIT)
+    bool   printed = false;
+    size_t len     = safe_strlen(fieldStr) + M_Max(safe_strlen(unitStr), safe_strlen("% delta")) +
+                 SIZE_T_C(4); //+4 for parens, spaces, null terminator
+    char* fieldNameAndUnit = M_STATIC_CAST(char*, safe_calloc(len, sizeof(char)));
+    if (fieldNameAndUnit != M_NULLPTR)
     {
-        print_Stat_If_Supported_And_Valid_By_Head("MR Head Resistance (% delta)", byhead, numberOfHeads,
-                                                  FARM_BY_HEAD_FLOAT, 0.0);
+        if (get_Farm_Float_Bits(byhead[0]) & FARM_FLOAT_PERCENT_DELTA_FACTORY_BIT ||
+            get_Farm_Float_Bits(byhead[0]) & FARM_FLOAT_NEGATIVE_BIT)
+        {
+            snprintf_err_handle(fieldNameAndUnit, len, "%s (%% delta)", fieldStr);
+            printed = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
+                                                                FARM_BY_HEAD_FLOAT, 0.0);
+        }
+        else
+        {
+            snprintf_err_handle(fieldNameAndUnit, len, "%s (%s)", fieldStr, unitStr);
+            printed = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
+                                                                FARM_BY_HEAD_UINT64, 0.001);
+        }
     }
-    else
+    return printed;
+}
+
+#define THREE_STATS_IN_ONE 3
+static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(const char* statisticname,
+                                                                      uint64_t    statisticData[THREE_STATS_IN_ONE],
+                                                                      double      conversionFactor)
+{
+    bool    printed = false;
+    uint8_t status  = get_Farm_Status_Byte(statisticData[0]);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
     {
-        print_Stat_If_Supported_And_Valid_By_Head("MR Head Resistance (ohms)", byhead, numberOfHeads,
-                                                  FARM_BY_HEAD_UINT64, 0.0);
+        print_Statistic_Name(statisticname);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            int printCnt  = 0;
+            int precision = 2;
+            if (conversionFactor <= 0.001)
+            {
+                precision = 3;
+            }
+            if (conversionFactor <= 0.0001)
+            {
+                precision = 4;
+            }
+            if (conversionFactor <= 0.00001)
+            {
+                precision = 5;
+            }
+            printf("\t");
+            for (int statNum = 0; statNum < THREE_STATS_IN_ONE; ++statNum)
+            {
+                int64_t signedval = M_STATIC_CAST(int64_t, get_Farm_Qword_Data(statisticData[statNum]));
+                if (M_Byte6(M_STATIC_CAST(uint64_t, signedval)) & BIT7)
+                {
+                    // sign bit is set. To make sure this converts as we expect it to we need to make sure the int64_t
+                    // sign bit of the host is set properly.
+                    signedval =
+                        M_STATIC_CAST(int64_t, M_STATIC_CAST(uint64_t, signedval) | UINT64_C(0xFFFF000000000000));
+                }
+                printCnt = printf("\t%0.*f", precision, M_STATIC_CAST(double, signedval) * conversionFactor);
+            }
+            printf("\n");
+            if (printCnt > 0)
+            {
+                printed = true;
+            }
+        }
+        else
+        {
+            printed = printf("\t\tInvalid\tInvalid\tInvalid\n") > 0 ? true : false;
+        }
     }
+    return printed;
+}
+
+// If a statistic is a counter in 1/1000 or .1%, etc can provide a conversion factor with this
+static M_INLINE bool print_3_Stat_If_Supported_And_Valid_Uint64_Factor(const char* statisticname,
+                                                                       uint64_t    statisticData[THREE_STATS_IN_ONE],
+                                                                       double      conversionFactor)
+{
+    bool    printed = false;
+    uint8_t status  = get_Farm_Status_Byte(statisticData[0]);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
+    {
+        print_Statistic_Name(statisticname);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            int precision = 2;
+            if (conversionFactor <= 0.001)
+            {
+                precision = 3;
+            }
+            if (conversionFactor <= 0.0001)
+            {
+                precision = 4;
+            }
+            int printCnt = 0;
+            printf("\t");
+            for (int statNum = 0; statNum < THREE_STATS_IN_ONE; ++statNum)
+            {
+                printCnt =
+                    printf("\t%.*f", precision,
+                           M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData[statNum])) * conversionFactor);
+            }
+            printf("\n");
+            if (printCnt > 0)
+            {
+                printed = true;
+            }
+        }
+        else
+        {
+            printed = printf("\t\tInvalid\n") > 0 ? true : false;
+        }
+    }
+    return printed;
+}
+
+#define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
+static bool print_3_Stat_If_Supported_And_Valid_By_Head(const char* statisticname,
+                                                        uint64_t    byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
+                                                        uint64_t    numberOfHeads,
+                                                        eFARMByHeadOutputFormat outputFormat,
+                                                        double                  conversionfactor)
+{
+    if (byhead != M_NULLPTR)
+    {
+        uint64_t printCount = UINT64_C(0);
+        for (uint64_t headiter = UINT64_C(0); headiter < FARM_MAX_HEADS && headiter < numberOfHeads; ++headiter)
+        {
+            size_t byheadstatstrlen = safe_strlen(statisticname);
+            if (byheadstatstrlen == 0)
+            {
+                byheadstatstrlen = safe_strlen("Unknown Statistic");
+            }
+            byheadstatstrlen += BY_HEAD_INFO_STR_LEN + 1; // +1 for null terminator
+            char* byheadstatname = safe_calloc(byheadstatstrlen, sizeof(char));
+            if (byheadstatname != M_NULLPTR)
+            {
+                if (statisticname != M_NULLPTR)
+                {
+                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "%s Head %2" PRIu64, statisticname, headiter);
+                }
+                else
+                {
+                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "Unknown Statistic Head %2" PRIu64, headiter);
+                }
+            }
+            bool printed = false;
+            switch (outputFormat)
+            {
+            case FARM_BY_HEAD_UINT64:
+                printed = print_3_Stat_If_Supported_And_Valid_Uint64_Factor(byheadstatname, byhead[headiter], 1.0);
+                break;
+            case FARM_BY_HEAD_UINT64_FACTOR:
+                printed = print_3_Stat_If_Supported_And_Valid_Uint64_Factor(byheadstatname, byhead[headiter],
+                                                                            conversionfactor);
+                break;
+            case FARM_BY_HEAD_INT64:
+                printed = print_3_Stat_If_Supported_And_Valid_int64_Factor(byheadstatname, byhead[headiter], 1.0);
+                break;
+            case FARM_BY_HEAD_INT64_FACTOR:
+                printed = print_3_Stat_If_Supported_And_Valid_int64_Factor(byheadstatname, byhead[headiter],
+                                                                           conversionfactor);
+                break;
+            case FARM_BY_HEAD_HEX:
+                // TODO: Add this in when we have a field that needs this.
+                break;
+            case FARM_BY_HEAD_FLOAT:
+                // TODO: Add this in when we have a field that needs this.
+                break;
+            case FARM_BY_HEAD_TIME:
+                // TODO: Add this in when we have a field that needs this.
+                break;
+            }
+            if (printed)
+            {
+                ++printCount;
+            }
+        }
+        if (printCount > UINT64_C(0))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static M_INLINE bool print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
+    const char* fieldStr,
+    uint64_t    byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
+    uint64_t    numberOfHeads)
+{
+    return print_3_Stat_If_Supported_And_Valid_By_Head(fieldStr, byhead, numberOfHeads, FARM_BY_HEAD_INT64_FACTOR,
+                                                       0.001);
 }
 
 static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                         uint64_t                   numheads,
-                                        eFARMDriveInterface        farminterface)
+                                        eFARMDriveInterface        farminterface,
+                                        uint64_t                   timerestrictedRangems)
 {
     if (reli != M_NULLPTR)
     {
@@ -3416,31 +3822,34 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
             print_Stat_If_Supported_And_Valid_Uint64("Seek Error Rate Normalized", reli->seekErrorRateNormalized);
             print_Stat_If_Supported_And_Valid_Uint64("Seek Error Rate Worst Ever", reli->seekErrorRateWorstEver);
             print_Stat_If_Supported_And_Valid_Uint64("High Priority Unload Events", reli->highPriorityUnloadEvents);
-            print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(reli->mrHeadResistanceByHead, numheads);
-            print_Stat_If_Supported_And_Valid_MR_Head_Resistance_By_Head(reli->secondHeadMRHeadResistanceByHead,
-                                                                         numheads);
-            print_Stat_If_Supported_And_Valid_By_Head("Velocity Observer", reli->velocityObserverByHead, numheads,
-                                                      FARM_BY_HEAD_UINT64, 0.0);
-            print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer", reli->numberOfVelocityObserverByHead,
-                                                      numheads, FARM_BY_HEAD_UINT64, 0.0);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error Zone 0",
-                                                      reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone1, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error Zone 1",
-                                                      reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone2, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error Zone 2",
-                                                      reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone3, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge Zone 0",
-                                                      reli->currentH2SATiterationsToConvergeByHeadZone1, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge Zone 1",
-                                                      reli->currentH2SATiterationsToConvergeByHeadZone2, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge Zone 2",
-                                                      reli->currentH2SATiterationsToConvergeByHeadZone3, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.10);
+            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head("MR Head Resistance", "ohms",
+                                                                            reli->mrHeadResistanceByHead, numheads);
+            print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(
+                "2nd MR Head Resistance", "ohms", reli->secondHeadMRHeadResistanceByHead, numheads);
+            bool velObs = false;
+
+            velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer",
+                                                                       reli->velocityObserverByHead, numheads,
+                                                                       FARM_BY_HEAD_UINT64, 0.0)
+                         ? true
+                         : velObs;
+            velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer No TMD",
+                                                                       reli->numberOfVelocityObserverNoTMDByHead,
+                                                                       numheads, FARM_BY_HEAD_UINT64, 0.0)
+                         ? true
+                         : velObs;
+            if (velObs)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Velocity Observer (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+            print_3_Stat_If_Supported_And_Valid_By_Head("H2SAT Trimmed Mean Bits in Error (Z1, Z2, Z3)",
+                                                        reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone, numheads,
+                                                        FARM_BY_HEAD_UINT64_FACTOR, 0.10);
+            print_3_Stat_If_Supported_And_Valid_By_Head("H2SAT Iterations to Converge (Z1, Z2, Z3)",
+                                                        reli->currentH2SATiterationsToConvergeByHeadZone, numheads,
+                                                        FARM_BY_HEAD_UINT64_FACTOR, 0.10);
             print_Stat_If_Supported_And_Valid_By_Head("Average H2SAT % Codeword at Iteration Level",
                                                       reli->currentH2SATpercentCodewordsPerIterByHeadTZAvg, numheads,
                                                       FARM_BY_HEAD_UINT64, 0.0);
@@ -3448,15 +3857,9 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                                       numheads, FARM_BY_HEAD_UINT64, 0.0);
             print_Stat_If_Supported_And_Valid_By_Head("Average H2SAT Asymmetry", reli->currentH2SATasymmetryByHeadTZAvg,
                                                       numheads, FARM_BY_HEAD_INT64_FACTOR, 0.10);
-            print_Stat_If_Supported_And_Valid_By_Head("Applied Fly Height Clearance Delta Outer (Angstrom)",
-                                                      reli->appliedFlyHeightClearanceDeltaByHeadOuter, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.001);
-            print_Stat_If_Supported_And_Valid_By_Head("Applied Fly Height Clearance Delta Middle (Angstrom)",
-                                                      reli->appliedFlyHeightClearanceDeltaByHeadMiddle, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.001);
-            print_Stat_If_Supported_And_Valid_By_Head("Applied Fly Height Clearance Delta Inner (Angstrom)",
-                                                      reli->appliedFlyHeightClearanceDeltaByHeadInner, numheads,
-                                                      FARM_BY_HEAD_UINT64_FACTOR, 0.001);
+            print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
+                "Applied Fly Height Clearance Delta (1/1000 A) (OD, ID, MD)",
+                reli->appliedFlyHeightClearanceDeltaByHead, numheads);
             print_Stat_If_Supported_And_Valid_Uint64("# Disc Slip Recalibrations Performed",
                                                      reli->numDiscSlipRecalibrationsPerformed);
             print_Stat_If_Supported_And_Valid_By_Head("# Reallocated Sectors", reli->numReallocatedSectorsByHead,
@@ -3477,7 +3880,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                                       MICRO_SECONDS_PER_SECOND);
             print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector",
                                                      reli->numLBAsCorrectedByParitySector);
-            print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector Actuator 1s",
+            print_Stat_If_Supported_And_Valid_Uint64("# LBAs Corrected By Parity Sector Actuator 1",
                                                      reli->numLBAsCorrectedByParitySectorActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("Primary Super Parity Coverage %",
                                                      reli->superParityCoveragePercent);
@@ -3524,8 +3927,8 @@ void print_FARM_Data(farmLogData* farmdata)
         print_Farm_Drive_Info(&farmdata->driveinfo, &farminterface);
         print_FARM_Workload_Info(&farmdata->workload, timeRestrictedRangeMS);
         print_FARM_Error_Info(&farmdata->error, headcnt, farminterface);
-        print_FARM_Environment_Info(&farmdata->environment);
-        print_FARM_Reliability_Info(&farmdata->reliability, headcnt, farminterface);
+        print_FARM_Environment_Info(&farmdata->environment, timeRestrictedRangeMS, farminterface);
+        print_FARM_Reliability_Info(&farmdata->reliability, headcnt, farminterface, timeRestrictedRangeMS);
     }
     RESTORE_NONNULL_COMPARE
 }

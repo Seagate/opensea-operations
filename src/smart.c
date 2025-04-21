@@ -1521,17 +1521,17 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
                 dataFormatVerified = true;
                 switch (smartData->attributes.ataSMARTAttr.attributes[iter].data.attributeNumber)
                 {
-                case 1:   // read error rate
-                case 7:   // seek error rate
+                case 1: // read error rate
+                case 7: // seek error rate
                     if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
                     {
                         print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
-                                                        attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 2, 0, true);
+                                                         attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 2, 0, true);
                     }
                     else
                     {
                         print_ATA_SMART_Attribute_Hybrid(&smartData->attributes.ataSMARTAttr.attributes[iter],
-                                                        attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
+                                                         attributeName, ATA_SMART_ATTRIBUTE_DECIMAL, 6, 4, true);
                     }
                     break;
                 case 195: // ECC On the Fly Count
@@ -1861,25 +1861,25 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                     case 1: // read error rate
                         if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
                         {
-                            printf(
-                                "\tNumber Of Read Errors: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Read Errors: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         }
                         else
                         {
-                            printf(
-                                "\tNumber Of Sector Reads: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
-                            printf(
-                                "\tNumber Of Read Errors: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                            printf("\tNumber Of Sector Reads: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Read Errors: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       0, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         }
                         break;
                     case 4: // start stop count
@@ -1899,23 +1899,23 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                     case 7: // seek error rate
                         if (smartData->attributes.ataSMARTAttr.smartVersion >= 0xB)
                         {
-                            printf(
-                                "\tNumber Of Seek Errors: %" PRIu16 "\n",
-                                M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Seek Errors: %" PRIu16 "\n",
+                                   M_BytesTo2ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         }
                         else
                         {
-                            printf(
-                                "\tNumber Of Seeks: %" PRIu32 "\n",
-                                M_BytesTo4ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
-                            printf(
-                                "\tNumber Of Seek Errors: %" PRIu16 "\n",
-                                M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
+                            printf("\tNumber Of Seeks: %" PRIu32 "\n",
+                                   M_BytesTo4ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                            printf("\tNumber Of Seek Errors: %" PRIu16 "\n",
+                                   M_BytesTo2ByteValue(
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                       smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         }
                         break;
                     case 9: // power on hours
@@ -4287,7 +4287,7 @@ eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice* device, uint32_t* minRcvT
             uint16_t sctFormatVersion = M_BytesTo2ByteValue(sctStatus[1], sctStatus[0]);
             if (sctFormatVersion > 2)
             {
-                *minRcvTimeLmtMilliseconds = M_BytesTo2ByteValue(sctStatus[216], sctStatus[217]);
+                *minRcvTimeLmtMilliseconds = M_BytesTo2ByteValue(sctStatus[217], sctStatus[216]);
                 *minRcvTimeLmtMilliseconds *= 100;
                 ret = SUCCESS;
             }

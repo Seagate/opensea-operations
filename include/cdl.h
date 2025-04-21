@@ -178,7 +178,7 @@ extern "C"
     OPENSEA_OPERATIONS_API bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* cdlSettings);
 
     M_NONNULL_PARAM_LIST(4)
-    M_PARAM_WO(4)
+    M_PARAM_RW(4)
     OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType     driveType,
                                                             eCDLPolicyType policyType,
                                                             uint16_t       policySupportedDescriptor,

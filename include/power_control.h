@@ -459,11 +459,11 @@ extern "C"
                                                                           bool     restoreAllToDefaults,
                                                                           ptrPowerConditionSettings standbyTimer,
                                                                           ptrPowerConditionSettings idleTimer,
-                                                                   bool                    saveChanges);
+                                                                          bool                      saveChanges);
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(tDevice* device, bool enable,
-                                                                   bool                    saveChanges);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(tDevice* device, bool enable, bool saveChanges);
 
     // When ATA drive, the restoreToDefaults is not allowed. Also, translation of timer value is done according to SAT
     // spec
@@ -472,19 +472,19 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues set_Standby_Timer(tDevice* device,
                                                            uint32_t hundredMillisecondIncrements,
                                                            bool     restoreToDefault,
-                                                                   bool                    saveChanges);
+                                                           bool     saveChanges);
 
     // SCSI/SAS Only
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(tDevice* device, bool enable,
-                                                                   bool                    saveChanges);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(tDevice* device, bool enable, bool saveChanges);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_Idle_Timer(tDevice* device,
                                                         uint32_t hundredMillisecondIncrements,
                                                         bool     restoreToDefault,
-                                                                   bool                    saveChanges);
+                                                        bool     saveChanges);
 
     //-----------------------------------------------------------------------------
     //
