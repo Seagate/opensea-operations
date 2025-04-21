@@ -3858,7 +3858,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
             print_Stat_If_Supported_And_Valid_By_Head("Average H2SAT Asymmetry", reli->currentH2SATasymmetryByHeadTZAvg,
                                                       numheads, FARM_BY_HEAD_INT64_FACTOR, 0.10);
             print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
-                "Applied Fly Height Clearance Delta (Angstroms) (OD, ID, MD)",
+                "Applied Fly Height Clearance Delta (1/1000 A) (OD, ID, MD)",
                 reli->appliedFlyHeightClearanceDeltaByHead, numheads);
             print_Stat_If_Supported_And_Valid_Uint64("# Disc Slip Recalibrations Performed",
                                                      reli->numDiscSlipRecalibrationsPerformed);
