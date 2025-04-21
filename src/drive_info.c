@@ -3180,7 +3180,7 @@ static eReturnValues get_Security_Features_From_Security_Protocol(tDevice*      
                 break;
             }
         }
-	ret = SUCCESS;
+        ret = SUCCESS;
     }
     return ret;
 }

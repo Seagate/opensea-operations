@@ -881,7 +881,7 @@ eReturnValues create_Uncorrectables(tDevice*                    device,
         {
             ret = write_Psuedo_Uncorrectable_Error(device, iterator);
         }
-        else //set not supported if wue is not true so that the read/write long can be used in place
+        else // set not supported if wue is not true so that the read/write long can be used in place
         {
             ret = NOT_SUPPORTED;
         }
