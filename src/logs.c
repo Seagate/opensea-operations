@@ -2324,7 +2324,9 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
         perror("calloc failure");
         return MEMORY_FAILURE;
     }
-    if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_ERROR_HISTORY | RD_BUF_ERR_HIST_MS_SNAPSHOT_INTERNAL_STATUS,
+    if (SUCCESS == scsi_Read_Buffer(device,
+                                    M_STATIC_CAST(uint8_t, SCSI_RB_ERROR_HISTORY) |
+                                        M_STATIC_CAST(uint8_t, RD_BUF_ERR_HIST_MS_SNAPSHOT_INTERNAL_STATUS),
                                     SCSI_ERR_HIS_BUF_DIRECTORY_CREATE_SNAPSHOT, 0, LEGACY_DRIVE_SEC_SIZE, dataBuffer))
     {
         bool     islSupported       = false;
