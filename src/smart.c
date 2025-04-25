@@ -1068,7 +1068,7 @@ void get_Attribute_Name(tDevice* device, uint8_t attributeNumber, char** attribu
             snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
             break;
         case 10: // Spin Retry Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count ");
+            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
             break;
         case 12: // Drive Power Cycle Count
             snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
@@ -2267,7 +2267,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         get_Raw_Field_From_RawData(
                             smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
                             &smartAnylyzedData->attributes[iter].rawData, 2, MAX_RAW_FEILD_COUNT, "Current Temperature",
-                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Maximum Temperature", START_2_END_3,
+                            START_0_END_1, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Maximum Temperature", START_4_END_5,
                             RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                             RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         snprintf_err_handle(
