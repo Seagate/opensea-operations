@@ -3714,9 +3714,8 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                                            .unitSNAvailable)) // VPD pages indroduced in SCSI 2...also a USB hack
         {
             bool dummyUpVPDSupport = false;
-            if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable ||
-                (!device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable &&
-                 SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false)))
+            if ((device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && device->drive_info.passThroughHacks.scsiHacks.noVPDPages)||
+                SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
             {
                 // for whatever reason, this device didn't return support for the list of supported pages, so set a flag
                 // telling us to dummy up a list so that we can still attempt to issue commands to pages we do need to
@@ -3741,7 +3740,7 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                 tempBuf[0] |= scsiInfo->peripheralDeviceType;
                 // set page code
                 tempBuf[1] = 0x00;
-                if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable)
+                if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
                 {
                     // This is a hack for devices that will only support this page and MAYBE the device identification
                     // VPD page. Not adding the device ID page here because it almost always contains only a name string
