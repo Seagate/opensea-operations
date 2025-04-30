@@ -3061,7 +3061,7 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                                                    "Not Depopulated");
             print_Stat_If_Supported_And_Valid_HexUint64("Depopulation Head Mask", driveInfo->depopulationHeadMask);
             print_Stat_If_Supported_And_Valid_HexUint64("Regeneration Head Mask", driveInfo->regenHeadMask);
-            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status (HLTH/Time)",
+            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status (Health/Timestamp)",
                                                       driveInfo->getPhysicalElementStatusByHead,
                                                       driveInfo->numberOfHeads, FARM_BY_HEAD_GPES, 0.0);
             print_Stat_If_Supported_And_Valid_Uint64("Max # Available Disc Sectors for Reassignment",
