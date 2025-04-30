@@ -206,6 +206,9 @@ extern "C"
 
     M_STATIC_ASSERT(sizeof(farmDriveInfo) == FARM_PAGE_LEN, farm_driveInfo_stuct_is_not_16kib);
 
+    M_STATIC_ASSERT(offsetof(farmDriveInfo, sequentialOrBeforeWriteRequiredForActiveZoneConfiguration) == 424, farm_DI_SOBRConfig);
+    M_STATIC_ASSERT(offsetof(farmDriveInfo, sequentialWriteRequiredForActiveZoneConfiguration) == 432, farm_DI_SWRConfig);
+
 #define FARM_WORKLOAD_RESERVED_STATS  350
 #define FARM_WORKLOAD_RESERVED_STATS2 1650
 

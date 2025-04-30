@@ -2525,6 +2525,27 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64(const char* statis
     return printed;
 }
 
+static M_INLINE bool print_Stat_If_Supported_And_Valid_GPES(const char* statisticname, uint64_t statisticData)
+{
+    bool    printed = false;
+    uint8_t status  = get_Farm_Status_Byte(statisticData);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
+    {
+        print_Statistic_Name(statisticname);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            uint8_t health = M_Byte0(get_Farm_Qword_Data(statisticData));
+            uint64_t timestamp = get_bit_range_uint64(get_Farm_Qword_Data(statisticData), 39, 8);
+            printed = printf("\t\t%" PRIu8 "\t%" PRIu64 "\n", health, timestamp) > 0 ? true : false;
+        }
+        else
+        {
+            printed = printf("\t\tInvalid\n") > 0 ? true : false;
+        }
+    }
+    return printed;
+}
+
 static M_INLINE bool print_Stat_If_Supported_And_Valid_int64(const char* statisticname, uint64_t statisticData)
 {
     bool    printed = false;
@@ -2892,7 +2913,8 @@ typedef enum eFARMByHeadOutputFormat
     FARM_BY_HEAD_INT64_FACTOR,
     FARM_BY_HEAD_HEX,
     FARM_BY_HEAD_FLOAT,
-    FARM_BY_HEAD_TIME
+    FARM_BY_HEAD_TIME,
+    FARM_BY_HEAD_GPES, //Special case for get physical element status. This reports health in byte 1 and a timestamp in the data
 } eFARMByHeadOutputFormat;
 
 #define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
@@ -2950,6 +2972,9 @@ static bool print_Stat_If_Supported_And_Valid_By_Head(const char*             st
                 break;
             case FARM_BY_HEAD_TIME:
                 printed = print_Stat_If_Supported_And_Valid_Time(byheadstatname, byhead[headiter], conversionfactor);
+                break;
+            case FARM_BY_HEAD_GPES:
+                printed = print_Stat_If_Supported_And_Valid_GPES(byheadstatname, byhead[headiter]);
                 break;
             }
             if (printed)
@@ -3036,17 +3061,17 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                                                    "Not Depopulated");
             print_Stat_If_Supported_And_Valid_HexUint64("Depopulation Head Mask", driveInfo->depopulationHeadMask);
             print_Stat_If_Supported_And_Valid_HexUint64("Regeneration Head Mask", driveInfo->regenHeadMask);
-            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status",
+            print_Stat_If_Supported_And_Valid_By_Head("Physical Element Status (HLTH/Time)",
                                                       driveInfo->getPhysicalElementStatusByHead,
-                                                      driveInfo->numberOfHeads, FARM_BY_HEAD_HEX, 0.0);
+                                                      driveInfo->numberOfHeads, FARM_BY_HEAD_GPES, 0.0);
             print_Stat_If_Supported_And_Valid_Uint64("Max # Available Disc Sectors for Reassignment",
                                                      driveInfo->maxAvailableSectorsForReassignment);
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus,
                                                    "Data Protect", "No Data Protect");
-            print_Stat_If_Supported_And_Valid_Time("POH of Most Recent FARM Time Series Frame",
+            print_Stat_If_Supported_And_Valid_Time("POH of Most Recent FARM TS Frame",
                                                    driveInfo->pohOfMostRecentTimeseriesFrame,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Time("POH of 2nd Most Recent FARM Time Series Frame",
+            print_Stat_If_Supported_And_Valid_Time("POH of 2nd Most Recent FARM TS Frame",
                                                    driveInfo->pohOfSecondMostRecentTimeseriesFrame,
                                                    MICRO_SECONDS_PER_MILLI_SECONDS);
             print_Stat_If_Supported_And_Valid_Uint64(
@@ -3054,7 +3079,7 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "Seq Write Req Active Zone Config",
-                driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
+                driveInfo->sequentialWriteRequiredForActiveZoneConfiguration);
         }
     }
 }
@@ -3432,7 +3457,7 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
                 error->timestampOfLast8FLEDsActuator1, error->powerCycleOfLast8FLEDsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("Lifetime # Unrecoverable Read Errors due to ERC",
                                                      error->cumulativeLifetimeUnrecoverableReadErrorsDueToERC);
-            print_Stat_If_Supported_And_Valid_By_Head("Cumulative Lifetime Unrecoverable Read Repeating",
+            print_Stat_If_Supported_And_Valid_By_Head("Cumulative Lifetime Unrecoverable Read Repeat",
                                                       error->cumLTUnrecReadRepeatByHead, numheads, FARM_BY_HEAD_UINT64,
                                                       0.0);
             print_Stat_If_Supported_And_Valid_By_Head("Cumulative Lifetime Unrecoverable Read Unique",
@@ -3440,35 +3465,35 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
                                                       0.0);
             print_Stat_If_Supported_And_Valid_HexUint64("SMART Trip Flags 1", error->sataPFAAttributes[0]);
             print_Stat_If_Supported_And_Valid_HexUint64("SMART Trip Flags 2", error->sataPFAAttributes[1]);
-            print_Stat_If_Supported_And_Valid_Uint64("# Reallocated Sectors since last FARM Time Series Frame",
+            print_Stat_If_Supported_And_Valid_Uint64("# Reallocated Sectors since last FARM TS Frame",
                                                      error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSaved);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocated Sectors between N & N-1 FARM Time Series Frame",
+                "# Reallocated Sectors N to N-1 FARM TS Frame",
                 error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocation Candidate Sectors since last FARM Time Series Frame",
+                "# Realloc Candidate Sectors since last FARM TS Frame",
                 error->numberReallocationCandidateSectorsSinceLastFARMTimeSeriesFrameSaved);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocation Candidate between N & N-1 FARM Time Series Frame",
+                "# Reallocation Candidate N to N-1 FARM TS Frame",
                 error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocated Sectors since last FARM Time Series Frame, Actuator 1",
+                "# Reallocated Sectors since last FARM TS Frame, Actuator 1",
                 error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSavedActuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocated Sectors between N & N-1 FARM Time Series Frame, Actuator 1",
+                "# Reallocated Sectors N to N-1 FARM TS Frame, Actuator 1",
                 error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocation Candidate Sectors since last FARM Time Series Frame Actuator 1",
+                "# Reallocation Candidate Sectors since last FARM TS Frame Actuator 1",
                 error->numberReallocationCandidateSectorsSinceLastFARMTimeSeriesFrameSavedActuator1);
             print_Stat_If_Supported_And_Valid_Uint64(
-                "# Reallocation Candidate between N & N-1 FARM Time Series Frame Actuator 1",
+                "# Reallocation Candidate N to N-1 FARM TS Frame Actuator 1",
                 error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1);
             print_Stat_If_Supported_And_Valid_By_Head(
-                "# Unique Unrecoverable sectors since last FARM Time Series Frame",
+                "# Unique Unrec sect since last FARM TS Frame",
                 error->numberUniqueUnrecoverableSectorsSinceLastFARMTimeSeriesFrameSavedByHead, numheads,
                 FARM_BY_HEAD_UINT64, 0.0);
             print_Stat_If_Supported_And_Valid_By_Head(
-                "# Unique Unrecoverable sectors between N & N-1 FARM Time Series Frame",
+                "# Unique Unrec sect N to N-1 FARM TS Frame",
                 error->numberUniqueUnrecoverableSectorsBetweenFarmTimeSeriesFrameNandNminus1ByHead, numheads,
                 FARM_BY_HEAD_UINT64, 0.0);
         }
@@ -3760,6 +3785,9 @@ static bool print_3_Stat_If_Supported_And_Valid_By_Head(const char* statisticnam
             case FARM_BY_HEAD_TIME:
                 // TODO: Add this in when we have a field that needs this.
                 break;
+            case FARM_BY_HEAD_GPES:
+                // TODO: Add this in when we have a field that needs this.
+                break;
             }
             if (printed)
             {
@@ -3833,7 +3861,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
                                                                        FARM_BY_HEAD_UINT64, 0.0)
                          ? true
                          : velObs;
-            velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity Observer No TMD",
+            velObs = true == print_Stat_If_Supported_And_Valid_By_Head("# of Velocity No TMD",
                                                                        reli->numberOfVelocityObserverNoTMDByHead,
                                                                        numheads, FARM_BY_HEAD_UINT64, 0.0)
                          ? true
