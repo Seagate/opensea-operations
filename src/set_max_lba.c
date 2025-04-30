@@ -168,7 +168,22 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
             }
             else
             {
-                device->drive_info.deviceMaxLba = newMaxLBA;
+                //Confirm that the max LBA was changed to the requested value
+                uint64_t checkMaxLBA = UINT64_C(0);
+                if (SUCCESS == scsi_Mode_Sense_10(device, 0, 0x18, 0, false, true, MPC_DEFAULT_VALUES, scsiDataBuffer))
+                {
+                    checkMaxLBA = be64_to_host(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN]);
+                }
+                if (checkMaxLBA == newMaxLBA)
+                {
+                    device->drive_info.deviceMaxLba = newMaxLBA;
+                }
+                else 
+                {
+                    // This is a workaround for when a device accepts the block descriptor without error, but makes no changes
+                    // Calling this "NOT SUPPORTED" to show that this change did not happen
+                    ret = NOT_SUPPORTED;
+                }
             }
         }
     }
