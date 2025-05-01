@@ -172,7 +172,8 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
                 uint64_t checkMaxLBA = UINT64_C(0);
                 if (SUCCESS == scsi_Mode_Sense_10(device, 0, 0x18, 0, false, true, MPC_DEFAULT_VALUES, scsiDataBuffer))
                 {
-                    checkMaxLBA = be64_to_host(scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN]);
+                    uint64_t *numblocksptr = M_REINTERPRET_CAST(uint64_t*, &scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET]);
+                    checkMaxLBA = be64_to_host(*numblocksptr);
                 }
                 if (checkMaxLBA == newMaxLBA)
                 {
