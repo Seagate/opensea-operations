@@ -2534,9 +2534,9 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_GPES(const char* statisti
         print_Statistic_Name(statisticname);
         if ((status & FARM_FIELD_VALID_BIT) > 0)
         {
-            uint8_t health = M_Byte0(get_Farm_Qword_Data(statisticData));
+            uint8_t  health    = M_Byte0(get_Farm_Qword_Data(statisticData));
             uint64_t timestamp = get_bit_range_uint64(get_Farm_Qword_Data(statisticData), 39, 8);
-            printed = printf("\t\t%" PRIu8 "\t%" PRIu64 "\n", health, timestamp) > 0 ? true : false;
+            printed            = printf("\t\t%" PRIu8 "\t%" PRIu64 "\n", health, timestamp) > 0 ? true : false;
         }
         else
         {
@@ -2914,7 +2914,8 @@ typedef enum eFARMByHeadOutputFormat
     FARM_BY_HEAD_HEX,
     FARM_BY_HEAD_FLOAT,
     FARM_BY_HEAD_TIME,
-    FARM_BY_HEAD_GPES, //Special case for get physical element status. This reports health in byte 1 and a timestamp in the data
+    FARM_BY_HEAD_GPES, // Special case for get physical element status. This reports health in byte 1 and a timestamp in
+                       // the data
 } eFARMByHeadOutputFormat;
 
 #define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
@@ -3077,9 +3078,8 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_Uint64(
                 "Seq or Before Req for Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
-            print_Stat_If_Supported_And_Valid_Uint64(
-                "Seq Write Req Active Zone Config",
-                driveInfo->sequentialWriteRequiredForActiveZoneConfiguration);
+            print_Stat_If_Supported_And_Valid_Uint64("Seq Write Req Active Zone Config",
+                                                     driveInfo->sequentialWriteRequiredForActiveZoneConfiguration);
         }
     }
 }
