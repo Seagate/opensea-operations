@@ -136,53 +136,49 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
         {
             if (reset)
             {
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, readCap10Data, 8);
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, readCap16Data, 32);
-                // read capacity command to get the max LBA
-                if (SUCCESS == scsi_Read_Capacity_10(device, readCap10Data, 8))
+                readCapacityData readCapData;
+                safe_memset(&readCapData, sizeof(readCapacityData), 0, sizeof(readCapacityData));
+                if (SUCCESS == scsi_Read_Capacity_Cmd_Helper(device, &readCapData))
                 {
-                    uint64_t tempMax = UINT64_C(0);
-                    copy_Read_Capacity_Info(&device->drive_info.deviceBlockSize, &device->drive_info.devicePhyBlockSize,
-                                            &tempMax, &device->drive_info.sectorAlignment, readCap10Data, false);
-                    if (tempMax == UINT32_MAX || tempMax == 0)
+                    device->drive_info.deviceMaxLba    = readCapData.returnedLBA;
+                    device->drive_info.deviceBlockSize = readCapData.logicalBlockLength;
+                    if (readCapData.readCap16)
                     {
-                        if (SUCCESS == scsi_Read_Capacity_16(device, readCap16Data, 32))
-                        {
-                            copy_Read_Capacity_Info(&device->drive_info.deviceBlockSize,
-                                                    &device->drive_info.devicePhyBlockSize,
-                                                    &device->drive_info.deviceMaxLba,
-                                                    &device->drive_info.sectorAlignment, readCap16Data, true);
-                        }
+                        device->drive_info.devicePhyBlockSize =
+                            readCapData.logicalBlockLength *
+                            power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent);
+                        device->drive_info.sectorAlignment = readCapData.lowestAlignedLogicalBlock;
                     }
                     else
                     {
-                        device->drive_info.deviceMaxLba = tempMax;
+                        device->drive_info.devicePhyBlockSize = readCapData.logicalBlockLength;
+                        device->drive_info.sectorAlignment    = 0;
                     }
-                }
-                else if (SUCCESS == scsi_Read_Capacity_16(device, readCap16Data, 32))
-                {
-                    copy_Read_Capacity_Info(&device->drive_info.deviceBlockSize, &device->drive_info.devicePhyBlockSize,
-                                            &device->drive_info.deviceMaxLba, &device->drive_info.sectorAlignment,
-                                            readCap16Data, true);
+                    if (device->drive_info.devicePhyBlockSize == 0)
+                    {
+                        device->drive_info.devicePhyBlockSize = 1; // avoid possibly divide by zero issues
+                    }
                 }
             }
             else
             {
-                //Confirm that the max LBA was changed to the requested value
+                // Confirm that the max LBA was changed to the requested value
                 uint64_t checkMaxLBA = UINT64_C(0);
                 if (SUCCESS == scsi_Mode_Sense_10(device, 0, 0x18, 0, false, true, MPC_DEFAULT_VALUES, scsiDataBuffer))
                 {
-                    uint64_t *numblocksptr = M_REINTERPRET_CAST(uint64_t*, &scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET]);
+                    uint64_t* numblocksptr = M_REINTERPRET_CAST(
+                        uint64_t*,
+                        &scsiDataBuffer[MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET]);
                     checkMaxLBA = be64_to_host(*numblocksptr);
                 }
                 if (checkMaxLBA == newMaxLBA)
                 {
                     device->drive_info.deviceMaxLba = newMaxLBA;
                 }
-                else 
+                else
                 {
-                    // This is a workaround for when a device accepts the block descriptor without error, but makes no changes
-                    // Calling this "NOT SUPPORTED" to show that this change did not happen
+                    // This is a workaround for when a device accepts the block descriptor without error, but makes no
+                    // changes Calling this "NOT SUPPORTED" to show that this change did not happen
                     ret = NOT_SUPPORTED;
                 }
             }
@@ -479,66 +475,13 @@ static uint64_t get_ATA_MaxLBA(tDevice* device)
 
 static uint64_t get_SCSI_MaxLBA(tDevice* device)
 {
-    uint64_t maxLBA        = UINT64_C(0);
-    uint32_t blockSize     = UINT32_C(0);
-    uint32_t physBlockSize = UINT32_C(0);
-    uint16_t alignment     = UINT16_C(0);
-    // read capacity 10 first. If that reports FFFFFFFFh then do read capacity 16.
-    // if read capacity 10 fails, retry with read capacity 16
-    uint8_t* readCapBuf = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (readCapBuf == M_NULLPTR)
+    uint64_t         maxLBA = UINT64_C(0);
+    readCapacityData readCapData;
+    safe_memset(&readCapData, sizeof(readCapacityData), 0, sizeof(readCapacityData));
+    if (SUCCESS == scsi_Read_Capacity_Cmd_Helper(device, &readCapData))
     {
-        return maxLBA;
+        maxLBA = readCapData.returnedLBA;
     }
-    if (SUCCESS == scsi_Read_Capacity_10(device, readCapBuf, READ_CAPACITY_10_LEN))
-    {
-        copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, false);
-        if (device->drive_info.scsiVersion >
-            3) // SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
-        {
-            // try a read capacity 16 anyways and see if the data from that was valid or not since that will give us a
-            // physical sector size whereas readcap10 data will not
-            uint8_t* temp = M_REINTERPRET_CAST(
-                uint8_t*, safe_realloc_aligned(readCapBuf, 0, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
-            if (temp == M_NULLPTR)
-            {
-                safe_free_aligned(&readCapBuf);
-                return maxLBA;
-            }
-            readCapBuf = temp;
-            safe_memset(readCapBuf, READ_CAPACITY_16_LEN, 0, READ_CAPACITY_16_LEN);
-            if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
-            {
-                uint64_t tempmaxLBA = UINT64_C(0);
-                copy_Read_Capacity_Info(&blockSize, &physBlockSize, &tempmaxLBA, &alignment, readCapBuf, true);
-                // some USB drives will return success and no data, so check if this local var is 0 or not...if not, we
-                // can use this data
-                if (tempmaxLBA != 0)
-                {
-                    maxLBA = tempmaxLBA;
-                }
-            }
-        }
-    }
-    else
-    {
-        // try read capacity 16, if that fails we are done trying
-        uint8_t* temp = C_CAST(
-            uint8_t*, safe_realloc_aligned(readCapBuf, 0, READ_CAPACITY_16_LEN, device->os_info.minimumAlignment));
-        if (temp == M_NULLPTR)
-        {
-            safe_free_aligned(&readCapBuf);
-            return maxLBA;
-        }
-        readCapBuf = temp;
-        safe_memset(readCapBuf, READ_CAPACITY_16_LEN, 0, READ_CAPACITY_16_LEN);
-        if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
-        {
-            copy_Read_Capacity_Info(&blockSize, &physBlockSize, &maxLBA, &alignment, readCapBuf, true);
-        }
-    }
-    safe_free_aligned(&readCapBuf);
     return maxLBA;
 }
 

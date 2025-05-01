@@ -461,16 +461,19 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
         }
         if (ret == SUCCESS)
         {
-            bool skipConfirm = false;
+            bool     skipConfirm      = false;
             uint32_t confirmBlockSize = UINT32_C(0);
-            uint64_t confirmMaxLBA = UINT64_C(0);
+            uint64_t confirmMaxLBA    = UINT64_C(0);
             // reread the block descriptor and check that it changed the way we expect it to.
             if (modeSelect10)
             {
-                if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, M_ToBool(blockDescriptorLength == LONG_LBA_BLOCK_DESCRIPTOR_LEN), MPC_CURRENT_VALUES, modeParameterData))
+                if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false,
+                                                  M_ToBool(blockDescriptorLength == LONG_LBA_BLOCK_DESCRIPTOR_LEN),
+                                                  MPC_CURRENT_VALUES, modeParameterData))
                 {
                     // try mode sense 10 without the longLBA bit now
-                    if (SUCCESS != scsi_Mode_Sense_10(device, 0, 16, 0, false, false, MPC_CURRENT_VALUES, modeParameterData))
+                    if (SUCCESS !=
+                        scsi_Mode_Sense_10(device, 0, 16, 0, false, false, MPC_CURRENT_VALUES, modeParameterData))
                     {
                         printf("WARNING: Unable to confirm block size change\n");
                         skipConfirm = true;
@@ -489,15 +492,24 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
             {
                 if (blockDescriptorLength == LONG_LBA_BLOCK_DESCRIPTOR_LEN)
                 {
-                    uint64_t *numblocksptr = M_REINTERPRET_CAST(uint64_t*, &modeParameterData[blockDescriptorOffset + LONG_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET]);
-                    uint32_t *blockLenptr = M_REINTERPRET_CAST(uint32_t*, &modeParameterData[blockDescriptorOffset + LONG_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET]);
-                    confirmMaxLBA = be64_to_host(*numblocksptr);
+                    uint64_t* numblocksptr = M_REINTERPRET_CAST(
+                        uint64_t*, &modeParameterData[blockDescriptorOffset + LONG_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET]);
+                    uint32_t* blockLenptr = M_REINTERPRET_CAST(
+                        uint32_t*, &modeParameterData[blockDescriptorOffset + LONG_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET]);
+                    confirmMaxLBA    = be64_to_host(*numblocksptr);
                     confirmBlockSize = be32_to_host(*blockLenptr);
                 }
                 else
                 {
-                    confirmMaxLBA = M_BytesTo4ByteValue(modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET], modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET + 1], modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET + 2], modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET + 3]);
-                    confirmBlockSize = M_BytesTo4ByteValue(0, modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET], modeParameterData[blockDescriptorOffset + + SHORT_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET + 1], modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET + 2]);               
+                    confirmMaxLBA = M_BytesTo4ByteValue(
+                        modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET],
+                        modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET + 1],
+                        modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET + 2],
+                        modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_NUM_BLOCKS_MSB_OFFSET + 3]);
+                    confirmBlockSize = M_BytesTo4ByteValue(
+                        0, modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET],
+                        modeParameterData[blockDescriptorOffset + +SHORT_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET + 1],
+                        modeParameterData[blockDescriptorOffset + SHORT_LBA_BLK_DESC_BLOCK_LEN_MSB_OFFSET + 2]);
                 }
                 if (formatParameters.newMaxLBA)
                 {
@@ -513,38 +525,48 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                         printf("WARNING: Requested block size is not supported!\n");
                         printf("\tRequested: %" PRIu32 "\n", formatParameters.newBlockSize);
                         printf("\tDrive set: %" PRIu32 "\n", confirmBlockSize);
-                        if (device->drive_info.deviceBlockSize != 0 && confirmBlockSize != device->drive_info.deviceBlockSize)
+                        if (device->drive_info.deviceBlockSize != 0 &&
+                            confirmBlockSize != device->drive_info.deviceBlockSize)
                         {
-                            if (confirmBlockSize % 512 != 0)//not a 512B multiple, so likely not what the majority of users want
+                            if (confirmBlockSize % 512 !=
+                                0) // not a 512B multiple, so likely not what the majority of users want
                             {
                                 printf("\tRestoring previous block size and beginning format.\n");
                                 if (!formatParameters.currentBlockSize)
                                 {
-                                    modeParameterData[blockDescriptorOffset + 5] = M_Byte2(device->drive_info.deviceBlockSize);
-                                    modeParameterData[blockDescriptorOffset + 6] = M_Byte1(device->drive_info.deviceBlockSize);
-                                    modeParameterData[blockDescriptorOffset + 7] = M_Byte0(device->drive_info.deviceBlockSize);
+                                    modeParameterData[blockDescriptorOffset + 5] =
+                                        M_Byte2(device->drive_info.deviceBlockSize);
+                                    modeParameterData[blockDescriptorOffset + 6] =
+                                        M_Byte1(device->drive_info.deviceBlockSize);
+                                    modeParameterData[blockDescriptorOffset + 7] =
+                                        M_Byte0(device->drive_info.deviceBlockSize);
                                 }
                                 else
                                 {
-                                    modeParameterData[blockDescriptorOffset + 12] = M_Byte3(device->drive_info.deviceBlockSize);
-                                    modeParameterData[blockDescriptorOffset + 13] = M_Byte2(device->drive_info.deviceBlockSize);
-                                    modeParameterData[blockDescriptorOffset + 14] = M_Byte1(device->drive_info.deviceBlockSize);
-                                    modeParameterData[blockDescriptorOffset + 15] = M_Byte0(device->drive_info.deviceBlockSize);
+                                    modeParameterData[blockDescriptorOffset + 12] =
+                                        M_Byte3(device->drive_info.deviceBlockSize);
+                                    modeParameterData[blockDescriptorOffset + 13] =
+                                        M_Byte2(device->drive_info.deviceBlockSize);
+                                    modeParameterData[blockDescriptorOffset + 14] =
+                                        M_Byte1(device->drive_info.deviceBlockSize);
+                                    modeParameterData[blockDescriptorOffset + 15] =
+                                        M_Byte0(device->drive_info.deviceBlockSize);
                                 }
                                 if (modeSelect10)
                                 {
                                     ret = scsi_Mode_Select_10(
-                                        device, (blockDescriptorLength + blockDescriptorOffset), false, true, false, modeParameterData,
-                                        (blockDescriptorLength +
-                                        blockDescriptorOffset)); // turning off page format bit due to reading page 0 above
+                                        device, (blockDescriptorLength + blockDescriptorOffset), false, true, false,
+                                        modeParameterData,
+                                        (blockDescriptorLength + blockDescriptorOffset)); // turning off page format bit
+                                                                                          // due to reading page 0 above
                                 }
                                 else
                                 {
-                                    ret =
-                                        scsi_Mode_Select_6(device, C_CAST(uint8_t, (blockDescriptorLength + blockDescriptorOffset)), false,
-                                                        true, false, modeParameterData,
-                                                        (blockDescriptorLength +
-                                                            blockDescriptorOffset)); // turning off page format bit due to reading page 0 above
+                                    ret = scsi_Mode_Select_6(
+                                        device, C_CAST(uint8_t, (blockDescriptorLength + blockDescriptorOffset)), false,
+                                        true, false, modeParameterData,
+                                        (blockDescriptorLength + blockDescriptorOffset)); // turning off page format bit
+                                                                                          // due to reading page 0 above
                                 }
                             }
                         }

@@ -3714,7 +3714,8 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                                            .unitSNAvailable)) // VPD pages indroduced in SCSI 2...also a USB hack
         {
             bool dummyUpVPDSupport = false;
-            if ((device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && device->drive_info.passThroughHacks.scsiHacks.noVPDPages)||
+            if ((device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable &&
+                 device->drive_info.passThroughHacks.scsiHacks.noVPDPages) ||
                 SUCCESS != scsi_Inquiry(device, tempBuf, 255, 0, true, false))
             {
                 // for whatever reason, this device didn't return support for the list of supported pages, so set a flag
@@ -3740,7 +3741,8 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                 tempBuf[0] |= scsiInfo->peripheralDeviceType;
                 // set page code
                 tempBuf[1] = 0x00;
-                if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable && device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
+                if (device->drive_info.passThroughHacks.scsiHacks.unitSNAvailable &&
+                    device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
                 {
                     // This is a hack for devices that will only support this page and MAYBE the device identification
                     // VPD page. Not adding the device ID page here because it almost always contains only a name string
@@ -5006,93 +5008,33 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
+        readCapacityData readCapData;
+        safe_memset(&readCapData, sizeof(readCapacityData), 0, sizeof(readCapacityData));
         uint8_t protectionTypeEnabled = UINT8_C(0); // default to type 0
-        // read capacity data - try read capacity 10 first, then do a read capacity 16. This is to work around some USB
-        // bridges passing the command and returning no data.
-        uint8_t* readCapBuf = C_CAST(
-            uint8_t*, safe_calloc_aligned(READ_CAPACITY_10_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (readCapBuf == M_NULLPTR)
-        {
-            return MEMORY_FAILURE;
-        }
+        driveInfo->physicalSectorSize = 0;          // make sure zero now and will be checked again later
         switch (scsiInfo->peripheralDeviceType)
         {
         case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
         case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
         case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
         case PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE:
-            if (SUCCESS == scsi_Read_Capacity_10(device, readCapBuf, READ_CAPACITY_10_LEN))
+            if (SUCCESS == scsi_Read_Capacity_Cmd_Helper(device, &readCapData))
             {
-                copy_Read_Capacity_Info(&driveInfo->logicalSectorSize, &driveInfo->physicalSectorSize,
-                                        &driveInfo->maxLBA, &driveInfo->sectorAlignment, readCapBuf, false);
-                if (scsiInfo->version >
-                    3) // SPC2 and higher can reference SBC2 and higher which introduced read capacity 16
+                driveInfo->logicalSectorSize = readCapData.logicalBlockLength;
+                driveInfo->maxLBA            = readCapData.returnedLBA;
+                if (readCapData.readCap16)
                 {
-                    // try a read capacity 16 anyways and see if the data from that was valid or not since that will
-                    // give us a physical sector size whereas readcap10 data will not
-                    uint8_t* temp =
-                        M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN,
-                                                                          READ_CAPACITY_16_LEN * sizeof(uint8_t),
-                                                                          device->os_info.minimumAlignment));
-                    if (temp == M_NULLPTR)
+                    driveInfo->physicalSectorSize = readCapData.logicalBlockLength *
+                                                    power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent);
+                    driveInfo->sectorAlignment = readCapData.lowestAlignedLogicalBlock;
+                    if (readCapData.protectionEnabled)
                     {
-                        safe_free_aligned(&readCapBuf);
-                        return MEMORY_FAILURE;
+                        protectionTypeEnabled = readCapData.ptype;
                     }
-                    readCapBuf = temp;
-                    safe_memset(readCapBuf, READ_CAPACITY_16_LEN, 0, READ_CAPACITY_16_LEN);
-                    if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
-                    {
-                        uint32_t logicalBlockSize  = UINT32_C(0);
-                        uint32_t physicalBlockSize = UINT32_C(0);
-                        uint64_t maxLBA            = UINT64_C(0);
-                        uint16_t sectorAlignment   = UINT16_C(0);
-                        copy_Read_Capacity_Info(&logicalBlockSize, &physicalBlockSize, &maxLBA, &sectorAlignment,
-                                                readCapBuf, true);
-                        // some USB drives will return success and no data, so check if this local var is 0 or not...if
-                        // not, we can use this data
-                        if (maxLBA != 0)
-                        {
-                            driveInfo->logicalSectorSize  = logicalBlockSize;
-                            driveInfo->physicalSectorSize = physicalBlockSize;
-                            driveInfo->maxLBA             = maxLBA;
-                            driveInfo->sectorAlignment    = sectorAlignment;
-                        }
-                        if (scsiInfo->protectionSupported && readCapBuf[12] & BIT0) // protection enabled
-                        {
-                            switch (get_bit_range_uint8(readCapBuf[12], 3, 1))
-                            {
-                            case 0:
-                                protectionTypeEnabled = 1;
-                                break;
-                            case 1:
-                                protectionTypeEnabled = 2;
-                                break;
-                            case 2:
-                                protectionTypeEnabled = 3;
-                                break;
-                            default:
-                                break;
-                            }
-                        }
-                    }
-                    // check for format corrupt
-                    uint8_t senseKey = UINT8_C(0);
-                    uint8_t asc      = UINT8_C(0);
-                    uint8_t ascq     = UINT8_C(0);
-                    uint8_t fru      = UINT8_C(0);
-                    get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                               &ascq, &fru);
-                    if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
-                    {
-                        if (!driveInfo->isFormatCorrupt)
-                        {
-                            add_Feature_To_Supported_List(driveInfo->featuresSupported,
-                                                          &driveInfo->numberOfFeaturesSupported,
-                                                          "Format Corrupt - not all features identifiable.");
-                        }
-                        driveInfo->isFormatCorrupt = true;
-                    }
+                }
+                if (driveInfo->physicalSectorSize == 0)
+                {
+                    driveInfo->physicalSectorSize = driveInfo->logicalSectorSize;
                 }
             }
             else
@@ -5114,64 +5056,11 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
                     }
                     driveInfo->isFormatCorrupt = true;
                 }
-
-                // try read capacity 16, if that fails we are done trying
-                uint8_t* temp =
-                    M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(readCapBuf, READ_CAPACITY_10_LEN,
-                                                                      READ_CAPACITY_16_LEN * sizeof(uint8_t),
-                                                                      device->os_info.minimumAlignment));
-                if (temp == M_NULLPTR)
-                {
-                    safe_free_aligned(&readCapBuf);
-                    return MEMORY_FAILURE;
-                }
-                readCapBuf = temp;
-                safe_memset(readCapBuf, READ_CAPACITY_16_LEN, 0, READ_CAPACITY_16_LEN);
-                if (SUCCESS == scsi_Read_Capacity_16(device, readCapBuf, READ_CAPACITY_16_LEN))
-                {
-                    copy_Read_Capacity_Info(&driveInfo->logicalSectorSize, &driveInfo->physicalSectorSize,
-                                            &driveInfo->maxLBA, &driveInfo->sectorAlignment, readCapBuf, true);
-                    if (scsiInfo->protectionSupported && readCapBuf[12] & BIT0) // protection enabled
-                    {
-                        switch (get_bit_range_uint8(readCapBuf[12], 3, 1))
-                        {
-                        case 0:
-                            protectionTypeEnabled = 1;
-                            break;
-                        case 1:
-                            protectionTypeEnabled = 2;
-                            break;
-                        case 2:
-                            protectionTypeEnabled = 3;
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                }
-                // check for format corrupt first
-                senseKey = 0;
-                asc      = 0;
-                ascq     = 0;
-                fru      = 0;
-                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                           &ascq, &fru);
-                if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0)
-                {
-                    if (!driveInfo->isFormatCorrupt)
-                    {
-                        add_Feature_To_Supported_List(driveInfo->featuresSupported,
-                                                      &driveInfo->numberOfFeaturesSupported,
-                                                      "Format Corrupt - not all features identifiable.");
-                    }
-                    driveInfo->isFormatCorrupt = true;
-                }
             }
             break;
         default:
             break;
         }
-        safe_free_aligned(&readCapBuf);
         if (scsiInfo->protectionSupported)
         {
             // set protection types supported up here.
