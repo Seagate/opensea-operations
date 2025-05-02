@@ -877,6 +877,29 @@ extern "C"
                                                             const char*          filePath,
                                                             bool*                used6ByteCmd);
 
+    typedef struct s_ModifyScsiBlkDescFields
+    {
+        uint64_t numberOfLogicalBlocks;
+        uint32_t logicalBlockLength;
+        uint8_t  densityCode; // for all non direct access block devices (SBC) and non zoned devices (ZBC). Ignored on
+                             // SBC and ZBC
+        uint8_t deviceSpecific; // Device specific parameter value to be used during mode select
+        bool    modifyNumBlocks;
+        bool    modifyBlockLen;
+        bool    modifyDensityCode;
+    } modifyScsiBlkDescFields;
+
+    // Modifies the block descriptor of a SCSI device using mode sense/mode select commands.
+    // Handles any necessary retries for corner cases and detects when a change is not made (such as changing maxlba)
+    // endingBlockDescriptor is optional if you want to know the results of the change after it completes. NOTE: This is
+    // only populated when the mode select and final mode sense complete without error
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues modify_SCSI_Block_Descriptor(tDevice*                 device,
+                                                                      modifyScsiBlkDescFields  modifications,
+                                                                      modifyScsiBlkDescFields* endingBlockDescriptor);
+
     // This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes
     // should be passed as 0 unless you know the length you want to pull.
     //  nvmeLogSizeBytes is used since there is not a way to look up the length of most NVMe logs like you can with ATA

@@ -326,6 +326,24 @@ eReturnValues get_SCSI_VPD_Page_Size(tDevice* device, uint8_t vpdPage, uint32_t*
     return ret;
 }
 
+// If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
+// checking for this for old drives that may support mode pages, but not the dbd bit properly
+// Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
+static bool use_6B_SCSI_Mode(tDevice* device, M_ATTR_UNUSED uint8_t modePage, uint8_t subpage)
+{
+    bool sixByte = false;
+    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 ||
+        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) ==
+            PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE ||
+        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS ||
+        device->drive_info.passThroughHacks.scsiHacks.mode6bytes ||
+        (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
+    {
+        sixByte = true;
+    }
+    return sixByte;
+}
+
 // modePageSize includes any blockdescriptors that may be present
 eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
                                       eScsiModePageControl mpc,
@@ -335,24 +353,16 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
 {
     eReturnValues ret        = NOT_SUPPORTED; // assume the page is not supported
     uint32_t      modeLength = MODE_PARAMETER_HEADER_10_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
-    bool          sixByte    = false;
+    bool          sixByte    = use_6B_SCSI_Mode(device, modePage, subpage);
     bool          retriedMP6 = false; // only for automatic hack
     if ((device->drive_info.passThroughHacks.scsiHacks.noModePages) ||
         (subpage > 0 && device->drive_info.passThroughHacks.scsiHacks.noModeSubPages))
     {
         return NOT_SUPPORTED;
     }
-    // If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
-    // checking for this for old drives that may support mode pages, but not the dbd bit properly
-    // Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 ||
-        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) ==
-            PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE ||
-        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS ||
-        device->drive_info.passThroughHacks.scsiHacks.mode6bytes ||
-        (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
+
+    if (sixByte)
     {
-        sixByte    = true;
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
     }
     uint8_t* modeBuffer = M_REINTERPRET_CAST(
@@ -550,19 +560,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
     {
         return ret;
     }
-    bool sixByte = false;
-    // If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
-    // checking for this for old drives that may support mode pages, but not the dbd bit properly
-    // Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-    if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 ||
-        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[0], 4, 0) ==
-            PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE ||
-        get_bit_range_uint8(device->drive_info.scsiVpdData.inquiryData[3], 3, 0) == INQ_RESPONSE_FMT_CCS ||
-        device->drive_info.passThroughHacks.scsiHacks.mode6bytes ||
-        (device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero && subpage == 0))
-    {
-        sixByte = true;
-    }
+    bool     sixByte    = use_6B_SCSI_Mode(device, modePage, subpage);
     uint8_t* modeBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(modeLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (modeBuffer == M_NULLPTR)
@@ -647,7 +645,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        perror("Error writing vpd data to a file!\n");
+                        perror("Error writing mode data to a file!\n");
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fpmp))
                     {
@@ -873,6 +871,371 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
         device->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
     }
     safe_free_aligned(&modeBuffer);
+    return ret;
+}
+
+static M_INLINE void modify_Short_Blk_Desc_Num_Blocks(uint8_t* mp, uint8_t mpheaderlen, uint32_t lba)
+{
+    mp[mpheaderlen + 0] = M_Byte3(lba);
+    mp[mpheaderlen + 1] = M_Byte2(lba);
+    mp[mpheaderlen + 2] = M_Byte1(lba);
+    mp[mpheaderlen + 3] = M_Byte0(lba);
+}
+
+static M_INLINE void modify_Short_Blk_Desc_Block_Len(uint8_t* mp, uint8_t mpheaderlen, uint32_t len)
+{
+    mp[mpheaderlen + 5] = M_Byte2(len);
+    mp[mpheaderlen + 6] = M_Byte1(len);
+    mp[mpheaderlen + 7] = M_Byte0(len);
+}
+
+static M_INLINE void modify_Long_Blk_Desc_Num_Blocks(uint8_t* mp, uint8_t mpheaderlen, uint64_t lba)
+{
+    mp[mpheaderlen + 0] = M_Byte7(lba);
+    mp[mpheaderlen + 1] = M_Byte6(lba);
+    mp[mpheaderlen + 2] = M_Byte5(lba);
+    mp[mpheaderlen + 3] = M_Byte4(lba);
+    mp[mpheaderlen + 4] = M_Byte3(lba);
+    mp[mpheaderlen + 5] = M_Byte2(lba);
+    mp[mpheaderlen + 6] = M_Byte1(lba);
+    mp[mpheaderlen + 7] = M_Byte0(lba);
+}
+
+static M_INLINE void modify_Long_Blk_Desc_Block_Len(uint8_t* mp, uint8_t mpheaderlen, uint32_t len)
+{
+    mp[mpheaderlen + 12] = M_Byte3(len);
+    mp[mpheaderlen + 13] = M_Byte2(len);
+    mp[mpheaderlen + 14] = M_Byte1(len);
+    mp[mpheaderlen + 15] = M_Byte0(len);
+}
+
+static eReturnValues modify_SCSI_Block_Descriptor_10B(tDevice*                 device,
+                                                      modifyScsiBlkDescFields  modifications,
+                                                      modifyScsiBlkDescFields* endingBlockDescriptor)
+{
+    eReturnValues ret = SUCCESS;
+    // SPC2 added concept of long LBA, so use that to determine when to request long lba info.
+    // NOTE: SBC allows returning 0 when requesting longlba format data, so need to check that as well if long lba is
+    // not supported-TJE
+    bool    llbaa        = M_ToBool(device->drive_info.scsiVersion >= SCSI_VERSION_SPC_2);
+    uint8_t attemptCount = UINT8_C(
+        0); // to prevent weird case of misbehaving hardware that fails to respond correctly with and without llbaa
+    // Use a do-while here. If reaching the end and llbaa is false, exit the loop.
+    // this will allow for a retry when needed or only run the command once if llbaa is not supported on older products
+    do
+    {
+        uint8_t  mpalloclen = MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN;
+        uint8_t* mp =
+            M_STATIC_CAST(uint8_t*, safe_calloc_aligned(mpalloclen, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (mp == M_NULLPTR)
+        {
+            return MEMORY_FAILURE;
+        }
+        ++attemptCount;
+        if (SUCCESS == scsi_Mode_Sense_10(device, 0, mpalloclen, 0, false, llbaa, MPC_CURRENT_VALUES, mp))
+        {
+            uint16_t modeDataLen   = UINT16_C(0);
+            uint16_t blockDescLen  = UINT16_C(0);
+            bool     returnedllbaa = false;
+            get_mode_param_header_10_fields(mp, mpalloclen, &modeDataLen, M_NULLPTR, M_NULLPTR, &returnedllbaa,
+                                            &blockDescLen);
+            if (blockDescLen > 0)
+            {
+                uint64_t startLBAToVerify    = UINT64_C(0);
+                uint64_t startBlkLenToVerify = UINT64_C(0);
+                if (llbaa != returnedllbaa)
+                {
+                    printf("WARNING: Requested long lba mode and returned mode header data do not match!\n");
+                }
+                if (returnedllbaa)
+                {
+                    // long block descriptor
+                    // TODO: check this matches the requested llbaa value?
+                    get_mode_long_block_descriptor_fields(mp + MODE_PARAMETER_HEADER_10_LEN, blockDescLen,
+                                                          &startLBAToVerify, &startBlkLenToVerify);
+                    if (startLBAToVerify == UINT64_C(0))
+                    {
+                        // longlba mode returned without error, but need to use short block descriptor instead since
+                        // this is zero
+                        llbaa = false;
+                        safe_free_aligned(&mp);
+                        continue;
+                    }
+                    // Modify requested fields
+                    if (modifications.modifyNumBlocks)
+                    {
+                        modify_Long_Blk_Desc_Num_Blocks(mp, MODE_PARAMETER_HEADER_10_LEN,
+                                                        modifications.numberOfLogicalBlocks);
+                    }
+                    if (modifications.modifyBlockLen)
+                    {
+                        modify_Long_Blk_Desc_Block_Len(mp, MODE_PARAMETER_HEADER_10_LEN,
+                                                       modifications.logicalBlockLength);
+                    }
+                }
+                else
+                {
+                    // short block descriptor
+                    uint32_t startingNumBlocks = UINT32_C(0);
+                    uint32_t startingBlkLen    = UINT32_C(0);
+                    get_mode_short_block_descriptor_fields(mp + MODE_PARAMETER_HEADER_10_LEN, blockDescLen,
+                                                           &startingNumBlocks, &startingNumBlocks);
+                    startLBAToVerify    = startingNumBlocks;
+                    startBlkLenToVerify = startingBlkLen;
+                    if (llbaa == false && startingNumBlocks == UINT32_MAX)
+                    {
+                        // retry with long LBA mode since this appears to be a larger drive than can be represented by
+                        // 32bit LBA
+                        llbaa = true;
+                        safe_free_aligned(&mp);
+                        continue;
+                    }
+                    // TODO: density code for non-SBC/ZBC devices and smaller number of blocks field for non-SBC/ZBC
+                    if (modifications.modifyNumBlocks)
+                    {
+                        modify_Short_Blk_Desc_Num_Blocks(mp, MODE_PARAMETER_HEADER_10_LEN,
+                                                         get_DWord0(modifications.numberOfLogicalBlocks));
+                    }
+                    if (modifications.modifyBlockLen)
+                    {
+                        modify_Short_Blk_Desc_Block_Len(mp, MODE_PARAMETER_HEADER_10_LEN,
+                                                        modifications.logicalBlockLength);
+                    }
+                }
+                // clear out mode page length
+                mp[MODE_HEADER_10_MP_LEN_OFFSET + 0] = RESERVED;
+                mp[MODE_HEADER_10_MP_LEN_OFFSET + 1] = RESERVED;
+                mp[MODE_HEADER_10_DEV_SPECIFIC]      = modifications.deviceSpecific;
+                // if we made it to here, the returned block descriptor has been modified and is ready to send back to
+                // the device
+                if (SUCCESS == scsi_Mode_Select_10(device, mpalloclen, false, false, false, mp, mpalloclen))
+                {
+                    // accepted without error, so check if it changed based on the request or not
+                    if (SUCCESS == scsi_Mode_Sense_10(device, 0, mpalloclen, 0, false, llbaa, MPC_CURRENT_VALUES, mp))
+                    {
+                        get_mode_param_header_10_fields(mp, mpalloclen, &modeDataLen, M_NULLPTR, M_NULLPTR,
+                                                        &returnedllbaa, &blockDescLen);
+                        if (blockDescLen > 0)
+                        {
+                            uint64_t endingLBAToVerify    = UINT64_C(0);
+                            uint64_t endingBlkLenToVerify = UINT64_C(0);
+                            if (returnedllbaa)
+                            {
+                                get_mode_long_block_descriptor_fields(mp + MODE_PARAMETER_HEADER_10_LEN, blockDescLen,
+                                                                      &endingLBAToVerify, &endingBlkLenToVerify);
+                            }
+                            else
+                            {
+                                // short block descriptor
+                                uint32_t endingNumBlocks = UINT32_C(0);
+                                uint32_t endingBlkLen    = UINT32_C(0);
+                                get_mode_short_block_descriptor_fields(mp + MODE_PARAMETER_HEADER_10_LEN, blockDescLen,
+                                                                       &endingNumBlocks, &endingBlkLen);
+                                endingLBAToVerify    = endingNumBlocks;
+                                endingBlkLenToVerify = endingBlkLen;
+                            }
+                            if (endingBlockDescriptor != M_NULLPTR)
+                            {
+                                endingBlockDescriptor->numberOfLogicalBlocks = endingLBAToVerify;
+                                endingBlockDescriptor->logicalBlockLength    = endingBlkLenToVerify;
+                            }
+                            // verify changes happened
+                            if (modifications.modifyNumBlocks)
+                            {
+                                if (modifications.numberOfLogicalBlocks == UINT64_MAX)
+                                {
+                                    if (!modifications.modifyBlockLen &&
+                                        startLBAToVerify == endingLBAToVerify &&
+                                        endingLBAToVerify != (device->drive_info.deviceMaxLba + UINT64_C(1)))
+                                    {
+                                        ret = NOT_SUPPORTED;
+                                        printf("Reason 1\n");
+                                    }
+                                }
+                                else if (endingLBAToVerify != modifications.numberOfLogicalBlocks)
+                                {
+                                    ret = NOT_SUPPORTED;
+                                    printf("Reason 2\n");
+                                }
+                            }
+                            if (modifications.modifyBlockLen)
+                            {
+                                if (endingBlkLenToVerify != modifications.logicalBlockLength &&
+                                    endingBlkLenToVerify != startBlkLenToVerify)
+                                {
+                                    ret = NOT_SUPPORTED;
+                                    printf("Reason 3\n");
+                                }
+                            }
+                            // if we make it to here we have completed the change and done the verification, so exit the
+                            // loop
+                            break;
+                        }
+                        else
+                        {
+                            ret = FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        ret = COMMAND_FAILURE;
+                    }
+                }
+                else
+                {
+                    ret = COMMAND_FAILURE;
+                }
+            }
+            else
+            {
+                ret = NOT_SUPPORTED;
+            }
+        }
+        else
+        {
+            ret = COMMAND_FAILURE;
+        }
+        safe_free_aligned(&mp);
+    } while (llbaa == true && ret == SUCCESS && attemptCount <= 2);
+    if (attemptCount > 2)
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+static eReturnValues modify_SCSI_Block_Descriptor_6B(tDevice*                 device,
+                                                     modifyScsiBlkDescFields  modifications,
+                                                     modifyScsiBlkDescFields* endingBlockDescriptor)
+{
+    eReturnValues ret        = SUCCESS;
+    uint8_t       mpalloclen = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
+    uint8_t*      mp =
+        M_STATIC_CAST(uint8_t*, safe_calloc_aligned(mpalloclen, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (mp == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    if (SUCCESS == scsi_Mode_Sense_6(device, 0, mpalloclen, 0, false, MPC_CURRENT_VALUES, mp))
+    {
+        uint8_t modeDataLen  = UINT8_C(0);
+        uint8_t blockDescLen = UINT8_C(0);
+        get_mode_param_header_6_fields(mp, mpalloclen, &modeDataLen, M_NULLPTR, M_NULLPTR, &blockDescLen);
+        if (blockDescLen > 0)
+        {
+            uint32_t startingNumBlocks = UINT32_C(0);
+            uint32_t startingBlkLen    = UINT32_C(0);
+            get_mode_short_block_descriptor_fields(mp + MODE_PARAMETER_HEADER_6_LEN, blockDescLen, &startingNumBlocks,
+                                                   &startingNumBlocks);
+            // TODO: density code for non-SBC/ZBC devices and smaller number of blocks field for non-SBC/ZBC
+            if (modifications.modifyNumBlocks)
+            {
+                modify_Short_Blk_Desc_Num_Blocks(mp, MODE_PARAMETER_HEADER_6_LEN,
+                                                 get_DWord0(modifications.numberOfLogicalBlocks));
+            }
+            if (modifications.modifyBlockLen)
+            {
+                modify_Short_Blk_Desc_Block_Len(mp, MODE_PARAMETER_HEADER_6_LEN, modifications.logicalBlockLength);
+            }
+            // mode data length field is reserved during mode select so zeroing it out
+            mp[MODE_HEADER_6_MP_LEN_OFFSET] = RESERVED;
+            mp[MODE_HEADER_6_DEV_SPECIFIC]  = modifications.deviceSpecific;
+            if (SUCCESS == scsi_Mode_Select_6(device, mpalloclen, false, false, false, mp, mpalloclen))
+            {
+                // device did not complain. Verify it worked with a mode sense again and compare the fields
+                if (SUCCESS == scsi_Mode_Sense_6(device, 0, mpalloclen, 0, false, MPC_CURRENT_VALUES, mp))
+                {
+                    modeDataLen  = UINT8_C(0);
+                    blockDescLen = UINT8_C(0);
+                    get_mode_param_header_6_fields(mp, mpalloclen, &modeDataLen, M_NULLPTR, M_NULLPTR, &blockDescLen);
+                    if (blockDescLen > 0)
+                    {
+                        uint32_t endingNumBlocks = UINT32_C(0);
+                        uint32_t endingBlkLen    = UINT32_C(0);
+                        get_mode_short_block_descriptor_fields(mp + MODE_PARAMETER_HEADER_6_LEN, blockDescLen,
+                                                               &endingNumBlocks, &endingBlkLen);
+                        if (endingBlockDescriptor != M_NULLPTR)
+                        {
+                            endingBlockDescriptor->numberOfLogicalBlocks = endingNumBlocks;
+                            endingBlockDescriptor->logicalBlockLength    = endingBlkLen;
+                        }
+                        if (modifications.modifyNumBlocks)
+                        {
+                            if (modifications.numberOfLogicalBlocks == UINT64_MAX)
+                            {
+                                if (!modifications.modifyBlockLen &&
+                                    startingNumBlocks == endingNumBlocks &&
+                                    endingNumBlocks != (device->drive_info.deviceMaxLba + UINT64_C(1)))
+                                {
+                                    ret = NOT_SUPPORTED;
+                                }
+                            }
+                            else if (endingNumBlocks != modifications.numberOfLogicalBlocks)
+                            {
+                                ret = NOT_SUPPORTED;
+                            }
+                        }
+                        if (modifications.modifyBlockLen)
+                        {
+                            if (endingBlkLen != modifications.logicalBlockLength && endingBlkLen != startingBlkLen)
+                            {
+                                ret = NOT_SUPPORTED;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // something went really wrong if we did not get back a block descriptor this time
+                        ret = FAILURE;
+                    }
+                }
+                else
+                {
+                    ret = COMMAND_FAILURE;
+                }
+            }
+            else
+            {
+                // NOT_SUPPORTED??? or check for time to retry 10B?
+                ret = COMMAND_FAILURE;
+            }
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        // TODO: If invalid opcode, retry with 10B?
+        ret = COMMAND_FAILURE;
+    }
+    safe_free_aligned(&mp);
+    return ret;
+}
+
+// steps:
+// 1: Read current block descriptor
+// 2: Modify the requested fields
+// 3: Write block descriptor back
+// 4: verify block descriptor changed as expected
+eReturnValues modify_SCSI_Block_Descriptor(tDevice*                 device,
+                                           modifyScsiBlkDescFields  modifications,
+                                           modifyScsiBlkDescFields* endingBlockDescriptor)
+{
+    eReturnValues ret = SUCCESS;
+    if (device->drive_info.passThroughHacks.scsiHacks.noModePages)
+    {
+        return NOT_SUPPORTED;
+    }
+    if (use_6B_SCSI_Mode(device, 0, 0))
+    {
+        ret = modify_SCSI_Block_Descriptor_6B(device, modifications, endingBlockDescriptor);
+    }
+    else
+    {
+        ret = modify_SCSI_Block_Descriptor_10B(device, modifications, endingBlockDescriptor);
+    }
     return ret;
 }
 
