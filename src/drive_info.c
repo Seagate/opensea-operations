@@ -7167,9 +7167,9 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
                     supportedOpRequest.operationCode      = 0xA2;
                     supportedOpRequest.serviceActionValid = false;
                     eSCSICmdSupport secProtSupported = is_SCSI_Operation_Code_Supported(device, &supportedOpRequest);
-                    // If this command is being reported by the device as supported according to the standard, but it failed to read
-                    // the list of supported protocols earlier, then it is being blocked.
-                    // Any other value tells us it is not supported by the device (more or less)
+                    // If this command is being reported by the device as supported according to the standard, but it
+                    // failed to read the list of supported protocols earlier, then it is being blocked. Any other value
+                    // tells us it is not supported by the device (more or less)
                     if (secProtSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
                     {
                         driveInfo->trustedCommandsBeingBlocked = true;
