@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -322,142 +322,66 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
     // if they want to change the sector size, we need to do a mode select command
     if (!formatParameters.currentBlockSize || formatParameters.newMaxLBA)
     {
-        bool modeSelect10 = true;
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, modeParameterData, 24);
-        // try mode sense 10 with LongLBA bit set...if that fails, try mode sense 6
-        if (SUCCESS != scsi_Mode_Sense_10(device, 0, 24, 0, false, true, MPC_CURRENT_VALUES, modeParameterData))
+        modifyScsiBlkDescFields modifications;
+        modifyScsiBlkDescFields results;
+        safe_memset(&modifications, sizeof(modifyScsiBlkDescFields), 0, sizeof(modifyScsiBlkDescFields));
+        safe_memset(&results, sizeof(modifyScsiBlkDescFields), 0, sizeof(modifyScsiBlkDescFields));
+        if (formatParameters.newMaxLBA)
         {
-            // try mode sense 10 without the longLBA bit now
-            if (SUCCESS != scsi_Mode_Sense_10(device, 0, 16, 0, false, false, MPC_CURRENT_VALUES, modeParameterData))
+            modifications.modifyNumBlocks       = true;
+            modifications.numberOfLogicalBlocks = formatParameters.newMaxLBA;
+        }
+        if (!formatParameters.currentBlockSize)
+        {
+            modifications.modifyBlockLen     = true;
+            modifications.logicalBlockLength = formatParameters.newBlockSize;
+            if (!formatParameters.newMaxLBA)
             {
-                modeSelect10 = false;
-                // all else fails, try mode sense 6
-                if (SUCCESS != scsi_Mode_Sense_6(device, 0, 12, 0, false, MPC_CURRENT_VALUES, modeParameterData))
+                // When changing the sector size, need to let the drive know to reset the maxLBA to a new value as well!
+                modifications.modifyNumBlocks       = true;
+                modifications.numberOfLogicalBlocks = UINT64_MAX;
+            }
+        }
+        ret = modify_SCSI_Block_Descriptor(device, modifications, &results);
+        if (ret == NOT_SUPPORTED)
+        {
+            // Determine what was not accepted. It's possible maxlba or blocksize were not accepted by the device.
+            // Other errors like FAILURE or COMMAND_FAILURE from this function indicate other device issues, whereas
+            // NOT_SUPPORTED means that the change requested did not happen.
+            if (formatParameters.newMaxLBA)
+            {
+                if (formatParameters.newMaxLBA != results.numberOfLogicalBlocks + UINT64_C(1))
                 {
-                    safe_free_aligned(&dataBuf);
-                    return NOT_SUPPORTED;
+                    printf("WARNING: Changing maxlba during format is not supported.\n");
+                    printf("         Please try changing maxLBA once the format is completed\n");
+                    printf("         Format will continue running with all other options.\n");
+                    ret = SUCCESS;
                 }
             }
-        }
-        // modify the BD
-        uint16_t blockDescriptorLength = UINT16_C(0);
-        uint8_t  blockDescriptorOffset = UINT8_C(0);
-        // set the block size to the new block size and the max lba to all F's...they can change the sector size later
-        // with another command if they want to
-        if (modeSelect10)
-        {
-            blockDescriptorOffset = MODE_PARAMETER_HEADER_10_LEN;
-            blockDescriptorLength = M_BytesTo2ByteValue(modeParameterData[MODE_HEADER_10_BLK_DESC_OFFSET],
-                                                        modeParameterData[MODE_HEADER_10_BLK_DESC_OFFSET + 1]);
-            // zero out the mode data length since we will not actually send it the mode page, just header and block
-            // descriptor
-            modeParameterData[MODE_HEADER_10_MP_LEN_OFFSET]     = 0;
-            modeParameterData[MODE_HEADER_10_MP_LEN_OFFSET + 1] = 0;
-            // zero out device specific parameter since those bits are mostly reserved in this case and don't really
-            // matter for a reformat.
-            modeParameterData[MODE_HEADER_10_DEV_SPECIFIC] = 0;
-        }
-        else // mode sense 6
-        {
-            blockDescriptorOffset = MODE_PARAMETER_HEADER_6_LEN;
-            blockDescriptorLength = modeParameterData[MODE_HEADER_6_BLK_DESC_OFFSET];
-            // zero out the mode data length since we will not actually send it the mode page, just header and block
-            // descriptor
-            modeParameterData[MODE_HEADER_6_MP_LEN_OFFSET] = 0;
-            // zero out device specific parameter since those bits are mostly reserved in this case and don't really
-            // matter for a reformat.
-            modeParameterData[MODE_HEADER_6_DEV_SPECIFIC] = 0;
-        }
-        if (blockDescriptorLength == SHORT_LBA_BLOCK_DESCRIPTOR_LEN)
-        {
-            // short block descriptor
-            // set the LBA to all Fs to reset to maximum LBA of the drive
-            if (formatParameters.newMaxLBA)
-            {
-                formatParameters.newMaxLBA +=
-                    1; // Need to add 1 for SCSI so that this will match the -i report. If this is not done, then  we
-                       // end up with 1 less than the value provided.
-                modeParameterData[blockDescriptorOffset + 0] = M_Byte3(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 1] = M_Byte2(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 2] = M_Byte1(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 3] = M_Byte0(formatParameters.newMaxLBA);
-            }
-            else
-            {
-                modeParameterData[blockDescriptorOffset + 0] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 1] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 2] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 3] = 0xFF;
-            }
-            // 1 reserved byte (don't touch it)
-            // set logical block length in bytes 5 to 7
             if (!formatParameters.currentBlockSize)
             {
-                modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newBlockSize);
-                modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newBlockSize);
-                modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newBlockSize);
+                // check what happened when requesting the block size change.
+                printf("The requested block size is not supported: %" PRIu32 "\n", modifications.logicalBlockLength);
+                printf("The device set the block size to %" PRIu32 " during this request.\n",
+                       results.logicalBlockLength);
+                printf("Formatting the drive must continue in order to bring it out of the\n");
+                printf("format corrupt state.\n");
+                if (results.logicalBlockLength % 512)
+                {
+                    modifications.logicalBlockLength =
+                        uint32_round_down_power2(device->drive_info.deviceBlockSize, 512);
+                    if (!formatParameters.newMaxLBA)
+                    {
+                        // When changing the sector size, need to let the drive know to reset the maxLBA to a new value as well!
+                        modifications.modifyNumBlocks       = true;
+                        modifications.numberOfLogicalBlocks = UINT64_MAX;
+                    }
+                    printf("Since this new block size is not a multiple of 512 (a common supported sector size),\n");
+                    printf("the sector size will be adjusted to %" PRIu32 " for maximum compatibility.\n", modifications.logicalBlockLength);
+                    ret = modify_SCSI_Block_Descriptor(device, modifications, &results);
+                }
+                ret = SUCCESS;
             }
-        }
-        else if (blockDescriptorLength == LONG_LBA_BLOCK_DESCRIPTOR_LEN)
-        {
-            // long block descriptor
-            // set the LBA to all Fs to reset to maximum LBA of the drive
-            if (formatParameters.newMaxLBA)
-            {
-                formatParameters.newMaxLBA +=
-                    1; // Need to add 1 for SCSI so that this will match the -i report. If this is not done, then  we
-                       // end up with 1 less than the value provided.
-                modeParameterData[blockDescriptorOffset + 0] = M_Byte7(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 1] = M_Byte6(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 2] = M_Byte5(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 3] = M_Byte4(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 4] = M_Byte3(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 5] = M_Byte2(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 6] = M_Byte1(formatParameters.newMaxLBA);
-                modeParameterData[blockDescriptorOffset + 7] = M_Byte0(formatParameters.newMaxLBA);
-            }
-            else
-            {
-                modeParameterData[blockDescriptorOffset + 0] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 1] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 2] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 3] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 4] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 5] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 6] = 0xFF;
-                modeParameterData[blockDescriptorOffset + 7] = 0xFF;
-            }
-            // 8 reserved bytes (don't touch them)
-            // set logical block length in bytes 12 to 15
-            if (!formatParameters.currentBlockSize)
-            {
-                modeParameterData[blockDescriptorOffset + 12] = M_Byte3(formatParameters.newBlockSize);
-                modeParameterData[blockDescriptorOffset + 13] = M_Byte2(formatParameters.newBlockSize);
-                modeParameterData[blockDescriptorOffset + 14] = M_Byte1(formatParameters.newBlockSize);
-                modeParameterData[blockDescriptorOffset + 15] = M_Byte0(formatParameters.newBlockSize);
-            }
-        }
-        else
-        {
-            // invalid block descriptor length
-            safe_free_aligned(&dataBuf);
-            return NOT_SUPPORTED;
-        }
-        // now send a mode select command
-        if (modeSelect10)
-        {
-            ret = scsi_Mode_Select_10(
-                device, (blockDescriptorLength + blockDescriptorOffset), false, true, false, modeParameterData,
-                (blockDescriptorLength +
-                 blockDescriptorOffset)); // turning off page format bit due to reading page 0 above
-        }
-        else
-        {
-            ret =
-                scsi_Mode_Select_6(device, C_CAST(uint8_t, (blockDescriptorLength + blockDescriptorOffset)), false,
-                                   true, false, modeParameterData,
-                                   (blockDescriptorLength +
-                                    blockDescriptorOffset)); // turning off page format bit due to reading page 0 above
         }
     }
     if (ret == SUCCESS)

@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -881,7 +881,7 @@ eReturnValues create_Uncorrectables(tDevice*                    device,
         {
             ret = write_Psuedo_Uncorrectable_Error(device, iterator);
         }
-        else //set not supported if wue is not true so that the read/write long can be used in place
+        else // set not supported if wue is not true so that the read/write long can be used in place
         {
             ret = NOT_SUPPORTED;
         }

@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -205,6 +205,11 @@ extern "C"
     } farmDriveInfo;
 
     M_STATIC_ASSERT(sizeof(farmDriveInfo) == FARM_PAGE_LEN, farm_driveInfo_stuct_is_not_16kib);
+
+    M_STATIC_ASSERT(offsetof(farmDriveInfo, sequentialOrBeforeWriteRequiredForActiveZoneConfiguration) == 424,
+                    farm_DI_SOBRConfig);
+    M_STATIC_ASSERT(offsetof(farmDriveInfo, sequentialWriteRequiredForActiveZoneConfiguration) == 432,
+                    farm_DI_SWRConfig);
 
 #define FARM_WORKLOAD_RESERVED_STATS  350
 #define FARM_WORKLOAD_RESERVED_STATS2 1650

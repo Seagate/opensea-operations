@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -178,7 +178,7 @@ extern "C"
     OPENSEA_OPERATIONS_API bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* cdlSettings);
 
     M_NONNULL_PARAM_LIST(4)
-    M_PARAM_WO(4)
+    M_PARAM_RW(4)
     OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType     driveType,
                                                             eCDLPolicyType policyType,
                                                             uint16_t       policySupportedDescriptor,
