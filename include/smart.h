@@ -94,7 +94,8 @@ extern "C"
 
 #define MAX_SMART_STATUS_STRING_LENGTH          21  // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_FIELD_NAME_LENGTH               91  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_ANALYZED_STRING_LENGTH          41  // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FIELD_SHORT_NAME_LENGTH         41  // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_ANALYZED_FIELD_NAME_LENGTH      41  // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    129 // This leaves room for a M_NULLPTR terminating character
 #define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91  // This leaves room for a M_NULLPTR terminating character
 #define MAX_HYBRID_RAW_STRING_LENGTH            24  // This leaves room for a M_NULLPTR terminating character
@@ -126,12 +127,17 @@ extern "C"
                    RAW_FIELD_UNIT_MiB = 10,
                    /*!< Value in Sectors. */
                    RAW_FIELD_UNIT_SECTORS = 11,
+                   /*!< Value in Count. */
+                   RAW_FIELD_UNIT_COUNT = 12,
+                   /*!< Value in Percentage. */
+                   RAW_FIELD_UNIT_PERCENTAGE = 13,
                    /*!< Unknown Unit. */
-                   RAW_FIELD_UNIT_UNKNOWN = 12);
+                   RAW_FIELD_UNIT_UNKNOWN = 14);
 
     typedef struct s_ataAttributeRawFieldData
     {
         char                          fieldName[MAX_RAW_FIELD_NAME_LENGTH];
+        char                          fieldShortName[MAX_RAW_FIELD_SHORT_NAME_LENGTH];
         int64_t                       fieldValue; // making it signed to handle negative values as well
         eATAAttributeRawFieldUnitType fieldUnit;
     } ataAttributeRawFieldData;
@@ -142,18 +148,23 @@ extern "C"
         char                     rawHybridString[MAX_HYBRID_RAW_STRING_LENGTH];
         uint8_t                  userFieldCount; // maximum allowed MAX_RAW_FEILD_COUNT
         ataAttributeRawFieldData rawField[MAX_RAW_FEILD_COUNT];
-        bool    int64AnalyzedValueValid; // will be true if raw data has any field representable in int64_t format
-        int64_t int64AnalyzedValue;
-        eATAAttributeRawFieldUnitType int64AnalyzedValueUnit;
-        char                          int64AnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
-        bool
-            stringAnalyzedValueValid; // will be true if raw data has any field representable in some string information
-        char   stringAnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
-        char   stringAnalyzedValue[MAX_RAW_ANALYZED_STRING_VALUE_LENGTH];
-        bool   doubleAnalyzedValueValid; // will be true if raw data has any field representable in double format
-        double doubleAnalyzedValue;
-        eATAAttributeRawFieldUnitType doubleAnalyzedValueUnit;
-        char                          doubleAnalyzedString[MAX_RAW_ANALYZED_STRING_LENGTH];
+
+        bool    int64TypeAnalyzedFieldValid; // will be true if raw data has any field representable in int64_t format
+        int64_t int64TypeAnalyzedFieldValue;
+        eATAAttributeRawFieldUnitType int64TypeAnalyzedFieldUnit;
+        char                          int64TypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+        char                          int64TypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+
+        bool   doubleTypeAnalyzedFieldValid; // will be true if raw data has any field representable in double format
+        double doubleTypeAnalyzedFieldValue;
+        eATAAttributeRawFieldUnitType doubleTypeAnalyzedFieldUnit;
+        char                          doubleTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+        char                          doubleTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+
+        bool stringTypeAnalyzedFieldValid; // will be true if raw data has any field representable in some string format
+        char stringTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+        char stringTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+        char stringTypeAnalyzedFieldValue[MAX_RAW_ANALYZED_STRING_VALUE_LENGTH];
     } ataAttributeRawData;
 
     typedef struct s_ataAttributeTypeData
@@ -224,7 +235,7 @@ extern "C"
 
     M_NONNULL_PARAM_LIST(2)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitType uintType, char** unitString);
+    OPENSEA_OPERATIONS_API void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitType uintType, char** unitString, bool isShortName);
     //-----------------------------------------------------------------------------
     //
     // get_ATA_Analyzed_SMART_Attributes(tDevice * device, ataSMARTAnalyzedData * ataSMARTAnalyzedData )
