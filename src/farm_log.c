@@ -3533,8 +3533,8 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
             print_Stat_If_Supported_And_Valid_Uint64("Specified Min Temperature (C)", env->specifiedMinTemp);
             print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Relative Humidity (%)",
                                                             env->currentRelativeHumidity, 0.1);
-            if (print_Stat_If_Supported_And_Valid_Uint64_Factor(
-                    "Current Motor Power (W)", env->currentMotorPowerFromMostRecentSMARTSummaryFrame, 0.001))
+            if (print_Stat_If_Supported_And_Valid_Uint64(
+                    "Current Motor Power Scalar", env->currentMotorPowerFromMostRecentSMARTSummaryFrame))
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Motor Power (Hours)",
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
