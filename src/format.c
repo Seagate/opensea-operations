@@ -448,12 +448,24 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                 print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
                 printf("\n");
             }
+            bool printedWaitLongerWarning = false;
             while (IN_PROGRESS == get_Format_Progress(device, &progress))
             {
-                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                if (VERBOSITY_QUIET < device->deviceVerbosity && !printedWaitLongerWarning)
                 {
                     printf("\r\tPercent Complete: %0.02f%%", progress);
                     flush_stdout();
+                    // add 0.005 to round up since this is what is happening in the %f print above (more or less) and
+                    // we really don't need a call to round() to accomplish this. This is also simple enough and close enough to
+                    // warn the user that the drive is not yet done with the format
+                    if (progress + 0.005 >= 100.0)
+                    {
+                        printf("\n\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
+                        printf("\t         that a format is still in progress! Please continue waiting\n");
+                        printf("\t         until the sense data no longer indicates that a format is\n");
+                        printf("\t         in progress!\n");
+                        printedWaitLongerWarning = true;
+                    }
                 }
                 delay_Seconds(delayTimeSeconds); // time set above
             }
