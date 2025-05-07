@@ -1646,34 +1646,37 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         // The solution is simple: erase the MBR before the format.
         // This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
         bool     mbrEraseWarning = false;
-        uint8_t* eraseMBR =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                             device->os_info.minimumAlignment));
-        if (eraseMBR != M_NULLPTR)
+        if (device->drive_info.deviceBlockSize > 0)
         {
-            // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
-            // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is why
-            // it will also be erased
-            eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-            eReturnValues writeBackupMBR =
-                write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
-            if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+            uint8_t* eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
+                                                                device->os_info.minimumAlignment));
+            if (eraseMBR != M_NULLPTR)
+            {
+                // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
+                // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is why
+                // it will also be erased
+                eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+                eReturnValues writeBackupMBR =
+                    write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
+                if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+                {
+                    mbrEraseWarning = true;
+                }
+                safe_free_aligned(&eraseMBR);
+            }
+            else
             {
                 mbrEraseWarning = true;
             }
-            safe_free_aligned(&eraseMBR);
-        }
-        else
-        {
-            mbrEraseWarning = true;
-        }
-        if (mbrEraseWarning)
-        {
-            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+            if (mbrEraseWarning)
             {
-                printf("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
-                       "first sector of the device\n");
-                printf("         and the last sector (max LBA) then try creating new partitions again.\n");
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                {
+                    printf("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
+                        "first sector of the device\n");
+                    printf("         and the last sector (max LBA) then try creating new partitions again.\n");
+                }
             }
         }
         if (device->drive_info.drive_type == ATA_DRIVE)
