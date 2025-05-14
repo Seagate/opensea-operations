@@ -1258,6 +1258,7 @@ static eReturnValues start_IDD_Operation(tDevice* device, eIDDTests iddOperation
             }
             break;
         default:
+            os_Unlock_Device(device);
             return NOT_SUPPORTED;
         }
         ret = ata_SMART_Offline(device, iddTestNumber, timeoutSeconds);
@@ -1325,15 +1326,18 @@ static eReturnValues start_IDD_Operation(tDevice* device, eIDDTests iddOperation
             if (senseKey == SENSE_KEY_ILLEGAL_REQUEST)
             {
                 // Do we need to check for asc = 26h, ascq = 0h? For now this should be ok
+                os_Unlock_Device(device);
                 return NOT_SUPPORTED;
             }
             else
             {
+                os_Unlock_Device(device);
                 return FAILURE;
             }
         }
         else
         {
+            os_Unlock_Device(device);
             return FAILURE;
         }
     }

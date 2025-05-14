@@ -1049,13 +1049,11 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(tDevice*                 d
                                         endingLBAToVerify != (device->drive_info.deviceMaxLba + UINT64_C(1)))
                                     {
                                         ret = NOT_SUPPORTED;
-                                        printf("Reason 1\n");
                                     }
                                 }
                                 else if (endingLBAToVerify != modifications.numberOfLogicalBlocks)
                                 {
                                     ret = NOT_SUPPORTED;
-                                    printf("Reason 2\n");
                                 }
                             }
                             if (modifications.modifyBlockLen)
@@ -1064,7 +1062,6 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(tDevice*                 d
                                     endingBlkLenToVerify != startBlkLenToVerify)
                                 {
                                     ret = NOT_SUPPORTED;
-                                    printf("Reason 3\n");
                                 }
                             }
                             // if we make it to here we have completed the change and done the verification, so exit the

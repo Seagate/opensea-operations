@@ -1983,8 +1983,8 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
             info->hardwareResetCount                    = be64_to_host(qwordptr[24]);
             info->nvcStatusOnPoweron                    = be64_to_host(qwordptr[26]);
             info->timeAvailableToSaveUDToNVMem          = be64_to_host(qwordptr[27]);
-            info->lowestPOHForTimeRestrictedParameters  = be64_to_host(qwordptr[28]);
-            info->highestPOHForTimeRestrictedParameters = be64_to_host(qwordptr[29]);
+            info->highestPOHForTimeRestrictedParameters = be64_to_host(qwordptr[28]);
+            info->lowestPOHForTimeRestrictedParameters  = be64_to_host(qwordptr[29]);
 
             info->dateOfAssembly = be64_to_host(qwordptr[30]);
             asciidword           = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->dateOfAssembly));
@@ -2005,8 +2005,8 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
             info->spinUpTimeMilliseconds                                = be64_to_host(qwordptr[12]);
             info->hamrDataProtectStatus                                 = be64_to_host(qwordptr[13]);
             info->regenHeadMask                                         = be64_to_host(qwordptr[14]);
-            info->lowestPOHForTimeRestrictedParameters                  = be64_to_host(qwordptr[15]);
-            info->highestPOHForTimeRestrictedParameters                 = be64_to_host(qwordptr[16]);
+            info->pohOfMostRecentTimeseriesFrame                        = be64_to_host(qwordptr[15]);
+            info->pohOfSecondMostRecentTimeseriesFrame                  = be64_to_host(qwordptr[16]);
         }
     }
 }
@@ -3533,8 +3533,8 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
             print_Stat_If_Supported_And_Valid_Uint64("Specified Min Temperature (C)", env->specifiedMinTemp);
             print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Relative Humidity (%)",
                                                             env->currentRelativeHumidity, 0.1);
-            if (print_Stat_If_Supported_And_Valid_Uint64_Factor(
-                    "Current Motor Power (W)", env->currentMotorPowerFromMostRecentSMARTSummaryFrame, 0.001))
+            if (print_Stat_If_Supported_And_Valid_int64(
+                    "Current Motor Power Scalar", env->currentMotorPowerFromMostRecentSMARTSummaryFrame))
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Motor Power (Hours)",
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
@@ -3886,7 +3886,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
             print_Stat_If_Supported_And_Valid_By_Head("Average H2SAT Asymmetry", reli->currentH2SATasymmetryByHeadTZAvg,
                                                       numheads, FARM_BY_HEAD_INT64_FACTOR, 0.10);
             print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
-                "Applied Fly Height Clearance Delta (1/1000 A) (OD, ID, MD)",
+                "FAFH Appd Clr Delta (1/1000 A) (OD, ID, MD)",
                 reli->appliedFlyHeightClearanceDeltaByHead, numheads);
             print_Stat_If_Supported_And_Valid_Uint64("# Disc Slip Recalibrations Performed",
                                                      reli->numDiscSlipRecalibrationsPerformed);
