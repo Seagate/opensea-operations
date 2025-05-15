@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -213,7 +213,8 @@ extern "C"
 #define MAX_FEATURE_LENGTH UINT8_C(50) // maximum number of characters to allow for use when storing feature names.
 
 #define MAX_SPECS          UINT8_C(40)
-#define MAX_SPEC_LENGTH    UINT8_C(40)
+#define MAX_SPEC_LENGTH                                                                                                \
+    MAX_VERSION_DESCRIPTOR_STRING_LENGTH // Upped to 65 to match SCSI version descriptors maximum length-TJE
 
     typedef struct s_driveInformationSAS_SATA
     {

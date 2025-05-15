@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -339,10 +339,10 @@ extern "C"
         ERASE_MAX_VALUE = -1
     } eEraseMethod;
 
-    #define MAX_SUPPORTED_ERASE_METHODS   13
-    #define MAX_ERASE_NAME_LENGTH 	  30
-    #define MAX_ERASE_WARNING_LENGTH 	  80
-    #define MAX_OS_SUPPORT_WARNING_LENGTH 80
+#define MAX_SUPPORTED_ERASE_METHODS   13
+#define MAX_ERASE_NAME_LENGTH         30
+#define MAX_ERASE_WARNING_LENGTH      80
+#define MAX_OS_SUPPORT_WARNING_LENGTH 80
 
     // This is based on IEEE 2883 and assumes the device firmware is compliant according to the specifications
     typedef enum eraseSanitizationLevelEnum
@@ -359,14 +359,16 @@ extern "C"
     typedef struct s_eraseMethod
     {
         eEraseMethod eraseIdentifier;
-        char eraseName[MAX_ERASE_NAME_LENGTH];
-        bool warningValid;
-        char eraseWarning[MAX_ERASE_WARNING_LENGTH];
-        char ossupportWarning[MAX_OS_SUPPORT_WARNING_LENGTH];//may be an empty string. May contain something like "requires password" or "cannot be stopped"
-        uint8_t eraseWeight;//used to store how fast/slow it is...used for sorting from fastest to slowest
-        eraseSanitizationLevel sanitizationLevel;//What does the given erase type comply with as far as IEEE 2883 specification mentions.
+        char         eraseName[MAX_ERASE_NAME_LENGTH];
+        bool         warningValid;
+        char         eraseWarning[MAX_ERASE_WARNING_LENGTH];
+        char ossupportWarning[MAX_OS_SUPPORT_WARNING_LENGTH]; // may be an empty string. May contain something like
+                                                              // "requires password" or "cannot be stopped"
+        uint8_t eraseWeight; // used to store how fast/slow it is...used for sorting from fastest to slowest
+        eraseSanitizationLevel
+            sanitizationLevel; // What does the given erase type comply with as far as IEEE 2883 specification mentions.
         bool osSupported;
-    }eraseMethod;
+    } eraseMethod;
 
     //-----------------------------------------------------------------------------
     //

@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2024-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2024-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -76,6 +76,12 @@ extern "C"
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters);
+
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API
+    eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice*                device,
+                                                       ptrSATAPhyEventCounters counters /* optional */);
 
 #if defined(__cplusplus)
 }
