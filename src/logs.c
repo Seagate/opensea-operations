@@ -1044,8 +1044,7 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(tDevice*                 d
                             {
                                 if (modifications.numberOfLogicalBlocks == UINT64_MAX)
                                 {
-                                    if (!modifications.modifyBlockLen &&
-                                        startLBAToVerify == endingLBAToVerify &&
+                                    if (!modifications.modifyBlockLen && startLBAToVerify == endingLBAToVerify &&
                                         endingLBAToVerify != (device->drive_info.deviceMaxLba + UINT64_C(1)))
                                     {
                                         ret = NOT_SUPPORTED;
@@ -1160,8 +1159,7 @@ static eReturnValues modify_SCSI_Block_Descriptor_6B(tDevice*                 de
                         {
                             if (modifications.numberOfLogicalBlocks == UINT64_MAX)
                             {
-                                if (!modifications.modifyBlockLen &&
-                                    startingNumBlocks == endingNumBlocks &&
+                                if (!modifications.modifyBlockLen && startingNumBlocks == endingNumBlocks &&
                                     endingNumBlocks != (device->drive_info.deviceMaxLba + UINT64_C(1)))
                                 {
                                     ret = NOT_SUPPORTED;

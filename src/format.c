@@ -372,12 +372,14 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                         uint32_round_down_power2(device->drive_info.deviceBlockSize, 512);
                     if (!formatParameters.newMaxLBA)
                     {
-                        // When changing the sector size, need to let the drive know to reset the maxLBA to a new value as well!
+                        // When changing the sector size, need to let the drive know to reset the maxLBA to a new value
+                        // as well!
                         modifications.modifyNumBlocks       = true;
                         modifications.numberOfLogicalBlocks = UINT64_MAX;
                     }
                     printf("Since this new block size is not a multiple of 512 (a common supported sector size),\n");
-                    printf("the sector size will be adjusted to %" PRIu32 " for maximum compatibility.\n", modifications.logicalBlockLength);
+                    printf("the sector size will be adjusted to %" PRIu32 " for maximum compatibility.\n",
+                           modifications.logicalBlockLength);
                     ret = modify_SCSI_Block_Descriptor(device, modifications, &results);
                 }
                 ret = SUCCESS;
@@ -456,8 +458,8 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                     printf("\r\tPercent Complete: %0.02f%%", progress);
                     flush_stdout();
                     // add 0.005 to round up since this is what is happening in the %f print above (more or less) and
-                    // we really don't need a call to round() to accomplish this. This is also simple enough and close enough to
-                    // warn the user that the drive is not yet done with the format
+                    // we really don't need a call to round() to accomplish this. This is also simple enough and close
+                    // enough to warn the user that the drive is not yet done with the format
                     if (progress + 0.005 >= 100.0)
                     {
                         printf("\n\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
@@ -1645,20 +1647,20 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         // So Windows blocks the ability to change the partition.
         // The solution is simple: erase the MBR before the format.
         // This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
-        bool     mbrEraseWarning = false;
+        bool mbrEraseWarning = false;
         if (device->drive_info.deviceBlockSize > 0)
         {
             uint8_t* eraseMBR =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                                device->os_info.minimumAlignment));
+                                                                 device->os_info.minimumAlignment));
             if (eraseMBR != M_NULLPTR)
             {
                 // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
-                // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is why
-                // it will also be erased
+                // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
+                // why it will also be erased
                 eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-                eReturnValues writeBackupMBR =
-                    write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
+                eReturnValues writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
+                                                         device->drive_info.deviceBlockSize);
                 if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
                 {
                     mbrEraseWarning = true;
@@ -1673,7 +1675,8 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
-                    printf("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
+                    printf(
+                        "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
                         "first sector of the device\n");
                     printf("         and the last sector (max LBA) then try creating new partitions again.\n");
                 }
