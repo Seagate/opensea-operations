@@ -1037,7 +1037,7 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(tDevice*                 d
                             if (endingBlockDescriptor != M_NULLPTR)
                             {
                                 endingBlockDescriptor->numberOfLogicalBlocks = endingLBAToVerify;
-                                endingBlockDescriptor->logicalBlockLength    = endingBlkLenToVerify;
+                                endingBlockDescriptor->logicalBlockLength    = M_STATIC_CAST(uint32_t, endingBlkLenToVerify);
                             }
                             // verify changes happened
                             if (modifications.modifyNumBlocks)

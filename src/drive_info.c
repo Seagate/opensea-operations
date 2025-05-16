@@ -5025,7 +5025,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
                 if (readCapData.readCap16)
                 {
                     driveInfo->physicalSectorSize = readCapData.logicalBlockLength *
-                                                    power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent);
+                                                    M_STATIC_CAST(uint32_t, power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent));
                     driveInfo->sectorAlignment = readCapData.lowestAlignedLogicalBlock;
                     if (readCapData.protectionEnabled)
                     {
