@@ -105,6 +105,19 @@ extern "C"
                                                                           uint32_t           numberOfElementsExpected,
                                                                           ptrPhysicalElement elementList);
 
+    M_NONNULL_PARAM_LIST(1, 3)
+    M_PARAM_RO(1)
+    M_PARAM_RW(3)
+    M_PARAM_RW(4)
+    M_PARAM_RW(5)
+    M_PARAM_WO(6)
+    OPENSEA_OPERATIONS_API eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
+                                               uint32_t           numberOfElementsExpected,
+                                               uint32_t *depopElementID,
+                                               uint16_t *maximumDepopulatedElements,
+                                               uint16_t *currentDepopulatedElements,
+                                               ptrPhysicalElement elementList);
+
     //-----------------------------------------------------------------------------
     //
     //  show_Physical_Element_Descriptors(uint32_t numberOfElements, ptrPhysicalElement elementList, uint64_t
@@ -125,6 +138,15 @@ extern "C"
     OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
                                                                   ptrPhysicalElement elementList,
                                                                   uint64_t           depopulateTime);
+
+    M_NONNULL_PARAM_LIST(2)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
+                                       ptrPhysicalElement elementList,
+                                       uint64_t           depopulateTime,
+                                       uint32_t depopElementID,
+                                               uint16_t maximumDepopulatedElements,
+                                               uint16_t currentDepopulatedElements);
 
     //-----------------------------------------------------------------------------
     //

@@ -2469,46 +2469,38 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
                 }
                 if (versionQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
+                    DECLARE_ZERO_INIT_ARRAY(char, zacMinorVersion, 36);
                     switch (M_Word0(versionQWord))
                     {
                     case ZAC_MINOR_VERSION_ZAC_REV_5:
-                        add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                                                            &driveInfo->numberOfSpecificationsSupported,
-                                                            "ZAC (Revision 5)");
+                        snprintf_err_handle(zacMinorVersion, 36, "ZAC (Revision 5)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC2_REV_15:
-                        add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                                                            &driveInfo->numberOfSpecificationsSupported,
-                                                            "ZAC-2 (Revision 15)");
+                        snprintf_err_handle(zacMinorVersion, 36, "ZAC-2 (Revision 15)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC2_REV_1B:
-                        add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                                                            &driveInfo->numberOfSpecificationsSupported,
-                                                            "ZAC-2 (Revision 1B)");
+                        snprintf_err_handle(zacMinorVersion, 36, "ZAC-2 (Revision 1B)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC_REV_4:
-                        add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                                                            &driveInfo->numberOfSpecificationsSupported,
-                                                            "ZAC (Revision 4)");
+                        snprintf_err_handle(zacMinorVersion, 36, "ZAC (Revision 4)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC2_REV12:
-                        add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                                                            &driveInfo->numberOfSpecificationsSupported,
-                                                            "ZAC-2 (Revision 12)");
+                        snprintf_err_handle(zacMinorVersion, 36, "ZAC-2 (Revision 12)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC_REV_1:
-                        add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                                                            &driveInfo->numberOfSpecificationsSupported,
-                                                            "ZAC (Revision 1)");
+                        snprintf_err_handle(zacMinorVersion, 36, "ZAC (Revision 1)");
                         break;
                     case ZAC_MINOR_VERSION_NOT_REPORTED:
                     case ZAC_MINOR_VERSION_NOT_REPORTED_2:
+                        snprintf_err_handle(zacMinorVersion, 36, "ZAC / minor version not reported");
+                        break;
                     default:
-                        // add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                        // &driveInfo->numberOfSpecificationsSupported, "Unknown ZAC Minor version: %04" PRIX16,
-                        // M_Word0(versionQWord));
+                        snprintf_err_handle(zacMinorVersion, 36, "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
                         break;
                     }
+                    add_Specification_To_Supported_List(driveInfo->specificationsSupported,
+                                                        &driveInfo->numberOfSpecificationsSupported,
+                                                        zacMinorVersion);
                 }
                 if (zoneActCapQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
