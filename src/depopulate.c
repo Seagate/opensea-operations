@@ -151,11 +151,11 @@ eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescr
 }
 
 eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
-                                               uint32_t           numberOfElementsExpected,
-                                               uint32_t *depopElementID,
-                                               uint16_t *maximumDepopulatedElements,
-                                               uint16_t *currentDepopulatedElements,
-                                               ptrPhysicalElement elementList)
+                                                 uint32_t           numberOfElementsExpected,
+                                                 uint32_t*          depopElementID,
+                                                 uint16_t*          maximumDepopulatedElements,
+                                                 uint16_t*          currentDepopulatedElements,
+                                                 ptrPhysicalElement elementList)
 {
     // NOTE: Seagate legacy method uses head numbers starting at zero, but STD spec starts at 1. Add 1 to anything from
     // Seagate legacy method
@@ -171,7 +171,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
     uint32_t getPhysicalElementsDataSize =
         (numberOfElementsExpected * 32 /*bytes per descriptor*/) + 32 /*bytes for data header*/;
     // now round that to the nearest 512B sector
-    getPhysicalElementsDataSize = uint32_round_up_power2(getPhysicalElementsDataSize, LEGACY_DRIVE_SEC_SIZE);
+    getPhysicalElementsDataSize  = uint32_round_up_power2(getPhysicalElementsDataSize, LEGACY_DRIVE_SEC_SIZE);
     uint8_t* getPhysicalElements = C_CAST(
         uint8_t*, safe_calloc_aligned(getPhysicalElementsDataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (getPhysicalElements != M_NULLPTR)
@@ -189,7 +189,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[11], getPhysicalElements[10],
-                                                                  getPhysicalElements[9], getPhysicalElements[8]);
+                                                          getPhysicalElements[9], getPhysicalElements[8]);
                 }
                 if (maximumDepopulatedElements != M_NULLPTR)
                 {
@@ -203,7 +203,8 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                     {
-                        printf("WARNING: Drive returned %" PRIu32 " elements, but %" PRIu32 " were expected\n", numberOfDescriptorsReturned, numberOfElementsExpected);
+                        printf("WARNING: Drive returned %" PRIu32 " elements, but %" PRIu32 " were expected\n",
+                               numberOfDescriptorsReturned, numberOfElementsExpected);
                     }
                 }
             }
@@ -220,7 +221,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[8], getPhysicalElements[9],
-                                                                  getPhysicalElements[10], getPhysicalElements[11]);
+                                                          getPhysicalElements[10], getPhysicalElements[11]);
                 }
                 if (maximumDepopulatedElements != M_NULLPTR)
                 {
@@ -232,7 +233,8 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 }
                 if (numberOfElementsExpected != numberOfDescriptorsReturned)
                 {
-                    printf("WARNING: Drive returned %" PRIu32 " elements, but %" PRIu32 " were expected\n", numberOfDescriptorsReturned, numberOfElementsExpected);
+                    printf("WARNING: Drive returned %" PRIu32 " elements, but %" PRIu32 " were expected\n",
+                           numberOfDescriptorsReturned, numberOfElementsExpected);
                 }
             }
         }
@@ -278,15 +280,16 @@ eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
                                                uint32_t           numberOfElementsExpected,
                                                ptrPhysicalElement elementList)
 {
-    return get_Physical_Element_Descriptors_2(device, numberOfElementsExpected, M_NULLPTR, M_NULLPTR, M_NULLPTR, elementList);
+    return get_Physical_Element_Descriptors_2(device, numberOfElementsExpected, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                              elementList);
 }
 
 void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
-                                       ptrPhysicalElement elementList,
-                                       uint64_t           depopulateTime,
-                                       uint32_t depopElementID,
-                                               uint16_t maximumDepopulatedElements,
-                                               uint16_t currentDepopulatedElements)
+                                         ptrPhysicalElement elementList,
+                                         uint64_t           depopulateTime,
+                                         uint32_t           depopElementID,
+                                         uint16_t           maximumDepopulatedElements,
+                                         uint16_t           currentDepopulatedElements)
 {
     // print out the list of descriptors
     printf("\nElement Types:\n");

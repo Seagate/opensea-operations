@@ -2495,12 +2495,12 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
                         snprintf_err_handle(zacMinorVersion, 36, "ZAC / minor version not reported");
                         break;
                     default:
-                        snprintf_err_handle(zacMinorVersion, 36, "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
+                        snprintf_err_handle(zacMinorVersion, 36, "Unknown ZAC Minor version: %04" PRIX16,
+                                            M_Word0(versionQWord));
                         break;
                     }
                     add_Specification_To_Supported_List(driveInfo->specificationsSupported,
-                                                        &driveInfo->numberOfSpecificationsSupported,
-                                                        zacMinorVersion);
+                                                        &driveInfo->numberOfSpecificationsSupported, zacMinorVersion);
                 }
                 if (zoneActCapQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
@@ -5016,8 +5016,9 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
                 driveInfo->maxLBA            = readCapData.returnedLBA;
                 if (readCapData.readCap16)
                 {
-                    driveInfo->physicalSectorSize = readCapData.logicalBlockLength *
-                                                    M_STATIC_CAST(uint32_t, power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent));
+                    driveInfo->physicalSectorSize =
+                        readCapData.logicalBlockLength *
+                        M_STATIC_CAST(uint32_t, power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent));
                     driveInfo->sectorAlignment = readCapData.lowestAlignedLogicalBlock;
                     if (readCapData.protectionEnabled)
                     {

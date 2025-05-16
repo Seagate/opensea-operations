@@ -111,7 +111,8 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
             if (readCapData.readCap16)
             {
                 device->drive_info.devicePhyBlockSize =
-                    readCapData.logicalBlockLength * M_STATIC_CAST(uint32_t, power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent));
+                    readCapData.logicalBlockLength *
+                    M_STATIC_CAST(uint32_t, power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent));
                 device->drive_info.sectorAlignment = readCapData.lowestAlignedLogicalBlock;
             }
             else
