@@ -1622,7 +1622,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Setting the drive sector size quickly.\n");
-            printf("This command may appear to hang the utiliy. Do NOT interrupt this\n");
+            printf("This command may appear to hang the utility. Do NOT interrupt this\n");
             printf("command for at least 1 hour if it appears hung. The drive is busy\n");
             printf("performing the sector size change and is not able to indicate its\n");
             printf("progress during this time.\n");
@@ -1924,7 +1924,7 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
         // need to figure out what format we want to run!
         uint8_t flbas = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
         // get the LBAF number. THis field varies depending on other things reported by the drive in NVMe 2.0
-        if (device->drive_info.IdentifyData.nvme.ns.nlbaf > 16)
+        if (NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) > 16)
         {
             // need to append 2 more bits to interpret this correctly since number of formats > 16
             flbas |= get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
@@ -1947,7 +1947,7 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
         formatCmdOptions.lbaf = map_NVM_Format_To_Format_Number(device, fmtBlockSize, fmtMetaDataSize);
     }
     // invalid format requested.
-    if (formatCmdOptions.lbaf > device->drive_info.IdentifyData.nvme.ns.nlbaf)
+    if (formatCmdOptions.lbaf > NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf))
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {

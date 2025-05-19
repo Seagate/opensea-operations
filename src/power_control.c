@@ -502,7 +502,7 @@ eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates
         ret = SUCCESS;
         // use cached NVMe identify ctrl data since this won't change.
         uint16_t driveMaxPowerStates =
-            device->drive_info.IdentifyData.nvme.ctrl.npss + 1; // plus 1 since this is zeroes based
+            NVME_0_BASED(device->drive_info.IdentifyData.nvme.ctrl.npss);
         safe_memset(nvmps, sizeof(nvmeSupportedPowerStates), 0, sizeof(nvmeSupportedPowerStates));
         for (uint16_t powerIter = UINT16_C(0); powerIter < driveMaxPowerStates && powerIter < MAXIMUM_NVME_POWER_STATES;
              ++powerIter)
