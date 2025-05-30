@@ -2,7 +2,7 @@
 #
 # Do NOT modify or remove this copyright and license
 #
-# Copyright (c) 2012-2024 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+# Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 #
 # This software is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,11 +16,11 @@
 NAME=opensea-operations
 FILE_OUTPUT_DIR=lib
 #Change the Major version when major interface changes are made. E.g. tDevice changes
-MAJOR=8
+MAJOR=9
 #Change the Minor version when new features are added. 
-MINOR=0
+MINOR=1
 #Change the patch version when only bug fixes are made.
-PATCH=1
+PATCH=0
 VERSION=$(MAJOR).$(MINOR).$(PATCH)
 SRC_DIR=../../src/
 INC_DIR=-I../../include -I../../../opensea-transport/include -I../../../opensea-transport/include/vendor -I../../../opensea-common/include
@@ -128,6 +128,7 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)drive_info.c\
 	$(SRC_DIR)format.c\
 	$(SRC_DIR)device_statistics.c\
+	$(SRC_DIR)cdl.c\
 	$(SRC_DIR)sas_phy.c\
 	$(SRC_DIR)depopulate.c\
 	$(SRC_DIR)zoned_operations.c\

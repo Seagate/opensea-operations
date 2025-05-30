@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-project('opensea-operations', 'c', license: 'MPL-2.0', version: '8.0.1', default_options : ['warning_level=2'])
+project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.1.0', default_options : ['warning_level=2'])
 
 c = meson.get_compiler('c')
 
@@ -44,7 +44,6 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
   '-Wimplicit-fallthrough',
   '-D_GLIBCXX_ASSERTIONS',
   '-fstrict-flex-arrays=1', #NOTE: Using level 1 since Windows often uses [1] at the end of it's structures. opensea-*libs has used this in a few places too.
-  '-fstack-protector-strong',
   '-fno-delete-null-pointer-checks',
   '-fno-strict-overflow',
   '-fno-strict-aliasing',
@@ -74,12 +73,26 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
   '-Wcomment',
   '-Wsequence-point',
   '-Wreturn-type',
+  '-Wpointer-bool-conversion',
   '-fvisibility=hidden', #to work similarly to Window's DLL import/export
   ]
 
   if c.get_id().contains('gcc') and c.version().version_compare('>=10.0')
     #only enable the sign conversion warning on versions 10 and up because it is way too noisy on earlier GCC versions than it is useful-TJE
     warning_flags += '-Wsign-conversion'
+  endif
+
+  if target_machine.system() != 'sunos'
+    warning_flags += '-fstack-protector-strong'
+  else
+    #Illumos will support this, but solaris will not due to library differences in the systems
+    if meson.version().version_compare('>=1.2.0')
+      if target_machine.kernel() == 'illumos'
+        warning_flags += '-fstack-protector-strong'
+      endif
+    else
+    # TODO: Backup method to detect illumos vs solaris
+    endif
   endif
 
   if c.get_id().contains('gcc') and target_machine.system() == 'windows'
@@ -187,6 +200,11 @@ elif c.get_id().contains('msvc')
     '/d2guard4', #control flow guard
   ]
 
+  if target_machine.cpu_family() == 'x86_64' or target_machine.cpu_family() == 'x86'
+    # https://learn.microsoft.com/en-us/cpp/build/reference/qintel-jcc-erratum?view=msvc-170
+    warning_flags += '/QIntel-jcc-erratum'
+  endif
+
   if c.has_argument('/std:c17')
     c_std = 'c17'
   endif
@@ -252,5 +270,5 @@ opensea_common_dep = opensea_common.get_variable('opensea_common_dep')
 opensea_transport = subproject('opensea-transport')
 opensea_transport_dep = opensea_transport.get_variable('opensea_transport_dep')
 
-opensea_operations_lib = static_library('opensea-operations', 'src/ata_Security.c', 'src/buffer_test.c', 'src/defect.c', 'src/depopulate.c', 'src/device_statistics.c', 'src/drive_info.c', 'src/dst.c', 'src/firmware_download.c', 'src/format.c', 'src/generic_tests.c', 'src/host_erase.c', 'src/logs.c', 'src/nvme_operations.c', 'src/operations.c', 'src/power_control.c', 'src/reservations.c', 'src/sanitize.c', 'src/sas_phy.c', 'src/seagate_operations.c', 'src/sector_repair.c', 'src/set_max_lba.c', 'src/smart.c', 'src/trim_unmap.c', 'src/writesame.c', 'src/zoned_operations.c', 'src/farm_log.c', 'src/partition_info.c', 'src/ata_device_config_overlay.c', 'src/sata_phy.c', c_args : global_cpp_args, dependencies : [opensea_common_dep, opensea_transport_dep], include_directories : incdir)
+opensea_operations_lib = static_library('opensea-operations', 'src/ata_Security.c', 'src/buffer_test.c', 'src/cdl.c', 'src/defect.c', 'src/depopulate.c', 'src/device_statistics.c', 'src/drive_info.c', 'src/dst.c', 'src/firmware_download.c', 'src/format.c', 'src/generic_tests.c', 'src/host_erase.c', 'src/logs.c', 'src/nvme_operations.c', 'src/operations.c', 'src/power_control.c', 'src/reservations.c', 'src/sanitize.c', 'src/sas_phy.c', 'src/seagate_operations.c', 'src/sector_repair.c', 'src/set_max_lba.c', 'src/smart.c', 'src/trim_unmap.c', 'src/writesame.c', 'src/zoned_operations.c', 'src/farm_log.c', 'src/partition_info.c', 'src/ata_device_config_overlay.c', 'src/sata_phy.c', c_args : global_cpp_args, dependencies : [opensea_common_dep, opensea_transport_dep], include_directories : incdir)
 opensea_operations_dep = declare_dependency(link_with : opensea_operations_lib, compile_args : global_cpp_args, include_directories : incdir)
