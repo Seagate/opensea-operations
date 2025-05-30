@@ -873,7 +873,7 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        return device->drive_info.IdentifyData.nvme.ns.nlbaf + 1; // zeros based value so add 1
+        return NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf);
     }
     else
     {
@@ -1262,19 +1262,35 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
         {
             formats->protectionInformationSupported.protectionType1Supported = true;
         }
+        else
+        {
+            formats->protectionInformationSupported.protectionType1Supported = false;
+        }
         if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT1)
         {
             formats->protectionInformationSupported.protectionType2Supported = true;
         }
+        else
+        {
+            formats->protectionInformationSupported.protectionType2Supported = false;
+        }
         if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT2)
         {
             formats->protectionInformationSupported.protectionType3Supported = true;
+        }
+        else
+        {
+            formats->protectionInformationSupported.protectionType3Supported = false;
         }
         if (formats->protectionInformationSupported.protectionType1Supported ||
             formats->protectionInformationSupported.protectionType2Supported ||
             formats->protectionInformationSupported.protectionType3Supported)
         {
             formats->protectionInformationSupported.deviceSupportsProtection = true;
+        }
+        else
+        {
+            formats->protectionInformationSupported.deviceSupportsProtection = false;
         }
         formats->protectionInformationSupported.nvmSpecificPI.nvmSpecificValid = true;
         formats->protectionInformationSupported.nvmSpecificPI.piFirst8 =
@@ -1289,7 +1305,7 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
     formats->deviceSupportsOtherFormats = true;
     formats->numberOfSectorSizes        = 0; // clear this out before we set it to something below
     // set metadata and PI location bits first
-    for (uint8_t iter = UINT8_C(0); iter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++iter)
+    for (uint8_t iter = UINT8_C(0); iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf); ++iter)
     {
         if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
         {
@@ -1834,7 +1850,7 @@ eReturnValues show_NVM_Format_Progress(tDevice* device)
 static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize, uint16_t metadataSize)
 {
     uint8_t fmtNum             = UINT8_MAX;
-    uint8_t maxDriveLBAformats = device->drive_info.IdentifyData.nvme.ns.nlbaf + UINT8_C(1);
+    uint8_t maxDriveLBAformats = NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf);
     for (uint8_t fmtIter = UINT8_C(0); fmtIter < maxDriveLBAformats && fmtIter < NVME_2_0_MAX_FORMATS; ++fmtIter)
     {
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
