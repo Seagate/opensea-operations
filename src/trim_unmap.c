@@ -290,8 +290,8 @@ eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t
             ++descriptorCount;
         }
         // send the command(s) to the drive....currently only 1 command to do this. May need to revisit later - TJE
-        ret =
-            nvme_Dataset_Management(device, C_CAST(uint8_t, NVME_0_BASED_ADJUST(descriptorCount)), true, false, false, deallocate, 4096);
+        ret = nvme_Dataset_Management(device, C_CAST(uint8_t, NVME_0_BASED_ADJUST(descriptorCount)), true, false, false,
+                                      deallocate, 4096);
         os_Unlock_Device(device);
         os_Update_File_System_Cache(device);
     }
