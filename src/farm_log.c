@@ -3363,7 +3363,7 @@ static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator actuator,
     printf("%*s                %-*s  %-*s  %-*s  %-*s\n", M_STATIC_CAST(int, safe_strlen(farmActuatorStr)), "",
            FLED_INFO_STR_LEN, "FLED", RWRETRY_INFO_STR_LEN, "RW Retry", FLEDTIMESTAMP_STR_LEN, "Timestamp",
            FLED_POWER_CYCLE_STR_LEN, "Power Cycle");
-    while (eventCount < FARM_FLED_EVENTS && index < FARM_FLED_EVENTS && index > INT64_C(0))
+    while (eventCount < FARM_FLED_EVENTS && index < FARM_FLED_EVENTS && index >= INT64_C(0))
     {
         DECLARE_ZERO_INIT_ARRAY(char, fledInfoStr, FLED_INFO_STR_LEN);
         DECLARE_ZERO_INIT_ARRAY(char, rwRetryStr, RWRETRY_INFO_STR_LEN);
@@ -3453,7 +3453,7 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
                                                  error->timestampOfLast8FLEDs, error->powerCycleOfLast8FLEDs);
             print_FARM_Error_Info_Flash_LED_Data(
                 FARM_ACTUATOR_1, error->totalFlashLEDEventsActuator1, error->lastFLEDIndexActuator1,
-                error->last8FLEDEventsActuator1, error->last8ReadWriteRetryEvents,
+                error->last8FLEDEventsActuator1, error->last8ReadWriteRetryEventsActuator1,
                 error->timestampOfLast8FLEDsActuator1, error->powerCycleOfLast8FLEDsActuator1);
             print_Stat_If_Supported_And_Valid_Uint64("Lifetime # Unrecoverable Read Errors due to ERC",
                                                      error->cumulativeLifetimeUnrecoverableReadErrorsDueToERC);
@@ -3515,15 +3515,15 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
                                                            farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
             print_Stat_If_Supported_And_Valid_int64_Factor("Lowest Temperature (C)", env->lowestTemperature,
                                                            farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
-            print_Stat_If_Supported_And_Valid_Uint64("Average Short Term Temperature (C)", env->avgShortTermTemp);
-            print_Stat_If_Supported_And_Valid_Uint64("Average Long Term Temperature (C)", env->avgLongTermTemp);
-            print_Stat_If_Supported_And_Valid_Uint64("Highest Average Short Term Temperature (C)",
+            print_Stat_If_Supported_And_Valid_int64("Average Short Term Temperature (C)", env->avgShortTermTemp);
+            print_Stat_If_Supported_And_Valid_int64("Average Long Term Temperature (C)", env->avgLongTermTemp);
+            print_Stat_If_Supported_And_Valid_int64("Highest Average Short Term Temperature (C)",
                                                      env->highestAvgShortTermTemp);
-            print_Stat_If_Supported_And_Valid_Uint64("Lowest Average Short Term Temperature (C)",
+            print_Stat_If_Supported_And_Valid_int64("Lowest Average Short Term Temperature (C)",
                                                      env->lowestAvgShortTermTemp);
-            print_Stat_If_Supported_And_Valid_Uint64("Highest Average Long Term Temperature (C)",
+            print_Stat_If_Supported_And_Valid_int64("Highest Average Long Term Temperature (C)",
                                                      env->highestAvgLongTermTemp);
-            print_Stat_If_Supported_And_Valid_Uint64("Lowest Average Long Term Temperature (C)",
+            print_Stat_If_Supported_And_Valid_int64("Lowest Average Long Term Temperature (C)",
                                                      env->lowestAvgLongTermTemp);
             print_Stat_If_Supported_And_Valid_Time("Time in Over Temperature (Hours)", env->timeOverTemp,
                                                    MICRO_SECONDS_PER_MINUTE);

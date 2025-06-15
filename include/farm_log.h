@@ -15,6 +15,7 @@
 
 #pragma once
 #include "operations_Common.h"
+#include "secure_file.h"
 
 #include <stddef.h> //offset of macro
 
@@ -285,7 +286,7 @@ extern "C"
 #define FARM_FLED_EVENTS                 8
 #define FARM_RW_RETRY_EVENTS             8
 #define FARM_RESERVED2_CNT               17
-#define FARM_RESERVED3_CNT               23
+#define FARM_RESERVED3_CNT               15
 #define FARM_SATA_PFA_CNT                2
 #define FARM_SATA_PFA1_ATTR_01H_TRIP_BIT BIT0
 #define FARM_SATA_PFA1_ATTR_03H_TRIP_BIT BIT1
@@ -364,6 +365,7 @@ extern "C"
         uint64_t lastFLEDIndexActuator1; // FLED array wraps so this points to most recent entry // on SAS in by
                                          // actuator param 51h or 61h
         uint64_t last8FLEDEventsActuator1[FARM_FLED_EVENTS]; // on SAS in by actuator param 51h or 61h
+        uint64_t last8ReadWriteRetryEventsActuator1[FARM_RW_RETRY_EVENTS]; // on SAS in by actuator param 51h or 61h
         uint64_t reserved3[FARM_RESERVED3_CNT];
         uint64_t timestampOfLast8FLEDsActuator1[FARM_FLED_EVENTS];  // on SAS in by actuator param 51h or 61h
         uint64_t powerCycleOfLast8FLEDsActuator1[FARM_FLED_EVENTS]; // on SAS in by actuator param 51h or 61h
@@ -404,7 +406,7 @@ extern "C"
     M_STATIC_ASSERT(offsetof(farmErrorStatistics, numberOfReallocatedSectorsActuator1) == 952,
                     farm_error_realloc_sector_act1_wrong_offset);
 
-    M_STATIC_ASSERT(offsetof(farmErrorStatistics, reserved3) == 1048, farm_error_reserved3_wrong_offset);
+    M_STATIC_ASSERT(offsetof(farmErrorStatistics, reserved3) == 1112, farm_error_reserved3_wrong_offset);
     M_STATIC_ASSERT(offsetof(farmErrorStatistics, satareserved4) == 1824, farm_error_reserved4_wrong_offset);
 
     M_STATIC_ASSERT(sizeof(farmErrorStatistics) == FARM_PAGE_LEN, farm_error_stats_stuct_is_not_16kib);
@@ -573,6 +575,12 @@ extern "C"
     eReturnValues read_FARM_Data(tDevice* device, farmLogData* farmdata);
 
     void print_FARM_Data(farmLogData* farmdata);
+
+    typedef enum eFARMOutModeEnum
+    {
+        FARM_OUTPUT_RAW,
+        FARM_OUTPUT_JSON,
+    } eFARMOutMode;
 
 #if defined(__cplusplus)
 }
