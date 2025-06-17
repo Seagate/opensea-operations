@@ -3533,8 +3533,8 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
             print_Stat_If_Supported_And_Valid_Uint64("Specified Min Temperature (C)", env->specifiedMinTemp);
             print_Stat_If_Supported_And_Valid_Uint64_Factor("Current Relative Humidity (%)",
                                                             env->currentRelativeHumidity, 0.1);
-            if (print_Stat_If_Supported_And_Valid_int64(
-                    "Current Motor Power Scalar", env->currentMotorPowerFromMostRecentSMARTSummaryFrame))
+            if (print_Stat_If_Supported_And_Valid_int64("Current Motor Power Scalar",
+                                                        env->currentMotorPowerFromMostRecentSMARTSummaryFrame))
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time Coverage for Motor Power (Hours)",
                                                        timerestrictedRangems ^ (BIT63 | BIT62),
@@ -3886,8 +3886,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
             print_Stat_If_Supported_And_Valid_By_Head("Average H2SAT Asymmetry", reli->currentH2SATasymmetryByHeadTZAvg,
                                                       numheads, FARM_BY_HEAD_INT64_FACTOR, 0.10);
             print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
-                "FAFH Appd Clr Delta (1/1000 A) (OD, ID, MD)",
-                reli->appliedFlyHeightClearanceDeltaByHead, numheads);
+                "FAFH Appd Clr Delta (1/1000 A) (OD, ID, MD)", reli->appliedFlyHeightClearanceDeltaByHead, numheads);
             print_Stat_If_Supported_And_Valid_Uint64("# Disc Slip Recalibrations Performed",
                                                      reli->numDiscSlipRecalibrationsPerformed);
             print_Stat_If_Supported_And_Valid_By_Head("# Reallocated Sectors", reli->numReallocatedSectorsByHead,

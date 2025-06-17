@@ -372,12 +372,14 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                         uint32_round_down_power2(device->drive_info.deviceBlockSize, 512);
                     if (!formatParameters.newMaxLBA)
                     {
-                        // When changing the sector size, need to let the drive know to reset the maxLBA to a new value as well!
+                        // When changing the sector size, need to let the drive know to reset the maxLBA to a new value
+                        // as well!
                         modifications.modifyNumBlocks       = true;
                         modifications.numberOfLogicalBlocks = UINT64_MAX;
                     }
                     printf("Since this new block size is not a multiple of 512 (a common supported sector size),\n");
-                    printf("the sector size will be adjusted to %" PRIu32 " for maximum compatibility.\n", modifications.logicalBlockLength);
+                    printf("the sector size will be adjusted to %" PRIu32 " for maximum compatibility.\n",
+                           modifications.logicalBlockLength);
                     ret = modify_SCSI_Block_Descriptor(device, modifications, &results);
                 }
                 ret = SUCCESS;
@@ -456,8 +458,8 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
                     printf("\r\tPercent Complete: %0.02f%%", progress);
                     flush_stdout();
                     // add 0.005 to round up since this is what is happening in the %f print above (more or less) and
-                    // we really don't need a call to round() to accomplish this. This is also simple enough and close enough to
-                    // warn the user that the drive is not yet done with the format
+                    // we really don't need a call to round() to accomplish this. This is also simple enough and close
+                    // enough to warn the user that the drive is not yet done with the format
                     if (progress + 0.005 >= 100.0)
                     {
                         printf("\n\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
@@ -871,7 +873,7 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device)
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        return device->drive_info.IdentifyData.nvme.ns.nlbaf + 1; // zeros based value so add 1
+        return NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf);
     }
     else
     {
@@ -1260,19 +1262,35 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
         {
             formats->protectionInformationSupported.protectionType1Supported = true;
         }
+        else
+        {
+            formats->protectionInformationSupported.protectionType1Supported = false;
+        }
         if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT1)
         {
             formats->protectionInformationSupported.protectionType2Supported = true;
         }
+        else
+        {
+            formats->protectionInformationSupported.protectionType2Supported = false;
+        }
         if (device->drive_info.IdentifyData.nvme.ns.dpc & BIT2)
         {
             formats->protectionInformationSupported.protectionType3Supported = true;
+        }
+        else
+        {
+            formats->protectionInformationSupported.protectionType3Supported = false;
         }
         if (formats->protectionInformationSupported.protectionType1Supported ||
             formats->protectionInformationSupported.protectionType2Supported ||
             formats->protectionInformationSupported.protectionType3Supported)
         {
             formats->protectionInformationSupported.deviceSupportsProtection = true;
+        }
+        else
+        {
+            formats->protectionInformationSupported.deviceSupportsProtection = false;
         }
         formats->protectionInformationSupported.nvmSpecificPI.nvmSpecificValid = true;
         formats->protectionInformationSupported.nvmSpecificPI.piFirst8 =
@@ -1287,7 +1305,7 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
     formats->deviceSupportsOtherFormats = true;
     formats->numberOfSectorSizes        = 0; // clear this out before we set it to something below
     // set metadata and PI location bits first
-    for (uint8_t iter = UINT8_C(0); iter < (device->drive_info.IdentifyData.nvme.ns.nlbaf + 1); ++iter)
+    for (uint8_t iter = UINT8_C(0); iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf); ++iter)
     {
         if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
         {
@@ -1620,7 +1638,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
             printf("Setting the drive sector size quickly.\n");
-            printf("This command may appear to hang the utiliy. Do NOT interrupt this\n");
+            printf("This command may appear to hang the utility. Do NOT interrupt this\n");
             printf("command for at least 1 hour if it appears hung. The drive is busy\n");
             printf("performing the sector size change and is not able to indicate its\n");
             printf("progress during this time.\n");
@@ -1645,20 +1663,20 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         // So Windows blocks the ability to change the partition.
         // The solution is simple: erase the MBR before the format.
         // This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
-        bool     mbrEraseWarning = false;
+        bool mbrEraseWarning = false;
         if (device->drive_info.deviceBlockSize > 0)
         {
             uint8_t* eraseMBR =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                                device->os_info.minimumAlignment));
+                                                                 device->os_info.minimumAlignment));
             if (eraseMBR != M_NULLPTR)
             {
                 // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
-                // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is why
-                // it will also be erased
+                // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
+                // why it will also be erased
                 eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-                eReturnValues writeBackupMBR =
-                    write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
+                eReturnValues writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
+                                                         device->drive_info.deviceBlockSize);
                 if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
                 {
                     mbrEraseWarning = true;
@@ -1673,7 +1691,8 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
-                    printf("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
+                    printf(
+                        "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
                         "first sector of the device\n");
                     printf("         and the last sector (max LBA) then try creating new partitions again.\n");
                 }
@@ -1831,7 +1850,7 @@ eReturnValues show_NVM_Format_Progress(tDevice* device)
 static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize, uint16_t metadataSize)
 {
     uint8_t fmtNum             = UINT8_MAX;
-    uint8_t maxDriveLBAformats = device->drive_info.IdentifyData.nvme.ns.nlbaf + UINT8_C(1);
+    uint8_t maxDriveLBAformats = NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf);
     for (uint8_t fmtIter = UINT8_C(0); fmtIter < maxDriveLBAformats && fmtIter < NVME_2_0_MAX_FORMATS; ++fmtIter)
     {
         if (lbaSize == power_Of_Two(device->drive_info.IdentifyData.nvme.ns.lbaf[fmtIter].lbaDS))
@@ -1921,7 +1940,7 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
         // need to figure out what format we want to run!
         uint8_t flbas = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
         // get the LBAF number. THis field varies depending on other things reported by the drive in NVMe 2.0
-        if (device->drive_info.IdentifyData.nvme.ns.nlbaf > 16)
+        if (NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) > 16)
         {
             // need to append 2 more bits to interpret this correctly since number of formats > 16
             flbas |= get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
@@ -1944,7 +1963,7 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
         formatCmdOptions.lbaf = map_NVM_Format_To_Format_Number(device, fmtBlockSize, fmtMetaDataSize);
     }
     // invalid format requested.
-    if (formatCmdOptions.lbaf > device->drive_info.IdentifyData.nvme.ns.nlbaf)
+    if (formatCmdOptions.lbaf > NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf))
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {

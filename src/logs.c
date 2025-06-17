@@ -1037,15 +1037,15 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(tDevice*                 d
                             if (endingBlockDescriptor != M_NULLPTR)
                             {
                                 endingBlockDescriptor->numberOfLogicalBlocks = endingLBAToVerify;
-                                endingBlockDescriptor->logicalBlockLength    = endingBlkLenToVerify;
+                                endingBlockDescriptor->logicalBlockLength =
+                                    M_STATIC_CAST(uint32_t, endingBlkLenToVerify);
                             }
                             // verify changes happened
                             if (modifications.modifyNumBlocks)
                             {
                                 if (modifications.numberOfLogicalBlocks == UINT64_MAX)
                                 {
-                                    if (!modifications.modifyBlockLen &&
-                                        startLBAToVerify == endingLBAToVerify &&
+                                    if (!modifications.modifyBlockLen && startLBAToVerify == endingLBAToVerify &&
                                         endingLBAToVerify != (device->drive_info.deviceMaxLba + UINT64_C(1)))
                                     {
                                         ret = NOT_SUPPORTED;
@@ -1160,8 +1160,7 @@ static eReturnValues modify_SCSI_Block_Descriptor_6B(tDevice*                 de
                         {
                             if (modifications.numberOfLogicalBlocks == UINT64_MAX)
                             {
-                                if (!modifications.modifyBlockLen &&
-                                    startingNumBlocks == endingNumBlocks &&
+                                if (!modifications.modifyBlockLen && startingNumBlocks == endingNumBlocks &&
                                     endingNumBlocks != (device->drive_info.deviceMaxLba + UINT64_C(1)))
                                 {
                                     ret = NOT_SUPPORTED;

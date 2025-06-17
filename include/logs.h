@@ -881,8 +881,8 @@ extern "C"
     {
         uint64_t numberOfLogicalBlocks;
         uint32_t logicalBlockLength;
-        uint8_t  densityCode; // for all non direct access block devices (SBC) and non zoned devices (ZBC). Ignored on
-                             // SBC and ZBC
+        uint8_t  densityCode;   // for all non direct access block devices (SBC) and non zoned devices (ZBC). Ignored on
+                                // SBC and ZBC
         uint8_t deviceSpecific; // Device specific parameter value to be used during mode select
         bool    modifyNumBlocks;
         bool    modifyBlockLen;

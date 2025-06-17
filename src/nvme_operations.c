@@ -552,7 +552,7 @@ eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* lo
             *logSize = UINT64_C(1024);
             break;
         case NVME_LOG_ERROR_ID:
-            *logSize = UINT64_C(64) * C_CAST(uint64_t, device->drive_info.IdentifyData.nvme.ctrl.elpe);
+            *logSize = UINT64_C(64) * C_CAST(uint64_t, NVME_0_BASED(device->drive_info.IdentifyData.nvme.ctrl.elpe));
             break;
         case NVME_LOG_SMART_ID:
         case NVME_LOG_FW_SLOT_ID:
