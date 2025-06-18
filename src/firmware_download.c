@@ -33,6 +33,7 @@
 #include "operations_Common.h"
 #include "platform_helper.h"
 #include "power_control.h"
+#include "scsi_helper_func.h"
 
 // In order to be able to validate the data on any CPU, we don't want to hardcode any lengths in case things get packed
 // or aligned differently. So define each struct version here internally so we can do sizeof(v1), etc to check it. Each
@@ -516,13 +517,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                         }
                         else if (device->drive_info.drive_type == SCSI_DRIVE)
                         {
-                            uint8_t senseKey = UINT8_C(0);
-                            uint8_t asc      = UINT8_C(0);
-                            uint8_t ascq     = UINT8_C(0);
-                            uint8_t fru      = UINT8_C(0);
-                            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN,
-                                                       &senseKey, &asc, &ascq, &fru);
-                            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
+                            if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
                             {
                                 options->dlMode = FWDL_UPDATE_MODE_SEGMENTED;
                                 downloadMode    = DL_FW_SEGMENTED;
@@ -579,13 +574,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 &&
                         device->drive_info.lastCommandRTFRs.error == 0)
                     {
-                        uint8_t senseKey = UINT8_C(0);
-                        uint8_t asc      = UINT8_C(0);
-                        uint8_t ascq     = UINT8_C(0);
-                        uint8_t fru      = UINT8_C(0);
-                        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey,
-                                                   &asc, &ascq, &fru);
-                        if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04) // Check fru?
+                        if (is_Unaligned_Write(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN)) // Check fru?
                         {
                             ret = SUCCESS;
                         }
@@ -673,13 +662,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                             device->drive_info.lastCommandRTFRs.status == 0 &&
                             device->drive_info.lastCommandRTFRs.error == 0)
                         {
-                            uint8_t senseKey = UINT8_C(0);
-                            uint8_t asc      = UINT8_C(0);
-                            uint8_t ascq     = UINT8_C(0);
-                            uint8_t fru      = UINT8_C(0);
-                            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN,
-                                                       &senseKey, &asc, &ascq, &fru);
-                            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04) // Check fru?
+                            if (is_Unaligned_Write(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
                             {
                                 ret = SUCCESS;
                             }

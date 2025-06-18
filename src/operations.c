@@ -264,11 +264,11 @@ eReturnValues ata_Set_Read_Look_Ahead(tDevice* device, bool readLookAheadEnableD
     // on ata, we just send a set features command to change this
     if (readLookAheadEnableDisable == true)
     {
-        ret = ata_Set_Features(device, SF_ENABLE_READ_LOOK_AHEAD_FEATURE, 0, 0, 0, 0);
+        ret = ata_SF_Read_Look_Ahead(device, ATA_SF_ENABLE);
     }
     else
     {
-        ret = ata_Set_Features(device, SF_DISABLE_READ_LOOK_AHEAD_FEATURE, 0, 0, 0, 0);
+        ret = ata_SF_Read_Look_Ahead(device, ATA_SF_DISABLE);
     }
     return ret;
 }
@@ -350,11 +350,11 @@ eReturnValues ata_Set_Write_Cache(tDevice* device, bool writeCacheEnableDisable)
     // on ata, we just send a set features command to change this
     if (writeCacheEnableDisable == true)
     {
-        ret = ata_Set_Features(device, SF_ENABLE_VOLITILE_WRITE_CACHE, 0, 0, 0, 0);
+        ret = ata_SF_Volatile_Write_Cache(device, ATA_SF_ENABLE);
     }
     else
     {
-        ret = ata_Set_Features(device, SF_DISABLE_VOLITILE_WRITE_CACHE, 0, 0, 0, 0);
+        ret = ata_SF_Volatile_Write_Cache(device, ATA_SF_DISABLE);
     }
     return ret;
 }
@@ -1656,7 +1656,7 @@ eReturnValues set_Free_Fall_Control_Sensitivity(tDevice* device, uint8_t sensiti
                     le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
                 le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT5) // supported
             {
-                ret = ata_Set_Features(device, SF_ENABLE_FREE_FALL_CONTROL_FEATURE, sensitivity, 0, 0, 0);
+                ret = ata_SF_Free_Fall_Control(device, ATA_SF_ENABLE, sensitivity);
             }
         }
     }
@@ -1675,7 +1675,7 @@ eReturnValues disable_Free_Fall_Control_Feature(tDevice* device)
                     le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
                 le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT5) // supported
             {
-                ret = ata_Set_Features(device, SF_DISABLE_FREE_FALL_CONTROL_FEATURE, 0, 0, 0, 0);
+                ret = ata_SF_Free_Fall_Control(device, ATA_SF_DISABLE, RESERVED);
             }
         }
     }
@@ -1722,12 +1722,12 @@ eReturnValues enable_Disable_AAM_Feature(tDevice* device, bool enable)
                 {
                     enableValue = M_Byte1(device->drive_info.IdentifyData.ata.Word094);
                 }
-                ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, enableValue, 0, 0, 0);
+                ret = ata_SF_AAM(device, ATA_SF_ENABLE, enableValue);
             }
             else
             {
                 // subcommand C2
-                ret = ata_Set_Features(device, SF_DISABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT, 0, 0, 0, 0);
+                ret = ata_SF_AAM(device, ATA_SF_DISABLE, RESERVED);
                 if (ret != SUCCESS)
                 {
                     // the disable AAM feature is not available on all devices according to ATA spec.
@@ -1754,7 +1754,7 @@ eReturnValues set_AAM_Level(tDevice* device, uint8_t aamLevel)
             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT9)
         {
             // subcommand 42 with the aamLevel in the count field
-            ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, aamLevel, 0, 0, 0);
+            ret = ata_SF_AAM(device, ATA_SF_ENABLE, aamLevel);
         }
     }
     return ret;
@@ -1830,15 +1830,8 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
             scsi_MP_Reset_To_Defaults_Supported(device))
         {
             // requesting to reset all mode pages. Send the mode select command with the RTD bit set.
-            ret              = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);
-            uint8_t senseKey = UINT8_C(0);
-            uint8_t asc      = UINT8_C(0);
-            uint8_t ascq     = UINT8_C(0);
-            uint8_t fru      = UINT8_C(0);
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq,
-                                       &fru);
-            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 &&
-                ascq == 0x00) // checking for invalid operation code
+            ret = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);
+            if (is_Invalid_Opcode(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
             {
                 // retry with 6 byte command since 10 byte op code was not recognizd.
                 ret = scsi_Mode_Select_6(device, 0, true, true, true, M_NULLPTR, 0);
@@ -3398,7 +3391,7 @@ eReturnValues disable_Write_Read_Verify(tDevice* device)
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Features(device, SF_DISABLE_WRITE_READ_VERIFY_FEATURE, 0, 0, 0, 0);
+        ret = ata_SF_Write_Read_Verify(device, ATA_SF_DISABLE, ATA_WRV_MODE_ALL, RESERVED);
     }
     return ret;
 }
@@ -3414,16 +3407,16 @@ eReturnValues set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecif
         }
         else if (all)
         {
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_ALL, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_ALL, RESERVED);
         }
         else if (vendorSpecific)
         {
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_VENDOR, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_VENDOR, RESERVED);
         }
         else if (wrvSectorCount == 65536) // Detecting this very specific number to make this mode since it is in the
                                           // spec and this is probably what would be wanted in this case.
         {
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_65536, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_65536, RESERVED);
         }
         else
         {
@@ -3439,9 +3432,9 @@ eReturnValues set_Write_Read_Verify(tDevice* device, bool all, bool vendorSpecif
                 // this math is rounding up.
                 // If someone selected a value not evenly divisible by 1024, they likely want at LEAST that many
                 // sectors being verified rather than not enough, so rounding up here makes the most sense -TJE
-                count = C_CAST(uint8_t, ((wrvSectorCount + (WRV_USER_MULTIPLIER - 1)) / WRV_USER_MULTIPLIER));
+                count = C_CAST(uint8_t, uint32_round_up_generic(wrvSectorCount, WRV_USER_MULTIPLIER));
             }
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, count, ATA_WRV_MODE_USER, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_USER, count);
         }
     }
     return ret;

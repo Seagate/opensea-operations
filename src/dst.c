@@ -37,12 +37,12 @@
 
 eReturnValues ata_Abort_DST(tDevice* device)
 {
-    return ata_SMART_Offline(device, 0x7F, 15);
+    return ata_SMART_Offline(device, 0x7F, DEFAULT_COMMAND_TIMEOUT);
 }
 
 eReturnValues scsi_Abort_DST(tDevice* device)
 {
-    return scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, M_NULLPTR, 0, 15);
+    return scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, M_NULLPTR, 0, DEFAULT_COMMAND_TIMEOUT);
 }
 
 eReturnValues nvme_Abort_DST(tDevice* device, uint32_t nsid)
@@ -755,7 +755,7 @@ eReturnValues run_SMART_Offline(tDevice* device)
             DECLARE_ZERO_INIT_ARRAY(char, timeFormat, TIME_STRING_LENGTH);
             printf("\tEstimated completion Time : sometime after %s\n",
                    get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
-            ret = ata_SMART_Offline(device, 0, 15);
+            ret = ata_SMART_Offline(device, 0, DEFAULT_COMMAND_TIMEOUT);
             if (ret == SUCCESS)
             {
                 uint8_t status = UINT8_C(0);
@@ -883,8 +883,8 @@ eReturnValues run_DST(tDevice* device,
     {
         uint8_t  status                   = UINT8_C(0xF0);
         uint32_t percentComplete          = UINT32_C(0);
-        uint32_t delayTime                = UINT32_C(5);  // assume 5 second delay between progress checks
-        uint32_t commandTimeout           = UINT32_C(15); // start with this default timeout value - TJE
+        uint32_t delayTime                = UINT32_C(5);             // assume 5 second delay between progress checks
+        uint32_t commandTimeout           = DEFAULT_COMMAND_TIMEOUT; // start with this default timeout value - TJE
         uint32_t timeDiff                 = UINT32_C(30);
         uint32_t maxTimeIncreases         = UINT32_C(2);
         uint32_t timeIncreaseWarningCount = UINT32_C(1);

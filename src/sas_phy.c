@@ -123,7 +123,7 @@ eReturnValues start_SAS_Test_Pattern(tDevice*                device,
                                       sataTestFunction, testFunctionSSC, linkRate, dwordControl, phyTestPatternDwords);
     if (ret == SUCCESS)
     {
-        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 32, sasDiagPage, 32, 15);
+        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 32, sasDiagPage, 32, DEFAULT_COMMAND_TIMEOUT);
     }
     return ret;
 }
@@ -137,7 +137,7 @@ eReturnValues stop_SAS_Test_Pattern(tDevice* device, uint8_t phyIdentifier, eSAS
         0); // I'm assuming the stop command doesn't need to specify anything else that matches the running test. - TJE
     if (ret == SUCCESS)
     {
-        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 32, sasDiagPage, 32, 15);
+        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 32, sasDiagPage, 32, DEFAULT_COMMAND_TIMEOUT);
     }
     return ret;
 }

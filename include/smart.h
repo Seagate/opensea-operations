@@ -244,8 +244,10 @@ extern "C"
     }
 
     M_NONNULL_PARAM_LIST(2)
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitType uintType, char** unitString, bool isShortName);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitType uintType,
+                                                          char**                        unitString,
+                                                          bool                          isShortName);
     //-----------------------------------------------------------------------------
     //
     // get_ATA_Analyzed_SMART_Attributes(tDevice * device, ataSMARTAnalyzedData * ataSMARTAnalyzedData )

@@ -1091,6 +1091,10 @@ void get_Attribute_Name(tDevice* device, uint8_t attributeNumber, char** attribu
 
 void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitType uintType, char** unitString, bool isShortName)
 {
+    if (unitString == M_NULLPTR)
+    {
+        return;
+    }
     safe_memset(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, 0, MAX_RAW_FEILD_UNIT_STRING_LENGTH);
     switch (uintType)
     {
@@ -11917,12 +11921,12 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                         commandOpCode = errorLogData->extSmartError[iter].extCommand[commandIter].contentWritten;
                         device        = errorLogData->extSmartError[iter].extCommand[commandIter].device;
                         lba           = M_BytesTo8ByteValue(0, 0,
-                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt,
-                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt,
-                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt,
-                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi,
-                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid,
-                                                  errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
+                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaHiExt,
+                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaMidExt,
+                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaLowExt,
+                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaHi,
+                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaMid,
+                                                            errorLogData->extSmartError[iter].extCommand[commandIter].lbaLow);
                         timestampMilliseconds =
                             errorLogData->extSmartError[iter].extCommand[commandIter].timestampMilliseconds;
                         isSoftReset = errorLogData->extSmartError[iter].extCommand[commandIter].deviceControl &
@@ -11939,8 +11943,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                         commandOpCode = errorLogData->smartError[iter].command[commandIter].contentWritten;
                         device        = errorLogData->smartError[iter].command[commandIter].device;
                         lba         = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi,
-                                                  errorLogData->smartError[iter].command[commandIter].lbaMid,
-                                                  errorLogData->smartError[iter].command[commandIter].lbaLow);
+                                                          errorLogData->smartError[iter].command[commandIter].lbaMid,
+                                                          errorLogData->smartError[iter].command[commandIter].lbaLow);
                         isSoftReset = errorLogData->smartError[iter].command[commandIter].transportSpecific &
                                       DEVICE_CONTROL_SOFT_RESET;
                         timestampMilliseconds =
@@ -12025,13 +12029,13 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     error              = errorLogData->extSmartError[iter].extError.error;
                     errorDevice        = errorLogData->extSmartError[iter].extError.device;
                     errorCount         = M_BytesTo2ByteValue(errorLogData->extSmartError[iter].extError.countExt,
-                                                     errorLogData->extSmartError[iter].extError.count);
+                                                             errorLogData->extSmartError[iter].extError.count);
                     errorlba           = M_BytesTo8ByteValue(0, 0, errorLogData->extSmartError[iter].extError.lbaHiExt,
-                                                   errorLogData->extSmartError[iter].extError.lbaMidExt,
-                                                   errorLogData->extSmartError[iter].extError.lbaLowExt,
-                                                   errorLogData->extSmartError[iter].extError.lbaHi,
-                                                   errorLogData->extSmartError[iter].extError.lbaMid,
-                                                   errorLogData->extSmartError[iter].extError.lbaLow);
+                                                             errorLogData->extSmartError[iter].extError.lbaMidExt,
+                                                             errorLogData->extSmartError[iter].extError.lbaLowExt,
+                                                             errorLogData->extSmartError[iter].extError.lbaHi,
+                                                             errorLogData->extSmartError[iter].extError.lbaMid,
+                                                             errorLogData->extSmartError[iter].extError.lbaLow);
                     errorDeviceControl = errorLogData->extSmartError[iter].extError.transportSpecific;
                 }
                 else
@@ -12042,8 +12046,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     errorDevice = errorLogData->smartError[iter].error.device;
                     errorCount  = errorLogData->smartError[iter].error.count;
                     errorlba    = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].error.lbaHi,
-                                                   errorLogData->smartError[iter].error.lbaMid,
-                                                   errorLogData->smartError[iter].error.lbaLow);
+                                                      errorLogData->smartError[iter].error.lbaMid,
+                                                      errorLogData->smartError[iter].error.lbaLow);
                     // errorDeviceControl is not available here.
                 }
                 if (genericOutput)
@@ -12250,8 +12254,8 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     commandOpCode    = errorLogData->smartError[iter].command[commandIter].contentWritten;
                     device           = errorLogData->smartError[iter].command[commandIter].device;
                     lba              = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].command[commandIter].lbaHi,
-                                              errorLogData->smartError[iter].command[commandIter].lbaMid,
-                                              errorLogData->smartError[iter].command[commandIter].lbaLow);
+                                                           errorLogData->smartError[iter].command[commandIter].lbaMid,
+                                                           errorLogData->smartError[iter].command[commandIter].lbaLow);
                     isSoftReset      = errorLogData->smartError[iter].command[commandIter].transportSpecific &
                                   DEVICE_CONTROL_SOFT_RESET;
                     timestampMilliseconds = errorLogData->smartError[iter].command[commandIter].timestampMilliseconds;
@@ -12306,8 +12310,8 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 errorDevice                 = errorLogData->smartError[iter].error.device;
                 errorCount                  = errorLogData->smartError[iter].error.count;
                 errorlba                    = M_BytesTo4ByteValue(0, errorLogData->smartError[iter].error.lbaHi,
-                                               errorLogData->smartError[iter].error.lbaMid,
-                                               errorLogData->smartError[iter].error.lbaLow);
+                                                                  errorLogData->smartError[iter].error.lbaMid,
+                                                                  errorLogData->smartError[iter].error.lbaLow);
                 // errorDeviceControl is not available here.
                 if (genericOutput)
                 {

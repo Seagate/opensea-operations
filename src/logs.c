@@ -424,13 +424,7 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
         }
         else
         {
-            // if invalid operation code, then we should retry
-            senseDataFields senseFields;
-            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-            get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
-            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
-                senseFields.scsiStatusCodes.asc == 0x20 &&
-                senseFields.scsiStatusCodes.ascq == 0x00) // checking for invalid operation code
+            if (is_Invalid_Opcode(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
             {
                 sixByte    = true;
                 modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -443,15 +437,16 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
                 }
                 modeBuffer = temp;
             }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
-                     senseFields.scsiStatusCodes.asc == 0x24 &&
-                     senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
+            else if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
             {
                 // could be a mode page is not supported, or MPC is not a correct value, among other errors
                 // Try checking sense key specific
                 // NOLINTBEGIN(bugprone-branch-clone)
                 // Turning off clang-tidy as these if/else need to be evaluated in the written order for how this
                 // works.-TJE
+                senseDataFields senseFields;
+                safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+                get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
                 if (senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_FIELD_POINTER)
                 {
                     // if we are getting a sense key specific field pointer, this is a SAS drive and there is no need to
@@ -692,13 +687,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
         }
         else
         {
-            // if invalid operation code, then we should retry
-            senseDataFields senseFields;
-            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-            get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
-            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
-                senseFields.scsiStatusCodes.asc == 0x20 &&
-                senseFields.scsiStatusCodes.ascq == 0x00) // checking for invalid operation code
+            if (is_Invalid_Opcode(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
             {
                 sixByte    = true;
                 modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -711,15 +700,16 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 }
                 modeBuffer = temp;
             }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
-                     senseFields.scsiStatusCodes.asc == 0x24 &&
-                     senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
+            else if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
             {
                 // could be a mode page is not supported, or MPC is not a correct value, among other errors
                 // Try checking sense key speciic
                 // NOLINTBEGIN(bugprone-branch-clone)
                 // Turning off clang-tidy as these if/else need to be evaluated in this order for how this is meant to
                 // work-TJE
+                senseDataFields senseFields;
+                safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+                get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
                 if (senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_FIELD_POINTER)
                 {
                     // if we are getting a sense key specific field pointer, this is a SAS drive and there is no need to
@@ -2240,11 +2230,7 @@ eReturnValues get_SCSI_Log(tDevice*    device,
         }
         else
         {
-            senseDataFields senseFields;
-            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-            get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
-            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
-                senseFields.scsiStatusCodes.asc == 0x24 && senseFields.scsiStatusCodes.ascq == 0x00)
+            if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
             {
                 ret = NOT_SUPPORTED;
             }

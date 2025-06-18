@@ -388,7 +388,7 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
     }
     if (ret == SUCCESS)
     {
-        uint32_t formatCommandTimeout = UINT32_C(15);
+        uint32_t formatCommandTimeout = DEFAULT_COMMAND_TIMEOUT;
         if (formatParameters.disableImmediate)
         {
             if (os_Is_Infinite_Timeout_Supported())

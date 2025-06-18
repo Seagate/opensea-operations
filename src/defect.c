@@ -40,14 +40,14 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
     DISABLE_NONNULL_COMPARE
     if (defects != M_NULLPTR)
     {
-        bool     tenByte                   = false;
-        bool     gotDefectData             = false;
-        bool     listHasPrimaryDescriptors = false;
-        bool     listHasGrownDescriptors   = false;
-        uint16_t generationCode            = UINT16_C(0);
-        uint8_t  returnedDefectListFormat  = UINT8_MAX;
-        uint32_t dataLength                = UINT32_C(8);
-        uint8_t* defectData                = M_REINTERPRET_CAST(
+        bool                    tenByte                   = false;
+        bool                    gotDefectData             = false;
+        bool                    listHasPrimaryDescriptors = false;
+        bool                    listHasGrownDescriptors   = false;
+        uint16_t                generationCode            = UINT16_C(0);
+        eSCSIAddressDescriptors returnedDefectListFormat  = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
+        uint32_t                dataLength                = UINT32_C(8);
+        uint8_t*                defectData                = M_REINTERPRET_CAST(
             uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         uint32_t defectListLength = UINT32_C(0);
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 &&
@@ -161,9 +161,14 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                     case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                         increment = 8;
                                         break;
+                                    case AD_VENDOR_SPECIFIC:
+                                    case AD_RESERVED:
+                                        ret = BAD_PARAMETER;
+                                        break;
                                     }
                                     for (uint32_t elementNumber = UINT32_C(0);
-                                         elementNumber < numberOfElements && offset < defectListLength + 4;
+                                         ret == SUCCESS && elementNumber < numberOfElements &&
+                                         offset < defectListLength + 4;
                                          ++elementNumber, offset += increment)
                                     {
                                         switch (returnedDefectListFormat)
@@ -218,6 +223,10 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                             ptrDefects->physical[elementNumber].sectorNumber =
                                                 M_BytesTo4ByteValue(defectData[offset + 4], defectData[offset + 5],
                                                                     defectData[offset + 6], defectData[offset + 7]);
+                                            break;
+                                        case AD_VENDOR_SPECIFIC:
+                                        case AD_RESERVED:
+                                            ret = BAD_PARAMETER;
                                             break;
                                         }
                                     }
@@ -338,7 +347,10 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                             case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                                 increment = 8;
                                                 break;
-                                            default: // shouldn't get here!
+                                            case AD_VENDOR_SPECIFIC:
+                                            case AD_RESERVED:
+                                                ret       = BAD_PARAMETER;
+                                                increment = 0;
                                                 break;
                                             }
                                             if (increment > 0)
@@ -417,6 +429,10 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                             M_BytesTo4ByteValue(
                                                                 defectData[offset + 4], defectData[offset + 5],
                                                                 defectData[offset + 6], defectData[offset + 7]);
+                                                        break;
+                                                    case AD_VENDOR_SPECIFIC:
+                                                    case AD_RESERVED:
+                                                        ret = BAD_PARAMETER;
                                                         break;
                                                     }
                                                 }
@@ -498,9 +514,14 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                                             increment = 8;
                                             break;
+                                        case AD_VENDOR_SPECIFIC:
+                                        case AD_RESERVED:
+                                            ret = BAD_PARAMETER;
+                                            break;
                                         }
                                         for (uint32_t elementNumber = UINT32_C(0);
-                                             elementNumber < numberOfElements && offset < (defectListLength + 8);
+                                             ret == SUCCESS && elementNumber < numberOfElements &&
+                                             offset < (defectListLength + 8);
                                              ++elementNumber, offset += increment)
                                         {
                                             switch (returnedDefectListFormat)
@@ -558,6 +579,10 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                 ptrDefects->physical[elementNumber].sectorNumber =
                                                     M_BytesTo4ByteValue(defectData[offset + 4], defectData[offset + 5],
                                                                         defectData[offset + 6], defectData[offset + 7]);
+                                                break;
+                                            case AD_VENDOR_SPECIFIC:
+                                            case AD_RESERVED:
+                                                ret = BAD_PARAMETER;
                                                 break;
                                             }
                                         }
@@ -1016,7 +1041,148 @@ bool is_Read_Long_Write_Long_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
+static eReturnValues ata_Legacy_corrupt_LBA_Read_Write_Long(tDevice* device,
+                                                            uint64_t corruptLBA,
+                                                            uint16_t numberOfBytesToCorrupt)
+{
+    eReturnValues ret                         = SUCCESS;
+    bool          setFeaturesToChangeECCBytes = false;
+    if (le16_to_host(device->drive_info.IdentifyData.ata.Word022) != 4)
+    {
+        // need to issue a set features command to specify the number of ECC bytes before doing a read or write
+        // long (according to old Seagate ATA reference manual from the web)
+        if (SUCCESS ==
+            ata_SF_VU_ECC_Bytes_Long_Cmds(device, ATA_SF_ENABLE, M_Byte0(device->drive_info.IdentifyData.ata.Word022)))
+        {
+            setFeaturesToChangeECCBytes = true;
+        }
+    }
+    uint32_t dataSize = device->drive_info.deviceBlockSize + le16_to_host(device->drive_info.IdentifyData.ata.Word022);
+    uint8_t* data =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (data == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    // This drive supports the legacy 28bit read/write long commands from ATA...
+    // These commands are really old and transfer weird byte based values.
+    // While these transfer lengths shouldbe supported by SAT, there are some SATLs that won't handle this odd
+    // case. It may or may not go through...-TJE
+    if (device->drive_info.ata_Options.chsModeOnly)
+    {
+        uint16_t cylinder = UINT16_C(0);
+        uint8_t  head     = UINT8_C(0);
+        uint8_t  sector   = UINT8_C(0);
+        if (SUCCESS == convert_LBA_To_CHS(device, C_CAST(uint32_t, corruptLBA), &cylinder, &head, &sector))
+        {
+            ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
+            if (ret == SUCCESS)
+            {
+                // seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
+                // modify the user data to cause a uncorrectable error
+                for (uint32_t iter = UINT32_C(0);
+                     iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
+                {
+                    data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+                }
+                ret = ata_Legacy_Write_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
+            }
+        }
+        else // Couldn't convert or the LBA is greater than the current CHS mode
+        {
+            ret = NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        ret = ata_Legacy_Read_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
+        if (ret == SUCCESS)
+        {
+            // seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
+            // modify the user data to cause a uncorrectable error
+            for (uint32_t iter = UINT32_C(0);
+                 iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
+            {
+                data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+            }
+            ret = ata_Legacy_Write_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
+        }
+    }
+    if (setFeaturesToChangeECCBytes)
+    {
+        // reverting back to drive defaults again so that we don't mess anyone else up.
+        if (SUCCESS == ata_SF_VU_ECC_Bytes_Long_Cmds(device, ATA_SF_DISABLE, 0))
+        {
+            setFeaturesToChangeECCBytes = false;
+        }
+    }
+    safe_free_aligned(&data);
+    return ret;
+}
+
+static eReturnValues ata_SCT_corrupt_LBA_Read_Write_Long(tDevice* device,
+                                                         uint64_t corruptLBA,
+                                                         uint16_t numberOfBytesToCorrupt)
+{
+    eReturnValues ret = SUCCESS;
+    // use SCT read & write long commands
+    uint16_t numberOfECCCRCBytes     = UINT16_C(0);
+    uint16_t numberOfBlocksRequested = UINT16_C(0);
+    uint32_t dataSize                = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
+    uint8_t* data =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (data == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_READ_LONG, corruptLBA, data, dataSize, &numberOfECCCRCBytes,
+                                       &numberOfBlocksRequested);
+    if (ret == SUCCESS)
+    {
+        // seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
+        // modify the user data to cause a uncorrectable error
+        for (uint32_t iter = UINT32_C(0);
+             iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
+        {
+            data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+        }
+        if (numberOfBlocksRequested > UINT16_C(0))
+        {
+            // The drive responded through SAT enough to tell us exactly how many blocks are expected...so we
+            // can set the data transfer length as is expected...since this wasn't clear on non 512B logical
+            // sector drives.
+            dataSize = LEGACY_DRIVE_SEC_SIZE * numberOfBlocksRequested;
+        }
+        // now write back the data with a write long command
+        ret =
+            send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, M_NULLPTR, M_NULLPTR);
+    }
+    safe_free_aligned(&data);
+    return ret;
+}
+
+static eReturnValues ata_corrupt_LBA_Read_Write_Long(tDevice* device,
+                                                     uint64_t corruptLBA,
+                                                     uint16_t numberOfBytesToCorrupt)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT1)
+    {
+        ret = ata_SCT_corrupt_LBA_Read_Write_Long(device, corruptLBA, numberOfBytesToCorrupt);
+    }
+    else if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word022)) &&
+             corruptLBA < MAX_28_BIT_LBA) /*a value of zero may be valid on really old drives which otherwise accept
+                                             this command, but this should be ok for now*/
+    {
+        ret = ata_Legacy_corrupt_LBA_Read_Write_Long(device, corruptLBA, numberOfBytesToCorrupt);
+    }
+    return ret;
+}
+
+static eReturnValues scsi_corrupt_LBA_Read_Write_Long(tDevice* device,
+                                                      uint64_t corruptLBA,
+                                                      uint16_t numberOfBytesToCorrupt)
 {
     eReturnValues ret                        = NOT_SUPPORTED;
     bool          multipleLogicalPerPhysical = false; // used to set the physical block bit when applicable
@@ -1035,219 +1201,112 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
         // set this flag for SCSI
         multipleLogicalPerPhysical = true;
     }
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    senseDataFields senseFields;
+    safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+    uint16_t dataLength = C_CAST(uint16_t, device->drive_info.deviceBlockSize *
+                                               logicalPerPhysicalBlocks); // start with this size for now...
+    uint8_t* dataBuffer = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (device->drive_info.deviceMaxLba > UINT32_MAX)
     {
-        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
-            le16_to_host(device->drive_info.IdentifyData.ata.Word206) & BIT1)
+        ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
+    }
+    else
+    {
+        ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA), dataLength,
+                                dataBuffer);
+    }
+    // ret should not be success and we should have an illegal length indicator set so we can reallocate and read
+    // the ecc bytes
+    safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+    get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
+    if (senseFields.illegalLengthIndication &&
+        senseFields.valid) // spec says these bit should both be zero since we didn't do this request with enough
+                           // bytes to read the ECC bytes
+    {
+        if (senseFields.fixedFormat)
         {
-            // use SCT read & write long commands
-            uint16_t numberOfECCCRCBytes     = UINT16_C(0);
-            uint16_t numberOfBlocksRequested = UINT16_C(0);
-            uint32_t dataSize                = device->drive_info.deviceBlockSize + LEGACY_DRIVE_SEC_SIZE;
-            uint8_t* data                    = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (data == M_NULLPTR)
+            dataLength +=
+                C_CAST(uint16_t,
+                       M_2sCOMPLEMENT(senseFields.fixedInformation)); // length different is a twos compliment value
+                                                                      // since we requested less than is available.
+        }
+        else
+        {
+            dataLength += C_CAST(
+                uint16_t,
+                M_2sCOMPLEMENT(senseFields.descriptorInformation)); // length different is a twos compliment value
+                                                                    // since we requested less than is available.
+        }
+        uint8_t* temp = M_REINTERPRET_CAST(
+            uint8_t*, safe_realloc_aligned(dataBuffer, 0, dataLength, device->os_info.minimumAlignment));
+        if (temp != M_NULLPTR)
+        {
+            dataBuffer = temp;
+            safe_memset(dataBuffer, dataLength, 0, dataLength);
+            if (device->drive_info.deviceMaxLba > UINT32_MAX)
             {
-                return MEMORY_FAILURE;
+                ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
             }
-            ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_READ_LONG, corruptLBA, data, dataSize,
-                                               &numberOfECCCRCBytes, &numberOfBlocksRequested);
-            if (ret == SUCCESS)
+            else
+            {
+                ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA),
+                                        dataLength, dataBuffer);
+            }
+            if (ret != SUCCESS)
+            {
+                ret = FAILURE;
+            }
+            else
             {
                 // seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
                 // modify the user data to cause a uncorrectable error
                 for (uint32_t iter = UINT32_C(0);
-                     iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
+                     iter < numberOfBytesToCorrupt &&
+                     iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1);
+                     ++iter)
                 {
-                    data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
+                    // Originally using random values, but it was recommended to do 2's compliment of the original
+                    // data instead.
+                    dataBuffer[iter] =
+                        M_2sCOMPLEMENT(dataBuffer[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
                 }
-                if (numberOfBlocksRequested > UINT16_C(0))
+                // write it back to the drive
+                if (device->drive_info.deviceMaxLba > UINT32_MAX)
                 {
-                    // The drive responded through SAT enough to tell us exactly how many blocks are expected...so we
-                    // can set the data transfer length as is expected...since this wasn't clear on non 512B logical
-                    // sector drives.
-                    dataSize = LEGACY_DRIVE_SEC_SIZE * numberOfBlocksRequested;
+                    ret = scsi_Write_Long_16(device, false, false, multipleLogicalPerPhysical, corruptLBA, dataLength,
+                                             dataBuffer);
                 }
-                // now write back the data with a write long command
-                ret = send_ATA_SCT_Read_Write_Long(device, SCT_RWL_WRITE_LONG, corruptLBA, data, dataSize, M_NULLPTR,
-                                                   M_NULLPTR);
+                else
+                {
+                    ret = scsi_Write_Long_10(device, false, false, multipleLogicalPerPhysical,
+                                             C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
+                }
             }
-            safe_free_aligned(&data);
         }
-        else if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word022)) &&
-                 corruptLBA < MAX_28_BIT_LBA) /*a value of zero may be valid on really old drives which otherwise accept
-                                                 this command, but this should be ok for now*/
+        else
         {
-            bool setFeaturesToChangeECCBytes = false;
-            if (le16_to_host(device->drive_info.IdentifyData.ata.Word022) != 4)
-            {
-                // need to issue a set features command to specify the number of ECC bytes before doing a read or write
-                // long (according to old Seagate ATA reference manual from the web)
-                if (SUCCESS == ata_Set_Features(device, SF_LEGACY_SET_VENDOR_SPECIFIC_ECC_BYTES_FOR_READ_WRITE_LONG,
-                                                M_Byte0(device->drive_info.IdentifyData.ata.Word022), 0, 0, 0))
-                {
-                    setFeaturesToChangeECCBytes = true;
-                }
-            }
-            uint32_t dataSize =
-                device->drive_info.deviceBlockSize + le16_to_host(device->drive_info.IdentifyData.ata.Word022);
-            uint8_t* data = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (data == M_NULLPTR)
-            {
-                return MEMORY_FAILURE;
-            }
-            // This drive supports the legacy 28bit read/write long commands from ATA...
-            // These commands are really old and transfer weird byte based values.
-            // While these transfer lengths shouldbe supported by SAT, there are some SATLs that won't handle this odd
-            // case. It may or may not go through...-TJE
-            if (device->drive_info.ata_Options.chsModeOnly)
-            {
-                uint16_t cylinder = UINT16_C(0);
-                uint8_t  head     = UINT8_C(0);
-                uint8_t  sector   = UINT8_C(0);
-                if (SUCCESS == convert_LBA_To_CHS(device, C_CAST(uint32_t, corruptLBA), &cylinder, &head, &sector))
-                {
-                    ret = ata_Legacy_Read_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
-                    if (ret == SUCCESS)
-                    {
-                        // seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
-                        // modify the user data to cause a uncorrectable error
-                        for (uint32_t iter = UINT32_C(0);
-                             iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
-                        {
-                            data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
-                        }
-                        ret = ata_Legacy_Write_Long_CHS(device, true, cylinder, head, sector, data, dataSize);
-                    }
-                }
-                else // Couldn't convert or the LBA is greater than the current CHS mode
-                {
-                    ret = NOT_SUPPORTED;
-                }
-            }
-            else
-            {
-                ret = ata_Legacy_Read_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
-                if (ret == SUCCESS)
-                {
-                    // seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
-                    // modify the user data to cause a uncorrectable error
-                    for (uint32_t iter = UINT32_C(0);
-                         iter < numberOfBytesToCorrupt && iter < device->drive_info.deviceBlockSize - 1; ++iter)
-                    {
-                        data[iter] = M_2sCOMPLEMENT(data[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
-                    }
-                    ret = ata_Legacy_Write_Long(device, true, C_CAST(uint32_t, corruptLBA), data, dataSize);
-                }
-            }
-            if (setFeaturesToChangeECCBytes)
-            {
-                // reverting back to drive defaults again so that we don't mess anyone else up.
-                if (SUCCESS == ata_Set_Features(device, SF_LEGACY_SET_4_BYTES_ECC_FOR_READ_WRITE_LONG, 0, 0, 0, 0))
-                {
-                    setFeaturesToChangeECCBytes = false;
-                }
-            }
-            safe_free_aligned(&data);
+            ret = MEMORY_FAILURE;
         }
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
+    }
+    safe_free_aligned(&dataBuffer);
+    return ret;
+}
+
+eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_corrupt_LBA_Read_Write_Long(device, corruptLBA, numberOfBytesToCorrupt);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        senseDataFields senseFields;
-        safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-        uint16_t dataLength = C_CAST(uint16_t, device->drive_info.deviceBlockSize *
-                                                   logicalPerPhysicalBlocks); // start with this size for now...
-        uint8_t* dataBuffer = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-        if (device->drive_info.deviceMaxLba > UINT32_MAX)
-        {
-            ret = scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
-        }
-        else
-        {
-            ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA), dataLength,
-                                    dataBuffer);
-        }
-        // ret should not be success and we should have an illegal length indicator set so we can reallocate and read
-        // the ecc bytes
-        safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-        get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
-        if (senseFields.illegalLengthIndication &&
-            senseFields.valid) // spec says these bit should both be zero since we didn't do this request with enough
-                               // bytes to read the ECC bytes
-        {
-            if (senseFields.fixedFormat)
-            {
-                dataLength +=
-                    C_CAST(uint16_t,
-                           M_2sCOMPLEMENT(senseFields.fixedInformation)); // length different is a twos compliment value
-                                                                          // since we requested less than is available.
-            }
-            else
-            {
-                dataLength += C_CAST(
-                    uint16_t,
-                    M_2sCOMPLEMENT(senseFields.descriptorInformation)); // length different is a twos compliment value
-                                                                        // since we requested less than is available.
-            }
-            uint8_t* temp = M_REINTERPRET_CAST(
-                uint8_t*, safe_realloc_aligned(dataBuffer, 0, dataLength, device->os_info.minimumAlignment));
-            if (temp != M_NULLPTR)
-            {
-                dataBuffer = temp;
-                safe_memset(dataBuffer, dataLength, 0, dataLength);
-                if (device->drive_info.deviceMaxLba > UINT32_MAX)
-                {
-                    ret =
-                        scsi_Read_Long_16(device, multipleLogicalPerPhysical, true, corruptLBA, dataLength, dataBuffer);
-                }
-                else
-                {
-                    ret = scsi_Read_Long_10(device, multipleLogicalPerPhysical, true, C_CAST(uint32_t, corruptLBA),
-                                            dataLength, dataBuffer);
-                }
-                if (ret != SUCCESS)
-                {
-                    ret = FAILURE;
-                }
-                else
-                {
-                    // seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
-                    // modify the user data to cause a uncorrectable error
-                    for (uint32_t iter = UINT32_C(0);
-                         iter < numberOfBytesToCorrupt &&
-                         iter < (device->drive_info.deviceBlockSize * logicalPerPhysicalBlocks - 1);
-                         ++iter)
-                    {
-                        // Originally using random values, but it was recommended to do 2's compliment of the original
-                        // data instead.
-                        dataBuffer[iter] =
-                            M_2sCOMPLEMENT(dataBuffer[iter]); // C_CAST(uint8_t, random_Range_64(0, UINT8_MAX));
-                    }
-                    // write it back to the drive
-                    if (device->drive_info.deviceMaxLba > UINT32_MAX)
-                    {
-                        ret = scsi_Write_Long_16(device, false, false, multipleLogicalPerPhysical, corruptLBA,
-                                                 dataLength, dataBuffer);
-                    }
-                    else
-                    {
-                        ret = scsi_Write_Long_10(device, false, false, multipleLogicalPerPhysical,
-                                                 C_CAST(uint32_t, corruptLBA), dataLength, dataBuffer);
-                    }
-                }
-            }
-            else
-            {
-                ret = MEMORY_FAILURE;
-            }
-        }
-        else
-        {
-            ret = NOT_SUPPORTED;
-        }
-        safe_free_aligned(&dataBuffer);
+        ret = scsi_corrupt_LBA_Read_Write_Long(device, corruptLBA, numberOfBytesToCorrupt);
     }
     return ret;
 }

@@ -1057,7 +1057,8 @@ eReturnValues get_IDD_Status(tDevice* device, uint8_t* status)
         {
             // do not use the return value from this since IDD can return a few different sense codes with unit
             // attention, that we may otherwise call an error
-            ret = scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15);
+            ret = scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage,
+                                                  DEFAULT_COMMAND_TIMEOUT);
             if (ret != SUCCESS)
             {
                 uint8_t senseKey = UINT8_C(0);
@@ -1589,7 +1590,7 @@ eReturnValues request_Power_Measurement(tDevice*                          device
         pwrTelDiagPg[14] = RESERVED;
         pwrTelDiagPg[15] = RESERVED;
         // send diagnostic command
-        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 16, pwrTelDiagPg, 16, 15);
+        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 16, pwrTelDiagPg, 16, DEFAULT_COMMAND_TIMEOUT);
     }
     return ret;
 }
@@ -1829,17 +1830,14 @@ bool is_Seagate_Quick_Format_Supported(tDevice* device)
         eSeagateFamily family = is_Seagate_Family(device);
         if (family == SEAGATE)
         {
-            if (device->drive_info.drive_type == ATA_DRIVE)
+            if (is_SMART_Enabled(device))
             {
-                if (is_SMART_Enabled(device))
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
+                if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
                 {
-                    DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
-                    if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
+                    if (smartData[0x1EE] & BIT3)
                     {
-                        if (smartData[0x1EE] & BIT3)
-                        {
-                            supported = true;
-                        }
+                        supported = true;
                     }
                 }
             }

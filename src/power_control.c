@@ -99,7 +99,7 @@ eReturnValues enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_fie
     }
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, 0, C_CAST(uint8_t, lba_field), 0, 0);
+        ret = ata_SF_EPC(device, lba_field == ENABLE_EPC ? ATA_SF_ENABLE : ATA_SF_DISABLE);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -348,24 +348,19 @@ eReturnValues transition_Power_State(tDevice* device, ePowerConditionID newState
         switch (newState)
         {
         case PWR_CND_STANDBY_Z:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_STANDBY_Z, EPC_GO_TO_POWER_CONDITION,
-                                   RESERVED, RESERVED);
+            ret = ata_SF_EPC_Go_To_Power_Condition(device, PWR_CND_STANDBY_Z, false, false);
             break;
         case PWR_CND_STANDBY_Y:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_STANDBY_Y, EPC_GO_TO_POWER_CONDITION,
-                                   RESERVED, RESERVED);
+            ret = ata_SF_EPC_Go_To_Power_Condition(device, PWR_CND_STANDBY_Y, false, false);
             break;
         case PWR_CND_IDLE_A:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_A, EPC_GO_TO_POWER_CONDITION,
-                                   RESERVED, RESERVED);
+            ret = ata_SF_EPC_Go_To_Power_Condition(device, PWR_CND_IDLE_A, false, false);
             break;
         case PWR_CND_IDLE_B:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_B, EPC_GO_TO_POWER_CONDITION,
-                                   RESERVED, RESERVED);
+            ret = ata_SF_EPC_Go_To_Power_Condition(device, PWR_CND_IDLE_B, false, false);
             break;
         case PWR_CND_IDLE_C:
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, PWR_CND_IDLE_C, EPC_GO_TO_POWER_CONDITION,
-                                   RESERVED, RESERVED);
+            ret = ata_SF_EPC_Go_To_Power_Condition(device, PWR_CND_IDLE_C, false, false);
             break;
         case PWR_CND_ACTIVE:
             // No such thing in ATA. Attempt by sending read-verify to a few sectors on the disk randomly (Early SAT
@@ -840,51 +835,37 @@ static eReturnValues ata_Set_EPC_Power_Mode(tDevice*                  device,
             // this command is restoring the power conditions from the drive's default settings (bit6) and saving them
             // upon completion (bit4)...the other option is to return to the saved settings, but we aren't going to
             // support that with this option right now
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition),
-                                   EPC_RESTORE_POWER_CONDITION_SETTINGS | BIT6 | BIT4, RESERVED, RESERVED);
+            ret = ata_SF_EPC_Restore_Power_Condition_Settings(device, powerCondition, true, saveChanges);
         }
         else // we aren't restoring settings, so we need to set things up to save settings
         {
-            uint8_t  lbalo  = UINT8_C(0);
-            uint8_t  lbaMid = UINT8_C(0);
-            uint16_t lbaHi  = UINT16_C(0);
             if (powerConditionSettings->timerValid)
             {
-                lbalo = EPC_SET_POWER_CONDITION_TIMER;
-                if (powerConditionSettings->timerInHundredMillisecondIncrements <= UINT16_MAX)
-                {
-                    lbaMid = M_Byte0(powerConditionSettings->timerInHundredMillisecondIncrements);
-                    lbaHi  = M_Byte1(powerConditionSettings->timerInHundredMillisecondIncrements);
-                }
-                else
+                bool     minutes = false;
+                uint16_t timerVal =
+                    M_STATIC_CAST(uint16_t, powerConditionSettings->timerInHundredMillisecondIncrements);
+                if (powerConditionSettings->timerInHundredMillisecondIncrements > UINT16_MAX)
                 {
                     // need to convert to a number of minutes to send to the drive instead!
-                    lbalo |= BIT7; // meaning unit in minutes instead of 100ms
                     uint64_t convertedMinutes =
                         (C_CAST(uint64_t, powerConditionSettings->timerInHundredMillisecondIncrements) *
                          UINT64_C(100)) /
                         UINT64_C(60000);
                     // now, this value should be able to be sent...
-                    lbaMid = M_Byte0(convertedMinutes);
-                    lbaHi  = M_Byte1(convertedMinutes);
+                    timerVal = M_STATIC_CAST(uint16_t, convertedMinutes);
+                    minutes  = true;
                 }
+                ret = ata_SF_EPC_Set_Power_Condition_Timer(
+                    device, powerCondition, timerVal, minutes,
+                    powerConditionSettings->enableValid && powerConditionSettings->enable ? true : false, saveChanges);
             }
             else // they didn't enter a timer value so this command will do the EXACT same thing...just decided to use a
                  // different feature to EPC
             {
-                lbalo = EPC_SET_POWER_CONDITION_STATE;
+                ret = ata_SF_EPC_Set_Power_Condition_State(
+                    device, powerCondition,
+                    powerConditionSettings->enableValid && powerConditionSettings->enable ? true : false, saveChanges);
             }
-            if (powerConditionSettings->enableValid && powerConditionSettings->enable)
-            {
-                lbalo |= BIT5;
-            }
-            if (saveChanges) // set the save bit
-            {
-                lbalo |= BIT4;
-            }
-            // issue the command
-            ret = ata_Set_Features(device, SF_EXTENDED_POWER_CONDITIONS, C_CAST(uint8_t, powerCondition), lbalo, lbaMid,
-                                   lbaHi);
         }
     }
     return ret;
@@ -1877,14 +1858,13 @@ eReturnValues enable_Disable_APM_Feature(tDevice* device, bool enable)
         {
             if (enable)
             {
-                // subcommand 05..set value to 0x7F when requesting an enable operation so that it's a good mix of
+                // set value to 0x7F when requesting an enable operation so that it's a good mix of
                 // performance and power savings.
-                ret = ata_Set_Features(device, SF_ENABLE_APM_FEATURE, 0x7F, 0, 0, 0);
+                ret = ata_SF_APM(device, ATA_SF_ENABLE, 0x7F);
             }
             else
             {
-                // subcommand 85
-                ret = ata_Set_Features(device, SF_DISABLE_APM_FEATURE, 0, 0, 0, 0);
+                ret = ata_SF_APM(device, ATA_SF_DISABLE, RESERVED);
                 if (ret != SUCCESS)
                 {
                     // the disable APM feature is not available on all devices according to ATA spec.
@@ -1912,7 +1892,7 @@ eReturnValues set_APM_Level(tDevice* device, uint8_t apmLevel)
             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT3)
         {
             // subcommand 05 with the apmLevel in the count field
-            ret = ata_Set_Features(device, SF_ENABLE_APM_FEATURE, apmLevel, 0, 0, 0);
+            ret = ata_SF_APM(device, ATA_SF_ENABLE, apmLevel);
         }
     }
     return ret;
@@ -2613,11 +2593,11 @@ eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevic
             DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
             if (enable)
             {
-                ret = ata_Set_Features(device, SF_ENABLE_SATA_FEATURE, 0x03, 0, 0, 0);
+                ret = ata_SF_SATA_Dev_Initiated_Power_State_Transitions(device, ATA_SF_ENABLE);
             }
             else
             {
-                ret = ata_Set_Features(device, SF_DISABLE_SATA_FEATURE, 0x03, 0, 0, 0);
+                ret = ata_SF_SATA_Dev_Initiated_Power_State_Transitions(device, ATA_SF_DISABLE);
             }
             // Issue an identify to update the identify data...
             if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2686,11 +2666,11 @@ eReturnValues sata_Set_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice*
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
                 if (enable)
                 {
-                    ret = ata_Set_Features(device, SF_ENABLE_SATA_FEATURE, 0x07, 0, 0, 0);
+                    ret = ata_SF_SATA_Dev_Auto_Partial_To_Slumber_Transitions(device, ATA_SF_ENABLE);
                 }
                 else
                 {
-                    ret = ata_Set_Features(device, SF_DISABLE_SATA_FEATURE, 0x07, 0, 0, 0);
+                    ret = ata_SF_SATA_Dev_Auto_Partial_To_Slumber_Transitions(device, ATA_SF_DISABLE);
                 }
                 // Issue an identify to update the identify data...
                 if (device->drive_info.drive_type == ATA_DRIVE)
@@ -3221,11 +3201,11 @@ eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable)
         {
             if (enable)
             {
-                ret = ata_Set_Features(device, SF_ENABLE_PUIS_FEATURE, 0, 0, 0, 0);
+                ret = ata_SF_PUIS(device, ATA_SF_ENABLE);
             }
             else
             {
-                ret = ata_Set_Features(device, SF_DISABLE_PUIS_FEATURE, 0, 0, 0, 0);
+                ret = ata_SF_PUIS(device, ATA_SF_DISABLE);
             }
         }
     }
@@ -3242,7 +3222,7 @@ eReturnValues puis_Spinup(tDevice* device)
             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT5 &&
             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT6)
         {
-            ret = ata_Set_Features(device, SF_PUIS_DEVICE_SPIN_UP, 0, 0, 0, 0);
+            ret = ata_SF_PUIS_Spinup(device);
         }
         else
         {

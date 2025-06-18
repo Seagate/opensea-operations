@@ -427,6 +427,205 @@ eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescr
     return ret;
 }
 
+static eReturnValues ata_get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
+{
+    eReturnValues ret                       = NOT_SUPPORTED;
+    bool          workaroundIncompleteSense = false;
+    uint8_t       senseKey                  = UINT8_C(0);
+    uint8_t       asc                       = UINT8_C(0);
+    uint8_t       ascq                      = UINT8_C(0);
+    if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
+    {
+        ret = SUCCESS;
+        if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x24) // depop in progress
+        {
+
+            *depopStatus = DEPOP_IN_PROGRESS;
+        }
+        else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x25) // repop in progress
+        {
+            *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+        }
+        else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
+        {
+            *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
+        }
+        else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00) // invalid field in CDB
+        {
+            *depopStatus = DEPOP_INVALID_FIELD;
+        }
+        else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x04) // depop failed
+        {
+            *depopStatus = DEPOP_FAILED;
+        }
+        else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x05) // repop failed
+        {
+            *depopStatus = DEPOP_REPOP_FAILED;
+        }
+        else
+        {
+            workaroundIncompleteSense = true;
+            ret                       = NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        workaroundIncompleteSense = true;
+        ret                       = NOT_SUPPORTED;
+    }
+    if (workaroundIncompleteSense)
+    {
+        // Send the get physical element status command and check if any say depopulation/repopulation in progress
+        // or had an error. read physical element status to see if any of the specified element number matches any
+        // that were found
+        uint32_t      numberOfDescriptors = UINT32_C(0);
+        eReturnValues getDescirptors      = get_Number_Of_Descriptors(device, &numberOfDescriptors);
+        if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
+        {
+            ptrPhysicalElement elementList =
+                M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
+            if (elementList != M_NULLPTR)
+            {
+                safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
+                            numberOfDescriptors * sizeof(physicalElement));
+                if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
+                {
+                    // loop through and check associatedCapacity and elementIdentifiers
+                    bool foundStatus = false;
+                    ret              = SUCCESS;
+                    for (uint32_t elementID = UINT32_C(0); !foundStatus && elementID < numberOfDescriptors; ++elementID)
+                    {
+                        switch (elementList[elementID].elementHealth)
+                        {
+                        case 0xFB: // repop error
+                            *depopStatus = DEPOP_REPOP_FAILED;
+                            foundStatus  = true;
+                            break;
+                        case 0xFC: // repop in progress
+                            *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+                            foundStatus  = true;
+                            break;
+                        case 0xFD: // depop error
+                            *depopStatus = DEPOP_FAILED;
+                            foundStatus  = true;
+                            break;
+                        case 0xFE: // depop in progress
+                            *depopStatus = DEPOP_IN_PROGRESS;
+                            foundStatus  = true;
+                            break;
+                        case 0xFF: // depop completed successfully
+                        default:
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
+                safe_free_physical_element(&elementList);
+            }
+        }
+        else
+        {
+            ret = getDescirptors;
+        }
+    }
+    DISABLE_NONNULL_COMPARE
+    if (progress != M_NULLPTR)
+    {
+        if (*depopStatus == DEPOP_REPOP_IN_PROGRESS)
+        {
+            *progress = 255.0;
+        }
+        else
+        {
+            *progress = 0.0;
+        }
+    }
+    RESTORE_NONNULL_COMPARE
+    return ret;
+}
+
+static eReturnValues scsi_get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
+    senseDataFields senseFields;
+    safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+    if (SUCCESS == scsi_Request_Sense_Cmd(device, true, senseData, SPC3_SENSE_LEN))
+    {
+        ret = SUCCESS;
+        get_Sense_Data_Fields(senseData, SPC3_SENSE_LEN, &senseFields);
+        // now that we've read all the fields, check for known sense data and fill in progress if any.
+        if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY && senseFields.scsiStatusCodes.asc == 0x04 &&
+            senseFields.scsiStatusCodes.ascq == 0x24) // depop in progress
+        {
+            *depopStatus = DEPOP_IN_PROGRESS;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
+                 senseFields.scsiStatusCodes.asc == 0x04 &&
+                 senseFields.scsiStatusCodes.ascq == 0x25) // repop in progress
+        {
+            *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
+                 senseFields.scsiStatusCodes.asc == 0x04 &&
+                 senseFields.scsiStatusCodes.ascq == 0x1E) // microcode activation required
+        {
+            *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
+                 senseFields.scsiStatusCodes.asc == 0x24 &&
+                 senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
+        {
+            *depopStatus = DEPOP_INVALID_FIELD;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
+                 senseFields.scsiStatusCodes.asc == 0x31 && senseFields.scsiStatusCodes.ascq == 0x04) // depop failed
+        {
+            *depopStatus = DEPOP_FAILED;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
+                 senseFields.scsiStatusCodes.asc == 0x31 && senseFields.scsiStatusCodes.ascq == 0x05) // repop failed
+        {
+            *depopStatus = DEPOP_REPOP_FAILED;
+        }
+        else
+        {
+            // nothing to report.
+            ret = NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        // If this failed, there is likely a bigger problem! But we can try getting physical element status
+        ret = FAILURE;
+    }
+    DISABLE_NONNULL_COMPARE
+    if (progress != M_NULLPTR)
+    {
+        if (*depopStatus == DEPOP_REPOP_IN_PROGRESS)
+        {
+            if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
+                senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
+            {
+                *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
+            }
+            else if (progress != M_NULLPTR)
+            {
+                *progress = 255.0;
+            }
+        }
+        else
+        {
+            *progress = 0.0;
+        }
+    }
+    RESTORE_NONNULL_COMPARE
+    return ret;
+}
+
 // NOTE: This may NOT give percentage. This will happen on ATA drives, but you can check that it is still running or
 // not. - TJE On ATA drives, if in progress, the progress variable will get set to 255 since it is not possible to
 // determine actual progress
@@ -442,275 +641,11 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
     *depopStatus = DEPOP_NOT_IN_PROGRESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        bool    workaroundIncompleteSense = false;
-        uint8_t senseKey                  = UINT8_C(0);
-        uint8_t asc                       = UINT8_C(0);
-        uint8_t ascq                      = UINT8_C(0);
-        if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
-        {
-            if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x24) // depop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_IN_PROGRESS;
-            }
-            else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x25) // repop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-            }
-            else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
-            }
-            else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00) // invalid field in CDB
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_INVALID_FIELD;
-            }
-            else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x04) // depop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_FAILED;
-            }
-            else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x05) // repop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_FAILED;
-            }
-            else
-            {
-                workaroundIncompleteSense = true;
-            }
-        }
-        else
-        {
-            workaroundIncompleteSense = true;
-        }
-        if (workaroundIncompleteSense)
-        {
-            // Send the get physical element status command and check if any say depopulation/repopulation in progress
-            // or had an error. read physical element status to see if any of the specified element number matches any
-            // that were found
-            uint32_t      numberOfDescriptors = UINT32_C(0);
-            eReturnValues getDescirptors      = get_Number_Of_Descriptors(device, &numberOfDescriptors);
-            if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
-            {
-                ptrPhysicalElement elementList =
-                    M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
-                if (elementList != M_NULLPTR)
-                {
-                    safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
-                                numberOfDescriptors * sizeof(physicalElement));
-                    if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
-                    {
-                        // loop through and check associatedCapacity and elementIdentifiers
-                        bool foundStatus = false;
-                        ret              = SUCCESS;
-                        for (uint32_t elementID = UINT32_C(0); !foundStatus && elementID < numberOfDescriptors;
-                             ++elementID)
-                        {
-                            switch (elementList[elementID].elementHealth)
-                            {
-                            case 0xFB: // repop error
-                                *depopStatus = DEPOP_REPOP_FAILED;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 0.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFC: // repop in progress
-                                *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 255.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFD: // depop error
-                                *depopStatus = DEPOP_FAILED;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 0.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFE: // depop in progress
-                                *depopStatus = DEPOP_IN_PROGRESS;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 255.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFF: // depop completed successfully
-                            default:
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        ret = NOT_SUPPORTED;
-                    }
-                    safe_free_physical_element(&elementList);
-                }
-            }
-            else
-            {
-                ret = getDescirptors;
-            }
-        }
+        ret = ata_get_Depopulate_Progress(device, depopStatus, progress);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
-        if (SUCCESS == scsi_Request_Sense_Cmd(device, true, senseData, SPC3_SENSE_LEN))
-        {
-            senseDataFields senseFields;
-            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-            ret = SUCCESS;
-            get_Sense_Data_Fields(senseData, SPC3_SENSE_LEN, &senseFields);
-            // now that we've read all the fields, check for known sense data and fill in progress if any.
-            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
-                senseFields.scsiStatusCodes.asc == 0x04 &&
-                senseFields.scsiStatusCodes.ascq == 0x24) // depop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
-                    senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
-                {
-                    *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
-                }
-                else if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_IN_PROGRESS;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
-                     senseFields.scsiStatusCodes.asc == 0x04 &&
-                     senseFields.scsiStatusCodes.ascq == 0x25) // repop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
-                    senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
-                {
-                    *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
-                }
-                else if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
-                     senseFields.scsiStatusCodes.asc == 0x04 &&
-                     senseFields.scsiStatusCodes.ascq == 0x1E) // microcode activation required
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
-                     senseFields.scsiStatusCodes.asc == 0x24 &&
-                     senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_INVALID_FIELD;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
-                     senseFields.scsiStatusCodes.asc == 0x31 &&
-                     senseFields.scsiStatusCodes.ascq == 0x04) // depop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_FAILED;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
-                     senseFields.scsiStatusCodes.asc == 0x31 &&
-                     senseFields.scsiStatusCodes.ascq == 0x05) // repop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_FAILED;
-            }
-            else
-            {
-                // nothing to report.
-            }
-        }
-        else
-        {
-            // If this failed, there is likely a bigger problem! But we can try getting physical element status
-            ret = FAILURE;
-        }
+        ret = scsi_get_Depopulate_Progress(device, depopStatus, progress);
     }
     return ret;
 }
@@ -811,16 +746,8 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
             {
                 // On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers
                 // do this for us and make this impossible to retrieve...so we need to work around this
-                uint8_t senseKey = UINT8_C(0);
-                uint8_t asc      = UINT8_C(0);
-                uint8_t ascq     = UINT8_C(0);
-                uint8_t fru      = UINT8_C(0);
-                // First check what sense data we already have...
-                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                           &ascq, &fru);
-                // if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext
-                // command.
-                if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
+                if (is_Microcode_Activation_Required(device->drive_info.lastCommandSenseData,
+                                                     SPC3_SENSE_LEN)) // microcode activation required
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                     {
@@ -828,7 +755,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                     }
                     ret = FAILURE;
                 }
-                else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
+                else if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
                 {
                     ret                             = FAILURE;
                     determineInvalidElementOrMaxLBA = true;
@@ -1274,16 +1201,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
             {
                 // On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers
                 // do this for us and make this impossible to retrieve...so we need to work around this
-                uint8_t senseKey = UINT8_C(0);
-                uint8_t asc      = UINT8_C(0);
-                uint8_t ascq     = UINT8_C(0);
-                uint8_t fru      = UINT8_C(0);
-                // First check what sense data we already have...
-                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                           &ascq, &fru);
-                // if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext
-                // command.
-                if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
+                if (is_Microcode_Activation_Required(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                     {
@@ -1291,9 +1209,9 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                     }
                     ret = FAILURE;
                 }
-                else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x2C &&
-                         ascq == 0x00) // command sequence error means all depopulated elements do not allow restoration
-                                       // (at least one needs to support this)
+                else if (is_Command_Sequence_Error(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
+                // command sequence error means all depopulated elements do not allow restoration
+                // (at least one needs to support this)
                 {
                     ret = FAILURE;
                 }
