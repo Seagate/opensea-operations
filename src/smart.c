@@ -1604,14 +1604,14 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                     MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Failed Heads");
                         if (headBitmap != 0)
                         {
-                            uint8_t badHeadCounter = UINT16_C(0);
+                            //uint8_t badHeadCounter = UINT16_C(0);
                             DECLARE_ZERO_INIT_ARRAY(char, failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH);
                             // starting at raw 0, bit 0, 0 = passing head, 1 = failing head
                             for (uint8_t bitIter = UINT8_C(0); bitIter < 32; ++bitIter)
                             {
                                 if (headBitmap & M_BitN(bitIter))
                                 {
-                                    ++badHeadCounter;
+                                    //++badHeadCounter;
                                     char head[3];
                                     snprintf_err_handle(head, 3, "%" PRIu8 "", bitIter);
                                     if (safe_strlen(failedHeadString) > 0)
