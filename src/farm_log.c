@@ -1434,11 +1434,18 @@ eReturnValues pull_FARM_Combined_Log(tDevice*                 device,
         if (SUCCESS !=
             create_And_Open_Secure_Log_File_Dev_EZ(device, &farmCombinedLog, fileNameType, filePath, "FARMC", "frmc"))
         {
-            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            if (farmCombinedLog->error == SEC_FILE_INSECURE_PATH)
             {
-                perror("Error in opening the file!\n");
+                returnValue = INSECURE_PATH;
             }
-            returnValue = FILE_OPEN_ERROR;
+            else
+            {
+                if (device->deviceVerbosity > VERBOSITY_QUIET)
+                {
+                    perror("Error in opening the file!\n");
+                }
+                returnValue = FILE_OPEN_ERROR;
+            }
             break;
         }
 
