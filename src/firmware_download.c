@@ -223,7 +223,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__clang__)
             // visual studio complains about this NOT being here and GCC does the opposite...so only add this case for
             // visual studio.
-            case FWDL_UPDATE_MODE_AUTOMATIC:
+            //case FWDL_UPDATE_MODE_AUTOMATIC:
 #endif                          //_MSC_VER
             case DL_FW_UNKNOWN: // no direct translation, but call it automatic mode
                 options->dlMode = FWDL_UPDATE_MODE_AUTOMATIC;
@@ -1451,15 +1451,15 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
             if (supportedModes->version < SUPPORTED_FWDL_MODES_VERSION_V2)
             {
                 // start low and work up to most recommended
-                supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_FULL);
+                supportedModes->recommendedDownloadMode = C_CAST(eFirmwareUpdateMode, DL_FW_FULL);
                 if (supportedModes->segmented)
                 {
-                    supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_SEGMENTED);
+                    supportedModes->recommendedDownloadMode = C_CAST(eFirmwareUpdateMode, DL_FW_SEGMENTED);
                 }
                 if (supportedModes->deferred &&
                     !device->drive_info.passThroughHacks.scsiHacks.writeBufferNoDeferredDownload)
                 {
-                    supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_DEFERRED);
+                    supportedModes->recommendedDownloadMode = C_CAST(eFirmwareUpdateMode, DL_FW_DEFERRED);
                 }
             }
             else
