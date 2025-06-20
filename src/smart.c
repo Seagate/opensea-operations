@@ -1602,7 +1602,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
                         safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
                                     MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Failed Heads");
-                        if (headBitmap != 0)
+                        if (headBitmap != UINT32_C(0))
                         {
                             //uint8_t badHeadCounter = UINT16_C(0);
                             DECLARE_ZERO_INIT_ARRAY(char, failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH);
@@ -1612,8 +1612,9 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                 if (headBitmap & M_BitN(bitIter))
                                 {
                                     //++badHeadCounter;
-                                    char head[3];
-                                    snprintf_err_handle(head, 3, "%" PRIu8 "", bitIter);
+                                    #define HEAD_STR_LEN (3)
+                                    char head[HEAD_STR_LEN];
+                                    snprintf_err_handle(head, HEAD_STR_LEN, "%" PRIu8 "", bitIter);
                                     if (safe_strlen(failedHeadString) > 0)
                                     {
                                         safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, ", ");
