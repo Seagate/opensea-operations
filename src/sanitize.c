@@ -402,6 +402,10 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
                 break;
             }
         }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
         writeAfterErase writeAfterEraseRequirements;
         memset(&writeAfterEraseRequirements, 0, sizeof(writeAfterErase));
         if (SUCCESS == is_Write_After_Erase_Required(device, &writeAfterEraseRequirements))
