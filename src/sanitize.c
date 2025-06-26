@@ -329,7 +329,7 @@ eReturnValues get_ATA_Sanitize_Device_Features(tDevice* device, sanitizeFeatures
 
 eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
 {
-    eReturnValues ret = NOT_SUPPORTED;
+    eReturnValues ret = SUCCESS;
     if (device->drive_info.scsiVersion >=
         SCSI_VERSION_SPC_3) // check for this version of SPC first since the report supported Operation codes and
                             // Sanitize command should only be on drives with this version or highter.
@@ -381,6 +381,10 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->exitFailMode       = true;
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
         }
         writeAfterErase writeAfterEraseRequirements;
         safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
