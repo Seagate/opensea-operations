@@ -350,6 +350,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
             default:
                 break;
             }
+            ret = SUCCESS;
         }
         if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_OPERATION_CODE_AND_SERVICE_ACTION, SANITIZE_CMD, SCSI_SANITIZE_BLOCK_ERASE, 14, supportedCommands))
         {
@@ -401,10 +402,6 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice *device, sanitizeFeat
             default:
                 break;
             }
-        }
-        else
-        {
-            ret = NOT_SUPPORTED;
         }
         writeAfterErase writeAfterEraseRequirements;
         memset(&writeAfterEraseRequirements, 0, sizeof(writeAfterErase));
