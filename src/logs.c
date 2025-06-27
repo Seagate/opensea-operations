@@ -2297,7 +2297,8 @@ eReturnValues get_SCSI_VPD(tDevice*    device,
             return MEMORY_FAILURE;
         }
         // read the requested VPD page
-        if (SUCCESS == scsi_Inquiry(device, vpdBuffer, vpdBufferLength, pageCode, true, false))
+        ret = scsi_Inquiry(device, vpdBuffer, vpdBufferLength, pageCode, true, false);
+        if (ret == SUCCESS)
         {
             if (!toBuffer && !fileOpened && ret != FAILURE)
             {
