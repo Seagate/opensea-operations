@@ -352,8 +352,8 @@ extern "C"
         } nvmeMetadataSupport;
         uint32_t numberOfSectorSizes; // used to know the length of the structure below, set before calling in. On
                                       // output, this may change if unable to read the same number of sector sizes
-        sectorSize sectorSizes[1]; // ANYSIZE ARRAY. This means that you should over-allocate this function based on the
-                                   // number of supported sector sizes from the drive.
+#define MAX_SECTOR_SIZES_ARRAY (64)   // Based on max from NVMe
+        sectorSize sectorSizes[MAX_SECTOR_SIZES_ARRAY];
     } supportedFormats, *ptrSupportedFormats;
 
     static M_INLINE void safe_free_supported_formats(supportedFormats** formats)
@@ -361,23 +361,11 @@ extern "C"
         safe_free_core(M_REINTERPRET_CAST(void**, formats));
     }
 
-    //-----------------------------------------------------------------------------
-    //
-    //  get_Number_Of_Supported_Sector_Sizes(tDevice *device)
-    //
-    //! \brief   Description: Gets the number of supported sector sizes on a device. Needed to help allocate memory to
-    //! read the supported formats.
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[out] formats = pointer to a list of sectorSize structs to fill and some other protection/formatting
-    //!   information
-    //!
-    //  Exit:
-    //!   \return uint32_t count of the number of supported sector sizes. If 0, then the device doesn't report any way
-    //!   to change sector size or an error occured while trying to determine supported sizes.
-    //
-    //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
+    //! \fn get_Number_Of_Supported_Sector_Sizes(tDevice *device)
+    //! \brief Returns a value of 1 for backwards compatible use when allocating the supportedFormats structure above.
+    //! \param device pointer to a valid tdevice structure to assess
+    //! \returns 1
+    M_DEPRECATED M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device);
 
     //-----------------------------------------------------------------------------

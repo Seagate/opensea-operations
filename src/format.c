@@ -829,56 +829,12 @@ bool is_Set_Sector_Configuration_Supported(tDevice* device)
     }
     return false;
 }
-#define MAX_NUMBER_SUPPORTED_SECTOR_SIZES UINT32_C(32)
-uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device)
+
+uint32_t get_Number_Of_Supported_Sector_Sizes(M_ATTR_UNUSED tDevice* device)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
-    {
-        return MAX_NUMBER_SUPPORTED_SECTOR_SIZES; // This should be ok on ATA...we would have to pull the log and count
-                                                  // to know for sure, but this is the max available in the log
-    }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
-    {
-        // pull the VPD page and determine how many are supported based on descriptor length and the VPD page length
-        uint32_t scsiSectorSizesSupported = UINT32_C(0);
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedBlockLengthsData, 4);
-        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, M_NULLPTR, M_NULLPTR, true,
-                                    supportedBlockLengthsData, 4, M_NULLPTR))
-        {
-            uint16_t pageLength      = M_BytesTo2ByteValue(supportedBlockLengthsData[2], supportedBlockLengthsData[3]);
-            scsiSectorSizesSupported = pageLength / 8; // each descriptor is 8 bytes in size
-        }
-        else
-        {
-            bool fastFormatSup = false;
-            // This device either doesn't support any other sector sizes, or supports legacy sector sizes...
-            if (is_Format_Unit_Supported(device, &fastFormatSup))
-            {
-                if (fastFormatSup)
-                {
-                    scsiSectorSizesSupported = 6; // guessing
-                }
-                else
-                {
-                    scsiSectorSizesSupported = 3; // guessing
-                }
-            }
-            else
-            {
-                // leave at zero for now
-                scsiSectorSizesSupported = 0;
-            }
-        }
-        return scsiSectorSizesSupported;
-    }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
-    {
-        return NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf);
-    }
-    else
-    {
-        return 0;
-    }
+    //this function is obsolete now that there is a static size in the supported formats structure.
+    //so this just needs to return 1
+    return UINT32_C(1);
 }
 
 static eReturnValues ata_Get_Supported_Formats(tDevice* device, ptrSupportedFormats formats)
@@ -892,10 +848,9 @@ static eReturnValues ata_Get_Supported_Formats(tDevice* device, ptrSupportedForm
         {
             formats->deviceSupportsOtherFormats                              = true;
             formats->protectionInformationSupported.deviceSupportsProtection = false;
-            uint32_t numberOfSizes                                           = formats->numberOfSectorSizes;
             formats->numberOfSectorSizes                                     = UINT32_C(0);
             for (uint32_t iter = UINT32_C(0), sectorSizeCounter = UINT32_C(0);
-                 iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < UINT16_MAX && sectorSizeCounter < numberOfSizes;
+                 iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < UINT16_MAX && sectorSizeCounter < MAX_SECTOR_SIZES_ARRAY;
                  iter += UINT32_C(16), ++sectorSizeCounter)
             {
                 formats->sectorSizes[sectorSizeCounter].logicalBlockLength =
@@ -1033,10 +988,9 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
                                     supportedBlockLengthsData, supportedSectorSizesDataLength, M_NULLPTR))
         {
             dummyUpCommonSizes           = false;
-            uint32_t numberOfSizes       = formats->numberOfSectorSizes;
             formats->numberOfSectorSizes = 0;
             for (uint32_t iter = UINT32_C(4), sectorSizeCounter = UINT32_C(0);
-                 (iter + UINT32_C(8)) < supportedSectorSizesDataLength && sectorSizeCounter < numberOfSizes;
+                 (iter + UINT32_C(8)) < supportedSectorSizesDataLength && sectorSizeCounter < MAX_SECTOR_SIZES_ARRAY;
                  iter += UINT32_C(8), ++sectorSizeCounter, ++formats->numberOfSectorSizes)
             {
                 formats->sectorSizes[sectorSizeCounter].valid = true;
@@ -1124,118 +1078,106 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
             ret                                 = SUCCESS;
             // dummy up the support based on what is known from traditional formatting support - don't include any PI
             // stuff here for now. Need more refactoring
-            if (formats->scsiFastFormatSupported)
+            enum eSCSIEnterpriseSectorSizesOffset
             {
-                formats->numberOfSectorSizes                      = 6;
-                formats->sectorSizes[0].valid                     = true;
-                formats->sectorSizes[0].logicalBlockLength        = 512;
-                formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+                SCSI_ENT_SECT_SIZE_512 = 0,
+                SCSI_ENT_SECT_SIZE_520 = 1,
+                SCSI_ENT_SECT_SIZE_524 = 2,
+                SCSI_ENT_SECT_SIZE_528 = 3,
+                SCSI_ENT_SECT_SIZE_4096 = 4,
+                SCSI_ENT_SECT_SIZE_4160 = 5,
+                SCSI_ENT_SECT_SIZE_4192 = 6,
+                SCSI_ENT_SECT_SIZE_4224 = 7
+            };
+            #define MAX_SCSI_ENTERPRISE_SECTOR_SIZES (8)
+            enum eSCSIEnterpriseSectorSizes
+            {
+                SEC_SIZE_512 = 512,
+                SEC_SIZE_520 = 520,
+                SEC_SIZE_524 = 524,
+                SEC_SIZE_528 = 528,
+                SEC_SIZE_4096 = 4096,
+                SEC_SIZE_4160 = 4160,
+                SEC_SIZE_4192 = 4192,
+                SEC_SIZE_4224 = 4224
+            };
+            formats->numberOfSectorSizes                      = MAX_SCSI_ENTERPRISE_SECTOR_SIZES;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].logicalBlockLength        = SEC_SIZE_512;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[1].valid                     = true;
-                formats->sectorSizes[1].logicalBlockLength        = 520;
-                formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].logicalBlockLength        = SEC_SIZE_520;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[2].valid                     = true;
-                formats->sectorSizes[2].logicalBlockLength        = 528;
-                formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].logicalBlockLength        = SEC_SIZE_524;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[3].valid                     = true;
-                formats->sectorSizes[3].logicalBlockLength        = 4096;
-                formats->sectorSizes[3].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].logicalBlockLength        = SEC_SIZE_528;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[4].valid                     = true;
-                formats->sectorSizes[4].logicalBlockLength        = 4112;
-                formats->sectorSizes[4].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].logicalBlockLength        = SEC_SIZE_4096;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[5].valid                     = true;
-                formats->sectorSizes[5].logicalBlockLength        = 4160;
-                formats->sectorSizes[5].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].logicalBlockLength        = SEC_SIZE_4160;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                switch (device->drive_info.deviceBlockSize)
-                {
-                case 512:
-                    formats->sectorSizes[0].currentFormat = true;
-                    break;
-                case 520:
-                    formats->sectorSizes[1].currentFormat = true;
-                    break;
-                case 528:
-                    formats->sectorSizes[2].currentFormat = true;
-                    break;
-                case 4096:
-                    formats->sectorSizes[3].currentFormat = true;
-                    break;
-                case 4112:
-                    formats->sectorSizes[4].currentFormat = true;
-                    break;
-                case 4160:
-                    formats->sectorSizes[5].currentFormat = true;
-                    break;
-                default:
-                    break;
-                }
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].logicalBlockLength        = SEC_SIZE_4192;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].logicalBlockLength        = SEC_SIZE_4224;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+
+            switch (device->drive_info.deviceBlockSize)
+            {
+            case SEC_SIZE_512:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].currentFormat = true;
+                break;
+            case SEC_SIZE_520:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].currentFormat = true;
+                break;
+            case SEC_SIZE_524:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].currentFormat = true;
+                break;
+            case SEC_SIZE_528:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].currentFormat = true;
+                break;
+            case SEC_SIZE_4096:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].currentFormat = true;
+                break;
+            case SEC_SIZE_4160:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].currentFormat = true;
+                break;
+            case SEC_SIZE_4192:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].currentFormat = true;
+                break;
+            case SEC_SIZE_4224:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].currentFormat = true;
+                break;
+            default:
+                break;
             }
-            else
+            if (!formats->scsiFastFormatSupported)
             {
-                formats->numberOfSectorSizes = 3;
+                formats->numberOfSectorSizes /= 2;//without fast format support, number of supported sizes is cut in half
                 // dummy up based on current sector size
-                if (device->drive_info.deviceBlockSize < 4096)
+                if (device->drive_info.deviceBlockSize < SEC_SIZE_4096)
                 {
-                    // 512, 520, 528
-                    formats->sectorSizes[0].valid                     = true;
-                    formats->sectorSizes[0].logicalBlockLength        = 512;
-                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[1].valid                     = true;
-                    formats->sectorSizes[1].logicalBlockLength        = 520;
-                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[2].valid                     = true;
-                    formats->sectorSizes[2].logicalBlockLength        = 528;
-                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-                    switch (device->drive_info.deviceBlockSize)
-                    {
-                    case 512:
-                        formats->sectorSizes[0].currentFormat = true;
-                        break;
-                    case 520:
-                        formats->sectorSizes[1].currentFormat = true;
-                        break;
-                    case 528:
-                        formats->sectorSizes[2].currentFormat = true;
-                        break;
-                    default:
-                        break;
-                    }
+                    //memset away the 4k sizes
+                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096], sizeof(sectorSize) * formats->numberOfSectorSizes, 0 , sizeof(sectorSize) * formats->numberOfSectorSizes);
                 }
                 else
                 {
-                    // 4096, 4112, 4160
-                    formats->sectorSizes[0].valid                     = true;
-                    formats->sectorSizes[0].logicalBlockLength        = 4096;
-                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[1].valid                     = true;
-                    formats->sectorSizes[1].logicalBlockLength        = 4112;
-                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[2].valid                     = true;
-                    formats->sectorSizes[2].logicalBlockLength        = 4160;
-                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-                    switch (device->drive_info.deviceBlockSize)
-                    {
-                    case 4096:
-                        formats->sectorSizes[0].currentFormat = true;
-                        break;
-                    case 4112:
-                        formats->sectorSizes[1].currentFormat = true;
-                        break;
-                    case 4160:
-                        formats->sectorSizes[2].currentFormat = true;
-                        break;
-                    default:
-                        break;
-                    }
+                    //move 4k sizes to front, removing 5xx sizes
+                    safe_memmove(&formats->sectorSizes[0], sizeof(sectorSize) * formats->numberOfSectorSizes, &formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096], sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    //now memset away old stuff so it doesn't look duplicated
+                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096], sizeof(sectorSize) * formats->numberOfSectorSizes, 0 , sizeof(sectorSize) * formats->numberOfSectorSizes);
                 }
             }
         }
@@ -1305,7 +1247,7 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
     formats->deviceSupportsOtherFormats = true;
     formats->numberOfSectorSizes        = 0; // clear this out before we set it to something below
     // set metadata and PI location bits first
-    for (uint8_t iter = UINT8_C(0); iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf); ++iter)
+    for (uint8_t iter = UINT8_C(0); iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) && iter < MAX_SECTOR_SIZES_ARRAY; ++iter)
     {
         if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
         {
@@ -1369,7 +1311,7 @@ void show_Supported_Formats(ptrSupportedFormats formats)
     printf(" %18s  %4s  %4s  %4s  %4s  %20s  %13s\n", "Logical Block Size", "PI-0", "PI-1", "PI-2", "PI-3",
            "Relative Performance", "Metadata Size");
     printf("--------------------------------------------------------------------------------\n");
-    for (uint32_t iter = UINT32_C(0); iter < formats->numberOfSectorSizes; ++iter)
+    for (uint32_t iter = UINT32_C(0); iter < formats->numberOfSectorSizes && iter < MAX_SECTOR_SIZES_ARRAY; ++iter)
     {
         if (formats->sectorSizes[iter].valid)
         {
@@ -1567,21 +1509,19 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
     RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
         uint32_t formatsDataSize =
-            C_CAST(uint32_t, sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats));
+            C_CAST(uint32_t, sizeof(supportedFormats));
         ptrSupportedFormats formats = M_REINTERPRET_CAST(ptrSupportedFormats, safe_malloc(formatsDataSize));
         if (formats == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
         safe_memset(formats, formatsDataSize, 0, formatsDataSize);
-        formats->numberOfSectorSizes = numberOfSupportedFormats;
         ret                          = get_Supported_Formats(device, formats);
         if (SUCCESS == ret)
         {
             for (uint32_t sectorSizeIter = UINT32_C(0);
-                 sectorSizeIter < formats->numberOfSectorSizes && sectorSizeIter < numberOfSupportedFormats;
+                 sectorSizeIter < formats->numberOfSectorSizes && sectorSizeIter < MAX_SECTOR_SIZES_ARRAY;
                  ++sectorSizeIter)
             {
                 if (!formats->sectorSizes[sectorSizeIter].valid)
