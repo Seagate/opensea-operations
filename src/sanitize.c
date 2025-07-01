@@ -360,6 +360,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
             {
                 sanitizeOptions->maximumOverwritePasses = 31;
             }
+            ret = SUCCESS;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_BLOCK_ERASE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
@@ -367,6 +368,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->blockErase         = true;
+            ret = SUCCESS;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
@@ -374,6 +376,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->crypto             = true;
+            ret = SUCCESS;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_EXIT_FAILURE_MODE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
@@ -381,6 +384,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->exitFailMode       = true;
+            ret = SUCCESS;
         }
         writeAfterErase writeAfterEraseRequirements;
         safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
