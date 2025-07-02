@@ -576,12 +576,6 @@ extern "C"
 
     void print_FARM_Data(farmLogData* farmdata);
 
-    typedef enum eFARMOutModeEnum
-    {
-        FARM_OUTPUT_RAW,
-        FARM_OUTPUT_JSON,
-    } eFARMOutMode;
-
 #if defined(__cplusplus)
 }
 #endif
