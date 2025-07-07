@@ -779,6 +779,15 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                                                   uint64_t requestedMaxLBA,
                                                   bool     pollForProgress)
 {
+    return perform_Depopulate_Physical_Element2(device, elementDescriptorID, requestedMaxLBA, pollForProgress, false);
+}
+
+eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
+                                                  uint32_t elementDescriptorID,
+                                                  uint64_t requestedMaxLBA,
+                                                  bool     pollForProgress,
+                                                  bool     modifyZones)
+{
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);
     if (is_Depopulation_Feature_Supported(device, &depopTime))
@@ -803,7 +812,14 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
             printf("Do not remove power or attempt other access as interrupting it may make\n");
             printf("the drive unusable or require performing this command again!!\n");
         }
-        ret = depopulate_Physical_Element(device, elementDescriptorID, requestedMaxLBA);
+        if (modifyZones)
+        {
+            ret = depopulate_Physical_Element_And_Modify_Zones(device, elementDescriptorID);
+        }
+        else
+        {
+            ret = depopulate_Physical_Element(device, elementDescriptorID, requestedMaxLBA);
+        }
         if (ret != SUCCESS)
         {
             bool determineInvalidElementOrMaxLBA = false;
