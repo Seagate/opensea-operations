@@ -824,10 +824,6 @@ eReturnValues print_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
 
 static eReturnValues config_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = SUCCESS;
     if (!cdlSettings)
     {
@@ -905,10 +901,6 @@ static eReturnValues config_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlS
         safe_free_aligned(&logBuffer);
     }
 
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
-
     return ret;
 }
 
@@ -944,10 +936,6 @@ static uint8_t translate_CDL_Unit_To_Value(eCDLTimeFieldUnitType unitType)
 
 static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = SUCCESS;
     if (!cdlSettings)
     {
@@ -1120,19 +1108,11 @@ static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdl
         safe_free_aligned(&modeData);
     }
 
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
-
     return ret;
 }
 
 eReturnValues config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = NOT_SUPPORTED;
     if (!cdlSettings)
     {
@@ -1147,10 +1127,6 @@ eReturnValues config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
     {
         ret = config_SCSI_CDL_Settings(device, cdlSettings);
     }
-
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
 
     return ret;
 }
@@ -1194,19 +1170,16 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
         {
             switch (policyField)
             {
-            case 0x00:
             case 0x03:
                 if (policySupportedDescriptor & M_BitN16(3))
                     return true;
                 break;
 
-            case 0x01:
             case 0x04:
                 if (policySupportedDescriptor & M_BitN16(4))
                     return true;
                 break;
 
-            case 0x02:
             case 0x05:
                 if (policySupportedDescriptor & M_BitN16(5))
                     return true;
@@ -1306,10 +1279,6 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
 
 static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = SUCCESS;
     if (!cdlSettings)
     {
@@ -1424,19 +1393,11 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
         }
     }
 
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
-
     return ret;
 }
 
 static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = SUCCESS;
     if (!cdlSettings)
     {
@@ -1576,19 +1537,11 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
         }
     }
 
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
-
     return ret;
 }
 
 eReturnValues is_Valid_Config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     eReturnValues ret = NOT_SUPPORTED;
     if (!cdlSettings)
     {
@@ -1603,10 +1556,6 @@ eReturnValues is_Valid_Config_CDL_Settings(tDevice* device, tCDLSettings* cdlSet
     {
         ret = is_Valid_SCSI_Config_CDL_Settings(cdlSettings);
     }
-
-#if defined(_DEBUG)
-    printf("%s: --> ret = %d\n", __FUNCTION__, ret);
-#endif
 
     return ret;
 }
@@ -1653,10 +1602,6 @@ void get_Supported_Policy_String(eDriveType     driveType,
                                  uint16_t       policySupportedDescriptor,
                                  char*          policyString)
 {
-#if defined(_DEBUG)
-    printf("%s: <--\n", __FUNCTION__);
-#endif
-
     uint32_t currentCDLFeatureVersion =
         M_BytesTo4ByteValue(CDL_FEATURE_MAJOR_VERSION, CDL_FEATURE_MINOR_VERSION, CDL_FEATURE_PATCH_VERSION, 0);
     if (driveType == ATA_DRIVE)
@@ -1686,24 +1631,6 @@ void get_Supported_Policy_String(eDriveType     driveType,
             {
                 if (safe_strlen(policyString) > 0)
                     safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x00");
-            }
-            if (policySupportedDescriptor & M_BitN16(4))
-            {
-                if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x01");
-            }
-            if (policySupportedDescriptor & M_BitN16(5))
-            {
-                if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x02");
-            }
-            if (policySupportedDescriptor & M_BitN16(3))
-            {
-                if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
                 safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x03");
             }
             if (policySupportedDescriptor & M_BitN16(4))
@@ -1716,7 +1643,7 @@ void get_Supported_Policy_String(eDriveType     driveType,
             {
                 if (safe_strlen(policyString) > 0)
                     safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x04");
+                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x05");
             }
             if (policySupportedDescriptor & M_BitN16(6))
             {
@@ -1802,10 +1729,6 @@ void get_Supported_Policy_String(eDriveType     driveType,
             break;
         }
     }
-
-#if defined(_DEBUG)
-    printf("%s: --> policyString = %s\n", __FUNCTION__, policyString);
-#endif
 }
 
 uint32_t convert_CDL_TimeField_To_Microseconds(eCDLTimeFieldUnitType unitType, uint32_t value)
