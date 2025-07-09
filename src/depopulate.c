@@ -783,10 +783,10 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
 }
 
 eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
-                                                  uint32_t elementDescriptorID,
-                                                  uint64_t requestedMaxLBA,
-                                                  bool     pollForProgress,
-                                                  bool     modifyZones)
+                                                   uint32_t elementDescriptorID,
+                                                   uint64_t requestedMaxLBA,
+                                                   bool     pollForProgress,
+                                                   bool     modifyZones)
 {
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);

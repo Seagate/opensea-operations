@@ -381,7 +381,7 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
         bool longlba = false;
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
         {
-            longlba = true;
+            longlba    = true;
             modeLength = MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN;
         }
         if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, false, longlba, mpc, modeBuffer))

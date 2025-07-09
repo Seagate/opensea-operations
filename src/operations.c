@@ -903,7 +903,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
         if (!currentErase->osSupported)
         {
             snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                     "Sanitize Crypto Erase is not supported on this OS");
+                                "Sanitize Crypto Erase is not supported on this OS");
         }
         snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
         currentErase->warningValid      = true;
@@ -966,7 +966,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
         if (!currentErase->osSupported)
         {
             snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                     "Sanitize Block Erase is not supported on this OS");
+                                "Sanitize Block Erase is not supported on this OS");
         }
         snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
         currentErase->warningValid      = true;
@@ -1049,7 +1049,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
             if (!currentErase->osSupported)
             {
                 snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                         "NVM Format: Crypto Erase is not supported on this OS");
+                                    "NVM Format: Crypto Erase is not supported on this OS");
             }
             snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
 
@@ -1114,7 +1114,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
             if (!currentErase->osSupported)
             {
                 snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                         "NVM Format: User Data Erase is not supported on this OS");
+                                    "NVM Format: User Data Erase is not supported on this OS");
             }
             snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
 
@@ -1166,7 +1166,8 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
 
         currentErase->eraseIdentifier = ERASE_SANITIZE_OVERWRITE;
         snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Overwrite Erase");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
+        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                            "Cannot be stopped, even with a power cycle.");
 
 #if defined(_WIN32)
         if (device->drive_info.drive_type == NVME_DRIVE)
@@ -1193,7 +1194,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
         if (!currentErase->osSupported)
         {
             snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                     "Sanitize Overwrite Erase is not supported on this OS");
+                                "Sanitize Overwrite Erase is not supported on this OS");
         }
         snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
         currentErase->warningValid      = true;
@@ -1275,7 +1276,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
         if (!currentErase->osSupported)
         {
             snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                     "NVM Format: User Data Erase is not supported on this OS");
+                                "NVM Format: User Data Erase is not supported on this OS");
         }
         snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
 
