@@ -396,7 +396,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
         {
             snprintf_err_handle(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "No");
         }
-        printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%s\t%s\n", elementList[elementIter].elementIdentifier,
+        printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%-17s\t%s\n", elementList[elementIter].elementIdentifier,
                elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);
     }
     printf("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
