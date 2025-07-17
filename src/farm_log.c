@@ -545,9 +545,10 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
                             farmTimeSeriesFramesLog +
                                 (farmCurrentLog.alloclen + farmSavedLog.alloclen + farmTimeSeriesLog.alloclen +
                                  farmLongSavedLog.alloclen + farmStickyLog.alloclen),
-                            ATA_FARM_LOG_PAGE_SIZE);
+                            farmFactoryLog.alloclen);
                 addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, &numberOfDataSets, &headerLength,
-                                &farmContentField, ATA_FARM_LOG_PAGE_SIZE, startTimeInMilliSecs, endTimeInMilliSecs);
+                                &farmContentField, M_STATIC_CAST(uint32_t, farmFactoryLog.alloclen),
+                                startTimeInMilliSecs, endTimeInMilliSecs);
 
 #ifdef _DEBUG
                 FILE* tempFactoryFile = M_NULLPTR;
@@ -766,7 +767,8 @@ static eReturnValues pullSCSIFarmLogs(tDevice*                device,
         {
             endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             addDataSetEntry(SUBPAGE_TYPE_FARM_CURRENT, farmCurrentHeader, &numberOfDataSets, &headerLength,
-                            &farmContentField, farmCurrentLog.alloclen, startTimeInMilliSecs, endTimeInMilliSecs);
+                            &farmContentField, M_STATIC_CAST(uint32_t, farmCurrentLog.alloclen), startTimeInMilliSecs,
+                            endTimeInMilliSecs);
 
 #ifdef _DEBUG
             FILE*   tempFile    = M_NULLPTR;
@@ -804,7 +806,8 @@ static eReturnValues pullSCSIFarmLogs(tDevice*                device,
         {
             endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, &numberOfDataSets, &headerLength,
-                            &farmContentField, farmFactoryLog.alloclen, startTimeInMilliSecs, endTimeInMilliSecs);
+                            &farmContentField, M_STATIC_CAST(uint32_t, farmFactoryLog.alloclen), startTimeInMilliSecs,
+                            endTimeInMilliSecs);
 
 #ifdef _DEBUG
             FILE*   tempFile    = M_NULLPTR;
