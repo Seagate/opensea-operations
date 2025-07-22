@@ -35,15 +35,16 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
                                                eSanitizeStatus* sanitizeStatus)
 {
     eReturnValues result = SUCCESS;
-    #define MAX_SANITIZE_STATUS_ATTEMPTS (2)
+#define MAX_SANITIZE_STATUS_ATTEMPTS (2)
     int attempts = 0;
     do
     {
         result = ata_Sanitize_Status(device, false);
         ++attempts;
         // Working around a HBA problem by retrying when this is not completing successfully
-    } while ((result == WARN_INCOMPLETE_RFTRS || result == OS_PASSTHROUGH_FAILURE) && attempts < MAX_SANITIZE_STATUS_ATTEMPTS);
-    
+    } while ((result == WARN_INCOMPLETE_RFTRS || result == OS_PASSTHROUGH_FAILURE) &&
+             attempts < MAX_SANITIZE_STATUS_ATTEMPTS);
+
     if (result == SUCCESS)
     {
         *percentComplete =
@@ -657,7 +658,10 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     {
         printf("\n");
     }
-    os_Update_File_System_Cache(device);
+    if (sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
+    {
+        os_Update_File_System_Cache(device);
+    }
     return ret;
 }
 
