@@ -413,6 +413,7 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
 eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    os_Get_Exclusive(device);
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1148,6 +1149,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
 eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    os_Get_Exclusive(device);
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1243,6 +1245,7 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
 eReturnValues repopulate_Elements(tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    os_Get_Exclusive(device);
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
