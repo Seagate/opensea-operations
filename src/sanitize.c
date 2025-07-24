@@ -504,6 +504,15 @@ eReturnValues get_Sanitize_Device_Features(tDevice* device, sanitizeFeaturesSupp
         ret = NOT_SUPPORTED;
         break;
     }
+    DISABLE_NONNULL_COMPARE
+    // NOTE: Quick hack to disable block erase and sanitize command on Rugged SSD4 devices
+    //       This is here because of some strange behavior when issued that is still under investigation.
+    if (strcasecmp("Rugged SSD4", device->drive_info.product_identification) == 0 && opts != M_NULLPTR)
+    {
+        opts->blockErase = false;
+        opts->sanitizeCmdEnabled = false;
+    }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
@@ -704,6 +713,14 @@ eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions 
         double          percentComplete     = 0.0;
         eSanitizeStatus sanitizeInProgress  = 0;
         bool            sendExitFailureMode = false;
+
+        // NOTE: Quick hack to disable block erase and sanitize command on Rugged SSD4 devices
+        //       This is here because of some strange behavior when issued that is still under investigation.
+        if (strcasecmp("Rugged SSD4", device->drive_info.product_identification) == 0)
+        {
+            return NOT_SUPPORTED; // Rugged SSD4 does not support sanitize operations at this time.
+        }
+
         // first check if a sanitize test is in progress (and that the drive isn't frozen or in a failure state)
         ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
         if (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS || ret == IN_PROGRESS)
