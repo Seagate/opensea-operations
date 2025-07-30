@@ -186,6 +186,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 // Fill in the struct here since ATA is little endian
                 numberOfDescriptorsReturned = M_BytesTo4ByteValue(getPhysicalElements[7], getPhysicalElements[6],
                                                                   getPhysicalElements[5], getPhysicalElements[4]);
+                DISABLE_NONNULL_COMPARE
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[11], getPhysicalElements[10],
@@ -199,6 +200,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 {
                     *currentDepopulatedElements = M_BytesTo2ByteValue(getPhysicalElements[15], getPhysicalElements[14]);
                 }
+                RESTORE_NONNULL_COMPARE
                 if (numberOfElementsExpected != numberOfDescriptorsReturned)
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -218,6 +220,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 // Fill in the struct here since SCSI is big endian
                 numberOfDescriptorsReturned = M_BytesTo4ByteValue(getPhysicalElements[4], getPhysicalElements[5],
                                                                   getPhysicalElements[6], getPhysicalElements[7]);
+                DISABLE_NONNULL_COMPARE
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[8], getPhysicalElements[9],
@@ -231,6 +234,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 {
                     *currentDepopulatedElements = M_BytesTo2ByteValue(getPhysicalElements[14], getPhysicalElements[15]);
                 }
+                RESTORE_NONNULL_COMPARE
                 if (numberOfElementsExpected != numberOfDescriptorsReturned)
                 {
                     printf("WARNING: Drive returned %" PRIu32 " elements, but %" PRIu32 " were expected\n",
@@ -280,8 +284,11 @@ eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
                                                uint32_t           numberOfElementsExpected,
                                                ptrPhysicalElement elementList)
 {
-    return get_Physical_Element_Descriptors_2(device, numberOfElementsExpected, M_NULLPTR, M_NULLPTR, M_NULLPTR,
-                                              elementList);
+    uint32_t depopElementID = UINT32_C(0);
+    uint16_t maxDepop       = UINT16_C(0);
+    uint16_t currentDepop   = UINT16_C(0);
+    return get_Physical_Element_Descriptors_2(device, numberOfElementsExpected, &depopElementID, &maxDepop,
+                                              &currentDepop, elementList);
 }
 
 void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
