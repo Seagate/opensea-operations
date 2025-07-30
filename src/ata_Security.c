@@ -1242,6 +1242,7 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
     {
         timeout = MAX_CMD_TIMEOUT_SECONDS;
     }
+    os_Get_Exclusive(device);
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     start_Timer(&ataSecureEraseTimer);

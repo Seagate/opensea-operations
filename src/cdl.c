@@ -281,10 +281,26 @@ static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSet
                                  modePageLength, M_NULLPTR, &used6ByteCmd);
         if (SUCCESS == ret)
         {
+            uint32_t offsetToModePage = UINT32_C(0);
+            if (!used6ByteCmd)
+            {
+                uint16_t blockDescLen = UINT16_C(0);
+                get_mode_param_header_10_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                                &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_10_LEN;
+            }
+            else
+            {
+                uint8_t blockDescLen = UINT8_C(0);
+                get_mode_param_header_6_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                               &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_6_LEN;
+            }
             // parse the mode page buffer
-            cdlSettings->isSupported                                            = true;
-            cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines = M_Nibble1(modeData[7]);
-            uint8_t* cdlT2ADescriptorBuffer                                     = modeData + CDL_T2A_DESCRIPTOR_OFFSET;
+            cdlSettings->isSupported = true;
+            cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines =
+                M_Nibble1(modeData[offsetToModePage + 7]);
+            uint8_t* cdlT2ADescriptorBuffer = modeData + offsetToModePage + CDL_T2A_DESCRIPTOR_OFFSET;
             for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
             {
                 cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].timeFieldUnitType =
@@ -332,9 +348,24 @@ static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSet
                                  modePageLength, M_NULLPTR, &used6ByteCmd);
         if (SUCCESS == ret)
         {
+            uint32_t offsetToModePage = UINT32_C(0);
+            if (!used6ByteCmd)
+            {
+                uint16_t blockDescLen = UINT16_C(0);
+                get_mode_param_header_10_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                                &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_10_LEN;
+            }
+            else
+            {
+                uint8_t blockDescLen = UINT8_C(0);
+                get_mode_param_header_6_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                               &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_6_LEN;
+            }
             // parse the mode page buffer
             cdlSettings->isSupported        = true;
-            uint8_t* cdlT2BDescriptorBuffer = modeData + CDL_T2B_DESCRIPTOR_OFFSET;
+            uint8_t* cdlT2BDescriptorBuffer = modeData + offsetToModePage + CDL_T2B_DESCRIPTOR_OFFSET;
             for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
             {
                 cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].timeFieldUnitType =
@@ -929,9 +960,26 @@ static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdl
                                  modePageLength, M_NULLPTR, &used6ByteCmd);
         if (SUCCESS == ret)
         {
-            modeData[7] = (M_Nibble0(cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines) << 4) |
-                          M_Nibble0(modeData[7]);
-            uint8_t* cdlT2ADescriptorBuffer = modeData + CDL_T2A_DESCRIPTOR_OFFSET;
+            uint32_t offsetToModePage = UINT32_C(0);
+            if (!used6ByteCmd)
+            {
+                uint16_t blockDescLen = UINT16_C(0);
+                get_mode_param_header_10_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                                &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_10_LEN;
+            }
+            else
+            {
+                uint8_t blockDescLen = UINT8_C(0);
+                get_mode_param_header_6_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                               &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_6_LEN;
+            }
+
+            modeData[offsetToModePage + 7] =
+                (M_Nibble0(cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines) << 4) |
+                M_Nibble0(modeData[offsetToModePage + 7]);
+            uint8_t* cdlT2ADescriptorBuffer = modeData + offsetToModePage + CDL_T2A_DESCRIPTOR_OFFSET;
             for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
             {
                 cdlT2ADescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0] =
@@ -996,7 +1044,23 @@ static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdl
                                  modePageLength, M_NULLPTR, &used6ByteCmd);
         if (SUCCESS == ret)
         {
-            uint8_t* cdlT2BDescriptorBuffer = modeData + CDL_T2B_DESCRIPTOR_OFFSET;
+            uint32_t offsetToModePage = UINT32_C(0);
+            if (!used6ByteCmd)
+            {
+                uint16_t blockDescLen = UINT16_C(0);
+                get_mode_param_header_10_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                                &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_10_LEN;
+            }
+            else
+            {
+                uint8_t blockDescLen = UINT8_C(0);
+                get_mode_param_header_6_fields(modeData, modePageLength, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                               &blockDescLen);
+                offsetToModePage = blockDescLen + MODE_PARAMETER_HEADER_6_LEN;
+            }
+
+            uint8_t* cdlT2BDescriptorBuffer = modeData + offsetToModePage + CDL_T2B_DESCRIPTOR_OFFSET;
             for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
             {
                 cdlT2BDescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0] =
@@ -1082,13 +1146,19 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
             {
             case CDL_POLICY_TYPE_INACTIVE_TIME:
             case CDL_POLICY_TYPE_ACTIVE_TIME:
-                if (policyField == 0x00 || policyField == 0x0D || policyField == 0x0F)
+                if (policyField == 0x00 || policyField == 0x03 || policyField == 0x04 || policyField == 0x05 ||
+                    policyField == 0x0D || policyField == 0x0F)
+                {
                     return true;
+                }
                 break;
 
             case CDL_POLICY_TYPE_TOTAL_TIME:
-                if (policyField <= 0x02 || policyField == 0x0D || policyField == 0x0F)
+                if (policyField <= 0x02 || policyField == 0x03 || policyField == 0x04 || policyField == 0x05 ||
+                    policyField == 0x0D || policyField == 0x0F)
+                {
                     return true;
+                }
                 break;
 
             default:
@@ -1175,18 +1245,27 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
         switch (policyType)
         {
         case CDL_POLICY_TYPE_INACTIVE_TIME:
-            if (policyField == 0x00 || policyField == 0x0D || policyField == 0x0F)
+            if (policyField == 0x00 || policyField == 0x03 || policyField == 0x04 || policyField == 0x05 ||
+                policyField == 0x0D || policyField == 0x0F)
+            {
                 return true;
+            }
             break;
 
         case CDL_POLICY_TYPE_ACTIVE_TIME:
-            if (policyField == 0x00 || policyField == 0x0D || policyField == 0x0E || policyField == 0x0F)
+            if (policyField == 0x00 || policyField == 0x03 || policyField == 0x04 || policyField == 0x05 ||
+                policyField == 0x0D || policyField == 0x0E || policyField == 0x0F)
+            {
                 return true;
+            }
             break;
 
         case CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE:
-            if (policyField <= 0x02 || policyField == 0x0D || policyField == 0x0F)
+            if (policyField <= 0x02 || policyField == 0x03 || policyField == 0x04 || policyField == 0x05 ||
+                policyField == 0x0D || policyField == 0x0F)
+            {
                 return true;
+            }
             break;
 
         default:
@@ -1444,7 +1523,7 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
         }
 
         // check the user provided field value for validation
-        if (is_Valid_Supported_Policy(
+        if (!is_Valid_Supported_Policy(
                 SCSI_DRIVE, CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE, 0,
                 cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].CommandDurationGuidelinePolicy))
         {
@@ -1533,11 +1612,13 @@ void get_Supported_Policy_String(eDriveType     driveType,
             {
             case CDL_POLICY_TYPE_INACTIVE_TIME:
             case CDL_POLICY_TYPE_ACTIVE_TIME:
-                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x0D,0x0F");
+                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
+                                    "0x00,0x03,0x04,0x05,0x0D,0x0F");
                 break;
 
             case CDL_POLICY_TYPE_TOTAL_TIME:
-                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x01,0x02,0x0D,0x0F");
+                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
+                                    "0x00,0x01,0x02,0x03,0x04,0x05,0x0D,0x0F");
                 break;
 
             default:
@@ -1631,15 +1712,17 @@ void get_Supported_Policy_String(eDriveType     driveType,
         switch (policyType)
         {
         case CDL_POLICY_TYPE_INACTIVE_TIME:
-            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x0D,0x0F");
+            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x03,0x04,0x05,0x0D,0x0F");
             break;
 
         case CDL_POLICY_TYPE_ACTIVE_TIME:
-            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x0D,0x0E,0x0F");
+            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
+                                "0x00,0x03,0x04,0x05,0x0D,0x0E,0x0F");
             break;
 
         case CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE:
-            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x01,0x02,0x0D,0x0F");
+            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
+                                "0x00,0x01,0x02,0x03,0x04,0x05,0x0D,0x0F");
             break;
 
         default:

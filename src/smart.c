@@ -6304,8 +6304,9 @@ bool is_SMART_Enabled(tDevice* device)
     {
     case ATA_DRIVE:
         // check identify data
-        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
-            le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0)
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0) ||
+            device->drive_info.passThroughHacks.ataPTHacks.smartEnabled)
         {
             enabled = true;
         }
