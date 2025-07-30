@@ -55,7 +55,7 @@ static bool add_Feature_To_Supported_List(char        featuresSupported[MAX_FEAT
         {
             success = false;
 #if defined(_DEBUG)
-            printf("Out of room in feature list!\n");
+            print_str("Out of room in feature list!\n");
 #endif //_DEBUG
         }
     }
@@ -63,7 +63,7 @@ static bool add_Feature_To_Supported_List(char        featuresSupported[MAX_FEAT
     {
         success = false;
 #if defined(_DEBUG)
-        printf("Out of room in feature list!\n");
+        print_str("Out of room in feature list!\n");
 #endif //_DEBUG
     }
     return success;
@@ -86,7 +86,7 @@ static bool add_Specification_To_Supported_List(char        specificationsSuppor
         {
             success = false;
 #if defined(_DEBUG)
-            printf("Out of room in specification list!\n");
+            print_str("Out of room in specification list!\n");
 #endif //_DEBUG
         }
     }
@@ -94,7 +94,7 @@ static bool add_Specification_To_Supported_List(char        specificationsSuppor
     {
         success = false;
 #if defined(_DEBUG)
-        printf("Out of room in specification list!\n");
+        print_str("Out of room in specification list!\n");
 #endif //_DEBUG
     }
     return success;
@@ -7951,31 +7951,31 @@ void print_Device_Information(ptrDriveInformation driveInfo)
 
 void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
 {
-    printf("NVMe Controller Information:\n");
+    print_str("NVMe Controller Information:\n");
     printf("\tModel Number: %s\n", driveInfo->controllerData.modelNumber);
     printf("\tSerial Number: %s\n", driveInfo->controllerData.serialNumber);
     printf("\tFirmware Revision: %s\n", driveInfo->controllerData.firmwareRevision);
-    printf("\tIEEE OUI: ");
+    print_str("\tIEEE OUI: ");
     if (driveInfo->controllerData.ieeeOUI > 0)
     {
         printf("%06" PRIX32 "\n", driveInfo->controllerData.ieeeOUI);
     }
     else
     {
-        printf("Not Supported\n");
+        print_str("Not Supported\n");
     }
     printf("\tPCI Vendor ID: %04" PRIX16 "\n", driveInfo->controllerData.pciVendorID);
     printf("\tPCI Subsystem Vendor ID: %04" PRIX16 "\n", driveInfo->controllerData.pciSubsystemVendorID);
-    printf("\tController ID: ");
+    print_str("\tController ID: ");
     if (driveInfo->controllerData.controllerID > 0)
     {
         printf("%04" PRIX16 "\n", driveInfo->controllerData.controllerID);
     }
     else
     {
-        printf("Not Supported\n");
+        print_str("Not Supported\n");
     }
-    printf("\tNVMe Version: ");
+    print_str("\tNVMe Version: ");
     if (driveInfo->controllerData.majorVersion > 0 || driveInfo->controllerData.minorVersion > 0 ||
         driveInfo->controllerData.tertiaryVersion > 0)
     {
@@ -7984,13 +7984,13 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     }
     else
     {
-        printf("Not reported (NVMe 1.1 or older)\n");
+        print_str("Not reported (NVMe 1.1 or older)\n");
     }
     if (driveInfo->controllerData.hostIdentifierSupported)
     {
         // TODO: Print out the host identifier
     }
-    printf("\tFGUID: ");
+    print_str("\tFGUID: ");
     DECLARE_ZERO_INIT_ARRAY(uint8_t, zero128Bit, 16);
     if (memcmp(zero128Bit, driveInfo->controllerData.fguid, 16) != 0)
     {
@@ -7998,11 +7998,11 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         {
             printf("%02" PRIX8, driveInfo->controllerData.fguid[i]);
         }
-        printf("\n");
+        print_str("\n");
     }
     else
     {
-        printf("Not Supported\n");
+        print_str("Not Supported\n");
     }
     if (driveInfo->controllerData.totalNVMCapacityD > 0)
     {
@@ -8029,21 +8029,21 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
                    unCapacity);
         }
     }
-    printf("\tWrite Cache: ");
+    print_str("\tWrite Cache: ");
     if (driveInfo->controllerData.volatileWriteCacheSupported)
     {
         if (driveInfo->controllerData.volatileWriteCacheEnabled)
         {
-            printf("Enabled\n");
+            print_str("Enabled\n");
         }
         else
         {
-            printf("Disabled\n");
+            print_str("Disabled\n");
         }
     }
     else
     {
-        printf("Not Supported\n");
+        print_str("Not Supported\n");
     }
     printf("\tMaximum Number Of Namespaces: %" PRIu32 "\n", driveInfo->controllerData.maxNumberOfNamespaces);
     printf("\tNumber of supported power states: %" PRIu8 "\n",
@@ -8051,27 +8051,27 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     // Putting SMART & DST data here so that it isn't confused with the namespace data below - TJE
     if (driveInfo->smartData.valid)
     {
-        printf("\tRead-Only Medium: ");
+        print_str("\tRead-Only Medium: ");
         if (driveInfo->smartData.mediumIsReadOnly)
         {
-            printf("True\n");
+            print_str("True\n");
         }
         else
         {
-            printf("False\n");
+            print_str("False\n");
         }
-        printf("\tSMART Status: ");
+        print_str("\tSMART Status: ");
         switch (driveInfo->smartData.smartStatus)
         {
         case 0:
-            printf("Good\n");
+            print_str("Good\n");
             break;
         case 1:
-            printf("Bad\n");
+            print_str("Bad\n");
             break;
         case 2:
         default:
-            printf("Unknown\n");
+            print_str("Unknown\n");
             break;
         }
         // kelvin_To_Celsius(&driveInfo->smartData.compositeTemperatureKelvin);
@@ -8085,13 +8085,13 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         uint8_t  seconds = UINT8_C(0);
         convert_Seconds_To_Displayable_Time_Double(driveInfo->smartData.powerOnHoursD * 3600.0, &years, &days, &hours,
                                                    &minutes, &seconds);
-        printf("\tPower On Time: ");
+        print_str("\tPower On Time: ");
         print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
         printf("\tPower On Hours (hours): %0.00f\n", driveInfo->smartData.powerOnHoursD);
 
         // Last DST information
-        printf("\tLast DST information:\n");
+        print_str("\tLast DST information:\n");
         if (driveInfo->dstInfo.informationValid)
         {
             if (driveInfo->smartData.powerOnHoursD - C_CAST(double, (driveInfo->dstInfo.powerOnHours)) <
@@ -8099,14 +8099,14 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
             {
                 double timeSinceLastDST = C_CAST(double, driveInfo->smartData.powerOnHoursD) -
                                           C_CAST(double, driveInfo->dstInfo.powerOnHours);
-                printf("\t\tTime since last DST (hours): ");
+                print_str("\t\tTime since last DST (hours): ");
                 if (timeSinceLastDST >= 0)
                 {
                     printf("%0.02f\n", timeSinceLastDST);
                 }
                 else
                 {
-                    printf("Indeterminate\n");
+                    print_str("Indeterminate\n");
                 }
                 printf("\t\tDST Status/Result: 0x%" PRIX8 "\n", driveInfo->dstInfo.resultOrStatus);
                 printf("\t\tDST Test run: 0x%" PRIX8 "\n", driveInfo->dstInfo.testNumber);
@@ -8119,15 +8119,15 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
             }
             else
             {
-                printf("\t\tDST has never been run\n");
+                print_str("\t\tDST has never been run\n");
             }
         }
         else
         {
-            printf("\t\tNot supported\n");
+            print_str("\t\tNot supported\n");
         }
         // Long DST time
-        printf("\tLong Drive Self Test Time: ");
+        print_str("\tLong Drive Self Test Time: ");
         if (driveInfo->controllerData.longDSTTimeMinutes > UINT64_C(0))
         {
             // print as hours:minutes
@@ -8142,12 +8142,12 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         }
         else
         {
-            printf("Not Supported");
+            print_str("Not Supported");
         }
-        printf("\n");
+        print_str("\n");
 
         // Workload Rate (Annualized)
-        printf("\tAnnualized Workload Rate (TB/yr): ");
+        print_str("\tAnnualized Workload Rate (TB/yr): ");
 #ifndef MINUTES_IN_1_YEAR
 #    define MINUTES_IN_1_YEAR 525600.0
 #endif // !MINUTES_IN_1_YEAR
@@ -8157,14 +8157,14 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
                                  C_CAST(double, MINUTES_IN_1_YEAR / (driveInfo->smartData.powerOnHoursD * 60.0));
         printf("%0.02f\n", calculatedUsage);
         // Total Bytes Read
-        printf("\tTotal Bytes Read ");
+        print_str("\tTotal Bytes Read ");
         double totalBytesRead = driveInfo->smartData.dataUnitsReadD * 512.0 * 1000.0;
         DECLARE_ZERO_INIT_ARRAY(char, unitReadString, UNIT_STRING_LENGTH);
         char* unitRead = &unitReadString[0];
         metric_Unit_Convert(&totalBytesRead, &unitRead);
         printf("(%s): %0.02f\n", unitRead, totalBytesRead);
         // Total Bytes Written
-        printf("\tTotal Bytes Written ");
+        print_str("\tTotal Bytes Written ");
         double totalBytesWritten = driveInfo->smartData.dataUnitsWrittenD * 512.0 * 1000.0;
         DECLARE_ZERO_INIT_ARRAY(char, unitWrittenString, UNIT_STRING_LENGTH);
         char* unitWritten = &unitWrittenString[0];
@@ -8172,11 +8172,11 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("(%s): %0.02f\n", unitWritten, totalBytesWritten);
     }
     // Encryption Support
-    printf("\tEncryption Support: ");
+    print_str("\tEncryption Support: ");
     switch (driveInfo->controllerData.encryptionSupport)
     {
     case ENCRYPTION_SELF_ENCRYPTING:
-        printf("Self Encrypting\n");
+        print_str("Self Encrypting\n");
         /*if (driveInfo->trustedCommandsBeingBlocked)
         {
             printf("\t\tWARNING: OS is blocking TCG commands over passthrough. Please enable it before running any TCG
@@ -8184,24 +8184,24 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         }*/
         break;
     case ENCRYPTION_FULL_DISK:
-        printf("Full Disk Encryption\n");
+        print_str("Full Disk Encryption\n");
         break;
     case ENCRYPTION_NONE:
     default:
-        printf("Not Supported\n");
+        print_str("Not Supported\n");
         break;
     }
     // number of firmware slots
     printf("\tNumber of Firmware Slots: %" PRIu8 "\n", driveInfo->controllerData.numberOfFirmwareSlots);
     // Print out Controller features! (admin commands, etc)
-    printf("\tController Features:\n");
+    print_str("\tController Features:\n");
     for (uint16_t featureIter = UINT16_C(0); featureIter < driveInfo->controllerData.numberOfControllerFeatures;
          ++featureIter)
     {
         printf("\t\t%s\n", driveInfo->controllerData.controllerFeaturesSupported[featureIter]);
     }
 
-    printf("\nNVMe Namespace Information:\n");
+    print_str("\nNVMe Namespace Information:\n");
     if (driveInfo->namespaceData.valid)
     {
         // Namespace size
@@ -8248,23 +8248,23 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         printf("\tLogical Block Size (B): %" PRIu32 "\n", driveInfo->namespaceData.formattedLBASizeBytes);
 
         // relative performance
-        printf("\tLogical Block Size Relative Performance: ");
+        print_str("\tLogical Block Size Relative Performance: ");
         switch (driveInfo->namespaceData.relativeFormatPerformance)
         {
         case 0:
-            printf("Best Performance\n");
+            print_str("Best Performance\n");
             break;
         case 1:
-            printf("Better Performance\n");
+            print_str("Better Performance\n");
             break;
         case 2:
-            printf("Good Performance\n");
+            print_str("Good Performance\n");
             break;
         case 3:
-            printf("Degraded Performance\n");
+            print_str("Degraded Performance\n");
             break;
         default: // this case shouldn't ever happen...just reducing a warning - TJE
-            printf("Unknown Performance\n");
+            print_str("Unknown Performance\n");
             break;
         }
         if (driveInfo->namespaceData.nvmCapacityD > 0)
@@ -8277,30 +8277,30 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
             capacity_Unit_Convert(&capacity, &capUnit);
             printf("\tNVM Capacity (%s/%s): %0.02f/%0.02f\n", mCapUnit, capUnit, mCapacity, capacity);
         }
-        printf("\tNGUID: ");
+        print_str("\tNGUID: ");
         if (memcmp(zero128Bit, driveInfo->namespaceData.namespaceGloballyUniqueIdentifier, 16) != 0)
         {
             for (uint8_t i = UINT8_C(0); i < 16; ++i)
             {
                 printf("%02" PRIX8, driveInfo->controllerData.fguid[i]);
             }
-            printf("\n");
+            print_str("\n");
         }
         else
         {
-            printf("Not Supported\n");
+            print_str("Not Supported\n");
         }
-        printf("\tEUI64: ");
+        print_str("\tEUI64: ");
         if (driveInfo->namespaceData.ieeeExtendedUniqueIdentifier != 0)
         {
             printf("%016" PRIX64 "\n", driveInfo->namespaceData.ieeeExtendedUniqueIdentifier);
         }
         else
         {
-            printf("Not Supported\n");
+            print_str("Not Supported\n");
         }
         // Namespace features.
-        printf("\tNamespace Features:\n");
+        print_str("\tNamespace Features:\n");
         for (uint16_t featureIter = UINT16_C(0); featureIter < driveInfo->namespaceData.numberOfNamespaceFeatures;
              ++featureIter)
         {
@@ -8309,9 +8309,9 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     }
     else
     {
-        printf("\tERROR: Could not get namespace data!\n");
+        print_str("\tERROR: Could not get namespace data!\n");
     }
-    printf("\n");
+    print_str("\n");
 }
 
 void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
@@ -8345,7 +8345,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
         printf("\tSAT Product Rev: %s\n", driveInfo->satProductRevision);
     }
-    printf("\tWorld Wide Name: ");
+    print_str("\tWorld Wide Name: ");
     if (driveInfo->worldWideNameSupported)
     {
         printf("%016" PRIX64 "", driveInfo->worldWideName);
@@ -8356,9 +8356,9 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("Not Supported");
+        print_str("Not Supported");
     }
-    printf("\n");
+    print_str("\n");
     if (driveInfo->dateOfManufactureValid)
     {
         printf("\tDate Of Manufacture: Week %" PRIu8 ", %" PRIu16 "\n", driveInfo->manufactureWeek,
@@ -8398,14 +8398,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         capacity_Unit_Convert(&capacity, &capUnit);
         printf("\tNative Drive Capacity (%s/%s): %0.02f/%0.02f\n", mCapUnit, capUnit, mCapacity, capacity);
     }
-    printf("\tTemperature Data:\n");
+    print_str("\tTemperature Data:\n");
     if (driveInfo->temperatureData.temperatureDataValid)
     {
         printf("\t\tCurrent Temperature (C): %" PRId16 "\n", driveInfo->temperatureData.currentTemperature);
     }
     else
     {
-        printf("\t\tCurrent Temperature (C): Not Reported\n");
+        print_str("\t\tCurrent Temperature (C): Not Reported\n");
     }
     // Highest Temperature
     if (driveInfo->temperatureData.highestValid)
@@ -8414,7 +8414,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("\t\tHighest Temperature (C): Not Reported\n");
+        print_str("\t\tHighest Temperature (C): Not Reported\n");
     }
     // Lowest Temperature
     if (driveInfo->temperatureData.lowestValid)
@@ -8423,12 +8423,12 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("\t\tLowest Temperature (C): Not Reported\n");
+        print_str("\t\tLowest Temperature (C): Not Reported\n");
     }
     if (driveInfo->humidityData.humidityDataValid)
     {
         // Humidity Data
-        printf("\tHumidity Data:\n");
+        print_str("\tHumidity Data:\n");
         if (driveInfo->humidityData.humidityDataValid)
         {
             if (driveInfo->humidityData.currentHumidity == UINT8_MAX)
@@ -8476,7 +8476,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
     }
     // Power On Time
-    printf("\tPower On Time: ");
+    print_str("\tPower On Time: ");
     if (driveInfo->powerOnMinutesValid)
     {
         uint16_t days    = UINT16_C(0);
@@ -8490,10 +8490,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("Not Reported");
+        print_str("Not Reported");
     }
-    printf("\n");
-    printf("\tPower On Hours: ");
+    print_str("\n");
+    print_str("\tPower On Hours: ");
     if (driveInfo->powerOnMinutesValid)
     {
         // convert to a double to display as xx.xx
@@ -8502,9 +8502,9 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("Not Reported");
+        print_str("Not Reported");
     }
-    printf("\n");
+    print_str("\n");
     if (driveInfo->ataLegacyCHSInfo.legacyCHSValid && driveInfo->maxLBA == 0)
     {
         printf("\tDefault CHS: %" PRIu16 " | %" PRIu8 " | %" PRIu8 "\n",
@@ -8537,10 +8537,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         // MaxLBA
         printf("\tMaxLBA: %" PRIu64 "\n", driveInfo->maxLBA);
         // Native Max LBA
-        printf("\tNative MaxLBA: ");
+        print_str("\tNative MaxLBA: ");
         if (driveInfo->nativeMaxLBA == 0 || driveInfo->nativeMaxLBA == UINT64_MAX)
         {
-            printf("Not Reported\n");
+            print_str("Not Reported\n");
         }
         else
         {
@@ -8550,11 +8550,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     if (driveInfo->isFormatCorrupt)
     {
         // Logical Sector Size
-        printf("\tLogical Sector Size (B): Format Corrupt\n");
+        print_str("\tLogical Sector Size (B): Format Corrupt\n");
         // Physical Sector Size
-        printf("\tPhysical Sector Size (B): Format Corrupt\n");
+        print_str("\tPhysical Sector Size (B): Format Corrupt\n");
         // Sector Alignment
-        printf("\tSector Alignment: Format Corrupt\n");
+        print_str("\tSector Alignment: Format Corrupt\n");
     }
     else
     {
@@ -8566,14 +8566,14 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("\tSector Alignment: %" PRIu16 "\n", driveInfo->sectorAlignment);
     }
     // Rotation Rate
-    printf("\tRotation Rate (RPM): ");
+    print_str("\tRotation Rate (RPM): ");
     if (driveInfo->rotationRate == 0)
     {
-        printf("Not Reported\n");
+        print_str("Not Reported\n");
     }
     else if (driveInfo->rotationRate == 0x0001)
     {
-        printf("SSD\n");
+        print_str("SSD\n");
     }
     else
     {
@@ -8581,60 +8581,60 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     if (driveInfo->isWriteProtected)
     {
-        printf("\tMedium is write protected!\n");
+        print_str("\tMedium is write protected!\n");
     }
     // Form Factor
-    printf("\tForm Factor: ");
+    print_str("\tForm Factor: ");
     switch (driveInfo->formFactor)
     {
     case 1:
-        printf("5.25\"\n");
+        print_str("5.25\"\n");
         break;
     case 2:
-        printf("3.5\"\n");
+        print_str("3.5\"\n");
         break;
     case 3:
-        printf("2.5\"\n");
+        print_str("2.5\"\n");
         break;
     case 4:
-        printf("1.8\"\n");
+        print_str("1.8\"\n");
         break;
     case 5:
-        printf("Less than 1.8\"\n");
+        print_str("Less than 1.8\"\n");
         break;
     case 6:
-        printf("mSATA\n");
+        print_str("mSATA\n");
         break;
     case 7:
-        printf("M.2\n");
+        print_str("M.2\n");
         break;
     case 8:
-        printf("MicroSSD\n");
+        print_str("MicroSSD\n");
         break;
     case 9:
-        printf("CFast\n");
+        print_str("CFast\n");
         break;
     case 0:
     default:
-        printf("Not Reported\n");
+        print_str("Not Reported\n");
         break;
     }
     // Last DST information
-    printf("\tLast DST information:\n");
+    print_str("\tLast DST information:\n");
     if (driveInfo->dstInfo.informationValid && driveInfo->powerOnMinutesValid)
     {
         if (driveInfo->powerOnMinutes - (driveInfo->dstInfo.powerOnHours * 60) != driveInfo->powerOnMinutes)
         {
             double timeSinceLastDST =
                 (C_CAST(double, driveInfo->powerOnMinutes) / 60.0) - C_CAST(double, driveInfo->dstInfo.powerOnHours);
-            printf("\t\tTime since last DST (hours): ");
+            print_str("\t\tTime since last DST (hours): ");
             if (timeSinceLastDST >= 0)
             {
                 printf("%0.02f\n", timeSinceLastDST);
             }
             else
             {
-                printf("Indeterminate\n");
+                print_str("Indeterminate\n");
             }
             printf("\t\tDST Status/Result: 0x%" PRIX8 "\n", driveInfo->dstInfo.resultOrStatus);
             printf("\t\tDST Test run: 0x%" PRIX8 "\n", driveInfo->dstInfo.testNumber);
@@ -8647,15 +8647,15 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("\t\tDST has never been run\n");
+            print_str("\t\tDST has never been run\n");
         }
     }
     else
     {
-        printf("\t\tNot supported\n");
+        print_str("\t\tNot supported\n");
     }
     // Long DST time
-    printf("\tLong Drive Self Test Time: ");
+    print_str("\tLong Drive Self Test Time: ");
     if (driveInfo->longDSTTimeMinutes > 0)
     {
         // print as hours:minutes
@@ -8670,11 +8670,11 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("Not Supported");
+        print_str("Not Supported");
     }
-    printf("\n");
+    print_str("\n");
     // Interface Speed
-    printf("\tInterface speed:\n");
+    print_str("\tInterface speed:\n");
     if (driveInfo->interfaceSpeedInfo.speedIsValid)
     {
         if (driveInfo->interfaceSpeedInfo.speedType == INTERFACE_SPEED_SERIAL)
@@ -8683,58 +8683,58 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             {
                 if (driveInfo->interfaceSpeedInfo.serialSpeed.numberOfPorts == 1)
                 {
-                    printf("\t\tMax Speed (Gb/s): ");
+                    print_str("\t\tMax Speed (Gb/s): ");
                     switch (driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[0])
                     {
                     case 5:
-                        printf("22.5");
+                        print_str("22.5");
                         break;
                     case 4:
-                        printf("12.0");
+                        print_str("12.0");
                         break;
                     case 3:
-                        printf("6.0");
+                        print_str("6.0");
                         break;
                     case 2:
-                        printf("3.0");
+                        print_str("3.0");
                         break;
                     case 1:
-                        printf("1.5");
+                        print_str("1.5");
                         break;
                     case 0:
-                        printf("Not Reported");
+                        print_str("Not Reported");
                         break;
                     default:
-                        printf("Unknown");
+                        print_str("Unknown");
                         break;
                     }
-                    printf("\n");
-                    printf("\t\tNegotiated Speed (Gb/s): ");
+                    print_str("\n");
+                    print_str("\t\tNegotiated Speed (Gb/s): ");
                     switch (driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[0])
                     {
                     case 5:
-                        printf("22.5");
+                        print_str("22.5");
                         break;
                     case 4:
-                        printf("12.0");
+                        print_str("12.0");
                         break;
                     case 3:
-                        printf("6.0");
+                        print_str("6.0");
                         break;
                     case 2:
-                        printf("3.0");
+                        print_str("3.0");
                         break;
                     case 1:
-                        printf("1.5");
+                        print_str("1.5");
                         break;
                     case 0:
-                        printf("Not Reported");
+                        print_str("Not Reported");
                         break;
                     default:
-                        printf("Unknown");
+                        print_str("Unknown");
                         break;
                     }
-                    printf("\n");
+                    print_str("\n");
                 }
                 else
                 {
@@ -8746,69 +8746,69 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                         if (driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber == portIter &&
                             driveInfo->interfaceSpeedInfo.serialSpeed.activePortNumber != UINT8_MAX)
                         {
-                            printf(" (Current Port)");
+                            print_str(" (Current Port)");
                         }
-                        printf("\n");
+                        print_str("\n");
                         // Max Speed
-                        printf("\t\t\tMax Speed (GB/s): ");
+                        print_str("\t\t\tMax Speed (GB/s): ");
                         switch (driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsMax[portIter])
                         {
                         case 5:
-                            printf("22.5");
+                            print_str("22.5");
                             break;
                         case 4:
-                            printf("12.0");
+                            print_str("12.0");
                             break;
                         case 3:
-                            printf("6.0");
+                            print_str("6.0");
                             break;
                         case 2:
-                            printf("3.0");
+                            print_str("3.0");
                             break;
                         case 1:
-                            printf("1.5");
+                            print_str("1.5");
                             break;
                         case 0:
-                            printf("Not Reported");
+                            print_str("Not Reported");
                             break;
                         default:
-                            printf("Unknown");
+                            print_str("Unknown");
                             break;
                         }
-                        printf("\n");
+                        print_str("\n");
                         // Negotiated speed
-                        printf("\t\t\tNegotiated Speed (Gb/s): ");
+                        print_str("\t\t\tNegotiated Speed (Gb/s): ");
                         switch (driveInfo->interfaceSpeedInfo.serialSpeed.portSpeedsNegotiated[portIter])
                         {
                         case 5:
-                            printf("22.5");
+                            print_str("22.5");
                             break;
                         case 4:
-                            printf("12.0");
+                            print_str("12.0");
                             break;
                         case 3:
-                            printf("6.0");
+                            print_str("6.0");
                             break;
                         case 2:
-                            printf("3.0");
+                            print_str("3.0");
                             break;
                         case 1:
-                            printf("1.5");
+                            print_str("1.5");
                             break;
                         case 0:
-                            printf("Not Reported");
+                            print_str("Not Reported");
                             break;
                         default:
-                            printf("Unknown");
+                            print_str("Unknown");
                             break;
                         }
-                        printf("\n");
+                        print_str("\n");
                     }
                 }
             }
             else
             {
-                printf("\t\tNot Reported\n");
+                print_str("\t\tNot Reported\n");
             }
         }
         else if (driveInfo->interfaceSpeedInfo.speedType == INTERFACE_SPEED_PARALLEL)
@@ -8818,8 +8818,8 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             {
                 printf(" (%s)", driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName);
             }
-            printf("\n");
-            printf("\t\tNegotiated Speed (MB/s): ");
+            print_str("\n");
+            print_str("\t\tNegotiated Speed (MB/s): ");
             if (driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid)
             {
                 printf("%0.02f", driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed);
@@ -8827,37 +8827,37 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
                 {
                     printf(" (%s)", driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName);
                 }
-                printf("\n");
+                print_str("\n");
             }
             else
             {
-                printf("Not Reported\n");
+                print_str("Not Reported\n");
             }
             if (driveInfo->interfaceSpeedInfo.parallelSpeed.cableInfoType == CABLING_INFO_ATA &&
                 driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.cablingInfoValid)
             {
-                printf("\t\tCabling Detected: ");
+                print_str("\t\tCabling Detected: ");
                 if (driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.ata80PinCableDetected)
                 {
-                    printf("80-pin Cable\n");
+                    print_str("80-pin Cable\n");
                 }
                 else
                 {
-                    printf("40-pin Cable\n");
+                    print_str("40-pin Cable\n");
                 }
                 printf("\t\tDevice Number: %" PRIu8 "\n",
                        driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.device1 ? UINT8_C(1) : UINT8_C(0));
-                printf("\t\tDevice Set by: ");
+                print_str("\t\tDevice Set by: ");
                 switch (driveInfo->interfaceSpeedInfo.parallelSpeed.ataCableInfo.deviceNumberDetermined)
                 {
                 case 1:
-                    printf("Jumper\n");
+                    print_str("Jumper\n");
                     break;
                 case 2:
-                    printf("Cable Select\n");
+                    print_str("Cable Select\n");
                     break;
                 default:
-                    printf("Unknown\n");
+                    print_str("Unknown\n");
                     break;
                 }
             }
@@ -8866,32 +8866,32 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         {
             if (driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt10MbS)
             {
-                printf("\t\t>10Mb/s\n");
+                print_str("\t\t>10Mb/s\n");
             }
             else if (driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferGt5MbSLte10MbS)
             {
-                printf("\t\t>5Mb/s & <10Mb/s\n");
+                print_str("\t\t>5Mb/s & <10Mb/s\n");
             }
             else if (driveInfo->interfaceSpeedInfo.ancientHistorySpeed.dataTransferLte5MbS)
             {
-                printf("\t\t<5Mb/s\n");
+                print_str("\t\t<5Mb/s\n");
             }
             else
             {
-                printf("\t\tNot Reported\n");
+                print_str("\t\tNot Reported\n");
             }
         }
         else
         {
-            printf("\t\tNot Reported\n");
+            print_str("\t\tNot Reported\n");
         }
     }
     else
     {
-        printf("\t\tNot Reported\n");
+        print_str("\t\tNot Reported\n");
     }
     // Workload Rate (Annualized)
-    printf("\tAnnualized Workload Rate (TB/yr): ");
+    print_str("\tAnnualized Workload Rate (TB/yr): ");
     if (driveInfo->totalBytesRead > 0 || driveInfo->totalBytesWritten > 0)
     {
         if (driveInfo->powerOnMinutesValid)
@@ -8907,15 +8907,15 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("0.00\n");
+            print_str("0.00\n");
         }
     }
     else
     {
-        printf("Not Reported\n");
+        print_str("Not Reported\n");
     }
     // Total Bytes Read
-    printf("\tTotal Bytes Read ");
+    print_str("\tTotal Bytes Read ");
     if (driveInfo->totalBytesRead > 0)
     {
         double totalBytesRead = C_CAST(double, driveInfo->totalBytesRead);
@@ -8926,10 +8926,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("(B): Not Reported\n");
+        print_str("(B): Not Reported\n");
     }
     // Total Bytes Written
-    printf("\tTotal Bytes Written ");
+    print_str("\tTotal Bytes Written ");
     if (driveInfo->totalBytesWritten > 0)
     {
         double totalBytesWritten = C_CAST(double, driveInfo->totalBytesWritten);
@@ -8940,7 +8940,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("(B): Not Reported\n");
+        print_str("(B): Not Reported\n");
     }
     // Drive reported Utilization
     if (driveInfo->deviceReportedUtilizationRate > 0)
@@ -8949,18 +8949,18 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("%0.04f", driveInfo->deviceReportedUtilizationRate);
     }
     // Encryption Support
-    printf("\tEncryption Support: ");
+    print_str("\tEncryption Support: ");
     switch (driveInfo->encryptionSupport)
     {
     case ENCRYPTION_SELF_ENCRYPTING:
-        printf("Self Encrypting\n");
+        print_str("Self Encrypting\n");
         break;
     case ENCRYPTION_FULL_DISK:
-        printf("Full Disk Encryption\n");
+        print_str("Full Disk Encryption\n");
         break;
     case ENCRYPTION_NONE:
     default:
-        printf("Not Supported\n");
+        print_str("Not Supported\n");
         break;
     }
     if (driveInfo->trustedCommandsBeingBlocked)
@@ -8979,7 +8979,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("\tCache Size (MiB): Not Reported\n");
+        print_str("\tCache Size (MiB): Not Reported\n");
     }
     // Hybrid NAND Cache Size -- convert to GB
     if (driveInfo->hybridNANDSize > 0)
@@ -9020,28 +9020,28 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
         if (driveInfo->readLookAheadEnabled)
         {
-            printf("\tRead Look-Ahead: Enabled\n");
+            print_str("\tRead Look-Ahead: Enabled\n");
         }
         else
         {
-            printf("\tRead Look-Ahead: Disabled\n");
+            print_str("\tRead Look-Ahead: Disabled\n");
         }
     }
     else
     {
-        printf("\tRead Look-Ahead: Not Supported\n");
+        print_str("\tRead Look-Ahead: Not Supported\n");
     }
     // NVCache (!NV_DIS bit from caching MP)
     if (driveInfo->nvCacheSupported)
     {
-        printf("\tNon-Volatile Cache: ");
+        print_str("\tNon-Volatile Cache: ");
         if (driveInfo->nvCacheEnabled)
         {
-            printf("Enabled\n");
+            print_str("Enabled\n");
         }
         else
         {
-            printf("Disabled\n");
+            print_str("Disabled\n");
         }
     }
     // Write Cache
@@ -9049,32 +9049,32 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     {
         if (driveInfo->writeCacheEnabled)
         {
-            printf("\tWrite Cache: Enabled\n");
+            print_str("\tWrite Cache: Enabled\n");
         }
         else
         {
-            printf("\tWrite Cache: Disabled\n");
+            print_str("\tWrite Cache: Disabled\n");
         }
     }
     else
     {
-        printf("\tWrite Cache: Not Supported\n");
+        print_str("\tWrite Cache: Not Supported\n");
     }
     if (driveInfo->lowCurrentSpinupValid)
     {
         if (driveInfo->lowCurrentSpinupViaSCT) // to handle differences in reporting between 2.5" products and others
         {
-            printf("\tLow Current Spinup: ");
+            print_str("\tLow Current Spinup: ");
             switch (driveInfo->lowCurrentSpinupEnabled)
             {
             case SEAGATE_LOW_CURRENT_SPINUP_STATE_LOW:
-                printf("Enabled\n");
+                print_str("Enabled\n");
                 break;
             case SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT:
-                printf("Disabled\n");
+                print_str("Disabled\n");
                 break;
             case SEAGATE_LOW_CURRENT_SPINUP_STATE_ULTRA_LOW:
-                printf("Ultra Low Enabled\n");
+                print_str("Ultra Low Enabled\n");
                 break;
             default:
                 printf("Unknown/Invalid state: %" PRIX16 "\n", C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
@@ -9085,101 +9085,101 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         {
             if (driveInfo->lowCurrentSpinupEnabled > 0)
             {
-                printf("\tLow Current Spinup: Enabled\n");
+                print_str("\tLow Current Spinup: Enabled\n");
             }
             else
             {
-                printf("\tLow Current Spinup: Disabled\n");
+                print_str("\tLow Current Spinup: Disabled\n");
             }
         }
     }
     // SMART Status
-    printf("\tSMART Status: ");
+    print_str("\tSMART Status: ");
     switch (driveInfo->smartStatus)
     {
     case 0: // good
-        printf("Good\n");
+        print_str("Good\n");
         break;
     case 1: // bad
-        printf("Tripped\n");
+        print_str("Tripped\n");
         break;
     default: // unknown
-        printf("Unknown or Not Supported\n");
+        print_str("Unknown or Not Supported\n");
         break;
     }
     // ATA Security Infomation
-    printf("\tATA Security Information: ");
+    print_str("\tATA Security Information: ");
     if (driveInfo->ataSecurityInformation.securitySupported)
     {
-        printf("Supported");
+        print_str("Supported");
         if (driveInfo->ataSecurityInformation.securityEnabled)
         {
-            printf(", Enabled");
+            print_str(", Enabled");
         }
         if (driveInfo->ataSecurityInformation.securityLocked)
         {
-            printf(", Locked");
+            print_str(", Locked");
         }
         if (driveInfo->ataSecurityInformation.securityFrozen)
         {
-            printf(", Frozen");
+            print_str(", Frozen");
         }
         if (driveInfo->ataSecurityInformation.securityCountExpired)
         {
-            printf(", Password Count Expired");
+            print_str(", Password Count Expired");
         }
-        printf("\n");
+        print_str("\n");
     }
     else
     {
-        printf("Not Supported\n");
+        print_str("Not Supported\n");
     }
     // Zoned Device Type
     if (driveInfo->zonedDevice > 0)
     {
-        printf("\tZoned Device Type: ");
+        print_str("\tZoned Device Type: ");
         switch (driveInfo->zonedDevice)
         {
         case 0x1: // host aware
-            printf("Host Aware\n");
+            print_str("Host Aware\n");
             break;
         case 0x2: // host managed
-            printf("Device Managed\n");
+            print_str("Device Managed\n");
             break;
         case 0x3: // reserved
-            printf("Reserved\n");
+            print_str("Reserved\n");
             break;
         default:
-            printf("Not a Zoned Device\n");
+            print_str("Not a Zoned Device\n");
             break;
         }
     }
-    printf("\tFirmware Download Support: ");
+    print_str("\tFirmware Download Support: ");
     if (driveInfo->fwdlSupport.downloadSupported)
     {
-        printf("Full"); // changed to "Full" from "Immediate" since this makes more sense...-TJE
+        print_str("Full"); // changed to "Full" from "Immediate" since this makes more sense...-TJE
         if (driveInfo->fwdlSupport.segmentedSupported)
         {
-            printf(", Segmented");
+            print_str(", Segmented");
             if (driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired)
             {
-                printf(" as Deferred - Power Cycle Activation Only");
+                print_str(" as Deferred - Power Cycle Activation Only");
             }
         }
         if (driveInfo->fwdlSupport.deferredSupported)
         {
-            printf(", Deferred");
+            print_str(", Deferred");
         }
         if (driveInfo->fwdlSupport.dmaModeSupported)
         {
-            printf(", DMA");
+            print_str(", DMA");
         }
     }
     else
     {
-        printf("Not Supported");
+        print_str("Not Supported");
     }
-    printf("\n");
+    print_str("\n");
     if (driveInfo->lunCount > 0)
     {
         printf("\tNumber of Logical Units: %" PRIu8 "\n", driveInfo->lunCount);
@@ -9189,7 +9189,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         printf("\tNumber of Concurrent Ranges: %" PRIu8 "\n", driveInfo->concurrentPositioningRanges);
     }
     // Specifications Supported
-    printf("\tSpecifications Supported:\n");
+    print_str("\tSpecifications Supported:\n");
     if (driveInfo->numberOfSpecificationsSupported > 0)
     {
         uint8_t specificationsIter = UINT8_C(0);
@@ -9202,10 +9202,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("\t\tNone reported by device.\n");
+        print_str("\t\tNone reported by device.\n");
     }
     // Features Supported
-    printf("\tFeatures Supported:\n");
+    print_str("\tFeatures Supported:\n");
     if (driveInfo->numberOfFeaturesSupported > 0)
     {
         uint8_t featuresIter = UINT8_C(0);
@@ -9217,62 +9217,62 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     else
     {
-        printf("\t\tNone reported or an error occurred while trying to determine\n\t\tthe features.\n");
+        print_str("\t\tNone reported or an error occurred while trying to determine\n\t\tthe features.\n");
     }
     // Adapter information
-    printf("\tAdapter Information:\n");
-    printf("\t\tAdapter Type: ");
+    print_str("\tAdapter Information:\n");
+    print_str("\t\tAdapter Type: ");
     switch (driveInfo->adapterInformation.infoType)
     {
     case ADAPTER_INFO_USB:
-        printf("USB\n");
+        print_str("USB\n");
         break;
     case ADAPTER_INFO_PCI:
-        printf("PCI\n");
+        print_str("PCI\n");
         break;
     case ADAPTER_INFO_IEEE1394:
-        printf("IEEE1394\n");
+        print_str("IEEE1394\n");
         break;
     default:
-        printf("Unknown\n");
+        print_str("Unknown\n");
         break;
     }
-    printf("\t\tVendor ID: ");
+    print_str("\t\tVendor ID: ");
     if (driveInfo->adapterInformation.vendorIDValid)
     {
         printf("%04" PRIX32 "h\n", driveInfo->adapterInformation.vendorID);
     }
     else
     {
-        printf("Not available.\n");
+        print_str("Not available.\n");
     }
-    printf("\t\tProduct ID: ");
+    print_str("\t\tProduct ID: ");
     if (driveInfo->adapterInformation.productIDValid)
     {
         printf("%04" PRIX32 "h\n", driveInfo->adapterInformation.productID);
     }
     else
     {
-        printf("Not available.\n");
+        print_str("Not available.\n");
     }
-    printf("\t\tRevision: ");
+    print_str("\t\tRevision: ");
     if (driveInfo->adapterInformation.revisionValid)
     {
         printf("%04" PRIX32 "h\n", driveInfo->adapterInformation.revision);
     }
     else
     {
-        printf("Not available.\n");
+        print_str("Not available.\n");
     }
     if (driveInfo->adapterInformation
             .specifierIDValid) // IEEE1394 only, so it will only print when we get this set to true for now - TJE
     {
-        printf("\t\tSpecifier ID: ");
+        print_str("\t\tSpecifier ID: ");
         printf("%04" PRIX32 "h\n", driveInfo->adapterInformation.specifierID);
     }
     if (driveInfo->lunCount > 1)
     {
-        printf("This device has multiple actuators. Some commands/features may affect more than one actuator.\n");
+        print_str("This device has multiple actuators. Some commands/features may affect more than one actuator.\n");
     }
 }
 
@@ -9283,31 +9283,31 @@ void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
     DISABLE_NONNULL_COMPARE
     if (translatorDriveInfo != M_NULLPTR && translatorDriveInfo->infoType == DRIVE_INFO_SAS_SATA)
     {
-        printf("SCSI Translator Reported Information:\n");
+        print_str("SCSI Translator Reported Information:\n");
         print_Device_Information(translatorDriveInfo);
     }
     else
     {
-        printf("SCSI Translator Information Not Available.\n\n");
+        print_str("SCSI Translator Information Not Available.\n\n");
     }
     if (driveInfo != M_NULLPTR && driveInfo->infoType == DRIVE_INFO_SAS_SATA)
     {
-        printf("ATA Reported Information:\n");
+        print_str("ATA Reported Information:\n");
         print_Device_Information(driveInfo);
     }
     else if (driveInfo != M_NULLPTR && driveInfo->infoType == DRIVE_INFO_NVME)
     {
-        printf("NVMe Reported Information:\n");
+        print_str("NVMe Reported Information:\n");
         print_Device_Information(driveInfo);
     }
     else if (driveInfo != M_NULLPTR)
     {
-        printf("Unknown device Information type:\n");
+        print_str("Unknown device Information type:\n");
         print_Device_Information(driveInfo);
     }
     else
     {
-        printf("Drive Information not available.\n\n");
+        print_str("Drive Information not available.\n\n");
     }
     RESTORE_NONNULL_COMPARE
 }
@@ -9540,7 +9540,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
 #endif // DEBUG_DRIVE_INFO_TIME
     }
 #if defined(DEBUG_DRIVE_INFO_TIME)
-    printf("Discovery Times:\n");
+    print_str("Discovery Times:\n");
     uint8_t  hours       = UINT8_C(0);
     uint8_t  minutes     = UINT8_C(0);
     uint8_t  seconds     = UINT8_C(0);
@@ -9551,28 +9551,28 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
     {
         ataSeconds = get_Seconds(ataTime);
         convert_Seconds_To_Displayable_Time(ataSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-        printf("ATA: ");
+        print_str("ATA: ");
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
         nvmeSeconds = get_Seconds(nvmeTime);
         convert_Seconds_To_Displayable_Time(nvmeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-        printf("NVMe: ");
+        print_str("NVMe: ");
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     uint64_t scsiSeconds = get_Seconds(scsiTime);
     convert_Seconds_To_Displayable_Time(scsiSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-    printf("SCSI: ");
+    print_str("SCSI: ");
     print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-    printf("\n");
-    printf("Total: ");
+    print_str("\n");
+    print_str("Total: ");
     scsiSeconds += ataSeconds + nvmeSeconds;
     convert_Seconds_To_Displayable_Time(scsiSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
     print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-    printf("\n");
+    print_str("\n");
 #endif // DEBUG_DRIVE_INFO_TIME
 
     if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
@@ -9612,7 +9612,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
                 else
                 {
                     ret = MEMORY_FAILURE;
-                    printf("Error allocating memory for USB - ATA drive info\n");
+                    print_str("Error allocating memory for USB - ATA drive info\n");
                 }
             }
             else if (device->drive_info.interface_type == USB_INTERFACE &&
@@ -9629,7 +9629,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
                 else
                 {
                     ret = MEMORY_FAILURE;
-                    printf("Error allocating memory for USB - NVMe drive info\n");
+                    print_str("Error allocating memory for USB - NVMe drive info\n");
                 }
             }
             else // ata or scsi
@@ -9649,7 +9649,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
                 }
                 else
                 {
-                    printf("Error allocating memory to get device information.\n");
+                    print_str("Error allocating memory to get device information.\n");
                 }
             }
         }

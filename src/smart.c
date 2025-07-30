@@ -122,7 +122,7 @@ eReturnValues get_SMART_Attributes(tDevice* device, smartLogData* smartAttrs)
         ret = NOT_SUPPORTED;
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("Getting SMART attributes is not supported on this drive type at this time\n");
+            print_str("Getting SMART attributes is not supported on this drive type at this time\n");
         }
     }
     return ret;
@@ -3234,7 +3234,7 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue* currentAttribute, char*
         {
             printf("%02" PRIX8 "", currentAttribute->data.rawData[6 - rawIter]);
         }
-        printf("h\n");
+        print_str("h\n");
     }
     // clear out the attribute name before looping again so we don't show dulicates
     snprintf_err_handle(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                             ");
@@ -3251,7 +3251,7 @@ static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
         return;
     }
     printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
-    printf("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
+    print_str("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
     for (uint8_t iter = UINT8_C(0); iter < 255; ++iter)
     {
         if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -3261,12 +3261,12 @@ static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
             safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH);
         }
     }
-    printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
-    printf("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
-    printf("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
+    print_str("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
+    print_str("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
+    print_str("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
     printf("%% - attribute is currently issuing a warning (thresholds required)\n");
-    printf("~ - attribute has previously warned about its condition (thresholds required)\n");
-    printf("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
+    print_str("~ - attribute has previously warned about its condition (thresholds required)\n");
+    print_str("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
     safe_free(&attributeName);
 }
 
@@ -3581,37 +3581,37 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
         perror("Calloc Failure!\n");
         return;
     }
-    printf("=======Key======\n");
-    printf("\tFlags:\n");
-    printf("\t  P - pre-fail/warranty indicator\n");
-    printf("\t  O - online collection of data while device is running\n");
-    printf("\t  S - Performance degrades as current value decreases\n");
-    printf("\t  R - Error Rate - indicates tracking of an error rate\n");
-    printf("\t  C - Event Count - attribute represents a counter of events\n");
-    printf("\t  K - Self Preservation (saved across power-cycles)\n");
-    printf("\tThresholds/Current/Worst:\n");
-    printf("\t  N/A - thresholds not available for this attribute/device\n");
-    printf("\t  AP  - threshold is always passing (value of zero)\n");
-    printf("\t  AF  - threshold is always failing (value of 255)\n");
-    printf("\t  INV - threshold is set to an invalid value (value of 254)\n");
-    printf("\tOther indicators:\n");
-    printf("\t  ? - See analyzed output for more information on raw data\n");
-    printf("\t  ! - attribute is currently failing\n");
-    printf("\t  ^ - attribute has previously failed\n");
+    print_str("=======Key======\n");
+    print_str("\tFlags:\n");
+    print_str("\t  P - pre-fail/warranty indicator\n");
+    print_str("\t  O - online collection of data while device is running\n");
+    print_str("\t  S - Performance degrades as current value decreases\n");
+    print_str("\t  R - Error Rate - indicates tracking of an error rate\n");
+    print_str("\t  C - Event Count - attribute represents a counter of events\n");
+    print_str("\t  K - Self Preservation (saved across power-cycles)\n");
+    print_str("\tThresholds/Current/Worst:\n");
+    print_str("\t  N/A - thresholds not available for this attribute/device\n");
+    print_str("\t  AP  - threshold is always passing (value of zero)\n");
+    print_str("\t  AF  - threshold is always failing (value of 255)\n");
+    print_str("\t  INV - threshold is set to an invalid value (value of 254)\n");
+    print_str("\tOther indicators:\n");
+    print_str("\t  ? - See analyzed output for more information on raw data\n");
+    print_str("\t  ! - attribute is currently failing\n");
+    print_str("\t  ^ - attribute has previously failed\n");
     printf("\t  %% - attribute is currently issuing a warning\n");
-    printf("\t  ~ - attribute has previously warned about its condition\n");
-    printf("\tTemperature: (Celcius unless specified)\n");
-    printf("\t  m = minimum\n");
-    printf("\t  M = maximum\n");
-    printf("\tColumns:\n");
-    printf("\t  CV - current value (Also called nominal value in specifications)\n");
-    printf("\t  WV - worst ever value\n");
-    printf("\t  TV - threshold value (requires support of thresholds data)\n");
-    printf("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
-    printf("--------------------------------------------------------------------------------\n");
+    print_str("\t  ~ - attribute has previously warned about its condition\n");
+    print_str("\tTemperature: (Celcius unless specified)\n");
+    print_str("\t  m = minimum\n");
+    print_str("\t  M = maximum\n");
+    print_str("\tColumns:\n");
+    print_str("\t  CV - current value (Also called nominal value in specifications)\n");
+    print_str("\t  WV - worst ever value\n");
+    print_str("\t  TV - threshold value (requires support of thresholds data)\n");
+    print_str("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
+    print_str("--------------------------------------------------------------------------------\n");
     printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
-    printf("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
-    printf("--------------------------------------------------------------------------------\n");
+    print_str("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
+    print_str("--------------------------------------------------------------------------------\n");
     for (uint8_t iter = UINT8_C(0); iter < 255; ++iter)
     {
         if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -3886,8 +3886,8 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     }
     if (!dataFormatVerified)
     {
-        printf("WARNING: Interpretation of RAW data has not been verified on this device/firmware.\n");
-        printf("         Product manuals and/or specifications are required for full data verification.\n");
+        print_str("WARNING: Interpretation of RAW data has not been verified on this device/firmware.\n");
+        print_str("         Product manuals and/or specifications are required for full data verification.\n");
     }
     safe_free(&attributeName);
 }
@@ -3922,33 +3922,33 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                 {
                     printf("%u - Unknown Attribute\n", iter);
                 }
-                printf("\tAttribute Type(s):\n");
+                print_str("\tAttribute Type(s):\n");
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status &
                     ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
                 {
-                    printf("\t\tPre-fail/warranty. Indicates a cause of known impending failure.\n");
+                    print_str("\t\tPre-fail/warranty. Indicates a cause of known impending failure.\n");
                 }
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status &
                     ATA_SMART_STATUS_FLAG_ONLINE_DATA_COLLECTION)
                 {
-                    printf("\t\tOnline Data Collection. Updates as the drive runs.\n");
+                    print_str("\t\tOnline Data Collection. Updates as the drive runs.\n");
                 }
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_PERFORMANCE)
                 {
-                    printf("\t\tPerformance. Degredation of this attribute will affect performance.\n");
+                    print_str("\t\tPerformance. Degredation of this attribute will affect performance.\n");
                 }
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_ERROR_RATE)
                 {
-                    printf("\t\tError Rate. Attribute tracks and error rate.\n");
+                    print_str("\t\tError Rate. Attribute tracks and error rate.\n");
                 }
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status & ATA_SMART_STATUS_FLAG_EVENT_COUNT)
                 {
-                    printf("\t\tEvent Count. Attribute is a counter.\n");
+                    print_str("\t\tEvent Count. Attribute is a counter.\n");
                 }
                 if (smartData->attributes.ataSMARTAttr.attributes[iter].data.status &
                     ATA_SMART_STATUS_FLAG_SELF_PRESERVING)
                 {
-                    printf("\t\tSelf-Preserving. Saves between power cycles.\n");
+                    print_str("\t\tSelf-Preserving. Saves between power cycles.\n");
                 }
                 printf("\tCurrent (Nominal) Value: %" PRIu8 "\n",
                        smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal);
@@ -3959,17 +3959,17 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                     if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue ==
                         ATA_SMART_THRESHOLD_ALWAYS_PASSING)
                     {
-                        printf("\tThreshold set to always passing\n");
+                        print_str("\tThreshold set to always passing\n");
                     }
                     else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue ==
                              ATA_SMART_THRESHOLD_ALWAYS_FAILING)
                     {
-                        printf("\tThreshold set to always failing\n");
+                        print_str("\tThreshold set to always failing\n");
                     }
                     else if (smartData->attributes.ataSMARTAttr.attributes[iter].thresholdData.thresholdValue ==
                              ATA_SMART_THRESHOLD_INVALID)
                     {
-                        printf("\tThreshold set to invalid value\n");
+                        print_str("\tThreshold set to invalid value\n");
                     }
                     else
                     {
@@ -4070,7 +4070,7 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 18: // Head health self-assessment
-                        printf("\tFailed Heads:\n");
+                        print_str("\tFailed Heads:\n");
                         // starting at raw 0, bit 0, 0=passing head, 1=failing head
                         {
                             uint32_t headBitmap = M_BytesTo4ByteValue(
@@ -4089,7 +4089,7 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                             }
                             if (badHeadCounter == 0)
                             {
-                                printf("\t\tNo Failed Heads\n");
+                                print_str("\t\tNo Failed Heads\n");
                             }
                         }
                         break;
@@ -4100,14 +4100,14 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
-                        printf("\t\tStandby received before power off: ");
+                        print_str("\t\tStandby received before power off: ");
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4])
                         {
-                            printf("true\n");
+                            print_str("true\n");
                         }
                         else
                         {
-                            printf("false\n");
+                            print_str("false\n");
                         }
                         break;
                     case 183: // Reported Phy Event Counter
@@ -4133,9 +4133,9 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]) ==
                             0xFFFF)
                         {
-                            printf(" (Counter is maxed out)");
+                            print_str(" (Counter is maxed out)");
                         }
-                        printf("\n");
+                        print_str("\n");
                         break;
                     case 188: // Command Timeout
                         printf(
@@ -4146,9 +4146,9 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]) ==
                             0xFFFF)
                         {
-                            printf(" (Counter is maxed out)");
+                            print_str(" (Counter is maxed out)");
                         }
-                        printf("\n");
+                        print_str("\n");
                         printf(
                             "\tTotal # of commands with > 5 second completion: %" PRIu16 "\n",
                             M_BytesTo2ByteValue(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
@@ -4167,9 +4167,9 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]) ==
                             0xFFFF)
                         {
-                            printf(" (Counter is maxed out)");
+                            print_str(" (Counter is maxed out)");
                         }
-                        printf("\n");
+                        print_str("\n");
                         break;
                     case 190: // Airflow Temperature
                         printf(
@@ -4319,13 +4319,13 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     default:
-                        printf("\tRaw Data: ");
+                        print_str("\tRaw Data: ");
                         for (uint8_t rawIter = UINT8_C(0); rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
                         {
                             printf("%02" PRIX8 "",
                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
                         }
-                        printf("h\n");
+                        print_str("h\n");
                         break;
                     }
                     break;
@@ -4516,22 +4516,22 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
                         break;
                     case 231:
-                        printf("\tLife driven by:");
+                        print_str("\tLife driven by:");
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0] == 0)
                         {
-                            printf("Program-Erase Cycles (Term A dominated)\n");
+                            print_str("Program-Erase Cycles (Term A dominated)\n");
                         }
                         else
                         {
-                            printf("Free Space (Term B dominated)\n");
+                            print_str("Free Space (Term B dominated)\n");
                         }
-                        printf("\n");
+                        print_str("\n");
                         printf("\tTerm A value: %" PRIu8 " \n",
                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1]);
-                        printf("\n");
+                        print_str("\n");
                         printf("\tTerm B value: %" PRIu8 "\n",
                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2]);
-                        printf("\n");
+                        print_str("\n");
                         break;
                     case 233:
                         printf(
@@ -4570,13 +4570,13 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4]));
                         break;
                     default:
-                        printf("\tRaw Data: ");
+                        print_str("\tRaw Data: ");
                         for (uint8_t rawIter = UINT8_C(0); rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
                         {
                             printf("%02" PRIX8 "",
                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
                         }
-                        printf("h\n");
+                        print_str("h\n");
                         break;
                     }
                     break;
@@ -4732,13 +4732,13 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
                         // min/max varies by vendor so it is ommitted in this case
                         break;
                     default:
-                        printf("\tRaw Data: ");
+                        print_str("\tRaw Data: ");
                         for (uint8_t rawIter = UINT8_C(0); rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
                         {
                             printf("%02" PRIX8 "",
                                    smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6 - rawIter]);
                         }
-                        printf("h\n");
+                        print_str("h\n");
                         break;
                     }
                     break;
@@ -4793,7 +4793,7 @@ static void print_ATA_SMART_Attribute_Raw(bool isWarrantied, ataSMARTAnalyzedAtt
     {
         printf("%02" PRIX8 "", smartAnalyzedAttribute.rawData.rawData[6 - rawIter]);
     }
-    printf("h\n");
+    print_str("h\n");
 }
 
 static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
@@ -4808,7 +4808,7 @@ static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Memory Failure");
+                print_str("Memory Failure");
             }
 
             return;
@@ -4818,7 +4818,7 @@ static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
             get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(device, smartData, smartAnalyzedData, &dataFormatVerified))
         {
             printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
-            printf("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
+            print_str("       # Attribute Name:                     Status: Current: Worst: Thresh: Raw (hex):\n");
 
             // Now print this on console
             for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
@@ -4830,12 +4830,12 @@ static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
                 }
             }
 
-            printf("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
-            printf("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
-            printf("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
+            print_str("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
+            print_str("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
+            print_str("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
             printf("%% - attribute is currently issuing a warning (thresholds required)\n");
-            printf("~ - attribute has previously warned about its condition (thresholds required)\n");
-            printf("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
+            print_str("~ - attribute has previously warned about its condition (thresholds required)\n");
+            print_str("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
         }
 
         safe_free_ata_smart_analyzed_data(&smartAnalyzedData);
@@ -4853,30 +4853,30 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
         printf("%u - Unknown Attribute\n", number);
     }
 
-    printf("\tAttribute Type(s):\n");
+    print_str("\tAttribute Type(s):\n");
     if (smartAnalyzedAttribute.attributeType.preFailAttribute)
     {
-        printf("\t\tPre-fail/warranty. Indicates a cause of known impending failure.\n");
+        print_str("\t\tPre-fail/warranty. Indicates a cause of known impending failure.\n");
     }
     if (smartAnalyzedAttribute.attributeType.onlineDataCollection)
     {
-        printf("\t\tOnline Data Collection. Updates as the drive runs.\n");
+        print_str("\t\tOnline Data Collection. Updates as the drive runs.\n");
     }
     if (smartAnalyzedAttribute.attributeType.performanceIndicator)
     {
-        printf("\t\tPerformance. Degredation of this attribute will affect performance.\n");
+        print_str("\t\tPerformance. Degredation of this attribute will affect performance.\n");
     }
     if (smartAnalyzedAttribute.attributeType.errorRateIndicator)
     {
-        printf("\t\tError Rate. Attribute tracks and error rate.\n");
+        print_str("\t\tError Rate. Attribute tracks and error rate.\n");
     }
     if (smartAnalyzedAttribute.attributeType.eventCounter)
     {
-        printf("\t\tEvent Count. Attribute is a counter.\n");
+        print_str("\t\tEvent Count. Attribute is a counter.\n");
     }
     if (smartAnalyzedAttribute.attributeType.selfPreserving)
     {
-        printf("\t\tSelf-Preserving. Saves between power cycles.\n");
+        print_str("\t\tSelf-Preserving. Saves between power cycles.\n");
     }
 
     printf("\tCurrent (Nominal) Value: %" PRIu8 "\n", smartAnalyzedAttribute.nominal);
@@ -4888,13 +4888,13 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
         printf("\tThreshold:               %" PRIu8 "\n", smartAnalyzedAttribute.thresholdInfo.thresholdValue);
         break;
     case THRESHOLD_ALWAYS_PASSING:
-        printf("\tThreshold set to always passing\n");
+        print_str("\tThreshold set to always passing\n");
         break;
     case THRESHOLD_ALWAYS_FAILING:
-        printf("\tThreshold set to always failing\n");
+        print_str("\tThreshold set to always failing\n");
         break;
     case THRESHOLD_INVALID:
-        printf("\tThreshold set to invalid value\n");
+        print_str("\tThreshold set to invalid value\n");
         break;
     default:
         break;
@@ -4962,7 +4962,7 @@ static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartDa
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Memory Failure");
+                print_str("Memory Failure");
             }
 
             return;
@@ -5151,7 +5151,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Memory Failure");
+                print_str("Memory Failure");
             }
 
             return;
@@ -5161,37 +5161,37 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
             get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(device, smartData, smartAnalyzedData, &dataFormatVerified))
         {
 
-            printf("=======Key======\n");
-            printf("\tFlags:\n");
-            printf("\t  P - pre-fail/warranty indicator\n");
-            printf("\t  O - online collection of data while device is running\n");
-            printf("\t  S - Performance degrades as current value decreases\n");
-            printf("\t  R - Error Rate - indicates tracking of an error rate\n");
-            printf("\t  C - Event Count - attribute represents a counter of events\n");
-            printf("\t  K - Self Preservation (saved across power-cycles)\n");
-            printf("\tThresholds/Current/Worst:\n");
-            printf("\t  N/A - thresholds not available for this attribute/device\n");
-            printf("\t  AP  - threshold is always passing (value of zero)\n");
-            printf("\t  AF  - threshold is always failing (value of 255)\n");
-            printf("\t  INV - threshold is set to an invalid value (value of 254)\n");
-            printf("\tOther indicators:\n");
-            printf("\t  ? - See analyzed output for more information on raw data\n");
-            printf("\t  ! - attribute is currently failing\n");
-            printf("\t  ^ - attribute has previously failed\n");
+            print_str("=======Key======\n");
+            print_str("\tFlags:\n");
+            print_str("\t  P - pre-fail/warranty indicator\n");
+            print_str("\t  O - online collection of data while device is running\n");
+            print_str("\t  S - Performance degrades as current value decreases\n");
+            print_str("\t  R - Error Rate - indicates tracking of an error rate\n");
+            print_str("\t  C - Event Count - attribute represents a counter of events\n");
+            print_str("\t  K - Self Preservation (saved across power-cycles)\n");
+            print_str("\tThresholds/Current/Worst:\n");
+            print_str("\t  N/A - thresholds not available for this attribute/device\n");
+            print_str("\t  AP  - threshold is always passing (value of zero)\n");
+            print_str("\t  AF  - threshold is always failing (value of 255)\n");
+            print_str("\t  INV - threshold is set to an invalid value (value of 254)\n");
+            print_str("\tOther indicators:\n");
+            print_str("\t  ? - See analyzed output for more information on raw data\n");
+            print_str("\t  ! - attribute is currently failing\n");
+            print_str("\t  ^ - attribute has previously failed\n");
             printf("\t  %% - attribute is currently issuing a warning\n");
-            printf("\t  ~ - attribute has previously warned about its condition\n");
-            printf("\tTemperature: (Celcius unless specified)\n");
-            printf("\t  m = minimum\n");
-            printf("\t  M = maximum\n");
-            printf("\tColumns:\n");
-            printf("\t  CV - current value (Also called nominal value in specifications)\n");
-            printf("\t  WV - worst ever value\n");
-            printf("\t  TV - threshold value (requires support of thresholds data)\n");
-            printf("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
-            printf("--------------------------------------------------------------------------------\n");
+            print_str("\t  ~ - attribute has previously warned about its condition\n");
+            print_str("\tTemperature: (Celcius unless specified)\n");
+            print_str("\t  m = minimum\n");
+            print_str("\t  M = maximum\n");
+            print_str("\tColumns:\n");
+            print_str("\t  CV - current value (Also called nominal value in specifications)\n");
+            print_str("\t  WV - worst ever value\n");
+            print_str("\t  TV - threshold value (requires support of thresholds data)\n");
+            print_str("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
+            print_str("--------------------------------------------------------------------------------\n");
             printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
-            printf("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
-            printf("--------------------------------------------------------------------------------\n");
+            print_str("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
+            print_str("--------------------------------------------------------------------------------\n");
 
             // Now print this on console
             for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
@@ -5204,8 +5204,8 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
 
             if (!dataFormatVerified)
             {
-                printf("WARNING: Interpretation of RAW data has not been verified on this device/firmware.\n");
-                printf("         Product manuals and/or specifications are required for full data verification.\n");
+                print_str("WARNING: Interpretation of RAW data has not been verified on this device/firmware.\n");
+                print_str("         Product manuals and/or specifications are required for full data verification.\n");
             }
         }
 
@@ -5224,11 +5224,11 @@ eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMo
     {
         if (ret == NOT_SUPPORTED)
         {
-            printf("Printing SMART attributes is not supported on this drive type at this time\n");
+            print_str("Printing SMART attributes is not supported on this drive type at this time\n");
         }
         else
         {
-            printf("Error retreiving the logs. \n");
+            print_str("Error retreiving the logs. \n");
         }
     }
     else
@@ -5295,11 +5295,11 @@ eReturnValues show_NVMe_Health(tDevice* device)
         {
             if (ret == NOT_SUPPORTED)
             {
-                printf("Printing SMART/Health data is not supported on this drive type at this time\n");
+                print_str("Printing SMART/Health data is not supported on this drive type at this time\n");
             }
             else
             {
-                printf("Error retreiving the NVMe health log. \n");
+                print_str("Error retreiving the NVMe health log. \n");
             }
         }
         else
@@ -5311,27 +5311,27 @@ eReturnValues show_NVMe_Health(tDevice* device)
             printf("Critical Warnings                   : %#x\n", smartData.attributes.nvmeSMARTAttr.criticalWarning);
             if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT0)
             {
-                printf("\tSpare Capacity has fallen below the threshold.\n");
+                print_str("\tSpare Capacity has fallen below the threshold.\n");
             }
             if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT1)
             {
-                printf("\tTemperature >= over temperature threshold or <= under temperature threshold.\n");
+                print_str("\tTemperature >= over temperature threshold or <= under temperature threshold.\n");
             }
             if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT2)
             {
-                printf("\tNVM Subsystem reliability has been degraded due to media errors or internal errors.\n");
+                print_str("\tNVM Subsystem reliability has been degraded due to media errors or internal errors.\n");
             }
             if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT3)
             {
-                printf("\tMedia in Read Only mode\n");
+                print_str("\tMedia in Read Only mode\n");
             }
             if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT4)
             {
-                printf("\tVolatile memory backup device has failed.\n");
+                print_str("\tVolatile memory backup device has failed.\n");
             }
             if (smartData.attributes.nvmeSMARTAttr.criticalWarning & BIT5)
             {
-                printf("\tPersistent Memory Region has become read-only or unreliable.\n");
+                print_str("\tPersistent Memory Region has become read-only or unreliable.\n");
             }
             printf("Temperature                         : %" PRIu32 " C\n", temperature);
             printf("Available Spare                     : %" PRIu8 "%%\n",
@@ -5344,15 +5344,15 @@ eReturnValues show_NVMe_Health(tDevice* device)
                    smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning);
             if (smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning & BIT0)
             {
-                printf("\tSpare Capacity has fallen below the threshold.\n");
+                print_str("\tSpare Capacity has fallen below the threshold.\n");
             }
             if (smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning & BIT2)
             {
-                printf("\tNVM Subsystem reliability has been degraded due to media errors or internal errors.\n");
+                print_str("\tNVM Subsystem reliability has been degraded due to media errors or internal errors.\n");
             }
             if (smartData.attributes.nvmeSMARTAttr.enduranceGroupCriticalWarning & BIT3)
             {
-                printf("\tMedia in Read Only mode\n");
+                print_str("\tMedia in Read Only mode\n");
             }
             printf("Data Units Read                     : %.0f\n",
                    convert_128bit_to_double(smartData.attributes.nvmeSMARTAttr.dataUnitsRead));
@@ -5474,16 +5474,16 @@ static eReturnValues get_ATA_SMART_Status_From_SCT_Log(tDevice* device)
 // slightly modified to handle HDD vs SSD
 void print_SMART_Tripped_Message(bool ssd)
 {
-    printf("WARNING: Immediately back-up your data and replace your\n");
+    print_str("WARNING: Immediately back-up your data and replace your\n");
     if (ssd)
     {
-        printf("SSD (Solid State Drive). ");
+        print_str("SSD (Solid State Drive). ");
     }
     else
     {
-        printf("HDD (Hard Disk Drive). ");
+        print_str("HDD (Hard Disk Drive). ");
     }
-    printf("A failure may be imminent.\n");
+    print_str("A failure may be imminent.\n");
 }
 
 // checks if the current/worst ever value is within the valid range or not.
@@ -5991,7 +5991,7 @@ eReturnValues scsi_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
     eReturnValues ret = NOT_SUPPORTED;
     if (VERBOSITY_COMMAND_NAMES <= device->deviceVerbosity)
     {
-        printf("Starting SCSI SMART Check\n");
+        print_str("Starting SCSI SMART Check\n");
     }
 
     informationalExceptionsLog     infoExceptionsLog;
@@ -6412,7 +6412,7 @@ eReturnValues get_Pending_List_Count(tDevice* device, uint32_t* pendingCount)
         bool pendingCountFound = false;
         if (device->drive_info.softSATFlags.deviceStatisticsSupported)
         {
-            // printf("In Device Statistics\n");
+            // print_str("In Device Statistics\n");
             DECLARE_ZERO_INIT_ARRAY(uint8_t, rotatingMediaStatistics, LEGACY_DRIVE_SEC_SIZE);
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS,
                                                      ATA_DEVICE_STATS_LOG_ROTATING_MEDIA, rotatingMediaStatistics,
@@ -6428,7 +6428,7 @@ eReturnValues get_Pending_List_Count(tDevice* device, uint32_t* pendingCount)
         }
         if (!pendingCountFound && is_SMART_Enabled(device))
         {
-            // printf("In Attributes\n");
+            // print_str("In Attributes\n");
             // try SMART data
             smartLogData smartData;
             safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
@@ -7289,7 +7289,7 @@ eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
     RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        printf("\n===SMART Info===\n");
+        print_str("\n===SMART Info===\n");
         printf("SMART Version: 0x02%" PRIX16 "\n", smartInfo->smartVersion);
         // off-line data collection status
         printf("Off-line Data Collection Status: \n\t%" PRIX8 "h - ", smartInfo->offlineDataCollectionStatus);
@@ -7298,26 +7298,26 @@ eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
         {
         case 0:
         case 0x80:
-            printf("Off-line Data Collection Never Started");
+            print_str("Off-line Data Collection Never Started");
             break;
         case 2:
         case 0x82:
-            printf("Off-line data collection activity was completed without error");
+            print_str("Off-line data collection activity was completed without error");
             break;
         case 3:
-            printf("Off-line activity in progress");
+            print_str("Off-line activity in progress");
             break;
         case 4:
         case 0x84:
-            printf("Off-line data collection activity was suspended by an interrupting command from host");
+            print_str("Off-line data collection activity was suspended by an interrupting command from host");
             break;
         case 5:
         case 0x85:
-            printf("Off-line data collection activity was aborted by an interrupting command from host");
+            print_str("Off-line data collection activity was aborted by an interrupting command from host");
             break;
         case 6:
         case 0x86:
-            printf("Off-line data collection activity was aborted by the device with a fatal error");
+            print_str("Off-line data collection activity was aborted by the device with a fatal error");
             break;
         default:
             // vendor specific
@@ -7325,32 +7325,32 @@ eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
                 (smartInfo->offlineDataCollectionStatus >=
                  0xC0 /* && smartInfo->offlineDataCollectionStatus <= 0xFF */))
             {
-                printf("Vendor Specific");
+                print_str("Vendor Specific");
             }
             else // reserved
             {
-                printf("Reserved");
+                print_str("Reserved");
             }
         }
         if (autoOfflineEnabled)
         {
-            printf(" (Auto-Off-Line Enabled)");
+            print_str(" (Auto-Off-Line Enabled)");
         }
-        printf("\n");
+        print_str("\n");
         // self test execution status
         printf("Self Test Execution Status: %02" PRIX8 "h\n", smartInfo->selfTestExecutionStatus);
         printf("\tPercent Remaining: %" PRIu32 "\n", M_Nibble0(smartInfo->selfTestExecutionStatus) * 10);
-        printf("\tStatus: ");
+        print_str("\tStatus: ");
         switch (M_Nibble0(smartInfo->selfTestExecutionStatus))
         {
         case 0:
-            printf("Self-test routine completed without error or no self-test status is available");
+            print_str("Self-test routine completed without error or no self-test status is available");
             break;
         case 1:
-            printf("The self-test routine was aborted by the host");
+            print_str("The self-test routine was aborted by the host");
             break;
         case 2:
-            printf("The self-test routine was interrupted by the host with a hardware or software reset");
+            print_str("The self-test routine was interrupted by the host with a hardware or software reset");
             break;
         case 3:
             printf("A fatal error or unknown test error occurred while the device was executing its self-test routine "
@@ -7361,78 +7361,78 @@ eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
                    "failed is not known");
             break;
         case 5:
-            printf("The previous self-test completed having the electrical element of the test failed");
+            print_str("The previous self-test completed having the electrical element of the test failed");
             break;
         case 6:
-            printf("The previous self-test completed having the servo and/or seek test element of the test failed");
+            print_str("The previous self-test completed having the servo and/or seek test element of the test failed");
             break;
         case 7:
-            printf("The previous self-test completed having the read element of the test failed");
+            print_str("The previous self-test completed having the read element of the test failed");
             break;
         case 8:
             printf("The previous self-test completed having a test element that failed and the device is suspected of "
                    "having handling damage");
             break;
         case 0xF:
-            printf("Self-test routine in progress");
+            print_str("Self-test routine in progress");
             break;
         default:
-            printf("Reserved");
+            print_str("Reserved");
         }
-        printf("\n");
+        print_str("\n");
         // off-line data collection capability
-        printf("Off-Line Data Collection Capabilities:\n");
+        print_str("Off-Line Data Collection Capabilities:\n");
         if (smartInfo->offlineDataCollectionCapability & BIT7)
         {
-            printf("\tReserved\n");
+            print_str("\tReserved\n");
         }
         if (smartInfo->offlineDataCollectionCapability & BIT6)
         {
-            printf("\tSelective Self Test\n");
+            print_str("\tSelective Self Test\n");
         }
         if (smartInfo->offlineDataCollectionCapability & BIT5)
         {
-            printf("\tConveyance Self Test\n");
+            print_str("\tConveyance Self Test\n");
         }
         if (smartInfo->offlineDataCollectionCapability & BIT4)
         {
-            printf("\tShort & Extended Self Test\n");
+            print_str("\tShort & Extended Self Test\n");
         }
         if (smartInfo->offlineDataCollectionCapability & BIT3)
         {
-            printf("\tOff-Line Read Scanning\n");
+            print_str("\tOff-Line Read Scanning\n");
         }
         if (smartInfo->offlineDataCollectionCapability & BIT2)
         {
-            printf("\tReserved\n");
+            print_str("\tReserved\n");
         }
         if (smartInfo->offlineDataCollectionCapability & BIT1)
         {
-            printf("\tAuto-Off-Line\n");
+            print_str("\tAuto-Off-Line\n");
         }
         if (smartInfo->offlineDataCollectionCapability & BIT0)
         {
-            printf("\tExecute Off-Line Immediate\n");
+            print_str("\tExecute Off-Line Immediate\n");
         }
         // smart capabilities
-        printf("SMART Capabilities:\n");
+        print_str("SMART Capabilities:\n");
         if (smartInfo->smartCapability & BIT1)
         {
-            printf("\tAttribute Auto-Save\n");
+            print_str("\tAttribute Auto-Save\n");
         }
         if (smartInfo->smartCapability & BIT0)
         {
-            printf("\tSMART Data Saved before entering power save mode\n");
+            print_str("\tSMART Data Saved before entering power save mode\n");
         }
         // error logging capability
-        printf("Error Logging: ");
+        print_str("Error Logging: ");
         if (smartInfo->errorLoggingCapability & BIT0)
         {
-            printf("Supported\n");
+            print_str("Supported\n");
         }
         else
         {
-            printf("Not Supported\n");
+            print_str("Not Supported\n");
         }
         // time to complete off-line data collection
         printf("Time To Complete Off-Line Data Collection: %0.2f minutes\n",
@@ -7510,7 +7510,7 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error: Could not retrieve Log Page 0x02\n");
+                    print_str("Error: Could not retrieve Log Page 0x02\n");
                 }
             }
 
@@ -7572,7 +7572,7 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error: Could not retrieve Log Page - SuperCap DRAM\n");
+                    print_str("Error: Could not retrieve Log Page - SuperCap DRAM\n");
                 }
                 // exitCode = UTIL_EXIT_OPERATION_FAILURE; //should I fail it completely
             }
@@ -7654,7 +7654,7 @@ eReturnValues nvme_Print_PCI_Statistics(tDevice* device)
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error: Could not retrieve Log Page 0x02\n");
+                    print_str("Error: Could not retrieve Log Page 0x02\n");
                 }
             }
         }
@@ -11726,15 +11726,15 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
     DISABLE_NONNULL_COMPARE
     if (errorLogData != M_NULLPTR)
     {
-        printf("SMART Comprehensive Error Log");
+        print_str("SMART Comprehensive Error Log");
         if (errorLogData->extLog)
         {
-            printf(" (EXT)");
+            print_str(" (EXT)");
         }
         printf("- Version %" PRIu8 ":\n", errorLogData->version);
         if (errorLogData->numberOfEntries == 0)
         {
-            printf("\tNo errors found!\n");
+            print_str("\tNo errors found!\n");
         }
         else
         {
@@ -11742,7 +11742,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                    errorLogData->deviceErrorCount);
             if (!errorLogData->checksumsValid)
             {
-                printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
+                print_str("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
             }
 
             if (genericOutput)
@@ -11766,34 +11766,34 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 //  LHe DH DC
                 if (errorLogData->extLog)
                 {
-                    printf("\t-----Command Key-----\n");
-                    printf("\tCD - Command     \tFT - Feature     \tFTe - Feature Ext\n");
-                    printf("\tSC - Sector Count\tSCe - Sector Count Ext\n");
-                    printf("\tLL - LBA Low     \tLM - LBA Mid     \tLH - LBA Hi\n");
-                    printf("\tLLe - LBA Low Ext\tLMe - LBA Mid Ext\tLHe - LBA Hi Ext\n");
-                    printf("\tDH - Device/Head \tDC - Device Control (transport specific)\n");
-                    printf("\t------Error Key------\n");
-                    printf("\tST - Status      \tER - Error\n");
-                    printf("\tSC - Sector Count\tSCe - Sector Count Ext\n");
-                    printf("\tLL - LBA Low     \tLM - LBA Mid     \tLH - LBA Hi\n");
-                    printf("\tLLe - LBA Low Ext\tLMe - LBA Mid Ext\tLHe - LBA Hi Ext\n");
+                    print_str("\t-----Command Key-----\n");
+                    print_str("\tCD - Command     \tFT - Feature     \tFTe - Feature Ext\n");
+                    print_str("\tSC - Sector Count\tSCe - Sector Count Ext\n");
+                    print_str("\tLL - LBA Low     \tLM - LBA Mid     \tLH - LBA Hi\n");
+                    print_str("\tLLe - LBA Low Ext\tLMe - LBA Mid Ext\tLHe - LBA Hi Ext\n");
+                    print_str("\tDH - Device/Head \tDC - Device Control (transport specific)\n");
+                    print_str("\t------Error Key------\n");
+                    print_str("\tST - Status      \tER - Error\n");
+                    print_str("\tSC - Sector Count\tSCe - Sector Count Ext\n");
+                    print_str("\tLL - LBA Low     \tLM - LBA Mid     \tLH - LBA Hi\n");
+                    print_str("\tLLe - LBA Low Ext\tLMe - LBA Mid Ext\tLHe - LBA Hi Ext\n");
                     printf(
                         "\tDH - Device/Head \tDC - Device Control\tVU Bytes - Extended Error Info (Vendor Unique)\n");
-                    printf("\t---------------------\n");
+                    print_str("\t---------------------\n");
                 }
                 else
                 {
-                    printf("\t-----Command Key-----\n");
-                    printf("\tCD - Command     \tFT - Feature\n");
-                    printf("\tSC - Sector Count\tLL - LBA Low\n");
-                    printf("\tLM - LBA Mid     \tLH - LBA Hi\n");
-                    printf("\tDH - Device/Head \tDC - Device Control (transport specific)\n");
-                    printf("\t------Error Key------\n");
-                    printf("\tST - Status      \tER - Error\n");
-                    printf("\tSC - Sector Count\tLL - LBA Low\n");
-                    printf("\tLM - LBA Mid     \tLH - LBA Hi\n");
-                    printf("\tDH - Device/Head \tVU Bytes - Extended Error Info (Vendor Unique)\n");
-                    printf("\t---------------------\n");
+                    print_str("\t-----Command Key-----\n");
+                    print_str("\tCD - Command     \tFT - Feature\n");
+                    print_str("\tSC - Sector Count\tLL - LBA Low\n");
+                    print_str("\tLM - LBA Mid     \tLH - LBA Hi\n");
+                    print_str("\tDH - Device/Head \tDC - Device Control (transport specific)\n");
+                    print_str("\t------Error Key------\n");
+                    print_str("\tST - Status      \tER - Error\n");
+                    print_str("\tSC - Sector Count\tLL - LBA Low\n");
+                    print_str("\tLM - LBA Mid     \tLH - LBA Hi\n");
+                    print_str("\tDH - Device/Head \tVU Bytes - Extended Error Info (Vendor Unique)\n");
+                    print_str("\t---------------------\n");
                 }
             }
 
@@ -11804,7 +11804,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
             }
             for (uint8_t iter = UINT8_C(0); iter < errorLogData->numberOfEntries && iter < totalErrorCountLimit; ++iter)
             {
-                printf("\n===============================================\n");
+                print_str("\n===============================================\n");
                 printf("Error %" PRIu16 " - Drive State: ", iter + UINT16_C(1));
                 uint8_t errorState = errorLogData->smartError[iter].error.state;
                 if (errorLogData->extLog)
@@ -11814,35 +11814,35 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 switch (M_Nibble0(errorState))
                 {
                 case 0:
-                    printf("Unknown");
+                    print_str("Unknown");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 1:
-                    printf("Sleep");
+                    print_str("Sleep");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 2:
-                    printf("Standby");
+                    print_str("Standby");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 3:
-                    printf("Active/Idle");
+                    print_str("Active/Idle");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 4:
-                    printf("Executing Off-line or self test");
+                    print_str("Executing Off-line or self test");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
@@ -11859,7 +11859,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     }
                     break;
                 }
-                printf(" Life Timestamp: ");
+                print_str(" Life Timestamp: ");
                 uint16_t days                 = UINT16_C(0);
                 uint8_t  years                = UINT8_C(0);
                 uint8_t  hours                = UINT8_C(0);
@@ -11878,7 +11878,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                 }
                 convert_Seconds_To_Displayable_Time(lifeTimeStampSeconds, &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
                 uint8_t numberOfCommandsBeforeError = errorLogData->smartError[iter].numberOfCommands;
                 if (errorLogData->extLog)
                 {
@@ -11897,12 +11897,12 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     if (errorLogData->extLog)
                     {
                         // printf the command register format before printing commands
-                        printf("CD FT FTe SC SCe LL LM LH LLe LMe LHe DH DC\tTimeStamp\n");
+                        print_str("CD FT FTe SC SCe LL LM LH LLe LMe LHe DH DC\tTimeStamp\n");
                     }
                     else
                     {
                         // printf the command register format before printing commands
-                        printf("CD FT SC LL LM LH DH DC\tTimeStamp\n");
+                        print_str("CD FT SC LL LM LH DH DC\tTimeStamp\n");
                     }
                 }
                 for (uint8_t commandIter = UINT8_C(5) - numberOfCommandsBeforeError; commandIter < UINT8_C(5);
@@ -11961,7 +11961,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     {
                         if (errorLogData->extLog)
                         {
-                            // printf("CD FT FTe SC SCe LL LM LH LLe LMe LHe DH DC\tTimeStamp\n");
+                            // print_str("CD FT FTe SC SCe LL LM LH LLe LMe LHe DH DC\tTimeStamp\n");
                             printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 "  %02" PRIX8 " %02" PRIX8 "  %02" PRIX8
                                    " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 "  %02" PRIX8 "  %02" PRIX8 "  %02" PRIX8
                                    " %02" PRIX8 "\t%s\n",
@@ -11982,7 +11982,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                         }
                         else
                         {
-                            // printf("CD FT SC LL LM LH DH DC\tTimeStamp\n");
+                            // print_str("CD FT SC LL LM LH DH DC\tTimeStamp\n");
                             printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8
                                    " %02" PRIX8 " %02" PRIX8 "\t%s\n",
                                    errorLogData->smartError[iter].command[commandIter].contentWritten,
@@ -12057,7 +12057,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     {
                         // first print out the format
                         // printf the error register format before printing commands
-                        printf("\nST ER     SC SCe LL LM LH LLe LMe LHe DH DC\tVU Bytes\n");
+                        print_str("\nST ER     SC SCe LL LM LH LLe LMe LHe DH DC\tVU Bytes\n");
                         printf("%02" PRIX8 " %02" PRIX8 "     %02" PRIX8 " %02" PRIX8 "  %02" PRIX8 " %02" PRIX8
                                " %02" PRIX8 " %02" PRIX8 "  %02" PRIX8 "  %02" PRIX8 "  %02" PRIX8 " %02" PRIX8 "\t",
                                errorLogData->extSmartError[iter].extError.status,
@@ -12077,13 +12077,13 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                             printf("%02" PRIX8 "",
                                    errorLogData->extSmartError[iter].extError.extendedErrorInformation[vuIter]);
                         }
-                        printf("\n");
+                        print_str("\n");
                     }
                     else
                     {
                         // first print out the format
                         // printf the error register format before printing commands
-                        printf("\nST ER SC LL LM LH DH\tVU Bytes\n");
+                        print_str("\nST ER SC LL LM LH DH\tVU Bytes\n");
                         printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8
                                "\t",
                                errorLogData->smartError[iter].error.status, errorLogData->smartError[iter].error.error,
@@ -12095,7 +12095,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                             printf("%02" PRIX8 "",
                                    errorLogData->smartError[iter].error.extendedErrorInformation[vuIter]);
                         }
-                        printf("\n");
+                        print_str("\n");
                     }
                 }
                 else
@@ -12117,11 +12117,11 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
     DISABLE_NONNULL_COMPARE
     if (errorLogData != M_NULLPTR)
     {
-        printf("SMART Summary Error Log");
+        print_str("SMART Summary Error Log");
         printf("- Version %" PRIu8 ":\n", errorLogData->version);
         if (errorLogData->numberOfEntries == 0)
         {
-            printf("\tNo errors found!\n");
+            print_str("\tNo errors found!\n");
         }
         else
         {
@@ -12129,7 +12129,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                    errorLogData->deviceErrorCount);
             if (!errorLogData->checksumsValid)
             {
-                printf("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
+                print_str("\tWARNING: Invalid checksum was detected when reading SMART Error log data!\n");
             }
 
             if (genericOutput)
@@ -12151,57 +12151,57 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 //  ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt  LMe=LBAMidExt  LHe=LBAHiExt
                 //  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl ST ER SC SCe LL LM LH LLe LMe
                 //  LHe DH DC
-                printf("\t-----Command Key-----\n");
-                printf("\tCD - Command     \tFT - Feature\n");
-                printf("\tSC - Sector Count\tLL - LBA Low\n");
-                printf("\tLM - LBA Mid     \tLH - LBA Hi\n");
-                printf("\tDH - Device/Head \tDC - Device Control (transport specific)\n");
-                printf("\t------Error Key------\n");
-                printf("\tST - Status      \tER - Error\n");
-                printf("\tSC - Sector Count\tLL - LBA Low\n");
-                printf("\tLM - LBA Mid     \tLH - LBA Hi\n");
-                printf("\tDH - Device/Head \tVU Bytes - Extended Error Info (Vendor Unique)\n");
-                printf("\t---------------------\n");
+                print_str("\t-----Command Key-----\n");
+                print_str("\tCD - Command     \tFT - Feature\n");
+                print_str("\tSC - Sector Count\tLL - LBA Low\n");
+                print_str("\tLM - LBA Mid     \tLH - LBA Hi\n");
+                print_str("\tDH - Device/Head \tDC - Device Control (transport specific)\n");
+                print_str("\t------Error Key------\n");
+                print_str("\tST - Status      \tER - Error\n");
+                print_str("\tSC - Sector Count\tLL - LBA Low\n");
+                print_str("\tLM - LBA Mid     \tLH - LBA Hi\n");
+                print_str("\tDH - Device/Head \tVU Bytes - Extended Error Info (Vendor Unique)\n");
+                print_str("\t---------------------\n");
             }
 
             uint16_t totalErrorCountLimit = SMART_SUMMARY_ERRORS_MAX;
             for (uint8_t iter = UINT8_C(0); iter < errorLogData->numberOfEntries && iter < totalErrorCountLimit; ++iter)
             {
-                printf("\n===============================================\n");
+                print_str("\n===============================================\n");
                 printf("Error %" PRIu16 " - Drive State: ", iter + 1);
                 uint8_t errorState = errorLogData->smartError[iter].error.state;
                 switch (M_Nibble0(errorState))
                 {
                 case 0:
-                    printf("Unknown");
+                    print_str("Unknown");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 1:
-                    printf("Sleep");
+                    print_str("Sleep");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 2:
-                    printf("Standby");
+                    print_str("Standby");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 3:
-                    printf("Active/Idle");
+                    print_str("Active/Idle");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
                     }
                     break;
                 case 4:
-                    printf("Executing Off-line or self test");
+                    print_str("Executing Off-line or self test");
                     if (genericOutput)
                     {
                         printf("(%02" PRIX8 "h)", errorState);
@@ -12218,7 +12218,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     }
                     break;
                 }
-                printf(" Life Timestamp: ");
+                print_str(" Life Timestamp: ");
                 uint16_t days    = UINT16_C(0);
                 uint8_t  years   = UINT8_C(0);
                 uint8_t  hours   = UINT8_C(0);
@@ -12228,7 +12228,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     C_CAST(uint64_t, errorLogData->smartError[iter].error.lifeTimestamp) * UINT64_C(3600), &years,
                     &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
                 uint8_t numberOfCommandsBeforeError = errorLogData->smartError[iter].numberOfCommands;
                 // Putting these vars here because we may need to look at them while parsing the error reason.
                 uint16_t features      = UINT16_C(0);
@@ -12241,7 +12241,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 if (genericOutput)
                 {
                     // printf the command register format before printing commands
-                    printf("CD FT SC LL LM LH DH DC\tTimeStamp\n");
+                    print_str("CD FT SC LL LM LH DH DC\tTimeStamp\n");
                 }
                 for (uint8_t commandIter = UINT8_C(5) - numberOfCommandsBeforeError; commandIter < UINT8_C(5);
                      ++commandIter)
@@ -12268,7 +12268,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     convert_Milliseconds_To_Time_String(timestampMilliseconds, timestampString);
                     if (genericOutput)
                     {
-                        // printf("CD FT SC LL LM LH DH DC\tTimeStamp\n");
+                        // print_str("CD FT SC LL LM LH DH DC\tTimeStamp\n");
                         printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8
                                " %02" PRIX8 "\t%s\n",
                                errorLogData->smartError[iter].command[commandIter].contentWritten,
@@ -12318,7 +12318,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                 {
                     // first print out the format
                     // printf the error register format before printing commands
-                    printf("\nST ER SC LL LM LH DH\tVU Bytes\n");
+                    print_str("\nST ER SC LL LM LH DH\tVU Bytes\n");
                     printf("%02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8 " %02" PRIX8
                            "\t",
                            errorLogData->smartError[iter].error.status, errorLogData->smartError[iter].error.error,
@@ -12329,7 +12329,7 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
                     {
                         printf("%02" PRIX8 "", errorLogData->smartError[iter].error.extendedErrorInformation[vuIter]);
                     }
-                    printf("\n");
+                    print_str("\n");
                 }
                 else
                 {

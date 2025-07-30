@@ -299,11 +299,11 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
                                          uint16_t           currentDepopulatedElements)
 {
     // print out the list of descriptors
-    printf("\nElement Types:\n");
-    printf("\t P - physical element\n");
-    printf("\t S - storage element\n");
+    print_str("\nElement Types:\n");
+    print_str("\t P - physical element\n");
+    print_str("\t S - storage element\n");
 
-    printf("\nApproximate time to depopulate: ");
+    print_str("\nApproximate time to depopulate: ");
     if (depopulateTime > UINT64_C(0) && depopulateTime < UINT64_MAX)
     {
         uint16_t days    = UINT16_C(0);
@@ -312,11 +312,11 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
         uint8_t  seconds = UINT8_C(0);
         convert_Seconds_To_Displayable_Time(depopulateTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     else
     {
-        printf("Not reported.\n");
+        print_str("Not reported.\n");
     }
     if (depopElementID > 0)
     {
@@ -330,8 +330,8 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
     {
         printf("Current Depopulated Elements: %" PRIu16 "\n", currentDepopulatedElements);
     }
-    printf("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\tRebuild Allowed\n");
-    printf("----------------------------------------------------------------------------------\n");
+    print_str("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\tRebuild Allowed\n");
+    print_str("----------------------------------------------------------------------------------\n");
     for (uint32_t elementIter = UINT32_C(0); elementIter < numberOfElements; ++elementIter)
     {
 #define PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH 23
@@ -406,7 +406,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
         printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%s\t%s\n", elementList[elementIter].elementIdentifier,
                elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);
     }
-    printf("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
+    print_str("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
 }
 
 void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
@@ -668,13 +668,13 @@ eReturnValues show_Depop_Repop_Progress(tDevice* device)
         switch (depopStatus)
         {
         case DEPOP_NOT_IN_PROGRESS:
-            printf("Depopulation/repopulation is not in progress.\n");
+            print_str("Depopulation/repopulation is not in progress.\n");
             break;
         case DEPOP_IN_PROGRESS:
-            printf("Depopulation in progress: ");
+            print_str("Depopulation in progress: ");
             if (progress > 100)
             {
-                printf("Progress indication not available.\n");
+                print_str("Progress indication not available.\n");
             }
             else
             {
@@ -683,10 +683,10 @@ eReturnValues show_Depop_Repop_Progress(tDevice* device)
             ret = IN_PROGRESS;
             break;
         case DEPOP_REPOP_IN_PROGRESS:
-            printf("Repopulation in progress: ");
+            print_str("Repopulation in progress: ");
             if (progress > 100)
             {
-                printf("Progress indication not available.\n");
+                print_str("Progress indication not available.\n");
             }
             else
             {
@@ -695,23 +695,23 @@ eReturnValues show_Depop_Repop_Progress(tDevice* device)
             ret = IN_PROGRESS;
             break;
         case DEPOP_FAILED:
-            printf("Depopulation failed.\n");
+            print_str("Depopulation failed.\n");
             break;
         case DEPOP_REPOP_FAILED:
-            printf("Repopulation failed.\n");
+            print_str("Repopulation failed.\n");
             break;
         case DEPOP_MICROCODE_NEEDS_ACTIVATION:
-            printf("Depopulation/repopulation requires microcode activation before it can be run.\n");
+            print_str("Depopulation/repopulation requires microcode activation before it can be run.\n");
             break;
         default:
-            printf("Unknown depopulation/repopulation status. The feature may not be supported, or is not running.\n");
+            print_str("Unknown depopulation/repopulation status. The feature may not be supported, or is not running.\n");
             break;
         }
     }
     else
     {
         ret = FAILURE;
-        printf("A failure was encountered when checking for progress on depopulation/repopulation.\n");
+        print_str("A failure was encountered when checking for progress on depopulation/repopulation.\n");
     }
     return ret;
 }
@@ -729,7 +729,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
         {
             if (depopTime == UINT64_MAX || depopTime == 0)
             {
-                printf("Starting depopulation. Approximate time until completion is not available.\n");
+                print_str("Starting depopulation. Approximate time until completion is not available.\n");
             }
             else
             {
@@ -738,12 +738,12 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                 uint8_t  minutes = UINT8_C(0);
                 uint8_t  seconds = UINT8_C(0);
                 convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("Starting depopulation. Approximate time until completion: ");
+                print_str("Starting depopulation. Approximate time until completion: ");
                 print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
             }
-            printf("Do not remove power or attempt other access as interrupting it may make\n");
-            printf("the drive unusable or require performing this command again!!\n");
+            print_str("Do not remove power or attempt other access as interrupting it may make\n");
+            print_str("the drive unusable or require performing this command again!!\n");
         }
         ret = depopulate_Physical_Element(device, elementDescriptorID, requestedMaxLBA);
         if (ret != SUCCESS)
@@ -758,7 +758,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                     {
-                        printf("Depopulation cannot be started. Microcode must be activated first.\n");
+                        print_str("Depopulation cannot be started. Microcode must be activated first.\n");
                     }
                     ret = FAILURE;
                 }
@@ -780,7 +780,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                     {
                         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                         {
-                            printf("Depopulation cannot be started. Microcode must be activated first.\n");
+                            print_str("Depopulation cannot be started. Microcode must be activated first.\n");
                         }
                         ret = FAILURE;
                     }
@@ -823,7 +823,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                             {
                                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                                 {
-                                    printf("Depopulation cannot be started. Microcode must be activated first.\n");
+                                    print_str("Depopulation cannot be started. Microcode must be activated first.\n");
                                 }
                                 ret         = FAILURE;
                                 reasonFound = true;
@@ -886,11 +886,11 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                 {
                     if (invalidElement)
                     {
-                        printf("Depopulation failed due to invalid element specified\n");
+                        print_str("Depopulation failed due to invalid element specified\n");
                     }
                     else if (invalidMaxLBA)
                     {
-                        printf("Depopulation failed due to invalid new max LBA specified\n");
+                        print_str("Depopulation failed due to invalid new max LBA specified\n");
                     }
                     else
                     {
@@ -903,7 +903,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
-                    printf("An unknown error was encountered when attempting to depopulate elements.\n");
+                    print_str("An unknown error was encountered when attempting to depopulate elements.\n");
                 }
                 ret = FAILURE;
             }
@@ -921,7 +921,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                 eReturnValues progressCheck = SUCCESS;
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
-                    printf("\n");
+                    print_str("\n");
                 }
                 do
                 {
@@ -933,7 +933,7 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                         {
                             if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                             {
-                                printf("\rDepopulation is progress, but progress indication is not available.");
+                                print_str("\rDepopulation is progress, but progress indication is not available.");
                             }
                         }
                         else
@@ -1185,7 +1185,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
         {
             if (depopTime == UINT64_MAX || depopTime == 0)
             {
-                printf("Starting repopulation. Approximate time until completion is not available.\n");
+                print_str("Starting repopulation. Approximate time until completion is not available.\n");
             }
             else
             {
@@ -1194,12 +1194,12 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                 uint8_t  minutes = UINT8_C(0);
                 uint8_t  seconds = UINT8_C(0);
                 convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("Starting repopulation. Approximate time until completion: ");
+                print_str("Starting repopulation. Approximate time until completion: ");
                 print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
             }
-            printf("Do not remove power or attempt other access as interrupting it may make\n");
-            printf("the drive unusable or require performing this command again!!\n");
+            print_str("Do not remove power or attempt other access as interrupting it may make\n");
+            print_str("the drive unusable or require performing this command again!!\n");
         }
         ret = repopulate_Elements(device);
         if (ret != SUCCESS)
@@ -1212,7 +1212,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                     {
-                        printf("Repopulation cannot be started. Microcode must be activated first.\n");
+                        print_str("Repopulation cannot be started. Microcode must be activated first.\n");
                     }
                     ret = FAILURE;
                 }
@@ -1235,7 +1235,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                     {
                         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                         {
-                            printf("Repopulation cannot be started. Microcode must be activated first.\n");
+                            print_str("Repopulation cannot be started. Microcode must be activated first.\n");
                         }
                         ret = FAILURE;
                     }
@@ -1277,7 +1277,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                             {
                                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                                 {
-                                    printf("Depopulation cannot be started. Microcode must be activated first.\n");
+                                    print_str("Depopulation cannot be started. Microcode must be activated first.\n");
                                 }
                                 ret         = FAILURE;
                                 reasonFound = true;
@@ -1326,7 +1326,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                             {
                                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                                 {
-                                    printf("Unknown error when trying to repopulate elements.\n");
+                                    print_str("Unknown error when trying to repopulate elements.\n");
                                 }
                                 ret = FAILURE;
                             }
@@ -1336,7 +1336,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                                 {
                                     printf("Repopulation of elements is not supported as currently depopulated "
                                            "elements do not\n");
-                                    printf("support being repopulated.\n");
+                                    print_str("support being repopulated.\n");
                                 }
                                 ret = FAILURE;
                             }
@@ -1345,7 +1345,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                         {
                             if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                             {
-                                printf("Unknown error when trying to repopulate elements.\n");
+                                print_str("Unknown error when trying to repopulate elements.\n");
                             }
                             ret = FAILURE;
                         }
@@ -1366,7 +1366,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                 eReturnValues progressCheck = SUCCESS;
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
-                    printf("\n");
+                    print_str("\n");
                 }
                 do
                 {
@@ -1378,7 +1378,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                         {
                             if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                             {
-                                printf("\rRepopulation is progress, but progress indication is not available.");
+                                print_str("\rRepopulation is progress, but progress indication is not available.");
                             }
                         }
                         else

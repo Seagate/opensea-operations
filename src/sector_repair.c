@@ -380,18 +380,18 @@ eReturnValues repair_LBA(tDevice*    device,
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("...");
+        print_str("...");
         if (ret == SUCCESS)
         {
-            printf("repaired!\n");
+            print_str("repaired!\n");
         }
         else if (ret == PERMISSION_DENIED)
         {
-            printf("access denied!\n");
+            print_str("access denied!\n");
         }
         else
         {
-            printf("failed!\n");
+            print_str("failed!\n");
         }
     }
     bool emulationActive = is_Sector_Size_Emulation_Active(device);
@@ -401,7 +401,7 @@ eReturnValues repair_LBA(tDevice*    device,
         // We are going to call this function recursively to try it again forcing ATA passthrough
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("\tAttempting SAT ATA Pass-through command for repair...\n");
+            print_str("\tAttempting SAT ATA Pass-through command for repair...\n");
         }
         ret = repair_LBA(device, LBA, true, automaticWriteReallocationEnabled, automaticReadReallocationEnabled);
     }
@@ -411,8 +411,8 @@ eReturnValues repair_LBA(tDevice*    device,
 void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
 {
     // need to print out a list of the LBAs and their status
-    printf("                            Bad LBAs                            \n");
-    printf("Defect Number          Defect LBA                            Repair Status\n");
+    print_str("                            Bad LBAs                            \n");
+    print_str("Defect Number          Defect LBA                            Repair Status\n");
     uint64_t errorIter            = UINT64_C(1);
     bool     showAccessDeniedNote = false;
     for (errorIter = 1; errorIter <= numberOfErrors; errorIter++)
@@ -443,10 +443,10 @@ void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
     }
     if (showAccessDeniedNote)
     {
-        printf("\nNOTE: Some LBAs could not be repaired because access to them was denied.\n");
-        printf("This may happen when a secondary drive with a file system installed on\n");
-        printf("it is recognized by the current host OS, but the current host doesn't have\n");
-        printf("permission to change the contents of the second drive.\n\n");
+        print_str("\nNOTE: Some LBAs could not be repaired because access to them was denied.\n");
+        print_str("This may happen when a secondary drive with a file system installed on\n");
+        print_str("it is recognized by the current host OS, but the current host doesn't have\n");
+        print_str("permission to change the contents of the second drive.\n\n");
     }
 }
 

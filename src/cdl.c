@@ -665,7 +665,7 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings* cdlSettings)
     }
     else
     {
-        printf("\tCommand Duration Limit : Not Supported\n");
+        print_str("\tCommand Duration Limit : Not Supported\n");
     }
 
     return ret;
@@ -681,8 +681,8 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
 
     if (cdlSettings->isSupported)
     {
-        printf("\tCommand Duration Limit : Supported\n");
-        printf("\tCommand Duration Guideline : Supported\n");
+        print_str("\tCommand Duration Limit : Supported\n");
+        print_str("\tCommand Duration Guideline : Supported\n");
         printf("\tCommand Duration Limit Minimum Limit (ns) : %llu\n", 500ULL); // TODO - read values from drive
         printf("\tCommand Duration Limit Maximum Limit (ns) : %llu\n",
                (500000000ULL * 500000000ULL)); // TODO - read values from drive
@@ -765,7 +765,7 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
     }
     else
     {
-        printf("\tCommand Duration Limit : Not Supported\n");
+        print_str("\tCommand Duration Limit : Not Supported\n");
     }
 
     return ret;
@@ -1241,7 +1241,7 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
     if (is_Performance_Versus_Command_Completion_Supported(cdlSettings) &&
         cdlSettings->ataCDLSettings.performanceVsCommandCompletion > 0x0C)
     {
-        printf("Invalid Entry for \"Performance Versus Command Completion\".\n");
+        print_str("Invalid Entry for \"Performance Versus Command Completion\".\n");
         printf("Accepted values are in range of 0x00 - 0x0C. Provided value : 0x%02" PRIX8 "\n",
                cdlSettings->ataCDLSettings.performanceVsCommandCompletion);
         return VALIDATION_FAILURE;
@@ -1367,7 +1367,7 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
     // check if valid performanceVsCommandDurationGuidelines
     if (cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines > 0x0C)
     {
-        printf("Invalid Entry for \"Performance Versus Command Duration Guidelines\".\n");
+        print_str("Invalid Entry for \"Performance Versus Command Duration Guidelines\".\n");
         printf("Accepted values are in range of 0x00 - 0x0C. Provided value : 0x%02" PRIX8 "\n",
                cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines);
         return VALIDATION_FAILURE;

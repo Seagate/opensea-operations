@@ -173,7 +173,7 @@ eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset,
             {
                 if (changeId)
                 {
-                    printf("Change model number is not supported on this device\n");
+                    print_str("Change model number is not supported on this device\n");
                     ret = NOT_SUPPORTED;
                 }
                 else
@@ -200,7 +200,7 @@ eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Setting max LBA is not supported on this device\n");
+                    print_str("Setting max LBA is not supported on this device\n");
                 }
                 ret = NOT_SUPPORTED;
             }
@@ -233,7 +233,7 @@ eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, boo
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("Setting the max LBA is not supported on this device type at this time\n");
+            print_str("Setting the max LBA is not supported on this device type at this time\n");
         }
         ret = NOT_SUPPORTED;
     }
@@ -680,8 +680,8 @@ void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelM
     DISABLE_NONNULL_COMPARE
     if (capModelMapping != M_NULLPTR)
     {
-        printf("---Capacity model number mapping---\n");
-        printf("              MaxLBA Model number\n");
+        print_str("---Capacity model number mapping---\n");
+        print_str("              MaxLBA Model number\n");
         for (uint32_t descriptorCounter = UINT32_C(0); descriptorCounter < capModelMapping->numberOfDescriptors;
              descriptorCounter++)
         {

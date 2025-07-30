@@ -314,7 +314,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Error: empty file\n");
+                print_str("Error: empty file\n");
             }
             return FAILURE;
         }
@@ -368,7 +368,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                     {
                         printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
                                "deferred download.\n");
-                        printf("         If the firmware update fails, try using segmented download instead.\n\n");
+                        print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
                 }
                 break;
@@ -380,7 +380,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                     {
                         printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
                                "deferred download.\n");
-                        printf("         If the firmware update fails, try using segmented download instead.\n\n");
+                        print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
                 }
                 break;
@@ -481,7 +481,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf(".");
+                        print_str(".");
                         flush_stdout();
                     }
                 }
@@ -509,8 +509,8 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                             {
                                 printf("\nAutomatic deferred download failed. Either the drive does not support this "
                                        "mode\n");
-                                printf("or this is an invalid firmware image for this device.\n");
-                                printf("Retrying the download with segmented download mode to verify.\n");
+                                print_str("or this is an invalid firmware image for this device.\n");
+                                print_str("Retrying the download with segmented download mode to verify.\n");
                                 flush_stdout();
                             }
                             continue;
@@ -525,8 +525,8 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                                 {
                                     printf("\nAutomatic deferred download failed. Either the drive does not support "
                                            "this mode\n");
-                                    printf("or this is an invalid firmware image for this device.\n");
-                                    printf("Retrying the download with segmented download mode to verify.\n");
+                                    print_str("or this is an invalid firmware image for this device.\n");
+                                    print_str("Retrying the download with segmented download mode to verify.\n");
                                     flush_stdout();
                                 }
                                 continue;
@@ -646,7 +646,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
 #endif
                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                 {
-                    printf(".");
+                    print_str(".");
                     flush_stdout();
                 }
                 if (!fwdlSupport.seagateDeferredPowerCycleActivate && options->ignoreStatusOfFinalSegment &&
@@ -686,7 +686,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
             os_Unlock_Device(device);
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\n");
+                print_str("\n");
             }
             options->avgSegmentDlTime /= C_CAST(uint64_t, currentDownloadBlock) + UINT64_C(1);
 #if defined(_WIN32) && defined(WINVER)
@@ -1497,7 +1497,7 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
         supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
         supportedModes->size >= sizeof(supportedDLModesV1))
     {
-        printf("===Download Support information===\n");
+        print_str("===Download Support information===\n");
         if (device->drive_info.interface_type == USB_INTERFACE ||
             device->drive_info.interface_type == IEEE_1394_INTERFACE)
         {
@@ -1511,58 +1511,58 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
             printf("Model Number: %s\n", device->drive_info.product_identification);
             printf("Firmware Revision: %s\n", device->drive_info.product_revision);
         }
-        printf("Modes Supported:\n");
+        print_str("Modes Supported:\n");
         if (supportedModes->downloadMicrocodeSupported)
         {
             if (supportedModes->fullBuffer)
             {
-                printf("\tFull\n");
+                print_str("\tFull\n");
             }
             if (supportedModes->segmented)
             {
-                printf("\tSegmented");
+                print_str("\tSegmented");
                 if (supportedModes->seagateDeferredPowerCycleActivate)
                 {
-                    printf(" (requires power cycle to activate code)");
+                    print_str(" (requires power cycle to activate code)");
                 }
-                printf("\n");
+                print_str("\n");
             }
             if (supportedModes->deferred)
             {
                 if (device->drive_info.drive_type == NVME_DRIVE)
                 {
-                    printf("\tDeferred (Requires activation command to activate)\n");
+                    print_str("\tDeferred (Requires activation command to activate)\n");
                 }
                 else
                 {
-                    printf("\tDeferred (Requires power cycle or activation command to activate)\n");
+                    print_str("\tDeferred (Requires power cycle or activation command to activate)\n");
                 }
             }
             if (supportedModes->deferredSelectActivation) // SAS Only
             {
-                printf("\tDeferred - Select activation events\n");
+                print_str("\tDeferred - Select activation events\n");
                 if (supportedModes->deferredPowerCycleActivationSupported ||
                     supportedModes->deferredHardResetActivationSupported ||
                     supportedModes->deferredVendorSpecificActivationSupported)
                 {
-                    printf("\t    Supported Activation events:\n");
+                    print_str("\t    Supported Activation events:\n");
                     if (supportedModes->deferredPowerCycleActivationSupported)
                     {
-                        printf("\t\tPower Cycle\n");
+                        print_str("\t\tPower Cycle\n");
                     }
                     if (supportedModes->deferredHardResetActivationSupported)
                     {
-                        printf("\t\tHard Reset\n");
+                        print_str("\t\tHard Reset\n");
                     }
                     if (supportedModes->deferredVendorSpecificActivationSupported)
                     {
-                        printf("\t\tVendor Specific\n");
+                        print_str("\t\tVendor Specific\n");
                     }
                 }
             }
             if (supportedModes->maxSegmentSize == UINT32_MAX)
             {
-                printf("Maximum Segment Size (512B Blocks): No maximum\n");
+                print_str("Maximum Segment Size (512B Blocks): No maximum\n");
             }
             else
             {
@@ -1570,7 +1570,7 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
             }
             if (supportedModes->minSegmentSize == 0)
             {
-                printf("Minimum Segment Size (512B Blocks): No minimum\n");
+                print_str("Minimum Segment Size (512B Blocks): No minimum\n");
             }
             else
             {
@@ -1582,38 +1582,38 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
             switch (supportedModes->codeActivation)
             {
             case SCSI_MICROCODE_ACTIVATE_BEFORE_COMMAND_COMPLETION:
-                printf("Microcode Activation: Activated before completion of final command in write buffer sequence\n");
+                print_str("Microcode Activation: Activated before completion of final command in write buffer sequence\n");
                 break;
             case SCSI_MICROCODE_ACTIVATE_AFTER_EVENT:
-                printf("Microcode Activation: Activated after vendor specific event, power cycle, or hard reset\n");
+                print_str("Microcode Activation: Activated after vendor specific event, power cycle, or hard reset\n");
                 break;
             case SCSI_MICROCODE_ACTIVATE_RESERVED:
-                printf("Microcode Activation: Reserved\n");
+                print_str("Microcode Activation: Reserved\n");
                 break;
             case SCSI_MICROCODE_ACTIVATE_NOT_INDICATED:
             default:
                 // don't print anything...
                 break;
             }
-            /*printf("Affect on multiple logical units/namespaces: ");
+            /*print_str("Affect on multiple logical units/namespaces: ");
             switch (supportedModes->multipleLogicalUnitsAffected)
             {
             case MLU_NOT_REPORTED:
-                printf("Not reported. Device may not support multiple logical units.\n");
+                print_str("Not reported. Device may not support multiple logical units.\n");
                 break;
             case MLU_AFFECTS_ONLY_THIS_UNIT:
-                printf("FW Updates affect only this unit.\n");
+                print_str("FW Updates affect only this unit.\n");
                 break;
             case MLU_AFFECTS_MULTIPLE_LU:
-                printf("FW Updates affect multiple logical units.\n");
+                print_str("FW Updates affect multiple logical units.\n");
                 break;
             case MLU_AFFECTS_ALL_LU:
-                printf("FW Updates affect all logical units.\n");
+                print_str("FW Updates affect all logical units.\n");
                 break;
             }*/
             if (supportedModes->firmwareSlotInfo.firmwareSlotInfoValid)
             {
-                printf("Firmware Slot Info:\n");
+                print_str("Firmware Slot Info:\n");
                 for (uint8_t counter = UINT8_C(0); counter < supportedModes->firmwareSlotInfo.numberOfSlots; ++counter)
                 {
                     // slot number, read only?, active slot?, next active slot?, firmware revision in that slot
@@ -1621,16 +1621,16 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
                     printf("\tSlot %" PRIu8, counter + 1);
                     if ((counter + 1) == 1 && supportedModes->firmwareSlotInfo.slot1ReadOnly)
                     {
-                        printf(" (Read Only)");
+                        print_str(" (Read Only)");
                     }
                     if ((counter + 1) == supportedModes->firmwareSlotInfo.activeSlot)
                     {
-                        printf(" (Active)");
+                        print_str(" (Active)");
                     }
                     if (supportedModes->firmwareSlotInfo.nextSlotToBeActivated != 0 &&
                         (counter + 1) == supportedModes->firmwareSlotInfo.nextSlotToBeActivated)
                     {
-                        printf(" (Next Active)");
+                        print_str(" (Next Active)");
                     }
                     if (safe_strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
                     {
@@ -1647,13 +1647,13 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
         }
         if (supportedModes->scsiInfoPossiblyIncomplete)
         {
-            printf("\nWARNING: FWDL Support information may be incomplete.\n");
-            printf("This can happen on old SCSI drives that don't allow\n");
-            printf("write buffer \"service actions\" to be reported in the\n");
-            printf("\"report supported op codes\" command.\n");
-            printf("Refer to the product documentation for support information.\n\n");
+            print_str("\nWARNING: FWDL Support information may be incomplete.\n");
+            print_str("This can happen on old SCSI drives that don't allow\n");
+            print_str("write buffer \"service actions\" to be reported in the\n");
+            print_str("\"report supported op codes\" command.\n");
+            print_str("Refer to the product documentation for support information.\n\n");
         }
-        printf("\n");
+        print_str("\n");
     }
     RESTORE_NONNULL_COMPARE
 }

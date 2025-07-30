@@ -666,12 +666,12 @@ eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResult
 
 void print_Cable_Test_Results(cableTestResults testResults)
 {
-    printf("Test Results:\n");
-    printf("=============\n");
-    printf("Total test time: ");
+    print_str("Test Results:\n");
+    print_str("=============\n");
+    print_str("Total test time: ");
     print_Command_Time(testResults.totalTestTimeNS);
-    printf("\n");
-    printf("00h Test Pattern:\n");
+    print_str("\n");
+    print_str("00h Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_0_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + UINT8_C(1));
@@ -683,11 +683,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.zerosTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.zerosTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.zerosTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("FFh Test Pattern:\n");
+    print_str("FFh Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_F_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -696,11 +696,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of command timeouts: %" PRIu32 "\n", testResults.fTest[count].totalCommandTimeouts);
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.fTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.fTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.fTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("55h Test Pattern:\n");
+    print_str("55h Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_5_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -712,11 +712,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.fivesTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.fivesTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.fivesTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("AAh Test Pattern:\n");
+    print_str("AAh Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_A_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -725,11 +725,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of command timeouts: %" PRIu32 "\n", testResults.aTest[count].totalCommandTimeouts);
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.aTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.aTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.aTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("00FF55AAh Test Pattern:\n");
+    print_str("00FF55AAh Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ZERO_F_5_A_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -742,11 +742,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.zeroF5ATest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.zeroF5ATest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.zeroF5ATest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("Walking 1's Test:\n");
+    print_str("Walking 1's Test:\n");
     for (uint8_t count = UINT8_C(0); count < WALKING_1_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -759,11 +759,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.walking1sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.walking1sTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.walking1sTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("Walking 0's Test:\n");
+    print_str("Walking 0's Test:\n");
     for (uint8_t count = UINT8_C(0); count < WALKING_0_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -776,11 +776,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.walking0sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.walking0sTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.walking0sTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("Random Pattern Test:\n");
+    print_str("Random Pattern Test:\n");
     for (uint8_t count = UINT8_C(0); count < RANDOM_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -792,8 +792,8 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.randomTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.randomTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.randomTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
 }

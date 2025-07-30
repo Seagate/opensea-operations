@@ -210,7 +210,7 @@ eReturnValues get_Sanitize_Progress(tDevice* device, double* percentComplete, eS
     default:
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("Not supported on this device type at this time");
+            print_str("Not supported on this device type at this time");
         }
         return NOT_SUPPORTED;
     }
@@ -231,31 +231,31 @@ eReturnValues show_Sanitize_Progress(tDevice* device)
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_NOT_IN_PROGRESS)
     {
-        printf("\tSanitize command is not currently in progress. It is either complete or has not been run.\n");
+        print_str("\tSanitize command is not currently in progress. It is either complete or has not been run.\n");
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_NEVER_SANITIZED)
     {
-        printf("\tThis device has never been sanitized.\n");
+        print_str("\tThis device has never been sanitized.\n");
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
     {
-        printf("\tThe last sanitize operation completed successfully\n");
+        print_str("\tThe last sanitize operation completed successfully\n");
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_FROZEN)
     {
-        printf("\tSanitize is frozen on this device. It must be power cycled to clear the freeze lock.\n");
+        print_str("\tSanitize is frozen on this device. It must be power cycled to clear the freeze lock.\n");
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_UNSUPPORTED_FEATURE)
     {
-        printf("\tThe last sanitize command specified an unsupported sanitize mode.\n");
+        print_str("\tThe last sanitize command specified an unsupported sanitize mode.\n");
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_FREEZELOCK_FAILED_DUE_TO_ANTI_FREEZE_LOCK)
     {
-        printf("\tSanitize freezelock command failed due to anti-freezelock.\n");
+        print_str("\tSanitize freezelock command failed due to anti-freezelock.\n");
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_FAILED)
     {
-        printf("\tSanitize command failed!\n");
+        print_str("\tSanitize command failed!\n");
     }
     else if (sanitizeInProgress == SANITIZE_STATUS_FAILED_PHYSICAL_SECTORS_REMAIN)
     {
@@ -266,7 +266,7 @@ eReturnValues show_Sanitize_Progress(tDevice* device)
     }
     else
     {
-        printf("\tError occurred while retrieving sanitize progress!\n");
+        print_str("\tError occurred while retrieving sanitize progress!\n");
     }
     return ret;
 }
@@ -602,9 +602,9 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     uint8_t       seconds         = UINT8_C(0);
     double        percentComplete = 0.0;
     convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
-    printf("Sanitize progress will be updated every");
+    print_str("Sanitize progress will be updated every");
     print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
-    printf("\n");
+    print_str("\n");
     eSanitizeStatus sanitizeInProgress = SANITIZE_STATUS_IN_PROGRESS;
     while (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS)
     {
@@ -632,14 +632,14 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("\n\tError occurred while retrieving sanitize progress!");
+                print_str("\n\tError occurred while retrieving sanitize progress!");
             }
             break;
         }
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     os_Update_File_System_Cache(device);
     return ret;

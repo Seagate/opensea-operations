@@ -27,51 +27,51 @@
 
 void nvme_Print_Feature_Identifiers_Help(void)
 {
-    printf("\n====================================================\n");
-    printf(" Feature\t O/M \tPersistent\tDescription\n");
-    printf("Identifier\t   \tAcross Power\t      \n");
-    printf("          \t   \t  & Reset   \t      \n");
-    printf("====================================================\n");
-    printf("00h       \t   \t            \tReserved\n");
-    printf("01h       \t M \t   NO       \tArbitration\n");
-    printf("02h       \t M \t   NO       \tPower Management\n");
-    printf("03h       \t O \t   YES      \tLBA Range Type\n");
-    printf("04h       \t M \t   NO       \tTemprature Threshold\n");
-    printf("05h       \t M \t   NO       \tError Recovery\n");
-    printf("06h       \t O \t   NO       \tVolatile Write Cache\n");
-    printf("07h       \t M \t   NO       \tNumber of Queues\n");
-    printf("08h       \t M \t   NO       \tInterrupt Coalescing\n");
-    printf("09h       \t M \t   NO       \tInterrupt Vector Configuration\n");
-    printf("0Ah       \t M \t   NO       \tWrite Atomicity Normal\n");
-    printf("0Bh       \t M \t   NO       \tAsynchronous Event Configuration\n");
-    printf("0Ch       \t O \t   NO       \tAutonomous Power State Transition\n");
-    printf("0Dh       \t O \t   NO       \tHost Memory Buffer\n");
-    printf("0Eh       \t O \t   NO       \tTimestamp\n");
-    printf("0Fh       \t M \t   NO       \tKeep Alive Timer\n");
-    printf("10h       \t O \t   YES      \tHost Controlled Thermal Management\n");
-    printf("11h       \t O \t   NO       \tNon-Operational Power State Config\n");
-    printf("12h       \t M \t   YES      \tRead Recovery Level Config\n");
-    printf("13h       \t M \t   NO       \tPredicatable Latency Mode Config\n");
-    printf("14h       \t M \t   NO       \tPredicatable Latency Mode Window\n");
-    printf("15h       \t M \t   NO       \tLBA Status Information Report Interval\n");
-    printf("16h       \t M \t   NO       \tHost Behavior Support\n");
-    printf("17h       \t O \t   YES      \tSanitize Config\n");
-    printf("18h       \t O \t   NO       \tEndurance Group Event Configuration\n");
-    printf("19h-77h   \t   \t            \tReserved          \n");
-    printf("78h-7Fh   \t   \t            \tRefer to NVMe Management Spec\n");
-    printf("80h-BFh   \t   \t            \tCommand Set Specific (Reserved)\n");
-    printf("80h       \t O \t   NO       \tSoftware Progress Marker (NVM)\n");
-    printf("81h       \t O \t   NO       \tHost Identifier (NVM)\n");
-    printf("82h       \t O \t   NO       \tReservation Notification Mask (NVM)\n");
-    printf("83h       \t O \t   NO       \tReservation Persistence (NVM)\n");
-    printf("84h       \t O \t   NO       \tNamespace Write Protection Config (NVM)\n");
-    printf("C0h-FFh   \t   \t            \tVendor Specific\n");
-    printf("====================================================\n");
-    printf("NOTE: Some \"Mandatory\" features may not be supported by some drives due to\n");
-    printf("      conforming to older specifications from before these features were\n");
-    printf("      standardized.\n");
-    printf("NOTE: This list is not exhaustive and not an indication of what is supported\n");
-    printf("      by a given device. It is simply a list of known feature IDs as of NVMe 1.4\n");
+    print_str("\n====================================================\n");
+    print_str(" Feature\t O/M \tPersistent\tDescription\n");
+    print_str("Identifier\t   \tAcross Power\t      \n");
+    print_str("          \t   \t  & Reset   \t      \n");
+    print_str("====================================================\n");
+    print_str("00h       \t   \t            \tReserved\n");
+    print_str("01h       \t M \t   NO       \tArbitration\n");
+    print_str("02h       \t M \t   NO       \tPower Management\n");
+    print_str("03h       \t O \t   YES      \tLBA Range Type\n");
+    print_str("04h       \t M \t   NO       \tTemprature Threshold\n");
+    print_str("05h       \t M \t   NO       \tError Recovery\n");
+    print_str("06h       \t O \t   NO       \tVolatile Write Cache\n");
+    print_str("07h       \t M \t   NO       \tNumber of Queues\n");
+    print_str("08h       \t M \t   NO       \tInterrupt Coalescing\n");
+    print_str("09h       \t M \t   NO       \tInterrupt Vector Configuration\n");
+    print_str("0Ah       \t M \t   NO       \tWrite Atomicity Normal\n");
+    print_str("0Bh       \t M \t   NO       \tAsynchronous Event Configuration\n");
+    print_str("0Ch       \t O \t   NO       \tAutonomous Power State Transition\n");
+    print_str("0Dh       \t O \t   NO       \tHost Memory Buffer\n");
+    print_str("0Eh       \t O \t   NO       \tTimestamp\n");
+    print_str("0Fh       \t M \t   NO       \tKeep Alive Timer\n");
+    print_str("10h       \t O \t   YES      \tHost Controlled Thermal Management\n");
+    print_str("11h       \t O \t   NO       \tNon-Operational Power State Config\n");
+    print_str("12h       \t M \t   YES      \tRead Recovery Level Config\n");
+    print_str("13h       \t M \t   NO       \tPredicatable Latency Mode Config\n");
+    print_str("14h       \t M \t   NO       \tPredicatable Latency Mode Window\n");
+    print_str("15h       \t M \t   NO       \tLBA Status Information Report Interval\n");
+    print_str("16h       \t M \t   NO       \tHost Behavior Support\n");
+    print_str("17h       \t O \t   YES      \tSanitize Config\n");
+    print_str("18h       \t O \t   NO       \tEndurance Group Event Configuration\n");
+    print_str("19h-77h   \t   \t            \tReserved          \n");
+    print_str("78h-7Fh   \t   \t            \tRefer to NVMe Management Spec\n");
+    print_str("80h-BFh   \t   \t            \tCommand Set Specific (Reserved)\n");
+    print_str("80h       \t O \t   NO       \tSoftware Progress Marker (NVM)\n");
+    print_str("81h       \t O \t   NO       \tHost Identifier (NVM)\n");
+    print_str("82h       \t O \t   NO       \tReservation Notification Mask (NVM)\n");
+    print_str("83h       \t O \t   NO       \tReservation Persistence (NVM)\n");
+    print_str("84h       \t O \t   NO       \tNamespace Write Protection Config (NVM)\n");
+    print_str("C0h-FFh   \t   \t            \tVendor Specific\n");
+    print_str("====================================================\n");
+    print_str("NOTE: Some \"Mandatory\" features may not be supported by some drives due to\n");
+    print_str("      conforming to older specifications from before these features were\n");
+    print_str("      standardized.\n");
+    print_str("NOTE: This list is not exhaustive and not an indication of what is supported\n");
+    print_str("      by a given device. It is simply a list of known feature IDs as of NVMe 1.4\n");
 }
 
 // This is far from perfect. Not all features will be supported, so would be better to have something check if
@@ -89,8 +89,8 @@ eReturnValues nvme_Print_All_Feature_Identifiers(tDevice*                 device
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    printf(" Feature ID\tRaw Value (DWORD 0)\n");
-    printf("===============================\n");
+    print_str(" Feature ID\tRaw Value (DWORD 0)\n");
+    print_str("===============================\n");
     for (featureID = 1; featureID <= 0xFF; featureID++)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, featData, 4096);
@@ -103,18 +103,18 @@ eReturnValues nvme_Print_All_Feature_Identifiers(tDevice*                 device
         {
             if (!vendorUniqueLinePrinted && featureID >= 0xC0)
             {
-                printf("---------Vendor Unique---------\n");
+                print_str("---------Vendor Unique---------\n");
                 vendorUniqueLinePrinted = true;
             }
             else if (!commandSetSpecificLinePrinted && featureID >= 0x80)
             {
-                printf("------Command Set Specific-----\n");
+                print_str("------Command Set Specific-----\n");
                 commandSetSpecificLinePrinted = true;
             }
             printf("    %02Xh    \t0x%08X\n", featureID, featureCmd.featSetGetValue);
         }
     }
-    printf("===============================\n");
+    print_str("===============================\n");
 
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
@@ -135,8 +135,8 @@ static eReturnValues nvme_Print_Arbitration_Feature_Details(tDevice* device, eNv
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tArbitration & Command Processing Feature\n");
-        printf("=============================================\n");
+        print_str("\n\tArbitration & Command Processing Feature\n");
+        print_str("=============================================\n");
         printf("Hi  Priority Weight (HPW) :\t\t0x%02" PRIX8 "\n",
                get_8bit_range_uint32(featureCmd.featSetGetValue, 31, 24));
         printf("Med Priority Weight (MPW) :\t\t0x%02" PRIX8 "\n",
@@ -164,8 +164,8 @@ static eReturnValues nvme_Print_Temperature_Feature_Details(tDevice* device, eNv
     safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_TEMP_THRESH_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
-    printf("\n\tTemperature Threshold Feature\n");
-    printf("=============================================\n");
+    print_str("\n\tTemperature Threshold Feature\n");
+    print_str("=============================================\n");
     ret = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
@@ -219,8 +219,8 @@ static eReturnValues nvme_Print_PM_Feature_Details(tDevice* device, eNvmeFeature
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tPower Management Feature Details\n");
-        printf("=============================================\n");
+        print_str("\n\tPower Management Feature Details\n");
+        print_str("=============================================\n");
         printf("Workload Hint  (WH) :\t\t0x%02X\n", ((featureCmd.featSetGetValue & 0x000000E0) >> 5));
         printf("Power State    (PS) :\t\t0x%02X\n", featureCmd.featSetGetValue & 0x0000001F);
     }
@@ -244,8 +244,8 @@ static eReturnValues nvme_Print_Error_Recovery_Feature_Details(tDevice* device, 
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tError Recovery Feature Details\n");
-        printf("=============================================\n");
+        print_str("\n\tError Recovery Feature Details\n");
+        print_str("=============================================\n");
         printf("Deallocated Logical Block Error (DULBE) :\t\t%s\n",
                (featureCmd.featSetGetValue & BIT16) ? "Enabled" : "Disabled");
         printf("Time Limited Error Recovery     (TLER)  :\t\t0x%04X\n", featureCmd.featSetGetValue & 0x0000FFFF);
@@ -270,8 +270,8 @@ static eReturnValues nvme_Print_WCE_Feature_Details(tDevice* device, eNvmeFeatur
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tVolatile Write Cache Feature Details\n");
-        printf("=============================================\n");
+        print_str("\n\tVolatile Write Cache Feature Details\n");
+        print_str("=============================================\n");
         printf("Volatile Write Cache (WCE) :\t\t%s\n", (featureCmd.featSetGetValue & BIT0) ? "Enabled" : "Disabled");
     }
 #ifdef _DEBUG
@@ -294,8 +294,8 @@ static eReturnValues nvme_Print_NumberOfQueues_Feature_Details(tDevice* device, 
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tNumber of Queues Feature Details\n");
-        printf("=============================================\n");
+        print_str("\n\tNumber of Queues Feature Details\n");
+        print_str("=============================================\n");
         printf("# of I/O Completion Queues Requested (NCQR)  :\t\t0x%04X\n",
                (featureCmd.featSetGetValue & 0xFFFF0000) >> 16);
         printf("# of I/O Submission Queues Requested (NSQR)  :\t\t0x%04X\n", featureCmd.featSetGetValue & 0x0000FFFF);
@@ -322,8 +322,8 @@ static eReturnValues nvme_Print_Intr_Coalescing_Feature_Details(tDevice* device,
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tInterrupt Coalescing Feature Details\n");
-        printf("=============================================\n");
+        print_str("\n\tInterrupt Coalescing Feature Details\n");
+        print_str("=============================================\n");
         printf("Aggregation Time     (TIME)  :\t\t0x%02X\n", (featureCmd.featSetGetValue & 0x0000FF00) >> 8);
         printf("Aggregation Threshold (THR)  :\t\t0x%02X\n", featureCmd.featSetGetValue & 0x000000FF);
     }
@@ -347,8 +347,8 @@ static eReturnValues nvme_Print_Intr_Config_Feature_Details(tDevice* device, eNv
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tInterrupt Vector Configuration Feature Details\n");
-        printf("=============================================\n");
+        print_str("\n\tInterrupt Vector Configuration Feature Details\n");
+        print_str("=============================================\n");
         printf("Coalescing Disable (CD) :\t%s\n", (featureCmd.featSetGetValue & BIT16) ? "Enabled" : "Disabled");
         printf("Interrupt Vector   (IV) :\t0x%02X\n", featureCmd.featSetGetValue & 0x000000FF);
     }
@@ -372,17 +372,17 @@ static eReturnValues nvme_Print_Write_Atomicity_Feature_Details(tDevice* device,
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tWrite Atomicity Normal Feature Details\n");
-        printf("=============================================\n");
+        print_str("\n\tWrite Atomicity Normal Feature Details\n");
+        print_str("=============================================\n");
         printf("Disable Normal (DN) :\t%s\n\n", (featureCmd.featSetGetValue & BIT0) ? "Enabled" : "Disabled");
         if (featureCmd.featSetGetValue & BIT0)
         {
-            printf(" Host specifies that AWUN & NAWUN are not required\n");
-            printf(" & controller shall only honor AWUPF & NAWUPF\n");
+            print_str(" Host specifies that AWUN & NAWUN are not required\n");
+            print_str(" & controller shall only honor AWUPF & NAWUPF\n");
         }
         else
         {
-            printf("Controller honors AWUN, NAWUN, AWUPF & NAWUPF\n");
+            print_str("Controller honors AWUN, NAWUN, AWUPF & NAWUPF\n");
         }
     }
 #ifdef _DEBUG
@@ -405,8 +405,8 @@ static eReturnValues nvme_Print_Async_Config_Feature_Details(tDevice* device, eN
     ret            = nvme_Get_Features(device, &featureCmd);
     if (ret == SUCCESS)
     {
-        printf("\n\tAsync Event Configuration\n");
-        printf("=============================================\n");
+        print_str("\n\tAsync Event Configuration\n");
+        print_str("=============================================\n");
         printf("Firmware Activation Notices     :\t%s\n", (featureCmd.featSetGetValue & BIT9) ? "Enabled" : "Disabled");
         printf("Namespace Attribute Notices     :\t%s\n", (featureCmd.featSetGetValue & BIT8) ? "Enabled" : "Disabled");
         printf("SMART/Health Critical Warnings  :\t0x%02X\n", featureCmd.featSetGetValue & 0x000000FF);
@@ -441,14 +441,14 @@ static eReturnValues nvme_Print_HMB_Feature_Info(tDevice* device, eNvmeFeaturesS
         char* hmbMinUnit = &hmbMinUnits[0];
         capacity_Unit_Convert(&hmbRec, &hmbRecUnit);
         capacity_Unit_Convert(&hmbMin, &hmbMinUnit);
-        printf("\n\tHost Memory Buffer Info\n");
-        printf("=============================================\n");
+        print_str("\n\tHost Memory Buffer Info\n");
+        print_str("=============================================\n");
         // these two are from identify
         printf("HMB Recommended Size: %0.2f %s\n", hmbRec, hmbRecUnit);
         printf("HMB Minimum Size: %0.2f %s\n", hmbMin, hmbMinUnit);
         // remaining come from cmd results or output data
         printf("Enable Host Memory     :\t%s\n", (featureCmd.featSetGetValue & BIT0) ? "Enabled" : "Disabled");
-        printf("\tHMB Attributes:\n");
+        print_str("\tHMB Attributes:\n");
         uint32_t hsize  = M_BytesTo4ByteValue(hmbData[3], hmbData[2], hmbData[1], hmbData[0]);
         uint64_t hmbDLA = M_BytesTo8ByteValue(hmbData[11], hmbData[10], hmbData[9], hmbData[8], hmbData[7], hmbData[6],
                                               hmbData[5], hmbData[4]);
@@ -725,7 +725,7 @@ eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice* device)
 
         if (((fwSlotsLogInfo.afi & 0x70) >> 4) == 0)
         {
-            printf("Firmware slot to be activated at next reset: None\n\n");
+            print_str("Firmware slot to be activated at next reset: None\n\n");
         }
         else
         {
@@ -754,20 +754,20 @@ void show_effects_log_human(uint32_t effect)
     const char* set = "+";
     const char* clr = "-";
 
-    printf("  CSUPP+");
+    print_str("  CSUPP+");
     printf("  LBCC%s", (effect & NVME_CMD_EFFECTS_LBCC) ? set : clr);
     printf("  NCC%s", (effect & NVME_CMD_EFFECTS_NCC) ? set : clr);
     printf("  NIC%s", (effect & NVME_CMD_EFFECTS_NIC) ? set : clr);
     printf("  CCC%s", (effect & NVME_CMD_EFFECTS_CCC) ? set : clr);
 
     if ((effect & NVME_CMD_EFFECTS_CSE_MASK) >> 16 == 0)
-        printf("  No command restriction\n");
+        print_str("  No command restriction\n");
     else if ((effect & NVME_CMD_EFFECTS_CSE_MASK) >> 16 == 1)
-        printf("  No other command for same namespace\n");
+        print_str("  No other command for same namespace\n");
     else if ((effect & NVME_CMD_EFFECTS_CSE_MASK) >> 16 == 2)
-        printf("  No other command for any namespace\n");
+        print_str("  No other command for any namespace\n");
     else
-        printf("  Reserved CSE\n");
+        print_str("  Reserved CSE\n");
 }
 
 eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice* device)
@@ -785,7 +785,7 @@ eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice* device)
     ret = nvme_Get_CmdSptEfft_Log_Page(device, M_REINTERPRET_CAST(uint8_t*, &effectsLogInfo), sizeof(nvmeEffectsLog));
     if (ret == SUCCESS)
     {
-        printf("Admin Command Set\n");
+        print_str("Admin Command Set\n");
         for (i = 0; i < 256; i++)
         {
             effect = le32_to_host(effectsLogInfo.acs[i]);
@@ -795,7 +795,7 @@ eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice* device)
                 show_effects_log_human(effect);
             }
         }
-        printf("\nNVM Command Set\n");
+        print_str("\nNVM Command Set\n");
         for (i = 0; i < 256; i++)
         {
             effect = le32_to_host(effectsLogInfo.iocs[i]);
@@ -925,8 +925,8 @@ eReturnValues nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrin
                                       C_CAST(uint32_t, numOfErrToPrint * sizeof(nvmeErrLogEntry)));
         if (ret == SUCCESS)
         {
-            printf("Err #\tLBA\t\tSQ ID\tCMD ID\tStatus\tLocation\n");
-            printf("=======================================================\n");
+            print_str("Err #\tLBA\t\tSQ ID\tCMD ID\tStatus\tLocation\n");
+            print_str("=======================================================\n");
             for (err = 0; err < C_CAST(int, numOfErrToPrint); err++)
             {
                 if (le64_to_host(pErrLogBuf[err].errorCount) > 0)
@@ -955,7 +955,7 @@ eReturnValues print_Nvme_Ctrl_Regs(tDevice* device)
 
     safe_memset(&ctrlRegs, sizeof(nvmeBarCtrlRegisters), 0, sizeof(nvmeBarCtrlRegisters));
 
-    printf("\n=====CONTROLLER REGISTERS=====\n");
+    print_str("\n=====CONTROLLER REGISTERS=====\n");
 
     ret = nvme_Read_Ctrl_Reg(device, &ctrlRegs);
 

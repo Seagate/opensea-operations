@@ -1412,23 +1412,23 @@ void print_Supported_Erase_Methods(tDevice*          device,
     bool    cryptoSupported             = false;
     bool    sanitizeBlockEraseSupported = false;
     M_USE_UNUSED(device);
-    printf("Data sanitization capabilities:\n");
-    printf("\tRecommendation - Restore the MaxLBA of the device prior to any erase in\n");
-    printf("\t                 order to allow the drive to erase all user addressable\n");
-    printf("\t                 sectors. For ATA devices this means restoring \n");
-    printf("\t                 HPA + DCO / AMAC to restore the maxLBA.\n");
-    printf("\t                 Restoring the MaxLBA also allows full verification of\n");
-    printf("\t                 all user addressable space on the device without a\n");
-    printf("\t                 limitation from a lower maxLBA.\n");
-    printf("\tClear - Logical techniques are applied to all addressable storage\n");
-    printf("\t        locations, protecting against simple, non-invasive data\n");
-    printf("\t        recovery techniques.\n");
-    printf("\tClear, Possible Purge - Cryptographic erase is a purge if the vendor\n");
-    printf("\t        implementation meets the requirements in IEEE 2883-2022.\n");
-    printf("\tPurge - Logical techniques that target user data, overprovisioning,\n");
-    printf("\t        unused space, and bad blocks rendering data recovery infeasible\n");
-    printf("\t        even with state-of-the-art laboratory techniques.\n");
-    printf("\nErase Methods supported by this drive (listed fastest to slowest):\n");
+    print_str("Data sanitization capabilities:\n");
+    print_str("\tRecommendation - Restore the MaxLBA of the device prior to any erase in\n");
+    print_str("\t                 order to allow the drive to erase all user addressable\n");
+    print_str("\t                 sectors. For ATA devices this means restoring \n");
+    print_str("\t                 HPA + DCO / AMAC to restore the maxLBA.\n");
+    print_str("\t                 Restoring the MaxLBA also allows full verification of\n");
+    print_str("\t                 all user addressable space on the device without a\n");
+    print_str("\t                 limitation from a lower maxLBA.\n");
+    print_str("\tClear - Logical techniques are applied to all addressable storage\n");
+    print_str("\t        locations, protecting against simple, non-invasive data\n");
+    print_str("\t        recovery techniques.\n");
+    print_str("\tClear, Possible Purge - Cryptographic erase is a purge if the vendor\n");
+    print_str("\t        implementation meets the requirements in IEEE 2883-2022.\n");
+    print_str("\tPurge - Logical techniques that target user data, overprovisioning,\n");
+    print_str("\t        unused space, and bad blocks rendering data recovery infeasible\n");
+    print_str("\t        even with state-of-the-art laboratory techniques.\n");
+    print_str("\nErase Methods supported by this drive (listed fastest to slowest):\n");
     while (counter < MAX_SUPPORTED_ERASE_METHODS)
     {
 #define ERASE_SANITIZATION_CAPABILITIES_STR_LEN (24)
@@ -1504,19 +1504,19 @@ void print_Supported_Erase_Methods(tDevice*          device,
         // The minimum time to overwrite erase this drive is approximately x days y hours z minutes.
         // The actual time may take longer. Cryptographic erase completes in seconds. Trim/Unmap & blockerase should
         // also complete in under a minute
-        printf("The minimum time to overwrite erase this drive is approximately:\n\t");
+        print_str("The minimum time to overwrite erase this drive is approximately:\n\t");
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
-        printf("The actual time to erase may take longer.\n");
+        print_str("\n");
+        print_str("The actual time to erase may take longer.\n");
         if (cryptoSupported)
         {
-            printf("Cryptographic erase completes in seconds.\n");
+            print_str("Cryptographic erase completes in seconds.\n");
         }
         if (sanitizeBlockEraseSupported)
         {
-            printf("Blockerase should also complete in under a minute.\n");
+            print_str("Blockerase should also complete in under a minute.\n");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -1690,12 +1690,12 @@ void show_Test_Unit_Ready_Status(tDevice* device)
     eReturnValues ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {
-        printf("READY\n");
+        print_str("READY\n");
     }
     else
     {
         eVerbosityLevels tempVerbosity = device->deviceVerbosity;
-        printf("NOT READY\n");
+        print_str("NOT READY\n");
         device->deviceVerbosity =
             VERBOSITY_COMMAND_NAMES; // the function below will print out a sense data translation, but only it we are
                                      // at this verbosity or higher which is why it's set before this call.
@@ -1950,7 +1950,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
                                 }
                                 else
                                 {
-                                    printf("\n");
+                                    print_str("\n");
                                 }
                             }
                             else
@@ -1971,7 +1971,7 @@ eReturnValues scsi_Update_Mode_Page(tDevice* device, uint8_t modePage, uint8_t s
                                 }
                                 else
                                 {
-                                    printf("\n");
+                                    print_str("\n");
                                 }
                             }
                             else
@@ -2714,20 +2714,20 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
         {
             printf(" %s", pageName);
         }
-        printf("\n");
+        print_str("\n");
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            printf(" Current Values");
+            print_str(" Current Values");
             break;
         case MPC_CHANGABLE_VALUES:
-            printf(" Changable Values");
+            print_str(" Changable Values");
             break;
         case MPC_DEFAULT_VALUES:
-            printf(" Default Values");
+            print_str(" Default Values");
             break;
         case MPC_SAVED_VALUES:
-            printf(" Saved Values");
+            print_str(" Saved Values");
             break;
         default: // this shouldn't happen...
             break;
@@ -2747,11 +2747,11 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
                 printf("%02" PRIX8, modeData[iter]);
                 if ((uint32_t)(iter + UINT16_C(1)) < M_Min(pageLength, modeDataLen))
                 {
-                    printf(" ");
+                    print_str(" ");
                 }
             }
         }
-        printf("\n");
+        print_str("\n");
     }
     else if (modeData != M_NULLPTR)
     {
@@ -2794,20 +2794,20 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
         {
             printf(" - %" PRIX8 "h", subpage);
         }
-        printf("\n");
+        print_str("\n");
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            printf(" Current Values");
+            print_str(" Current Values");
             break;
         case MPC_CHANGABLE_VALUES:
-            printf(" Changable Values");
+            print_str(" Changable Values");
             break;
         case MPC_DEFAULT_VALUES:
-            printf(" Default Values");
+            print_str(" Default Values");
             break;
         case MPC_SAVED_VALUES:
-            printf(" Saved Values");
+            print_str(" Saved Values");
             break;
         default: // this shouldn't happen...
             break;
@@ -2815,7 +2815,7 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
         printf("\n%.*s\n", equalsLengthToPrint,
                "=================================================================================="); // 80 characters
                                                                                                       // max...
-        printf("Not Supported.\n");
+        print_str("Not Supported.\n");
     }
 }
 
@@ -2925,7 +2925,7 @@ void show_SCSI_Mode_Page(tDevice*             device,
                 }
                 else
                 {
-                    printf("No mode page data was returned.\n");
+                    print_str("No mode page data was returned.\n");
                 }
             }
             safe_free_aligned(&modeData);
@@ -3222,8 +3222,8 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     if (ranges != M_NULLPTR && ranges->size >= sizeof(concurrentRangesV1) &&
         ranges->version >= CONCURRENT_RANGES_VERSION_V1)
     {
-        printf("====Concurrent Positioning Ranges====\n");
-        printf("\nRange#\t#Elements\t          Lowest LBA     \t   # of LBAs      \n");
+        print_str("====Concurrent Positioning Ranges====\n");
+        print_str("\nRange#\t#Elements\t          Lowest LBA     \t   # of LBAs      \n");
         for (uint8_t rangeCounter = UINT8_C(0); rangeCounter < ranges->numberOfRanges && rangeCounter < 15;
              ++rangeCounter)
         {
@@ -3243,7 +3243,7 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     }
     else
     {
-        printf("ERROR: Incompatible concurrent ranges data structure. Cannot print the data.\n");
+        print_str("ERROR: Incompatible concurrent ranges data structure. Cannot print the data.\n");
     }
     RESTORE_NONNULL_COMPARE
 }
@@ -3333,7 +3333,7 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
     DISABLE_NONNULL_COMPARE
     if (info != M_NULLPTR)
     {
-        printf("\n=====Write-Read-Verify=====\n");
+        print_str("\n=====Write-Read-Verify=====\n");
         if (info->supported)
         {
             if (info->enabled)
@@ -3343,8 +3343,8 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
                 char*  capUnit = &capUnitarry[0];
                 char*  metUnit = &metUnitarry[0];
                 double capD = C_CAST(double, info->bytesBeingVerified), metD = C_CAST(double, info->bytesBeingVerified);
-                printf("Enabled\n");
-                printf("Mode: ");
+                print_str("Enabled\n");
+                print_str("Mode: ");
                 if (info->bytesBeingVerified > 0 && info->bytesBeingVerified != UINT64_MAX)
                 {
                     capacity_Unit_Convert(&capD, &capUnit);
@@ -3358,10 +3358,10 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
                 switch (info->currentWRVMode)
                 {
                 case ATA_WRV_MODE_ALL:
-                    printf("0\nVerifying: All Sectors\n");
+                    print_str("0\nVerifying: All Sectors\n");
                     break;
                 case ATA_WRV_MODE_65536:
-                    printf("1\nVerifying: First 65536 written sectors.\n");
+                    print_str("1\nVerifying: First 65536 written sectors.\n");
                     printf("Verify Capacity (%s/%s): %0.02f/%0.02f\n", capUnit, metUnit, capD, metD);
                     break;
                 case ATA_WRV_MODE_VENDOR:
@@ -3376,12 +3376,12 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
             }
             else
             {
-                printf("Supported, but not Enabled\n");
+                print_str("Supported, but not Enabled\n");
             }
         }
         else
         {
-            printf("Not Supported\n");
+            print_str("Not Supported\n");
         }
     }
     RESTORE_NONNULL_COMPARE

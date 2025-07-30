@@ -643,14 +643,14 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
     DISABLE_NONNULL_COMPARE
     if (defects != M_NULLPTR)
     {
-        printf("===SCSI Defect List===\n");
+        print_str("===SCSI Defect List===\n");
         if (defects->containsPrimaryList)
         {
-            printf("\tList includes primary defects\n");
+            print_str("\tList includes primary defects\n");
         }
         if (defects->containsGrownList)
         {
-            printf("\tList includes grown defects\n");
+            print_str("\tList includes grown defects\n");
         }
         if (defects->generation > 0)
         {
@@ -658,14 +658,14 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
         }
         if (defects->deviceHasMultipleLogicalUnits)
         {
-            printf("\tNOTE: At this time, reported defects are for the entire device, not a single logical unit\n");
+            print_str("\tNOTE: At this time, reported defects are for the entire device, not a single logical unit\n");
         }
         // TODO: Add a way to handle getting per-head counts to output first
         bool multiBit = false;
         switch (defects->format)
         {
         case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
-            printf("---Short Block Format---\n");
+            print_str("---Short Block Format---\n");
             if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
@@ -676,11 +676,11 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             }
             else
             {
-                printf("No Defects Found\n");
+                print_str("No Defects Found\n");
             }
             break;
         case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
-            printf("---Long Block Format---\n");
+            print_str("---Long Block Format---\n");
             if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
@@ -691,11 +691,11 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             }
             else
             {
-                printf("No Defects Found\n");
+                print_str("No Defects Found\n");
             }
             break;
         case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
-            printf("---Extended Physical Sector Format---\n");
+            print_str("---Extended Physical Sector Format---\n");
             if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
@@ -708,7 +708,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
                     {
                         multiBit = true;
                         multi    = '+';
-                        printf("------------------------------\n");
+                        print_str("------------------------------\n");
                     }
                     else if (multiBit)
                     {
@@ -730,17 +730,17 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
                     if (switchMultiOff)
                     {
                         multiBit = false;
-                        printf("------------------------------\n");
+                        print_str("------------------------------\n");
                     }
                 }
             }
             else
             {
-                printf("No Defects Found\n");
+                print_str("No Defects Found\n");
             }
             break;
         case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
-            printf("---Physical Sector Format---\n");
+            print_str("---Physical Sector Format---\n");
             if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
@@ -761,11 +761,11 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             }
             else
             {
-                printf("No Defects Found\n");
+                print_str("No Defects Found\n");
             }
             break;
         case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
-            printf("---Extended Bytes From Index Format---\n");
+            print_str("---Extended Bytes From Index Format---\n");
             if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
@@ -799,17 +799,17 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
                     if (switchMultiOff)
                     {
                         multiBit = false;
-                        printf("------------------------------\n");
+                        print_str("------------------------------\n");
                     }
                 }
             }
             else
             {
-                printf("No Defects Found\n");
+                print_str("No Defects Found\n");
             }
             break;
         case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
-            printf("---Bytes From Index Format---\n");
+            print_str("---Bytes From Index Format---\n");
             if (defects->numberOfElements > UINT32_C(0))
             {
                 printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
@@ -830,11 +830,11 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             }
             else
             {
-                printf("No Defects Found\n");
+                print_str("No Defects Found\n");
             }
             break;
         default:
-            printf("Error: Unknown defect list format. Cannot be displayed!\n");
+            print_str("Error: Unknown defect list format. Cannot be displayed!\n");
             break;
         }
     }
@@ -1583,11 +1583,11 @@ eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defec
 
 void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList)
 {
-    printf("Pending Defects:\n");
-    printf("================\n");
+    print_str("Pending Defects:\n");
+    print_str("================\n");
     if (numberOfItemsInPendingList > UINT32_C(0))
     {
-        printf(" #\tLBA\t\t\tTimestamp\n");
+        print_str(" #\tLBA\t\t\tTimestamp\n");
         for (uint32_t pendingListIter = UINT32_C(0); pendingListIter < numberOfItemsInPendingList; ++pendingListIter)
         {
             printf("%" PRIu32 "\t%" PRIu64 "\t\t\t%" PRIu32 "\n", pendingListIter, pendingList[pendingListIter].lba,
@@ -1596,7 +1596,7 @@ void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPen
     }
     else
     {
-        printf("No items in pending defect list.\n");
+        print_str("No items in pending defect list.\n");
     }
 }
 

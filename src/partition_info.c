@@ -928,7 +928,7 @@ ptrPartitionInfo get_Partition_Info(tDevice* device)
     }
     else
     {
-        printf("Error allocating 32KiB to read fro mthe disk.\n");
+        print_str("Error allocating 32KiB to read fro mthe disk.\n");
     }
     return partitionData;
 }
@@ -945,39 +945,39 @@ static void print_MBR_Info(ptrMBRData mbrTable)
     DISABLE_NONNULL_COMPARE
     if (mbrTable != M_NULLPTR)
     {
-        printf("---MBR info---\n");
+        print_str("---MBR info---\n");
         // bool checkForAAP = false;
         // bool checkForNEWWLDR = false;
         switch (mbrTable->mbrType)
         {
         case MBR_TYPE_NONE:
-            printf("Error: This is not a valid MBR\n");
+            print_str("Error: This is not a valid MBR\n");
             return;
         case MBR_TYPE_CLASSIC:
-            printf("Detected a classic MBR\n");
+            print_str("Detected a classic MBR\n");
             break;
         case MBR_TYPE_MODERN:
-            printf("Detected a modern MBR\n");
+            print_str("Detected a modern MBR\n");
             break;
         case MBR_TYPE_UEFI: // 1 record most likely, but follows modern/classic other than zeroes in bootstrap code area
-            printf("Detected a UEFI MBR\n");
+            print_str("Detected a UEFI MBR\n");
             break;
         case MBR_TYPE_AAP: // advanced active partitions. AAP is always at 5 if available. Check partition type for this
                            // offset
-            printf("Detected a AAP MBR\n");
+            print_str("Detected a AAP MBR\n");
             // checkForAAP = true;
             break;
         case MBR_TYPE_NEWLDR: // 4 records + newldr and aap. newldr always at 4, aap at 5 if available (check partition
                               // type)
-            printf("Detected a NEWLDR MBR\n");
+            print_str("Detected a NEWLDR MBR\n");
             // checkForAAP = true;
             // checkForNEWWLDR = true;
             break;
         case MBR_TYPE_AST_NEC_SPEEDSTOR: // up to 8 records
-            printf("Detected a AST/NEC or Speedstor MBR\n");
+            print_str("Detected a AST/NEC or Speedstor MBR\n");
             break;
         case MBR_TYPE_ONTRACK_DISK_MANAGER: // up to 16 records
-            printf("Detected an ontrack disk manager MBR\n");
+            print_str("Detected an ontrack disk manager MBR\n");
             break;
         }
         for (uint8_t partIter = UINT8_C(0); partIter < mbrTable->numberOfPartitions && partIter < MBR_MAX_PARTITIONS;
@@ -986,7 +986,7 @@ static void print_MBR_Info(ptrMBRData mbrTable)
             if (mbrTable->partition[partIter].partitionType != 0) // make sure this is not empty
             {
                 printf("\n\t---Partition %" PRIu8 "---\n", partIter);
-                printf("\tPartition Type: ");
+                print_str("\tPartition Type: ");
                 // Print out the type that it is. There are a lot, some reused between systems so this may not always be
                 // possible.
                 //       Currently focussing on what is most likely to be seen: Windows, Linux, UEFI, MacOSX, one of the
@@ -996,10 +996,10 @@ static void print_MBR_Info(ptrMBRData mbrTable)
                 switch (mbrTable->partition[partIter].partitionType)
                 {
                 case MBR_PART_TYPE_GPT_PROTECTIVE_PARTITION:
-                    printf("GPT Protective\n");
+                    print_str("GPT Protective\n");
                     break;
                 case MBR_PART_TYPE_UEFI_SYSTEM_PARTITION:
-                    printf("UEFI System Partition\n");
+                    print_str("UEFI System Partition\n");
                     break;
                 default:
                     printf("%" PRIX8 "h\n", mbrTable->partition[partIter].partitionType);
@@ -1008,11 +1008,11 @@ static void print_MBR_Info(ptrMBRData mbrTable)
                 // check if bootable by looking for 80h in status
                 if (mbrTable->partition[partIter].status == 0x80)
                 {
-                    printf("\tBootable: True\n");
+                    print_str("\tBootable: True\n");
                 }
                 else if (mbrTable->partition[partIter].status == 0x00)
                 {
-                    printf("\tBootable: False\n");
+                    print_str("\tBootable: False\n");
                 }
                 else
                 {
@@ -1020,11 +1020,11 @@ static void print_MBR_Info(ptrMBRData mbrTable)
                     printf("\tUnknown Status: %" PRIX8 "h\n", mbrTable->partition[partIter].status);
                 }
                 // Use function to print starting/ending CHS
-                printf("\tStarting CHS: ");
+                print_str("\tStarting CHS: ");
                 print_MBR_CHS(mbrTable->partition[partIter].startingAddress);
-                printf("\n\tEnding CHS: ");
+                print_str("\n\tEnding CHS: ");
                 print_MBR_CHS(mbrTable->partition[partIter].endingAddress);
-                printf("\n");
+                print_str("\n");
                 printf("\tFirst LBA: %" PRIu32 "\n", mbrTable->partition[partIter].lbaOfFirstSector);
                 printf("\tNumber of sectors: %" PRIu32 "\n", mbrTable->partition[partIter].numberOfSectorsInPartition);
                 // TODO: Using LBA or CHS, calculate size of partition to print it out in B, KB, GB, etc
@@ -1050,29 +1050,29 @@ static void print_GPT_Info(ptrGPTData gptTable)
         if (gptTable->mbrValid)
         {
             print_MBR_Info(&gptTable->protectiveMBR);
-            printf("\n");
+            print_str("\n");
         }
-        printf("---GPT info---\n");
+        print_str("---GPT info---\n");
         // revision
         printf("\tRevision: %" PRIu16 ".%" PRIu16 "\n", M_Word1(gptTable->revision), M_Word0(gptTable->revision));
         // CRC valid/not valid
-        printf("\tHeader CRC32 valid: ");
+        print_str("\tHeader CRC32 valid: ");
         if (gptTable->crc32HeaderValid)
         {
-            printf("True\n");
+            print_str("True\n");
         }
         else
         {
-            printf("False. WARNING: Following data may be inaccurate!\n");
+            print_str("False. WARNING: Following data may be inaccurate!\n");
         }
-        printf("\tPartition CRC32 valid: ");
+        print_str("\tPartition CRC32 valid: ");
         if (gptTable->crc32PartitionEntriesValid)
         {
-            printf("True\n");
+            print_str("True\n");
         }
         else
         {
-            printf("False. WARNING: Following data may be inaccurate!\n");
+            print_str("False. WARNING: Following data may be inaccurate!\n");
         }
         // current LBA read and location of backup
         printf("\tGPT LBA: %" PRIu64 "\n", gptTable->currentLBA);
@@ -1083,26 +1083,26 @@ static void print_GPT_Info(ptrGPTData gptTable)
         printf("\tLast Usable LBA: %" PRIu64 "\n", gptTable->lastUsableLBA);
         // TODO: Calculate total usable disk size from usable LBAs
         // disk guid
-        printf("\tDisk GUID: ");
+        print_str("\tDisk GUID: ");
         print_GPT_GUID(gptTable->diskGUID);
-        printf("\n");
+        print_str("\n");
         // TODO: mark if backup matched or not
         for (uint64_t partIter = UINT64_C(0); partIter < UINT32_MAX && partIter < gptTable->partitionDataAvailable;
              ++partIter)
         {
             printf("\n\t---GPT Partition %" PRIu64 "---\n", partIter);
-            printf("\tPartition Type GUID: ");
+            print_str("\tPartition Type GUID: ");
             print_GPT_GUID(gptTable->partition[partIter].partitionTypeGUID.guid);
-            printf("\n\tPartition Type: ");
+            print_str("\n\tPartition Type: ");
             if (gptTable->partition[partIter].partitionTypeGUID.name)
             {
                 printf("%s\n", gptTable->partition[partIter].partitionTypeGUID.name);
             }
             else
             {
-                printf("Unknown\n");
+                print_str("Unknown\n");
             }
-            printf("\tUnique Partition GUID: ");
+            print_str("\tUnique Partition GUID: ");
             print_GPT_GUID(gptTable->partition[partIter].uniquePartitionGUID);
             printf("\n\tStarting LBA: %" PRIu64 "\n", gptTable->partition[partIter].startingLBA);
             printf("\tEnding LBA: %" PRIu64 "\n", gptTable->partition[partIter].endingLBA);
@@ -1111,15 +1111,15 @@ static void print_GPT_Info(ptrGPTData gptTable)
             // Output attributes from UEFI spec
             if (gptTable->partition[partIter].attributeFlags & GPT_PARTITION_ATTR_PLATFORM_REQUIRED)
             {
-                printf("\t\tPlatform Required Partition\n");
+                print_str("\t\tPlatform Required Partition\n");
             }
             if (gptTable->partition[partIter].attributeFlags & GPT_PARTITION_ATTR_EFI_FW_IGNORE)
             {
-                printf("\t\tEFI Ignore\n");
+                print_str("\t\tEFI Ignore\n");
             }
             if (gptTable->partition[partIter].attributeFlags & GPT_PARTITION_ATTR_LEGACY_BIOS_BOOTABLE)
             {
-                printf("\t\tLegacy BIOS Bootable\n");
+                print_str("\t\tLegacy BIOS Bootable\n");
             }
             // FS specific attributes. Must be matched to a known GUID
             switch (gptTable->partition[partIter].partitionTypeGUID.partition)
@@ -1134,19 +1134,19 @@ static void print_GPT_Info(ptrGPTData gptTable)
                 // NOTE: it is unclear which other partitions may set this in Windows
                 if (gptTable->partition[partIter].attributeFlags & BIT63)
                 {
-                    printf("\t\tDo not assign drive letter\n");
+                    print_str("\t\tDo not assign drive letter\n");
                 }
                 if (gptTable->partition[partIter].attributeFlags & BIT62)
                 {
-                    printf("\t\tHide volume from mount manager\n");
+                    print_str("\t\tHide volume from mount manager\n");
                 }
                 if (gptTable->partition[partIter].attributeFlags & BIT61)
                 {
-                    printf("\t\tShadow copy\n");
+                    print_str("\t\tShadow copy\n");
                 }
                 if (gptTable->partition[partIter].attributeFlags & BIT60)
                 {
-                    printf("\t\tRead-only\n");
+                    print_str("\t\tRead-only\n");
                 }
                 break;
             case GPT_PART_TYPE_EFI_SYSTEM:
@@ -1155,7 +1155,7 @@ static void print_GPT_Info(ptrGPTData gptTable)
                     // this may be a microsoft unique special case to not assign a drive letter.
                     // UEFI spec does not mention this at all, but in Windows the EFI system partition will not be
                     // assigned a volume letter unless you use diskpart CLI to assign and mount it -TJE
-                    printf("\t\tMSFT - Do not assign drive letter\n");
+                    print_str("\t\tMSFT - Do not assign drive letter\n");
                 }
                 break;
             default:
@@ -1173,7 +1173,7 @@ static void print_APM_Info(ptrAPMData apmTable)
     DISABLE_NONNULL_COMPARE
     if (apmTable != M_NULLPTR)
     {
-        printf("---APM info---\n");
+        print_str("---APM info---\n");
     }
     RESTORE_NONNULL_COMPARE
 }
@@ -1183,18 +1183,18 @@ void print_Partition_Info(ptrPartitionInfo partitionTable)
     DISABLE_NONNULL_COMPARE
     if (partitionTable != M_NULLPTR)
     {
-        printf("\n=====================\n");
-        printf("   Partition Table   \n");
-        printf("=====================\n\n");
+        print_str("\n=====================\n");
+        print_str("   Partition Table   \n");
+        print_str("=====================\n\n");
         switch (partitionTable->partitionDataType)
         {
         case PARTITION_TABLE_NOT_FOUND:
-            printf("No partition table was found.\n");
-            printf("NOTE: When validating an erased drive, this is not enough information to say\n");
-            printf("      that all user data is successfully erased and unretrievable.\n");
-            printf("      Verification of erasure must check more of the drive as data recovery software\n");
-            printf("      may still be able to recover files when a partition table was deleted, but the\n");
-            printf("      rest of the drive was not completely erased.\n\n");
+            print_str("No partition table was found.\n");
+            print_str("NOTE: When validating an erased drive, this is not enough information to say\n");
+            print_str("      that all user data is successfully erased and unretrievable.\n");
+            print_str("      Verification of erasure must check more of the drive as data recovery software\n");
+            print_str("      may still be able to recover files when a partition table was deleted, but the\n");
+            print_str("      rest of the drive was not completely erased.\n\n");
             break;
         case PARTITION_TABLE_MRB:
             print_MBR_Info(partitionTable->mbrTable);

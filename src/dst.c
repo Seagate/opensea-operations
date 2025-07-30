@@ -178,7 +178,7 @@ eReturnValues get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8
     default:
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("Not supported on this device type at this time");
+            print_str("Not supported on this device type at this time");
         }
         return NOT_SUPPORTED;
     }
@@ -386,7 +386,7 @@ eReturnValues print_DST_Progress(tDevice* device)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("An error occured while trying to retrieve DST Progress\n");
+            print_str("An error occured while trying to retrieve DST Progress\n");
         }
     }
     else
@@ -825,43 +825,43 @@ eReturnValues run_SMART_Offline(tDevice* device)
 #endif // ENABLE_SMART_OFFLINE_ROUTINE_POLLING
                 }
                 // print this to finish the countdown to zero.-TJE
-                printf("\r 0 hours,  0 minutes,  0 seconds remaining\n");
+                print_str("\r 0 hours,  0 minutes,  0 seconds remaining\n");
                 if (SUCCESS == get_SMART_Offline_Status(device, &status))
                 {
-                    printf("\nSMART Off-line data collection ");
+                    print_str("\nSMART Off-line data collection ");
                     switch (status)
                     {
                     case 0:
                     case 0x80:
-                        printf("never started\n");
+                        print_str("never started\n");
                         break;
                     case 2:
                     case 0x82:
-                        printf("completed without error\n");
+                        print_str("completed without error\n");
                         break;
                     case 4:
                     case 0x84:
-                        printf("was suspended by an interrupting command from the host\n");
+                        print_str("was suspended by an interrupting command from the host\n");
                         break;
                     case 5:
                     case 0x85:
-                        printf("was aborted by an interrupting command from the host\n");
+                        print_str("was aborted by an interrupting command from the host\n");
                         break;
                     case 6:
                     case 0x86:
-                        printf("was aborted by the device with a fatal error\n");
+                        print_str("was aborted by the device with a fatal error\n");
                         break;
                     case 3:
-                        printf("is progress\n");
+                        print_str("is progress\n");
                         break;
                     default:
                         if (status >= 0xC0 /*through 0xff*/ || (status >= 0x40 && status <= 0x7F))
                         {
-                            printf("status is vendor specific\n");
+                            print_str("status is vendor specific\n");
                         }
                         else
                         {
-                            printf("status is reserved\n");
+                            print_str("status is reserved\n");
                         }
                         break;
                     }
@@ -1053,9 +1053,9 @@ eReturnValues run_DST(tDevice* device,
                 {
                     if (abortForTooLong)
                     {
-                        printf("\nDST was aborted for taking too long. This may happen if other disc activity\n");
-                        printf("is too high! Please check to make sure no other disk IO is occurring so that DST\n");
-                        printf("can complete as expected!\n");
+                        print_str("\nDST was aborted for taking too long. This may happen if other disc activity\n");
+                        print_str("is too high! Please check to make sure no other disk IO is occurring so that DST\n");
+                        print_str("can complete as expected!\n");
                     }
                     else
                     {
@@ -1380,7 +1380,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
         // start DST
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
-            printf("Running DST.\n");
+            print_str("Running DST.\n");
         }
 
         if (SUCCESS == run_DST(device, DST_TYPE_SHORT, false, false, true))
@@ -1437,7 +1437,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
             }
             if (status == 0)
             {
-                // printf("DST Passed - exiting.\n");
+                // print_str("DST Passed - exiting.\n");
                 // DST passed, time to exit
                 break;
             }
@@ -1580,7 +1580,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
                 }
                 else
                 {
-                    //                  printf("\n\n\n*** DST and Clean - Unable to repair ***\n\n\n");
+                    //                  print_str("\n\n\n*** DST and Clean - Unable to repair ***\n\n\n");
                     unableToRepair = true;
                     ret            = FAILURE;
                     break;
@@ -1589,7 +1589,7 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
         }
         else
         {
-            // printf("\n\n\n*** Couldn't start a DST. ***\n\n\n");
+            // print_str("\n\n\n*** Couldn't start a DST. ***\n\n\n");
             // couldn't start a DST...so just break out of the loop
             break;
         }
@@ -1610,16 +1610,16 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
                 print_LBA_Error_List(errorList, C_CAST(uint16_t, *errorIndex));
                 if (unableToRepair)
                 {
-                    printf("Other errors were found during DST, but were unable to be repaired.\n");
+                    print_str("Other errors were found during DST, but were unable to be repaired.\n");
                 }
             }
             else if (unableToRepair)
             {
-                printf("An error was detected during DST but it is unable to be repaired.\n");
+                print_str("An error was detected during DST but it is unable to be repaired.\n");
             }
             else
             {
-                printf("No bad LBAs detected during DST and Clean.\n");
+                print_str("No bad LBAs detected during DST and Clean.\n");
             }
         }
         safe_free_aligned_core(C_CAST(void**, &errorList));
@@ -1808,7 +1808,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries e
 #endif
                         }
 #if ENABLE_DST_LOG_DEBUG
-                        printf("\n");
+                        print_str("\n");
 #endif
                         if (offsetCheck < 4 || offsetCheck > UINT32_C(472))
                         {
@@ -1826,7 +1826,7 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries e
                     else
                     {
 #if ENABLE_DST_LOG_DEBUG
-                        printf("\tsetting offset to 472 on last page read\n");
+                        print_str("\tsetting offset to 472 on last page read\n");
 #endif
                         offset = UINT32_C(472) + (lastPage * LEGACY_DRIVE_SEC_SIZE);
                     }
@@ -2137,10 +2137,10 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
         return BAD_PARAMETER;
     }
     RESTORE_NONNULL_COMPARE
-    printf("\n===DST Log===\n");
+    print_str("\n===DST Log===\n");
     if (entries->numberOfEntries == 0)
     {
-        printf("DST Has never been run/no DST entries found.\n");
+        print_str("DST Has never been run/no DST entries found.\n");
     }
     else
     {
@@ -2430,8 +2430,8 @@ eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
             }
             printf("%-9s\n", senseInfoString);
         }
-        printf("NOTE: DST Log entries are printed out in order from newest to oldest based ATA/SCSI/NVMe\n");
-        printf("      specifications on where to find the latest entry.\n\n");
+        print_str("NOTE: DST Log entries are printed out in order from newest to oldest based ATA/SCSI/NVMe\n");
+        print_str("      specifications on where to find the latest entry.\n\n");
     }
     return SUCCESS;
 }

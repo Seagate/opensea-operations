@@ -249,7 +249,7 @@ eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, 
                     // error, invalid input
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Invalid PHY generation speed input. Please use 0 - 3.\n");
+                        print_str("Invalid PHY generation speed input. Please use 0 - 3.\n");
                     }
                     return BAD_PARAMETER;
                 }
@@ -264,7 +264,7 @@ eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, 
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Setting the PHY speed of a device is only available on Seagate Drives.\n");
+                print_str("Setting the PHY speed of a device is only available on Seagate Drives.\n");
             }
             ret = NOT_SUPPORTED;
         }
@@ -418,7 +418,7 @@ eReturnValues set_SSC_Feature_SATA(tDevice* device, eSSCFeatureState mode)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Setting the SSC feature of a device is only available on Seagate Drives.\n");
+                print_str("Setting the SSC feature of a device is only available on Seagate Drives.\n");
             }
             ret = NOT_SUPPORTED;
         }
@@ -455,7 +455,7 @@ eReturnValues get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Getting the SSC feature of a device is only available on Seagate Drives.\n");
+                print_str("Getting the SSC feature of a device is only available on Seagate Drives.\n");
             }
             ret = NOT_SUPPORTED;
         }
@@ -1443,12 +1443,12 @@ eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, 
                         ret = get_IDD_Status(device, &status);
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
-                            printf("\n    IDD test is still in progress...please wait");
+                            print_str("\n    IDD test is still in progress...please wait");
                             flush_stdout();
                         }
                         delay_Seconds(5); // 5 second delay between progress checks
                     }
-                    printf("\n\n");
+                    print_str("\n\n");
                     if (status == 0 && ret == SUCCESS)
                     {
                         result = SUCCESS; // we passed.
@@ -1474,7 +1474,7 @@ eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, 
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("An error occured while trying to start an IDD test.\n");
+                        print_str("An error occured while trying to start an IDD test.\n");
                     }
                     result = FAILURE;
                 }
@@ -1723,7 +1723,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         double max12v   = DBL_MIN;
         double stepTime = pwrTelData->measurementWindowTimeMilliseconds;
 
-        printf("Power Telemetry\n");
+        print_str("Power Telemetry\n");
         printf("\tSerial Number: %s\n", pwrTelData->serialNumber);
         printf("\tRevision: %" PRIu8 ".%" PRIu8 "\n", pwrTelData->majorRevision, pwrTelData->minorRevision);
         printf("\tTemperature (C): %" PRIu8 "\n", pwrTelData->temperatureCelcius);
@@ -1731,7 +1731,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         // printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
         if (pwrTelData->totalMeasurementTimeRequested == 0)
         {
-            printf("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
+            print_str("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
         }
         else
         {
@@ -1739,9 +1739,9 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         }
         printf("\tMeasurement Window (ms): %" PRIu16 "\n", pwrTelData->measurementWindowTimeMilliseconds);
 
-        printf("\nIndividual Power Measurements\n");
+        print_str("\nIndividual Power Measurements\n");
         // Note, while the spacing may not make much sense, it definitely works with the widths below.
-        printf("    #\t     Time       \t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
+        print_str("    #\t     Time       \t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
         uint16_t measurementCounter = UINT16_C(0);
         for (uint16_t measurementNumber = UINT16_C(0); measurementNumber < pwrTelData->numberOfMeasurements &&
                                                        measurementNumber < POWER_TELEMETRY_MAXIMUM_MEASUREMENTS;
@@ -1802,7 +1802,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         }
         if (measurementCounter > 0)
         {
-            printf("\n");
+            print_str("\n");
             if (pwrTelData->measurementFormat == 0 || pwrTelData->measurementFormat == 5)
             {
                 printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinimum: %6.3f \tMaximum: %6.3f\n",
@@ -1816,7 +1816,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         }
         if (pwrTelData->multipleLogicalUnits)
         {
-            printf("NOTE: All power measurements are for the full device, not individual logical units.\n");
+            print_str("NOTE: All power measurements are for the full device, not individual logical units.\n");
         }
     }
     RESTORE_NONNULL_COMPARE
@@ -2180,7 +2180,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         printf("%-40s", print_ext_smart_id(attr.AttributeNumber));
         printf("%-15d", attr.AttributeNumber);
         printf(" 0x%016" PRIX64 "", smart_attribute_vs(verNo, attr));
-        printf("\n");
+        print_str("\n");
     }
 
     if (lastAttr == 1)
@@ -2195,7 +2195,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "",
                             msbGbErased, lsbGbErased);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
@@ -2206,7 +2206,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
                             msbLifWrtToFlash, lsbLifWrtToFlash);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
@@ -2217,7 +2217,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
                             msbLifWrtFrmHost, lsbLifWrtFrmHost);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
@@ -2228,7 +2228,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
                             msbLifRdToHost, lsbLifRdToHost);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
@@ -2238,7 +2238,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt,
                             lsbTrimCnt);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -2246,42 +2246,42 @@ void print_smart_log_CF(fb_log_page_CF* pLogPageCF)
 {
     uint64_t currentTemp = UINT64_C(0);
     uint64_t maxTemp     = UINT64_C(0);
-    printf("\n\nSeagate DRAM Supercap SMART Attributes :\n");
+    print_str("\n\nSeagate DRAM Supercap SMART Attributes :\n");
     printf("%-39s %-19s \n", "Description", "Supercap Attributes");
 
     printf("%-40s", "Super-cap current temperature");
     currentTemp = le16_to_host(pLogPageCF->AttrCF.SuperCapCurrentTemperature);
     /*currentTemp = currentTemp ? currentTemp - 273 : 0;*/
     printf(" 0x%016" PRIX64 "", currentTemp);
-    printf("\n");
+    print_str("\n");
 
     maxTemp = le16_to_host(pLogPageCF->AttrCF.SuperCapMaximumTemperature);
     /*maxTemp = maxTemp ? maxTemp - 273 : 0;*/
     printf("%-40s", "Super-cap maximum temperature");
     printf(" 0x%016" PRIX64 "", maxTemp);
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "Super-cap status");
     printf(" 0x%016" PRIX64 "", C_CAST(uint64_t, pLogPageCF->AttrCF.SuperCapStatus));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "Data units read to DRAM namespace");
     printf(" 0x%016" PRIX64 "%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DataUnitsReadToDramNamespace.MSU64),
            le64_to_host(pLogPageCF->AttrCF.DataUnitsReadToDramNamespace.LSU64));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "Data units written to DRAM namespace");
     printf(" 0x%016" PRIX64 "%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DataUnitsWrittenToDramNamespace.MSU64),
            le64_to_host(pLogPageCF->AttrCF.DataUnitsWrittenToDramNamespace.LSU64));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "DRAM correctable error count");
     printf(" 0x%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DramCorrectableErrorCount));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "DRAM uncorrectable error count");
     printf(" 0x%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DramUncorrectableErrorCount));
-    printf("\n");
+    print_str("\n");
 }
 
 // Seagate Unique...
@@ -2301,8 +2301,8 @@ eReturnValues get_Ext_Smrt_Log(tDevice* device) //, nvmeGetLogPageCmdOpts * getL
         {
             printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
             for (index = 0; index < 80; index++)
-                printf("-");
-            printf("\n");
+                print_str("-");
+            print_str("\n");
             for (index = 0; index < NUMBER_EXTENDED_SMART_ATTRIBUTES; index++)
                 print_smart_log(ExtdSMARTInfo.Version, ExtdSMARTInfo.vendorData[index],
                                 index == (NUMBER_EXTENDED_SMART_ATTRIBUTES - 1));
@@ -2364,7 +2364,7 @@ bool is_Seagate_DeviceStatistics_Supported(tDevice* device)
 #if defined(_DEBUG)
     else
     {
-        printf("\nSeagate Device Statistics logs not supported.\n");
+        print_str("\nSeagate Device Statistics logs not supported.\n");
     }
 #endif
     // NOLINTEND(bugprone-branch-clone)
@@ -2919,8 +2919,8 @@ static void print_Count_Statistics(const char* statisticsName, seagateStatistic 
     if (statistics.isValueValid)
         printf("%" PRIu32, statistics.statisticsDataValue);
     else
-        printf("Not Available");
-    printf("\n");
+        print_str("Not Available");
+    print_str("\n");
 }
 
 static void print_TimeStamp_Statistics(const char* statisticsName, seagateStatistic statistics)
@@ -2934,15 +2934,15 @@ static void print_TimeStamp_Statistics(const char* statisticsName, seagateStatis
         printf("%" PRIu64 " minutes", timeInMinutes);
     }
     else
-        printf("Not Available");
-    printf("\n");
+        print_str("Not Available");
+    print_str("\n");
 }
 
 static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     if (seagateDeviceStats != M_NULLPTR)
     {
-        printf("===Seagate Device Statistics===\n");
+        print_str("===Seagate Device Statistics===\n");
         printf(" %-60s %-16s\n", "Statistic Name:", "Value:");
         uint8_t maxLogEntries = seagateDeviceStats->sataStatistics.version;
         for (uint8_t logEntry = UINT8_C(0); logEntry < maxLogEntries; ++logEntry)
@@ -3065,7 +3065,7 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
                 break;
             }
         }
-        printf("\n\n");
+        print_str("\n\n");
 
         // latest result for Sanitize Crypto
         if (seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isValueValid &&
@@ -3093,17 +3093,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last Sanitize Crypto Erase Passed.\n");
+                    print_str("Last Sanitize Crypto Erase Passed.\n");
                 else
-                    printf("Last Sanitize Crypto Erase Failed.\n");
+                    print_str("Last Sanitize Crypto Erase Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isValueValid)
-            printf("Last Sanitize Crypto Erase Passed.\n");
+            print_str("Last Sanitize Crypto Erase Passed.\n");
         else if (seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isValueValid)
-            printf("Last Sanitize Crypto Erase Failed.\n");
+            print_str("Last Sanitize Crypto Erase Failed.\n");
 
         // latest result for Sanitize Overwrite
         if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid &&
@@ -3131,17 +3131,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last Sanitize Overwrite Erase Passed.\n");
+                    print_str("Last Sanitize Overwrite Erase Passed.\n");
                 else
-                    printf("Last Sanitize Overwrite Erase Failed.\n");
+                    print_str("Last Sanitize Overwrite Erase Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isValueValid)
-            printf("Last Sanitize Overwrite Erase Passed.\n");
+            print_str("Last Sanitize Overwrite Erase Passed.\n");
         else if (seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isValueValid)
-            printf("Last Sanitize Overwrite Erase Failed.\n");
+            print_str("Last Sanitize Overwrite Erase Failed.\n");
 
         // latest result for Sanitize Block
         if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid &&
@@ -3169,17 +3169,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last Sanitize Block Erase Passed.\n");
+                    print_str("Last Sanitize Block Erase Passed.\n");
                 else
-                    printf("Last Sanitize Block Erase Failed.\n");
+                    print_str("Last Sanitize Block Erase Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isValueValid)
-            printf("Last Sanitize Block Erase Passed.\n");
+            print_str("Last Sanitize Block Erase Passed.\n");
         else if (seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isValueValid)
-            printf("Last Sanitize Block Erase Failed.\n");
+            print_str("Last Sanitize Block Erase Failed.\n");
 
         // latest result for Ata Security Erase Unit
         if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid &&
@@ -3207,17 +3207,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last ATA Security Erase Unit Passed.\n");
+                    print_str("Last ATA Security Erase Unit Passed.\n");
                 else
-                    printf("Last ATA Security Erase Unit Failed.\n");
+                    print_str("Last ATA Security Erase Unit Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Passed.\n");
+            print_str("Last ATA Security Erase Unit Passed.\n");
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Failed.\n");
+            print_str("Last ATA Security Erase Unit Failed.\n");
 
         // latest result for Ata Security Erase Unit Enhanced
         if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid &&
@@ -3249,17 +3249,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != 0 && timestampInMinutesForFail != 0)
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last ATA Security Erase Unit Enhanced Passed.\n");
+                    print_str("Last ATA Security Erase Unit Enhanced Passed.\n");
                 else
-                    printf("Last ATA Security Erase Unit Enhanced Failed.\n");
+                    print_str("Last ATA Security Erase Unit Enhanced Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Enhanced Passed.\n");
+            print_str("Last ATA Security Erase Unit Enhanced Passed.\n");
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Enhanced Failed.\n");
+            print_str("Last ATA Security Erase Unit Enhanced Failed.\n");
     }
 }
 
@@ -3267,7 +3267,7 @@ static void print_Seagate_SCSI_DeviceStatistics(ptrSeagateDeviceStatistics seaga
 {
     if (seagateDeviceStats != M_NULLPTR)
     {
-        printf("\n\n===Seagate Device Statistics===\n");
+        print_str("\n\n===Seagate Device Statistics===\n");
 
         printf(" %-60s %-16s\n", "Statistic Name:", "Value:");
         print_Count_Statistics("Sanitize Crypo Erase Count",

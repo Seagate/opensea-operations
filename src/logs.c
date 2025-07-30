@@ -112,7 +112,7 @@ eReturnValues get_ATA_Log_Size(tDevice* device, uint8_t logAddress, uint32_t* lo
             else
             {
 #ifdef _DEBUG
-                printf("\t Didn't find it in GPL\n");
+                print_str("\t Didn't find it in GPL\n");
 #endif
             }
         }
@@ -648,7 +648,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fpmp))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     fileOpened = false;
                     safe_free_aligned(&modeBuffer);
@@ -673,7 +673,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fpmp))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     fileOpened = false;
                     safe_free_aligned(&modeBuffer);
@@ -683,7 +683,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
 
                 if (SEC_FILE_SUCCESS != secure_Close_File(fpmp))
                 {
-                    printf("Error closing file!\n");
+                    print_str("Error closing file!\n");
                 }
                 fileOpened = false;
                 free_Secure_File_Info(&fpmp);
@@ -817,7 +817,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fpmp))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     fileOpened = false;
                     safe_free_aligned(&modeBuffer);
@@ -842,7 +842,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fpmp))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     fileOpened = false;
                     safe_free_aligned(&modeBuffer);
@@ -851,7 +851,7 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 }
                 if (SEC_FILE_SUCCESS != secure_Close_File(fpmp))
                 {
-                    printf("Error closing file!\n");
+                    print_str("Error closing file!\n");
                 }
                 fileOpened = false;
                 free_Secure_File_Info(&fpmp);
@@ -943,7 +943,7 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(tDevice*                 d
                 uint64_t startBlkLenToVerify = UINT64_C(0);
                 if (llbaa != returnedllbaa)
                 {
-                    printf("WARNING: Requested long lba mode and returned mode header data do not match!\n");
+                    print_str("WARNING: Requested long lba mode and returned mode header data do not match!\n");
                 }
                 if (returnedllbaa)
                 {
@@ -1446,7 +1446,7 @@ eReturnValues get_SCSI_Error_History(tDevice*    device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(fp_History))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
                             logFileOpened = false;
 
@@ -1479,7 +1479,7 @@ eReturnValues get_SCSI_Error_History(tDevice*    device,
                 }
                 if (SEC_FILE_SUCCESS != secure_Close_File(fp_History))
                 {
-                    printf("Error closing file!\n");
+                    print_str("Error closing file!\n");
                 }
                 logFileOpened = false;
                 safe_free_aligned(&historyBuffer);
@@ -1488,7 +1488,7 @@ eReturnValues get_SCSI_Error_History(tDevice*    device,
             }
             if (SEC_FILE_SUCCESS != secure_Close_File(fp_History))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
         }
         safe_free_aligned(&historyBuffer);
@@ -1704,7 +1704,7 @@ eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath)
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(gListData))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         fileOpened = false;
                         safe_free_aligned(&defectData);
@@ -1722,7 +1722,7 @@ eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath)
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(gListData))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         fileOpened = false;
                         safe_free_aligned(&defectData);
@@ -1731,7 +1731,7 @@ eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath)
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(gListData))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                 }
             }
@@ -1884,7 +1884,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
                                 }
                                 if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                                 {
-                                    printf("Error closing file!\n");
+                                    print_str("Error closing file!\n");
                                 }
                                 fileOpened = false;
                                 safe_free_aligned(&logBuffer);
@@ -1921,7 +1921,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
                         {
                             if (!toBuffer)
                             {
-                                printf(".");
+                                print_str(".");
                                 flush_stdout();
                             }
                         }
@@ -1963,7 +1963,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
                             fileOpened = false;
                             safe_free_aligned(&logBuffer);
@@ -2044,7 +2044,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         fileOpened = false;
                         safe_free_aligned(&logBuffer);
@@ -2064,7 +2064,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("\n");
+                        print_str("\n");
                         printf("Binary log saved to: %s\n", fp_log->fullpath);
                     }
                 }
@@ -2086,7 +2086,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
                 }
                 if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                 {
-                    printf("Error closing file!\n");
+                    print_str("Error closing file!\n");
                 }
                 fileOpened = false;
                 safe_free_aligned(&logBuffer);
@@ -2095,7 +2095,7 @@ eReturnValues get_ATA_Log(tDevice*    device,
             }
             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
             fileOpened = false;
         }
@@ -2200,7 +2200,7 @@ eReturnValues get_SCSI_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         if (!toBuffer)
                         {
@@ -2217,7 +2217,7 @@ eReturnValues get_SCSI_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         if (!toBuffer)
                         {
@@ -2228,11 +2228,11 @@ eReturnValues get_SCSI_Log(tDevice*    device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("\n");
+                        print_str("\n");
                         printf("Binary log saved to: %s\n", fp_log->fullpath);
                     }
                 }
@@ -2342,7 +2342,7 @@ eReturnValues get_SCSI_VPD(tDevice*    device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fp_vpd))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     fileOpened = false;
                     safe_free_aligned(&vpdBuffer);
@@ -2351,7 +2351,7 @@ eReturnValues get_SCSI_VPD(tDevice*    device,
                 }
                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                 {
-                    printf("\n");
+                    print_str("\n");
                     printf("Binary log saved to: %s\n", fp_vpd->fullpath);
                 }
             }
@@ -2373,7 +2373,7 @@ eReturnValues get_SCSI_VPD(tDevice*    device,
                 }
                 if (SEC_FILE_SUCCESS != secure_Close_File(fp_vpd))
                 {
-                    printf("Error closing file!\n");
+                    print_str("Error closing file!\n");
                 }
                 fileOpened = false;
                 safe_free_aligned(&vpdBuffer);
@@ -2382,7 +2382,7 @@ eReturnValues get_SCSI_VPD(tDevice*    device,
             }
             if (SEC_FILE_SUCCESS != secure_Close_File(fp_vpd))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
             fileOpened = false;
         }
@@ -2485,7 +2485,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
@@ -2499,7 +2499,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
@@ -2566,7 +2566,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                     {
                         if ((pageNumber - 1) % 16 == 0)
                         {
-                            printf(".");
+                            print_str(".");
                             flush_stdout();
                         }
                     }
@@ -2591,7 +2591,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                                 }
                                 if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                                 {
-                                    printf("Error closing file!\n");
+                                    print_str("Error closing file!\n");
                                 }
                                 safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
@@ -2605,7 +2605,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                                 }
                                 if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                                 {
-                                    printf("Error closing file!\n");
+                                    print_str("Error closing file!\n");
                                 }
                                 safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
@@ -2632,7 +2632,7 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("\n");
+                    print_str("\n");
                 }
                 if (saveToFile)
                 {
@@ -2644,14 +2644,14 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         free_Secure_File_Info(&isl);
                         return ERROR_WRITING_FILE;
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                 }
             }
@@ -2734,7 +2734,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Found telemetry log in error history but length is 0! Cannot pull the log!\n");
+                        print_str("Found telemetry log in error history but length is 0! Cannot pull the log!\n");
                     }
                     ret = NOT_SUPPORTED;
                 }
@@ -2754,7 +2754,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Found telemetry log in error history but length is 0! Cannot pull the log!\n");
+                        print_str("Found telemetry log in error history but length is 0! Cannot pull the log!\n");
                     }
                     ret = NOT_SUPPORTED;
                 }
@@ -2798,7 +2798,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
                             safe_free_aligned(&dataBuffer);
                             free_Secure_File_Info(&isl);
@@ -2812,7 +2812,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
                             safe_free_aligned(&dataBuffer);
                             free_Secure_File_Info(&isl);
@@ -2911,7 +2911,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                     {
                         if ((pageNumber - UINT32_C(1)) % UINT32_C(16) == UINT32_C(0))
                         {
-                            printf(".");
+                            print_str(".");
                             flush_stdout();
                         }
                     }
@@ -2936,7 +2936,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                                 }
                                 if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                                 {
-                                    printf("Error closing file!\n");
+                                    print_str("Error closing file!\n");
                                 }
                                 safe_free_aligned(&dataBuffer);
                                 return ERROR_WRITING_FILE;
@@ -2949,7 +2949,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                                 }
                                 if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                                 {
-                                    printf("Error closing file!\n");
+                                    print_str("Error closing file!\n");
                                 }
                                 safe_free_aligned(&dataBuffer);
                                 return ERROR_WRITING_FILE;
@@ -2975,14 +2975,14 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("\n");
+                    print_str("\n");
                 }
                 if (saveToFile)
                 {
                     secure_Flush_File(isl);
                     if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                 }
             }
@@ -3107,7 +3107,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
@@ -3121,7 +3121,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
@@ -3201,7 +3201,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                     {
                         if ((pageNumber - UINT32_C(1)) % UINT32_C(16) == UINT32_C(0))
                         {
-                            printf(".");
+                            print_str(".");
                             flush_stdout();
                         }
                     }
@@ -3228,7 +3228,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                                 }
                                 if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                                 {
-                                    printf("Error closing file!\n");
+                                    print_str("Error closing file!\n");
                                 }
                                 safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
@@ -3242,7 +3242,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                                 }
                                 if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                                 {
-                                    printf("Error closing file!\n");
+                                    print_str("Error closing file!\n");
                                 }
                                 safe_free_aligned(&dataBuffer);
                                 free_Secure_File_Info(&isl);
@@ -3269,7 +3269,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("\n");
+                    print_str("\n");
                 }
                 if (saveToFile)
                 {
@@ -3281,14 +3281,14 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         free_Secure_File_Info(&isl);
                         return ERROR_WRITING_FILE;
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(isl))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                 }
             }
@@ -3397,7 +3397,7 @@ eReturnValues print_Supported_SCSI_Logs(tDevice* device, uint64_t flags)
         DECLARE_ZERO_INIT_ARRAY(uint8_t, logPage, 4);
         bool vsHeaderPrinted       = false;
         bool reservedHeaderPrinted = false;
-        printf("\n  Page Code  :  Subpage Code  :  Size (Bytes)\n");
+        print_str("\n  Page Code  :  Subpage Code  :  Size (Bytes)\n");
         for (; logPageIter <
                M_Min(M_STATIC_CAST(uint32_t, supportedPagesLength) + LOG_PAGE_HEADER_LENGTH, LEGACY_DRIVE_SEC_SIZE);
              logPageIter += incrementAmount)
@@ -3413,17 +3413,17 @@ eReturnValues print_Supported_SCSI_Logs(tDevice* device, uint64_t flags)
             if (pageCode >= 0x30 && pageCode <= 0x3E && !vsHeaderPrinted)
             {
                 // vendor specific log page
-                printf("\t\t------------------\n");
-                printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-                printf("\t\t------------------\n");
+                print_str("\t\t------------------\n");
+                print_str("\tDEVICE VENDOR SPECIFIC LOGS\n");
+                print_str("\t\t------------------\n");
                 vsHeaderPrinted = true;
             }
             else if (pageCode > 0x3E && !reservedHeaderPrinted)
             {
                 // this page and subpages are marked as reserved!
-                printf("\t\t------------------\n");
-                printf("\tRESERVED LOGS\n");
-                printf("\t\t------------------\n");
+                print_str("\t\t------------------\n");
+                print_str("\tRESERVED LOGS\n");
+                print_str("\t\t------------------\n");
                 reservedHeaderPrinted = true;
             }
             if (SUCCESS ==
@@ -3445,7 +3445,7 @@ eReturnValues print_Supported_SCSI_Logs(tDevice* device, uint64_t flags)
     }
     else
     {
-        printf("SCSI Logs not supported on this device.\n");
+        print_str("SCSI Logs not supported on this device.\n");
     }
     safe_free_aligned(&logBuffer);
     return retStatus;
@@ -3531,13 +3531,13 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
         uint32_t smartLogSize  = UINT32_C(0);
         bool     bug           = false;
         bool     atLeastOneBug = false;
-        printf("\nAccess Types:\n");
-        printf("------------\n");
-        printf("  SL - SMART Log\n");
-        printf(" GPL - General Purpose Log\n\n");
+        print_str("\nAccess Types:\n");
+        print_str("------------\n");
+        print_str("  SL - SMART Log\n");
+        print_str(" GPL - General Purpose Log\n\n");
 
-        printf("\n  Log Address  :   # of Pages   :  Size (Bytes) :   Access\n");
-        printf("---------------:----------------:---------------:-------------\n");
+        print_str("\n  Log Address  :   # of Pages   :  Size (Bytes) :   Access\n");
+        print_str("---------------:----------------:---------------:-------------\n");
         for (log = 0; log < 0x80; log++)
         {
             bug          = false;
@@ -3643,9 +3643,9 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
             }
         }
         bug = false;
-        printf("\t\t------------------\n");
-        printf("\t\tHOST SPECIFIC LOGS\n");
-        printf("\t\t------------------\n");
+        print_str("\t\t------------------\n");
+        print_str("\t\tHOST SPECIFIC LOGS\n");
+        print_str("\t\t------------------\n");
         for (log = 0x80; log < 0xA0; log++)
         {
             bug          = false;
@@ -3665,9 +3665,9 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
                                            M_ToBool(gplLogSize), bug);
             }
         }
-        printf("\t\t------------------\n");
-        printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-        printf("\t\t------------------\n");
+        print_str("\t\t------------------\n");
+        print_str("\tDEVICE VENDOR SPECIFIC LOGS\n");
+        print_str("\t\t------------------\n");
         for (log = 0xA0; log < 0xE0; log++)
         {
             bug          = false;
@@ -3687,7 +3687,7 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
                                            M_ToBool(gplLogSize), bug);
             }
         }
-        printf("\t\t------------------\n");
+        print_str("\t\t------------------\n");
         for (log = 0xE0; log >= 0xE0 /*To detect when we get to FF and roll over to zero*/; log++)
         {
             bug          = false;
@@ -3712,18 +3712,18 @@ eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags)
         retStatus = SUCCESS; // set success if we were able to get at least one of the log directories to use
         if (legacyDriveNoLogDir)
         {
-            printf("\nNOTE: SMART log detection came from identify & smart data bits. This device\n");
-            printf("      does not support the SMART log directory, and therefore no multi-sector\n");
-            printf("      logs either. It may not be possible to get all possible logs on this device.\n\n");
+            print_str("\nNOTE: SMART log detection came from identify & smart data bits. This device\n");
+            print_str("      does not support the SMART log directory, and therefore no multi-sector\n");
+            print_str("      logs either. It may not be possible to get all possible logs on this device.\n\n");
         }
         if (atLeastOneBug)
         {
-            printf("\nWARNING - At least one log was reported in a non-standard way (GPL log in SMART\n");
-            printf("          or SMART in GPL). Because of this, the access type may be incorrect on\n");
-            printf("          other non-standard logs. This may also lead to strange behavior when\n");
-            printf("          trying to get access to some of the logs since they are not being\n");
-            printf("          reported appropriately. The incorrectly reported logs will have a \"!\"\n");
-            printf("          in the access column.\n\n");
+            print_str("\nWARNING - At least one log was reported in a non-standard way (GPL log in SMART\n");
+            print_str("          or SMART in GPL). Because of this, the access type may be incorrect on\n");
+            print_str("          other non-standard logs. This may also lead to strange behavior when\n");
+            print_str("          trying to get access to some of the logs since they are not being\n");
+            print_str("          reported appropriately. The incorrectly reported logs will have a \"!\"\n");
+            print_str("          in the access column.\n\n");
         }
     }
     else
@@ -3770,8 +3770,8 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
             {
                 uint32_t page = UINT32_C(0);
                 retStatus     = SUCCESS;
-                printf("\n  Log Pages  :   Signature    :    Version\n");
-                printf("-------------:----------------:--------------\n");
+                print_str("\n  Log Pages  :   Signature    :    Version\n");
+                print_str("-------------:----------------:--------------\n");
                 for (page = 0; page < numPage && page < MAX_SUPPORTED_LOG_PAGE_ENTRIES; page++)
                 {
                     if (le32_to_host(suptLogPage.logPageEntry[page].logPageID) < 0xC0)
@@ -3783,9 +3783,9 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
                                le32_to_host(suptLogPage.logPageEntry[page].logPageVersion));
                     }
                 }
-                printf("\t\t------------------\n");
-                printf("\tDEVICE VENDOR SPECIFIC LOGS\n");
-                printf("\t\t------------------\n");
+                print_str("\t\t------------------\n");
+                print_str("\tDEVICE VENDOR SPECIFIC LOGS\n");
+                print_str("\t\t------------------\n");
                 for (page = 0; page < numPage && page < MAX_SUPPORTED_LOG_PAGE_ENTRIES; page++)
                 {
                     if (le32_to_host(suptLogPage.logPageEntry[page].logPageID) >= 0xC0)
@@ -3831,7 +3831,7 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
                 bool printedIOCmdSet     = false;
                 bool printedVendorUnique = false;
                 retStatus                = SUCCESS;
-                printf("\n  Log Pages (from supported pages log page)\n");
+                print_str("\n  Log Pages (from supported pages log page)\n");
                 for (uint16_t offset = UINT16_C(0); offset < UINT16_C(1024); offset += UINT16_C(4))
                 {
                     // Using this macro so we don't have endianness issues with straight assignments or pointers - TJE
@@ -3843,23 +3843,23 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
                         uint16_t logNumber = offset / 4;
                         if (!printedFabrics && logNumber >= 0x70 && logNumber <= 0x7F)
                         {
-                            printf("\t\t------------------\n");
-                            printf("\tNVMe Over Fabrics Logs\n");
-                            printf("\t\t------------------\n");
+                            print_str("\t\t------------------\n");
+                            print_str("\tNVMe Over Fabrics Logs\n");
+                            print_str("\t\t------------------\n");
                             printedFabrics = true;
                         }
                         if (!printedIOCmdSet && logNumber >= 0x80 && logNumber <= 0xBF)
                         {
-                            printf("\t\t------------------\n");
-                            printf("\tIO Command Set Specific Logs\n");
-                            printf("\t\t------------------\n");
+                            print_str("\t\t------------------\n");
+                            print_str("\tIO Command Set Specific Logs\n");
+                            print_str("\t\t------------------\n");
                             printedIOCmdSet = true;
                         }
                         if (!printedVendorUnique && logNumber >= 0xC0)
                         {
-                            printf("\t\t------------------\n");
-                            printf("\tDevice Vendor Specific Logs\n");
-                            printf("\t\t------------------\n");
+                            print_str("\t\t------------------\n");
+                            print_str("\tDevice Vendor Specific Logs\n");
+                            print_str("\t\t------------------\n");
                             printedVendorUnique = true;
                         }
                         printf("  %3" PRIu16 " (%02" PRIX16 "h)\n", logNumber, logNumber);
@@ -3881,93 +3881,93 @@ eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags)
 
     if (dummyFromIdentify)
     {
-        printf("\n  Log Pages  (Generated based on identify data) \n");
+        print_str("\n  Log Pages  (Generated based on identify data) \n");
         // 01 = error information always supported
-        printf("   1 (01h)\n");
+        print_str("   1 (01h)\n");
         // 02 = SMART/health information always supported
-        printf("   2 (02h)\n");
+        print_str("   2 (02h)\n");
         // 03 = firwmare slot info??? always supported???
-        printf("   3 (03h)\n");
+        print_str("   3 (03h)\n");
         // 04 = changed namespace list ??? oaes bit8
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT8)
         {
-            printf("   4 (04h)\n");
+            print_str("   4 (04h)\n");
         }
         // 05 = lpa bit 1 = commands supported and affects log
         if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT1)
         {
-            printf("   5 (05h)\n");
+            print_str("   5 (05h)\n");
         }
         // 06 = device self test (look for bit in identify data for support of DST feature)
         if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT4)
         {
-            printf("   6 (06h)\n");
+            print_str("   6 (06h)\n");
         }
         // 07 & 08 = lpa bit 3telemetry host initiated and telepemtry controller initiated log pages
         if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT3)
         {
-            printf("   7 (07h)\n");
-            printf("   8 (08h)\n");
+            print_str("   7 (07h)\n");
+            print_str("   8 (08h)\n");
         }
         // 09 = endurance group info - support in controller attributes ctratt bit4
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.ctratt) & BIT4)
         {
-            printf("   9 (09h)\n");
+            print_str("   9 (09h)\n");
         }
         // 0A = predictable latency per NVM set - support in controller attributes ctratt bit5
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.ctratt) & BIT5)
         {
-            printf("  10 (0Ah)\n");
+            print_str("  10 (0Ah)\n");
         }
         // 0B = predictable latency event aggregate - - oaes bit12
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT12)
         {
-            printf("  11 (0Bh)\n");
+            print_str("  11 (0Bh)\n");
         }
         // 0C = asymestric namespace access - anacap bit0 in controller identify??? or bit3 CMIC??? or oaes bit11???
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT11)
         {
-            printf("  12 (0CAh)\n");
+            print_str("  12 (0CAh)\n");
         }
         // 0D = lpa bit 4 = persistent event log
         if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT4)
         {
-            printf("  13 (0Dh)\n");
+            print_str("  13 (0Dh)\n");
         }
         // 0E = LBA status information - get LBA status capability in OACS
         if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT9)
         {
-            printf("  14 (0Eh)\n");
+            print_str("  14 (0Eh)\n");
         }
         // 0F = endurance group aggregate????     oeas bit14
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT14)
         {
-            printf("  15 (0Fh)\n");
+            print_str("  15 (0Fh)\n");
         }
         // 70 = discovery - NVMe over fabrics????
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT31)
         {
-            printf("\t\t------------------\n");
-            printf("\tNVMe Over Fabrics Logs\n");
-            printf("\t\t------------------\n");
-            printf(" 112 (70h)\n");
+            print_str("\t\t------------------\n");
+            print_str("\tNVMe Over Fabrics Logs\n");
+            print_str("\t\t------------------\n");
+            print_str(" 112 (70h)\n");
         }
         if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT5 ||
             le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) > 0)
         {
-            printf("\t\t------------------\n");
-            printf("\tIO Command Set Specific Logs\n");
-            printf("\t\t------------------\n");
+            print_str("\t\t------------------\n");
+            print_str("\tIO Command Set Specific Logs\n");
+            print_str("\t\t------------------\n");
         }
         // 80 = reservation notification - check for reservations support
         if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT5)
         {
-            printf(" 128 (80h)\n");
+            print_str(" 128 (80h)\n");
         }
         // 81 = Sanitize status - check for sanitize support
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) > UINT32_C(0))
         {
-            printf(" 129 (81h)\n");
+            print_str(" 129 (81h)\n");
         }
         retStatus = SUCCESS;
     }
@@ -3998,9 +3998,9 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice* device, uint8_t logNum, eLogPull
                 if (mode == PULL_LOG_RAW_MODE)
                 {
                     printf("Log Page %d Buffer:\n", logNum);
-                    printf("================================\n");
+                    print_str("================================\n");
                     print_Data_Buffer(C_CAST(uint8_t*, logBuffer), C_CAST(uint32_t, size), true);
-                    printf("================================\n");
+                    print_str("================================\n");
                 }
                 else if (mode == PULL_LOG_BIN_FILE_MODE)
                 {
@@ -4014,12 +4014,12 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice* device, uint8_t logNum, eLogPull
                         if (SEC_FILE_SUCCESS != secure_Write_File(pLogFile, logBuffer, uint64_to_sizet(size),
                                                                   sizeof(uint8_t), uint64_to_sizet(size), M_NULLPTR))
                         {
-                            printf("Error writing log to file!\n");
+                            print_str("Error writing log to file!\n");
                         }
                         secure_Flush_File(pLogFile);
                         if (SEC_FILE_SUCCESS != secure_Close_File(pLogFile))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
@@ -4152,10 +4152,10 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice* device, uin
                     return ret;
                 }
             }
-            printf("======Vendor Specific Error History Buffer IDs========\n");
+            print_str("======Vendor Specific Error History Buffer IDs========\n");
             printf(" Vendor = %s\n", vendorIdentification);
             printf(" Version = %" PRIu8 "\n", version);
-            printf("    Buffer ID    :    Data Format    :    Size (Bytes)\n");
+            print_str("    Buffer ID    :    Data Format    :    Size (Bytes)\n");
             // go through the directory in a loop
             for (uint32_t iter = UINT32_C(32); iter < (directoryLength + UINT32_C(32)) && iter < errorHistorySize;
                  iter += UINT32_C(8))
@@ -4498,7 +4498,7 @@ eReturnValues pull_FARM_LogPage(tDevice*                 device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
                             fileOpened = false;
                             safe_free_aligned(&logBuffer);
@@ -4527,7 +4527,7 @@ eReturnValues pull_FARM_LogPage(tDevice*                 device,
     {
         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
         {
-            printf("Error closing file!\n");
+            print_str("Error closing file!\n");
         }
         fileOpened = false;
     }
@@ -4648,7 +4648,7 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
                             free_Secure_File_Info(&fp_log);
                             safe_free_aligned(&genericLogBuf);
@@ -4662,7 +4662,7 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
 
                             free_Secure_File_Info(&fp_log);
@@ -4671,11 +4671,11 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         if (device->deviceVerbosity > VERBOSITY_QUIET)
                         {
-                            printf("\n");
+                            print_str("\n");
                             printf("Binary log saved to: %s\n", fp_log->fullpath);
                         }
                     }
@@ -4803,7 +4803,7 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
                             free_Secure_File_Info(&fp_log);
                             safe_free_aligned(&genericLogBuf);
@@ -4817,7 +4817,7 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                             }
                             if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                             {
-                                printf("Error closing file!\n");
+                                print_str("Error closing file!\n");
                             }
 
                             free_Secure_File_Info(&fp_log);
@@ -4826,11 +4826,11 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
                         if (device->deviceVerbosity > VERBOSITY_QUIET)
                         {
-                            printf("\n");
+                            print_str("\n");
                             printf("Binary log saved to: %s\n", fp_log->fullpath);
                         }
                     }
@@ -4950,7 +4950,7 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
 
                         free_Secure_File_Info(&fp_log);
@@ -4965,7 +4965,7 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                         }
                         if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                         {
-                            printf("Error closing file!\n");
+                            print_str("Error closing file!\n");
                         }
 
                         free_Secure_File_Info(&fp_log);
@@ -4974,11 +4974,11 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(fp_log))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("\n");
+                        print_str("\n");
                         printf("Binary log saved to: %s\n", fp_log->fullpath);
                     }
                 }

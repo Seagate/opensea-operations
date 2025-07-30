@@ -258,7 +258,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
     this easier to parse the progress from. get_Sense_Key_ASC_ASCQ_FRU(&senseData[0], SPC3_SENSE_LEN, &senseKey, &asc,
     &ascq, &fru); if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
         {
-            printf("\n\tSense Data:\n");
+            print_str("\n\tSense Data:\n");
             print_Data_Buffer(&senseData[0], SPC3_SENSE_LEN, false);
         }
         if (ret == SUCCESS || ret == IN_PROGRESS)
@@ -342,38 +342,38 @@ eReturnValues show_Write_Same_Current_LBA(tDevice* device)
     {
     case SUCCESS:
         // not in progress or completed successfully
-        printf("\tA Write same is not currently in progress or has completed successfully\n");
+        print_str("\tA Write same is not currently in progress or has completed successfully\n");
         break;
     case IN_PROGRESS:
         // currently running. Current LBA = %llu, calculate progress with this formula:
         printf("\tA Write same is currently processing LBA %" PRIu64 "\n", currentLBA);
-        printf("\tTo calculate write same progress, use the following formula:\n");
+        print_str("\tTo calculate write same progress, use the following formula:\n");
         printf("\t\t( %" PRIu64 " - startLBA ) / range\n", currentLBA);
         break;
     case ABORTED:
         // Write same was aborted by host or due to ata security being locked
-        printf("\tA write same was aborted due to ");
+        print_str("\tA write same was aborted due to ");
         if (sctStatus == SCT_EXT_STATUS_OPERATION_WAS_TERMINATED_DUE_TO_DEVICE_SECURITY_BEING_LOCKED)
         {
-            printf("device being security locked\n");
+            print_str("device being security locked\n");
         }
         else if (sctStatus ==
                  SCT_EXT_STATUS_BACKGROUND_SCT_OPERATION_WAS_TERMINATED_BECAUSE_OF_AN_INTERRUPTING_HOST_COMMAND)
         {
-            printf("interupting host command\n");
+            print_str("interupting host command\n");
         }
         else
         {
-            printf("unknown reason\n");
+            print_str("unknown reason\n");
         }
         break;
     case NOT_SUPPORTED:
         // getting progress is not supported
-        printf("\tWrite same progress not available on this device\n");
+        print_str("\tWrite same progress not available on this device\n");
         break;
     default:
         // failed to get progress
-        printf("\tAn error occured while trying to retrieve write same progress\n");
+        print_str("\tAn error occured while trying to retrieve write same progress\n");
         break;
     }
     return ret;
@@ -456,10 +456,10 @@ eReturnValues writesame(tDevice* device,
             {
                 uint8_t minutes = UINT8_C(0);
                 uint8_t seconds = UINT8_C(0);
-                printf("Write same progress will be updated every");
+                print_str("Write same progress will be updated every");
                 convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
                 print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
             }
             delay_Seconds(1); // delay one second before we start polling to let the drive get started
             while (writeSameInProgress)

@@ -53,7 +53,7 @@ eReturnValues erase_Range(tDevice* device,
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     os_Lock_Device(device);
     if (eraseRangeStart == UINT64_C(0))
@@ -181,7 +181,7 @@ eReturnValues erase_Range(tDevice* device,
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
@@ -218,7 +218,7 @@ eReturnValues erase_Time(tDevice* device,
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     currentTime = time(M_NULLPTR); // get the current time before starting the loop
     startTime   = currentTime;
@@ -304,7 +304,7 @@ eReturnValues erase_Time(tDevice* device,
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
@@ -328,7 +328,7 @@ eReturnValues erase_Boot_Sectors(tDevice* device)
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
@@ -357,7 +357,7 @@ eReturnValues erase_Boot_Sectors(tDevice* device)
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
