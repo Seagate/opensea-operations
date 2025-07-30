@@ -3197,6 +3197,13 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     {
         get_ATA_Drive_Info_From_Identify(driveInfo, &ataCap, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata),
                                          LEGACY_DRIVE_SEC_SIZE);
+        if (is_Seagate_Family(device) && device->drive_info.interface_type != IDE_INTERFACE &&
+            device->drive_info.interface_type != SCSI_INTERFACE)
+        {
+            char*  p1    = driveInfo->serialNumber;
+            char** snptr = &p1;
+            seagate_External_SN_Cleanup(snptr, SERIAL_NUM_LEN + 1);
+        }
     }
     driveInfo->percentEnduranceUsed = -1; // start with this to filter out this value later if necessary
 
@@ -7436,6 +7443,14 @@ static eReturnValues get_NVMe_Controller_Identify_Data(tDevice*                d
     remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.firmwareRevision);
     // vid
     driveInfo->controllerData.pciVendorID = M_BytesTo2ByteValue(nvmeIdentifyData[1], nvmeIdentifyData[0]);
+
+    if (driveInfo->controllerData.pciVendorID == PCI_VENDOR_LACIE)
+    {
+        char*  p1    = driveInfo->controllerData.serialNumber;
+        char** snptr = &p1;
+        seagate_External_SN_Cleanup(snptr, SERIAL_NUM_LEN + 1);
+    }
+
     // ssvid
     driveInfo->controllerData.pciSubsystemVendorID = M_BytesTo2ByteValue(nvmeIdentifyData[3], nvmeIdentifyData[2]);
     // IEEE OUI

@@ -279,6 +279,31 @@ extern "C"
                                                                              uint64_t requestedMaxLBA,
                                                                              bool     pollForProgress);
 
+    //! \fn eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
+    //!                                                        uint32_t elementDescriptorID,
+    //!                                                        uint64_t requestedMaxLBA,
+    //!                                                        bool     pollForProgress,
+    //!                                                        bool     modifyZones)
+    //! \brief Runs the depopulate physical element or depopulate and modify zones command and checks for failures.
+    //! This function can also poll until complete when requested.
+    //! \param[in] device pointer to the device structure to use when issuing the command
+    //! \param[in] elementDescriptorID the physical element descriptor ID from get physical element status command
+    //!            to remove/depopulate
+    //! \param[in] requestedMaxLBA if nonzero, this value is passed in during the remove and truncate command
+    //!                            to set this as the new max LBA of the drive. If set to zero, the drive will
+    //!                            set the maxLBA to the highest possible value after depopulating the element.
+    //! \param[in] pollForProgress if true, this function will poll for progress until the operation is finished.
+    //! \param[in] modifyZones if true for a ZAC drive, this will run the remove and modify zones command instead of
+    //!                        remove and truncate.
+    //! \return SUCCESS = operation completed successfully. Any other code describes and error condition while running.
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
+                                                                              uint32_t elementDescriptorID,
+                                                                              uint64_t requestedMaxLBA,
+                                                                              bool     pollForProgress,
+                                                                              bool     modifyZones);
+
     //-----------------------------------------------------------------------------
     //
     //  perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)

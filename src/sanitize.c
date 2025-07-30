@@ -34,7 +34,17 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
                                                double*          percentComplete,
                                                eSanitizeStatus* sanitizeStatus)
 {
-    eReturnValues result = ata_Sanitize_Status(device, false);
+    eReturnValues result = SUCCESS;
+#define MAX_SANITIZE_STATUS_ATTEMPTS (2)
+    int attempts = 0;
+    do
+    {
+        result = ata_Sanitize_Status(device, false);
+        ++attempts;
+        // Working around a HBA problem by retrying when this is not completing successfully
+    } while ((result == WARN_INCOMPLETE_RFTRS || result == OS_PASSTHROUGH_FAILURE) &&
+             attempts < MAX_SANITIZE_STATUS_ATTEMPTS);
+
     if (result == SUCCESS)
     {
         *percentComplete =
@@ -95,6 +105,7 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
                 *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
                 break;
             }
+            result = SUCCESS; // seems weird but may get around an unknown progress later
         }
         else
         {
@@ -217,14 +228,8 @@ eReturnValues get_Sanitize_Progress(tDevice* device, double* percentComplete, eS
     return result;
 }
 
-eReturnValues show_Sanitize_Progress(tDevice* device)
+static void print_Sanitize_Status_To_Screen(eSanitizeStatus sanitizeInProgress, double percentComplete)
 {
-    eReturnValues   ret                = UNKNOWN;
-    double          percentComplete    = 0.0;
-    eSanitizeStatus sanitizeInProgress = 0;
-
-    ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
-
     if (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS)
     {
         printf("\tSanitize Progress = %3.2f%% \n", percentComplete);
@@ -268,6 +273,18 @@ eReturnValues show_Sanitize_Progress(tDevice* device)
     {
         printf("\tError occurred while retrieving sanitize progress!\n");
     }
+}
+
+eReturnValues show_Sanitize_Progress(tDevice* device)
+{
+    eReturnValues   ret                = UNKNOWN;
+    double          percentComplete    = 0.0;
+    eSanitizeStatus sanitizeInProgress = 0;
+
+    ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
+
+    print_Sanitize_Status_To_Screen(sanitizeInProgress, percentComplete);
+
     return ret;
 }
 
@@ -360,6 +377,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
             {
                 sanitizeOptions->maximumOverwritePasses = 31;
             }
+            ret = SUCCESS;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_BLOCK_ERASE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
@@ -367,6 +385,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->blockErase         = true;
+            ret                                 = SUCCESS;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_CRYPTOGRAPHIC_ERASE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
@@ -374,6 +393,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->crypto             = true;
+            ret                                 = SUCCESS;
         }
         sanitizeSupReq.serviceAction = SCSI_SANITIZE_EXIT_FAILURE_MODE;
         sanitizeSupport              = is_SCSI_Operation_Code_Supported(device, &sanitizeSupReq);
@@ -381,6 +401,7 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(tDevice* device, sanitizeFeat
         {
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->exitFailMode       = true;
+            ret                                 = SUCCESS;
         }
         writeAfterErase writeAfterEraseRequirements;
         safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
@@ -483,6 +504,15 @@ eReturnValues get_Sanitize_Device_Features(tDevice* device, sanitizeFeaturesSupp
         ret = NOT_SUPPORTED;
         break;
     }
+    DISABLE_NONNULL_COMPARE
+    // NOTE: Quick hack to disable block erase and sanitize command on Rugged SSD4 devices
+    //       This is here because of some strange behavior when issued that is still under investigation.
+    if (strcasecmp("Rugged SSD4", device->drive_info.product_identification) == 0 && opts != M_NULLPTR)
+    {
+        opts->blockErase = false;
+        opts->sanitizeCmdEnabled = false;
+    }
+    RESTORE_NONNULL_COMPARE
     return ret;
 }
 
@@ -611,8 +641,8 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
             if ((ret == SUCCESS || ret == IN_PROGRESS))
             {
                 if (sanitizeInProgress != SANITIZE_STATUS_IN_PROGRESS &&
-                    percentComplete < 100) // if we get to the end, percent complete may not say 100%, so we need this
-                                           // condition to correct it
+                    percentComplete < 100.0) // if we get to the end, percent complete may not say 100%, so we need this
+                                             // condition to correct it
                 {
                     printf("\r\tSanitize Progress = 100.00%%");
                     flush_stdout();
@@ -624,11 +654,11 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
                 }
             }
         }
-        if (ret != SUCCESS && ret != IN_PROGRESS)
+        if (sanitizeInProgress != SANITIZE_STATUS_IN_PROGRESS)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("\n\tError occurred while retrieving sanitize progress!");
+                print_Sanitize_Status_To_Screen(sanitizeInProgress, percentComplete);
             }
             break;
         }
@@ -637,7 +667,10 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     {
         printf("\n");
     }
-    os_Update_File_System_Cache(device);
+    if (sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
+    {
+        os_Update_File_System_Cache(device);
+    }
     return ret;
 }
 
@@ -680,6 +713,14 @@ eReturnValues run_Sanitize_Operation2(tDevice* device, sanitizeOperationOptions 
         double          percentComplete     = 0.0;
         eSanitizeStatus sanitizeInProgress  = 0;
         bool            sendExitFailureMode = false;
+
+        // NOTE: Quick hack to disable block erase and sanitize command on Rugged SSD4 devices
+        //       This is here because of some strange behavior when issued that is still under investigation.
+        if (strcasecmp("Rugged SSD4", device->drive_info.product_identification) == 0)
+        {
+            return NOT_SUPPORTED; // Rugged SSD4 does not support sanitize operations at this time.
+        }
+
         // first check if a sanitize test is in progress (and that the drive isn't frozen or in a failure state)
         ret = get_Sanitize_Progress(device, &percentComplete, &sanitizeInProgress);
         if (sanitizeInProgress == SANITIZE_STATUS_IN_PROGRESS || ret == IN_PROGRESS)
