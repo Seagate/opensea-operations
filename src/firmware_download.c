@@ -221,9 +221,9 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 options->dlMode = FWDL_UPDATE_MODE_DEFERRED_SELECT_ACTIVATE;
                 break;
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__clang__)
-            // visual studio complains about this NOT being here and GCC does the opposite...so only add this case for
-            // visual studio.
-            //case FWDL_UPDATE_MODE_AUTOMATIC:
+                // visual studio complains about this NOT being here and GCC does the opposite...so only add this case
+                // for visual studio.
+                // case FWDL_UPDATE_MODE_AUTOMATIC:
 #endif                          //_MSC_VER
             case DL_FW_UNKNOWN: // no direct translation, but call it automatic mode
                 options->dlMode = FWDL_UPDATE_MODE_AUTOMATIC;

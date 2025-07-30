@@ -832,8 +832,8 @@ bool is_Set_Sector_Configuration_Supported(tDevice* device)
 
 uint32_t get_Number_Of_Supported_Sector_Sizes(M_ATTR_UNUSED tDevice* device)
 {
-    //this function is obsolete now that there is a static size in the supported formats structure.
-    //so this just needs to return 1
+    // this function is obsolete now that there is a static size in the supported formats structure.
+    // so this just needs to return 1
     return UINT32_C(1);
 }
 
@@ -850,7 +850,8 @@ static eReturnValues ata_Get_Supported_Formats(tDevice* device, ptrSupportedForm
             formats->protectionInformationSupported.deviceSupportsProtection = false;
             formats->numberOfSectorSizes                                     = UINT32_C(0);
             for (uint32_t iter = UINT32_C(0), sectorSizeCounter = UINT32_C(0);
-                 iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < UINT16_MAX && sectorSizeCounter < MAX_SECTOR_SIZES_ARRAY;
+                 iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < UINT16_MAX &&
+                 sectorSizeCounter < MAX_SECTOR_SIZES_ARRAY;
                  iter += UINT32_C(16), ++sectorSizeCounter)
             {
                 formats->sectorSizes[sectorSizeCounter].logicalBlockLength =
@@ -1080,28 +1081,28 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
             // stuff here for now. Need more refactoring
             enum eSCSIEnterpriseSectorSizesOffset
             {
-                SCSI_ENT_SECT_SIZE_512 = 0,
-                SCSI_ENT_SECT_SIZE_520 = 1,
-                SCSI_ENT_SECT_SIZE_524 = 2,
-                SCSI_ENT_SECT_SIZE_528 = 3,
+                SCSI_ENT_SECT_SIZE_512  = 0,
+                SCSI_ENT_SECT_SIZE_520  = 1,
+                SCSI_ENT_SECT_SIZE_524  = 2,
+                SCSI_ENT_SECT_SIZE_528  = 3,
                 SCSI_ENT_SECT_SIZE_4096 = 4,
                 SCSI_ENT_SECT_SIZE_4160 = 5,
                 SCSI_ENT_SECT_SIZE_4192 = 6,
                 SCSI_ENT_SECT_SIZE_4224 = 7
             };
-            #define MAX_SCSI_ENTERPRISE_SECTOR_SIZES (8)
+#define MAX_SCSI_ENTERPRISE_SECTOR_SIZES (8)
             enum eSCSIEnterpriseSectorSizes
             {
-                SEC_SIZE_512 = 512,
-                SEC_SIZE_520 = 520,
-                SEC_SIZE_524 = 524,
-                SEC_SIZE_528 = 528,
+                SEC_SIZE_512  = 512,
+                SEC_SIZE_520  = 520,
+                SEC_SIZE_524  = 524,
+                SEC_SIZE_528  = 528,
                 SEC_SIZE_4096 = 4096,
                 SEC_SIZE_4160 = 4160,
                 SEC_SIZE_4192 = 4192,
                 SEC_SIZE_4224 = 4224
             };
-            formats->numberOfSectorSizes                      = MAX_SCSI_ENTERPRISE_SECTOR_SIZES;
+            formats->numberOfSectorSizes                                           = MAX_SCSI_ENTERPRISE_SECTOR_SIZES;
             formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].valid                     = true;
             formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].logicalBlockLength        = SEC_SIZE_512;
             formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
@@ -1165,19 +1166,26 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
             }
             if (!formats->scsiFastFormatSupported)
             {
-                formats->numberOfSectorSizes /= 2;//without fast format support, number of supported sizes is cut in half
+                formats->numberOfSectorSizes /=
+                    2; // without fast format support, number of supported sizes is cut in half
                 // dummy up based on current sector size
                 if (device->drive_info.deviceBlockSize < SEC_SIZE_4096)
                 {
-                    //memset away the 4k sizes
-                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096], sizeof(sectorSize) * formats->numberOfSectorSizes, 0 , sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    // memset away the 4k sizes
+                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                sizeof(sectorSize) * formats->numberOfSectorSizes, 0,
+                                sizeof(sectorSize) * formats->numberOfSectorSizes);
                 }
                 else
                 {
-                    //move 4k sizes to front, removing 5xx sizes
-                    safe_memmove(&formats->sectorSizes[0], sizeof(sectorSize) * formats->numberOfSectorSizes, &formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096], sizeof(sectorSize) * formats->numberOfSectorSizes);
-                    //now memset away old stuff so it doesn't look duplicated
-                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096], sizeof(sectorSize) * formats->numberOfSectorSizes, 0 , sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    // move 4k sizes to front, removing 5xx sizes
+                    safe_memmove(&formats->sectorSizes[0], sizeof(sectorSize) * formats->numberOfSectorSizes,
+                                 &formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                 sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    // now memset away old stuff so it doesn't look duplicated
+                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                sizeof(sectorSize) * formats->numberOfSectorSizes, 0,
+                                sizeof(sectorSize) * formats->numberOfSectorSizes);
                 }
             }
         }
@@ -1247,7 +1255,8 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
     formats->deviceSupportsOtherFormats = true;
     formats->numberOfSectorSizes        = 0; // clear this out before we set it to something below
     // set metadata and PI location bits first
-    for (uint8_t iter = UINT8_C(0); iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) && iter < MAX_SECTOR_SIZES_ARRAY; ++iter)
+    for (uint8_t iter = UINT8_C(0);
+         iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) && iter < MAX_SECTOR_SIZES_ARRAY; ++iter)
     {
         if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
         {
@@ -1509,15 +1518,14 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
     RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint32_t formatsDataSize =
-            C_CAST(uint32_t, sizeof(supportedFormats));
-        ptrSupportedFormats formats = M_REINTERPRET_CAST(ptrSupportedFormats, safe_malloc(formatsDataSize));
+        uint32_t            formatsDataSize = C_CAST(uint32_t, sizeof(supportedFormats));
+        ptrSupportedFormats formats         = M_REINTERPRET_CAST(ptrSupportedFormats, safe_malloc(formatsDataSize));
         if (formats == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
         safe_memset(formats, formatsDataSize, 0, formatsDataSize);
-        ret                          = get_Supported_Formats(device, formats);
+        ret = get_Supported_Formats(device, formats);
         if (SUCCESS == ret)
         {
             for (uint32_t sectorSizeIter = UINT32_C(0);

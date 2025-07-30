@@ -365,8 +365,8 @@ extern "C"
     //! \brief Returns a value of 1 for backwards compatible use when allocating the supportedFormats structure above.
     //! \param device pointer to a valid tdevice structure to assess
     //! \returns 1
-    M_DEPRECATED M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device);
+    M_DEPRECATED M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint32_t
+        get_Number_Of_Supported_Sector_Sizes(tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
