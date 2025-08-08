@@ -30,6 +30,7 @@
 #include "logs.h"
 #include "smart.h"
 
+
 eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                    eSCSIAddressDescriptors defectListFormat,
                                    bool                    grownList,
@@ -815,6 +816,7 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
     }
     RESTORE_NONNULL_COMPARE
 }
+
 
 eReturnValues create_Random_Uncorrectables(tDevice*      device,
                                            uint16_t      numberOfRandomLBAs,
