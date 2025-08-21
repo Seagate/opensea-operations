@@ -381,46 +381,13 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
         bool longlba = false;
         if (device->drive_info.deviceMaxLba > UINT32_MAX)
         {
-            longlba = true;
+            longlba    = true;
+            modeLength = MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN;
         }
         if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, false, longlba, mpc, modeBuffer))
         {
-            // validate the correct page was returned!
-            uint16_t modeDataLen  = UINT16_C(0);
-            uint16_t blockDescLen = UINT16_C(0);
-            get_mode_param_header_10_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, M_NULLPTR,
-                                            &blockDescLen);
-            if (modeDataLen > 0 &&
-                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
-            {
-                if (subpage > 0)
-                {
-                    // validate we received a subpage correctly
-                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
-                    {
-                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
-                        {
-                            // subpage value does not match the request
-                            ret = FAILURE;
-                        }
-                    }
-                    else
-                    {
-                        ret = FAILURE;
-                    }
-                }
-            }
-            else
-            {
-                // page code already does not match!
-                // consider this a failure!
-                ret = FAILURE;
-            }
-            if (ret != FAILURE)
-            {
-                *modePageSize = M_BytesTo2ByteValue(modeBuffer[0], modeBuffer[1]) + 2;
-                ret           = SUCCESS;
-            }
+            *modePageSize = M_BytesTo2ByteValue(modeBuffer[0], modeBuffer[1]) + 2;
+            ret           = SUCCESS;
         }
         else
         {
@@ -484,41 +451,8 @@ eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
                 device, modePage, C_CAST(uint8_t, modeLength), subpage, false, mpc,
                 modeBuffer)) // don't disable block descriptors here since this is mostly to support old drives.
         {
-            // validate the correct page was returned!
-            uint8_t modeDataLen  = UINT8_C(0);
-            uint8_t blockDescLen = UINT8_C(0);
-            get_mode_param_header_6_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, &blockDescLen);
-            if (modeDataLen > 0 &&
-                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
-            {
-                if (subpage > 0)
-                {
-                    // validate we received a subpage correctly
-                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
-                    {
-                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
-                        {
-                            // subpage value does not match the request
-                            ret = FAILURE;
-                        }
-                    }
-                    else
-                    {
-                        ret = FAILURE;
-                    }
-                }
-            }
-            else
-            {
-                // page code already does not match!
-                // consider this a failure!
-                ret = FAILURE;
-            }
-            if (ret != FAILURE)
-            {
-                *modePageSize = modeBuffer[0] + 1;
-                ret           = SUCCESS;
-            }
+            *modePageSize = modeBuffer[0] + 1;
+            ret           = SUCCESS;
         }
     }
     // if we are here and this hack has not already been validated, then validate it to skip future retries.
@@ -628,13 +562,17 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    if (fpmp->error == SEC_FILE_INSECURE_PATH)
                     {
-                        printf("Failed to open file!\n");
+                        ret = INSECURE_PATH;
                     }
-                    ret = FAILURE;
+                    else
+                    {
+                        ret = FILE_OPEN_ERROR;
+                    }
                     safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
+                    return ret;
                 }
             }
             if (fileOpened && ret != FAILURE)
@@ -798,13 +736,17 @@ eReturnValues get_SCSI_Mode_Page(tDevice*             device,
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    if (fpmp->error == SEC_FILE_INSECURE_PATH)
                     {
-                        printf("Failed to open file!\n");
+                        ret = INSECURE_PATH;
                     }
-                    ret = FAILURE;
+                    else
+                    {
+                        ret = FILE_OPEN_ERROR;
+                    }
                     safe_free_aligned(&modeBuffer);
                     free_Secure_File_Info(&fpmp);
+                    return ret;
                 }
             }
             if (fileOpened && ret != FAILURE)
@@ -1424,11 +1366,14 @@ eReturnValues get_SCSI_Error_History(tDevice*    device,
                         }
                         else
                         {
-                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            if (fp_History->error == SEC_FILE_INSECURE_PATH)
                             {
-                                printf("Failed to open file!\n");
+                                ret = INSECURE_PATH;
                             }
-                            ret = FAILURE;
+                            else
+                            {
+                                ret = FILE_OPEN_ERROR;
+                            }
                             safe_free_aligned(&historyBuffer);
                             free_Secure_File_Info(&fp_History);
                         }
@@ -1679,11 +1624,14 @@ eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath)
                     }
                     else
                     {
-                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        if (gListData->error == SEC_FILE_INSECURE_PATH)
                         {
-                            printf("Failed to open file!\n");
+                            ret = INSECURE_PATH;
                         }
-                        ret = FAILURE;
+                        else
+                        {
+                            ret = FILE_OPEN_ERROR;
+                        }
                         safe_free_aligned(&defectData);
                         free_Secure_File_Info(&gListData);
                     }
@@ -1932,11 +1880,14 @@ eReturnValues get_ATA_Log(tDevice*    device,
                         }
                         else
                         {
-                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            if (fp_log->error == SEC_FILE_INSECURE_PATH)
                             {
-                                printf("Failed to open file!\n");
+                                ret = INSECURE_PATH;
                             }
-                            ret = FAILURE;
+                            else
+                            {
+                                ret = FILE_OPEN_ERROR;
+                            }
                             safe_free_aligned(&logBuffer);
                             free_Secure_File_Info(&fp_log);
                             return FILE_OPEN_ERROR;
@@ -2012,11 +1963,14 @@ eReturnValues get_ATA_Log(tDevice*    device,
                     }
                     else
                     {
-                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        if (fp_log->error == SEC_FILE_INSECURE_PATH)
                         {
-                            printf("Failed to open file!\n");
+                            ret = INSECURE_PATH;
                         }
-                        ret = FAILURE;
+                        else
+                        {
+                            ret = FILE_OPEN_ERROR;
+                        }
                         safe_free_aligned(&logBuffer);
                         free_Secure_File_Info(&fp_log);
                         return FILE_OPEN_ERROR;
@@ -2228,11 +2182,14 @@ eReturnValues get_SCSI_Log(tDevice*    device,
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    if (fp_log->error == SEC_FILE_INSECURE_PATH)
                     {
-                        printf("Failed to open file!\n");
+                        ret = INSECURE_PATH;
                     }
-                    ret = FAILURE;
+                    else
+                    {
+                        ret = FAILURE;
+                    }
                     safe_free_aligned(&logBuffer);
                     free_Secure_File_Info(&fp_log);
                 }
@@ -2309,11 +2266,14 @@ eReturnValues get_SCSI_VPD(tDevice*    device,
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    if (fp_vpd->error == SEC_FILE_INSECURE_PATH)
                     {
-                        printf("Failed to open file!\n");
+                        ret = INSECURE_PATH;
                     }
-                    ret = FAILURE;
+                    else
+                    {
+                        ret = FILE_OPEN_ERROR;
+                    }
                     safe_free_aligned(&vpdBuffer);
                     free_Secure_File_Info(&fp_vpd);
                 }
@@ -2430,7 +2390,14 @@ static eReturnValues ata_Pull_Telemetry_Log(tDevice*    device,
                 }
                 else
                 {
-                    ret = FILE_OPEN_ERROR;
+                    if (isl->error == SEC_FILE_INSECURE_PATH)
+                    {
+                        ret = INSECURE_PATH;
+                    }
+                    else
+                    {
+                        ret = FILE_OPEN_ERROR;
+                    }
                     safe_free_aligned(&dataBuffer);
                     free_Secure_File_Info(&isl);
                     return ret;
@@ -2802,7 +2769,14 @@ static eReturnValues scsi_Pull_Telemetry_Log(tDevice*    device,
                     }
                     else
                     {
-                        ret = FILE_OPEN_ERROR;
+                        if (isl->error == SEC_FILE_INSECURE_PATH)
+                        {
+                            ret = INSECURE_PATH;
+                        }
+                        else
+                        {
+                            ret = FILE_OPEN_ERROR;
+                        }
                         safe_free_aligned(&dataBuffer);
                         free_Secure_File_Info(&isl);
                         return ret;
@@ -3030,7 +3004,14 @@ static eReturnValues nvme_Pull_Telemetry_Log(tDevice*    device,
                 }
                 else
                 {
-                    ret = FILE_OPEN_ERROR;
+                    if (isl->error == SEC_FILE_INSECURE_PATH)
+                    {
+                        ret = INSECURE_PATH;
+                    }
+                    else
+                    {
+                        ret = FILE_OPEN_ERROR;
+                    }
                     safe_free_aligned(&dataBuffer);
                     free_Secure_File_Info(&isl);
                     return ret;
@@ -3995,7 +3976,14 @@ eReturnValues pull_Supported_NVMe_Logs(tDevice* device, uint8_t logNum, eLogPull
                     }
                     else
                     {
-                        retStatus = FILE_OPEN_ERROR;
+                        if (pLogFile->error == SEC_FILE_INSECURE_PATH)
+                        {
+                            retStatus = INSECURE_PATH;
+                        }
+                        else
+                        {
+                            retStatus = FILE_OPEN_ERROR;
+                        }
                     }
                     free_Secure_File_Info(&pLogFile);
                 }
@@ -4432,11 +4420,14 @@ eReturnValues pull_FARM_LogPage(tDevice*                 device,
                         }
                         else
                         {
-                            if (VERBOSITY_QUIET < device->deviceVerbosity)
+                            if (fp_log->error == SEC_FILE_INSECURE_PATH)
                             {
-                                printf("Failed to open file!\n");
+                                ret = INSECURE_PATH;
                             }
-                            ret = FAILURE;
+                            else
+                            {
+                                ret = FILE_OPEN_ERROR;
+                            }
                             safe_free_aligned(&logBuffer);
                             free_Secure_File_Info(&fp_log);
                         }
@@ -4638,13 +4629,17 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                     }
                     else
                     {
-                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        if (fp_log->error == SEC_FILE_INSECURE_PATH)
                         {
-                            printf("Failed to open file!\n");
+                            ret = INSECURE_PATH;
+                        }
+                        else
+                        {
+                            ret = FILE_OPEN_ERROR;
                         }
                         free_Secure_File_Info(&fp_log);
                         safe_free_aligned(&genericLogBuf);
-                        return FILE_OPEN_ERROR;
+                        return ret;
                     }
                 }
                 break;
@@ -4789,13 +4784,17 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                     }
                     else
                     {
-                        if (VERBOSITY_QUIET < device->deviceVerbosity)
+                        if (fp_log->error == SEC_FILE_INSECURE_PATH)
                         {
-                            printf("Failed to open file!\n");
+                            ret = INSECURE_PATH;
+                        }
+                        else
+                        {
+                            ret = FILE_OPEN_ERROR;
                         }
                         free_Secure_File_Info(&fp_log);
                         safe_free_aligned(&genericLogBuf);
-                        return FILE_OPEN_ERROR;
+                        return ret;
                     }
                 }
             }
@@ -4933,13 +4932,17 @@ eReturnValues pull_FARM_Log(tDevice*                 device,
                 }
                 else
                 {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    if (fp_log->error == SEC_FILE_INSECURE_PATH)
                     {
-                        printf("Failed to open file!\n");
+                        ret = INSECURE_PATH;
+                    }
+                    else
+                    {
+                        ret = FILE_OPEN_ERROR;
                     }
                     safe_free_aligned(&genericLogBuf);
                     free_Secure_File_Info(&fp_log);
-                    return FILE_OPEN_ERROR;
+                    return ret;
                 }
             }
             break;

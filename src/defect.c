@@ -65,7 +65,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
         {
             dataLength = 4;
             ret        = scsi_Read_Defect_Data_10(device, primaryList, grownList, C_CAST(uint8_t, defectListFormat),
-                                                  C_CAST(uint16_t, dataLength), defectData);
+                                           C_CAST(uint16_t, dataLength), defectData);
             if (ret == SUCCESS)
             {
                 tenByte                   = true;
@@ -239,7 +239,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                         scsiOperationCodeInfoRequest readDefDataSupReq;
                         safe_memset(&readDefDataSupReq, sizeof(scsiOperationCodeInfoRequest), 0,
                                     sizeof(scsiOperationCodeInfoRequest));
-                        readDefDataSupReq.operationCode      = READ_BUFFER_CMD;
+                        readDefDataSupReq.operationCode      = READ_DEFECT_DATA_12_CMD;
                         readDefDataSupReq.serviceActionValid = false;
                         eSCSICmdSupport readDefectSupport =
                             is_SCSI_Operation_Code_Supported(device, &readDefDataSupReq);
@@ -262,10 +262,12 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                                         C_CAST(uint8_t, defectListFormat),
                                                                         numberOfElements + 1, dataLength, defectData))
                                 {
-                                    // If this reported length is less than the saved list length we already have, then
-                                    // this is responding to the index properly, and is therefore supported.
-                                    if (M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6],
-                                                            defectData[7]) < defectListLength)
+                                    // If this reported length is non-zero and less than the saved list length we
+                                    // already have, then this is responding to the index properly, and is therefore
+                                    // supported.
+                                    uint32_t newDefectListLength =
+                                        M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
+                                    if (newDefectListLength != 0 && newDefectListLength < defectListLength)
                                     {
                                         multipleCommandsSupported = true;
                                     }

@@ -420,6 +420,11 @@ eReturnValues writesame(tDevice* device,
             }
         }
         // start the write same for the requested range
+        if (device->drive_info.drive_type == ATA_DRIVE)
+        {
+            os_Get_Exclusive(device);
+        }
+        os_Lock_Device(device);
         if (pattern && patternLength == device->drive_info.deviceBlockSize)
         {
             ret = write_Same(device, startingLba, numberOfLogicalBlocks,
@@ -488,6 +493,7 @@ eReturnValues writesame(tDevice* device,
                 delay_Seconds(delayTime);
             }
         }
+        os_Unlock_Device(device);
         safe_free_aligned(&zeroPatternBuf);
     }
     else
