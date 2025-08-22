@@ -272,8 +272,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
             {
                 *writeSameInProgress = true;
             }
-            *progress *= 100.0;
-            *progress /= 65536.0;
+            *progress = get_SCSI_Progress_Indicator_PercentD(*progress);
         }
         safe_free_aligned(&senseData);
     }

@@ -95,7 +95,8 @@ eReturnValues get_Format_Progress(tDevice* device, double* percentComplete)
             if (asc == 0x04 && ascq == 0x04)
             {
                 // get progress
-                *percentComplete = (M_BytesTo2ByteValue(senseData[16], senseData[17]) * 100.0) / 65536.0;
+                *percentComplete =
+                    get_SCSI_Progress_Indicator_PercentD(M_BytesTo2ByteValue(senseData[16], senseData[17]));
                 return IN_PROGRESS;
             }
             else
@@ -1487,12 +1488,15 @@ void show_Supported_Formats(ptrSupportedFormats formats)
     if (formats->scsiFastFormatSupported)
     {
         print_str("NOTE: This device supports Fast Format. Fast format is not instantaneous and is used for\n");
-        print_str("      switching between 5xx and 4xxx sector sizes. A fast format may take a few minutes or longer\n");
-        printf(
+        print_str(
+            "      switching between 5xx and 4xxx sector sizes. A fast format may take a few minutes or longer\n");
+        print_str(
             "      but may take longer depending on the size of the drive. Fast format support does not necessarily\n");
-        print_str("      mean switching sector sizes AND changing PI at the same time is supported. In most cases, a\n");
+        print_str(
+            "      mean switching sector sizes AND changing PI at the same time is supported. In most cases, a\n");
         print_str("      switch of PI type will require a full device format.\n");
-        print_str("      Fast format mode 1 is typically used to switch from 512 to 4096 block sizes with the current\n");
+        print_str(
+            "      Fast format mode 1 is typically used to switch from 512 to 4096 block sizes with the current\n");
         print_str("          PI scheme.\n");
     }
     // TODO: NVMe Metadata and PI location information.
@@ -1685,7 +1689,8 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
                         // nothing else we can do at this point.
                         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                         {
-                            print_str("ERROR: Quick format did not recover the device. The device may not be usable!\n");
+                            print_str(
+                                "ERROR: Quick format did not recover the device. The device may not be usable!\n");
                         }
                     }
                     else
@@ -1693,7 +1698,8 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
                         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                         {
                             print_str("Seagate quick format successfully recovered the device!\n");
-                            print_str("If sector size change is attempted again, format only single disks at a time,\n");
+                            print_str(
+                                "If sector size change is attempted again, format only single disks at a time,\n");
                             printf("disable all background software, disable any management hardware or software, and "
                                    "then\n");
                             print_str("try again if the sector size is not correct.\n");

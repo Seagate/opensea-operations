@@ -34,10 +34,11 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
                                                double*          percentComplete,
                                                eSanitizeStatus* sanitizeStatus)
 {
-    eReturnValues result = ata_Sanitize_Status(device, false);
+    eReturnValues result             = ata_Sanitize_Status(device, false);
+    uint16_t      ataPercentComplete = UINT16_C(0);
     if (result == SUCCESS)
     {
-        *percentComplete =
+        ataPercentComplete =
             M_BytesTo2ByteValue(device->drive_info.lastCommandRTFRs.lbaMid, device->drive_info.lastCommandRTFRs.lbaLow);
         if (device->drive_info.lastCommandRTFRs.secCntExt & BIT7)
         {
@@ -101,8 +102,7 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
             *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
         }
     }
-    *percentComplete *= 100.0;
-    *percentComplete /= 65536.0;
+    *percentComplete = get_SCSI_Progress_Indicator_PercentD(ataPercentComplete);
     return result;
 }
 
@@ -114,16 +114,17 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice*         device,
     // read the sanitize status log
     DECLARE_ZERO_INIT_ARRAY(uint8_t, sanitizeStatusLog, 512);
     nvmeGetLogPageCmdOpts getLogOpts;
+    uint16_t              sprog = UINT16_C(0);
+    uint16_t              sstat = UINT16_C(0);
     safe_memset(&getLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
     getLogOpts.dataLen = 512;
     getLogOpts.lid     = 0x81;
     getLogOpts.addr    = sanitizeStatusLog;
     if (SUCCESS == nvme_Get_Log_Page(device, &getLogOpts))
     {
-        result           = SUCCESS;
-        uint16_t sprog   = M_BytesTo2ByteValue(sanitizeStatusLog[1], sanitizeStatusLog[0]);
-        uint16_t sstat   = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
-        *percentComplete = sprog;
+        result = SUCCESS;
+        sprog  = M_BytesTo2ByteValue(sanitizeStatusLog[1], sanitizeStatusLog[0]);
+        sstat  = M_BytesTo2ByteValue(sanitizeStatusLog[3], sanitizeStatusLog[2]);
 
         switch (get_8bit_range_uint16(sstat, 2, 0))
         {
@@ -148,8 +149,7 @@ static eReturnValues get_NVMe_Sanitize_Progress(tDevice*         device,
     {
         result = NOT_SUPPORTED;
     }
-    *percentComplete *= 100.0;
-    *percentComplete /= 65536.0;
+    *percentComplete = get_SCSI_Progress_Indicator_PercentD(sprog);
     return result;
 }
 
@@ -158,24 +158,24 @@ static eReturnValues get_SCSI_Sanitize_Progress(tDevice*         device,
                                                 eSanitizeStatus* sanitizeStatus)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, req_sense_buf, SPC3_SENSE_LEN);
-    uint8_t       acq      = UINT8_C(0);
-    uint8_t       ascq     = UINT8_C(0);
-    uint8_t       senseKey = UINT8_C(0);
-    uint8_t       fru      = UINT8_C(0);
-    eReturnValues result   = scsi_Request_Sense_Cmd(
+    uint8_t       acq                   = UINT8_C(0);
+    uint8_t       ascq                  = UINT8_C(0);
+    uint8_t       senseKey              = UINT8_C(0);
+    uint8_t       fru                   = UINT8_C(0);
+    uint16_t      scsiProgressIndicator = UINT16_C(0);
+    eReturnValues result                = scsi_Request_Sense_Cmd(
         device, false, req_sense_buf,
         SPC3_SENSE_LEN); // get fixed format sense data to make this easier to parse the progress from.
     get_Sense_Key_ASC_ASCQ_FRU(&req_sense_buf[0], SPC3_SENSE_LEN, &senseKey, &acq, &ascq, &fru);
     result = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, acq, ascq, fru);
     // set this for now. It will be changed below if necessary.
-    *sanitizeStatus  = SANITIZE_STATUS_NOT_IN_PROGRESS;
-    *percentComplete = 0;
+    *sanitizeStatus = SANITIZE_STATUS_NOT_IN_PROGRESS;
     if (result == SUCCESS || result == IN_PROGRESS)
     {
         if (acq == 0x04 && ascq == 0x1B) // this is making sure that a sanitize command is in progress
         {
             *sanitizeStatus = SANITIZE_STATUS_IN_PROGRESS;
-            *percentComplete =
+            scsiProgressIndicator =
                 M_BytesTo2ByteValue(req_sense_buf[16], req_sense_buf[17]); // sense key specific information
         }
     }
@@ -187,8 +187,7 @@ static eReturnValues get_SCSI_Sanitize_Progress(tDevice*         device,
             *sanitizeStatus = SANITIZE_STATUS_FAILED;
         }
     }
-    *percentComplete *= 100.0;
-    *percentComplete /= 65536.0;
+    *percentComplete = get_SCSI_Progress_Indicator_PercentD(scsiProgressIndicator);
     return result;
 }
 
