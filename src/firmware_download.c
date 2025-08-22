@@ -1582,7 +1582,8 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
             switch (supportedModes->codeActivation)
             {
             case SCSI_MICROCODE_ACTIVATE_BEFORE_COMMAND_COMPLETION:
-                print_str("Microcode Activation: Activated before completion of final command in write buffer sequence\n");
+                print_str(
+                    "Microcode Activation: Activated before completion of final command in write buffer sequence\n");
                 break;
             case SCSI_MICROCODE_ACTIVATE_AFTER_EVENT:
                 print_str("Microcode Activation: Activated after vendor specific event, power cycle, or hard reset\n");

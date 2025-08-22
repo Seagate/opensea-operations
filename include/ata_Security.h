@@ -118,7 +118,7 @@ extern "C"
         //! \var password
         //! \brief 32 byte field to hold the password. May be set to any 32byte value (all zeroes, all F's, hash, ASCII)
         //! \note The ATA specification does not set any requirements on how this field is used. The drive simply
-        //! compares the value to whatever it has saved from when the password was set. 
+        //! compares the value to whatever it has saved from when the password was set.
         //! \note Some BIOS's will hash the password in a proprietary way that this software does not know.
         //! Do not expect that just because you typed the same thing as you set in the BIOS that this will unlock
         //! exactly the same way. Whatever method the BIOS uses before filling in this field must also be used when
