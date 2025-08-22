@@ -429,7 +429,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
         if (is_ATA_Identify_Word_Valid(securityStatus->masterPasswordIdentifier))
         {
             printf("%" PRIu16, securityStatus->masterPasswordIdentifier);
-            if (securityStatus->masterPasswordIdentifier == 0xFFFE)
+            if (securityStatus->masterPasswordIdentifier == ATA_SEC_MASTER_PW_ID_VENDOR_DEFAULT)
             {
                 // possibly the original used at manufacture
                 print_str(" (may be set to manufacture master password)");
@@ -604,6 +604,25 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
         }
     }
     RESTORE_NONNULL_COMPARE
+}
+
+uint16_t increment_Master_Password_Identifier(uint16_t masterPWID)
+{
+    uint16_t newID = masterPWID;
+    if (is_ATA_Identify_Word_Valid(newID))
+    {
+        // If at max, or one below max, roll back over to min (1)
+        // This way there will not be confusion if the master password is still the manufacturer's default value
+        if (newID == ATA_SEC_MASTER_PW_ID_MAX || (newID == (ATA_SEC_MASTER_PW_ID_MAX - 1)))
+        {
+            newID = ATA_SEC_MASTER_PW_ID_MIN;
+        }
+        else
+        {
+            ++newID;
+        }
+    }
+    return newID;
 }
 
 void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT)
@@ -796,7 +815,7 @@ eReturnValues run_Disable_ATA_Security_Password(tDevice*            device,
                                 printf("Password attempts exceeded. You must power cycle the drive to clear the "
                                        "attempt counter and retry the operation.\n");
                             }
-                            return FAILURE;
+                            return DEVICE_ACCESS_DENIED;
                         }
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
@@ -941,7 +960,7 @@ eReturnValues run_Unlock_ATA_Security(tDevice*            device,
                                 printf("Password attempts exceeded. You must power cycle the drive to clear the "
                                        "attempt counter and retry the operation.\n");
                             }
-                            return FAILURE;
+                            return DEVICE_ACCESS_DENIED;
                         }
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
@@ -1056,6 +1075,243 @@ eReturnValues run_Set_ATA_Security_Password(tDevice*            device,
     return ret;
 }
 
+static void print_ATA_Security_Erase_Start_Info_To_Screen(eATASecurityEraseType eraseType,
+                                                          ataSecurityPassword   ataPassword,
+                                                          uint16_t              eraseTimeMinutes,
+                                                          ataSecurityStatus     securityStatus)
+{
+    print_str("Starting ");
+    if (eraseType == ATA_SECURITY_ERASE_ENHANCED_ERASE)
+    {
+        print_str("Enhanced ATA Security Erase using ");
+    }
+    else
+    {
+        print_str("ATA Security Erase using ");
+    }
+    if (ataPassword.passwordType == ATA_PASSWORD_MASTER)
+    {
+        print_str("Master password: ");
+    }
+    else
+    {
+        print_str("User password: ");
+    }
+    print_ATA_Security_Password(&ataPassword);
+    if (eraseTimeMinutes == 0)
+    {
+        print_str("\n\tThe drive did not report an erase time estimate.\n");
+        print_str("\tA completion estimate is not available for this drive.\n");
+    }
+    else
+    {
+        bool maxPossibleTime = eraseTimeMinutes == UINT16_MAX ? true : false;
+        if (maxPossibleTime)
+        {
+            print_str("\n\tThe drive reported an estimated erase time longer than\n");
+            if (securityStatus.extendedTimeFormat)
+            {
+                eraseTimeMinutes = ATA_SECURITY_MAX_EXTENDED_TIME_MINUTES;
+                print_str("\t65532 minutes (max per ATA specification).\n");
+            }
+            else
+            {
+                eraseTimeMinutes = ATA_SECURITY_MAX_TIME_MINUTES;
+                print_str("\t508 minutes (max per ATA specification).\n");
+            }
+        }
+        time_t   currentTime = time(M_NULLPTR);
+        time_t   futureTime  = get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
+        uint16_t days        = UINT16_C(0);
+        uint8_t  hours       = UINT8_C(0);
+        uint8_t  minutes     = UINT8_C(0);
+        uint8_t  seconds     = UINT8_C(0);
+        DECLARE_ZERO_INIT_ARRAY(char, timeFormat, TIME_STRING_LENGTH);
+        convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), M_NULLPTR, &days, &hours,
+                                            &minutes, &seconds);
+        printf("\n\tCurrent Time: %s\tDrive reported completion time: ",
+               get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
+        if (maxPossibleTime)
+        {
+            print_str(">");
+        }
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+        print_str("from now.\n");
+        safe_memset(timeFormat, TIME_STRING_LENGTH, 0, TIME_STRING_LENGTH); // clear this again before reusing it
+        printf("\tEstimated completion Time : %s",
+               get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
+    }
+    print_str("\n\tPlease DO NOT remove power to the drive during the erase\n");
+    print_str("\tas this will leave it in an uninitialized state with the password set.\n");
+    print_str("\tIf the power is removed, rerun this test with your utility.\n");
+    print_str("\tUpon erase completion, the password is automatically cleared.\n\n");
+}
+
+static bool did_host_reset_occur(tDevice* device, bool satATASecuritySupported, eReturnValues ataEraseResult)
+{
+    bool hostResetDuringErase = false;
+    if (!satATASecuritySupported) // Only do the code below if we aren't using the SAT security protocol to perform the
+                                  // erase.
+    {
+        // If the host issued a reset, we may not get back correct status, but the status after the reset.
+        // After talking to a firmware engineer, a status of 50h and error of 01h would be what we could see.
+        // I added this check as a test to set the "host reset the drive" message at the end of the operation. - TJE
+        if (device->drive_info.lastCommandRTFRs.status == 0x50 && device->drive_info.lastCommandRTFRs.error == 0x01)
+        {
+            // ataEraseResult = FAILURE; //This is commented out because I'm not sure this is the right place to do
+            // this... The code that checks the security bits should still catch a failure. - TJE
+            hostResetDuringErase = true;
+        }
+    }
+#if defined(_WIN32) || defined(__FreeBSD__)
+    if (device->drive_info.interface_type != IDE_INTERFACE)
+#endif
+    {
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, validateCompletion, SPC3_SENSE_LEN);
+        uint8_t senseKey = UINT8_C(0);
+        uint8_t asc      = UINT8_C(0);
+        uint8_t ascq     = UINT8_C(0);
+        uint8_t fru      = UINT8_C(0);
+        if (did_Reset_Occur(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
+        {
+            hostResetDuringErase = true;
+        }
+        scsi_Request_Sense_Cmd(device, false, validateCompletion, SPC3_SENSE_LEN);
+        get_Sense_Key_ASC_ASCQ_FRU(validateCompletion, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
+        if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
+        {
+            print_str("ATA Security Validate Erase Completion, validate completion buffer:\n");
+            print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
+        }
+        eReturnValues senseResult = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, asc, ascq, fru);
+        if (senseResult != SUCCESS && ataEraseResult == SUCCESS)
+        {
+            ataEraseResult = FAILURE;
+        }
+        if (did_Reset_Occur(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
+        {
+            hostResetDuringErase = true;
+        }
+        if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
+        {
+            print_str("ATA Security Validate Erase Completion, request sense command completion:\n");
+            print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
+        }
+        if (did_Reset_Occur(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
+        {
+            hostResetDuringErase = true;
+        }
+    }
+    return hostResetDuringErase;
+}
+
+static void clear_Password_After_Erase_Failure(tDevice*            device,
+                                               ataSecurityStatus   securityStatus,
+                                               ataSecurityStatus   finalSecurityStatus,
+                                               ataSecurityPassword ataPassword,
+                                               bool                satATASecuritySupported,
+                                               bool                hostResetDuringErase)
+{
+    // check the initial state to see if security was already enabled. If it was, do not try to clear the password.
+    if (!securityStatus.securityEnabled)
+    {
+        // disable the password if it's enabled
+        if (finalSecurityStatus.securityLocked)
+        {
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
+            unlock_ATA_Security(device, ataPassword, satATASecuritySupported);
+            safe_memset(&finalSecurityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+            ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
+            get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
+        }
+        if (finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
+        {
+            if (SUCCESS == disable_ATA_Security_Password(device, ataPassword, satATASecuritySupported))
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    print_str("\tThe ATA Security password used during erase has been cleared.\n\n");
+                }
+            }
+            else
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    print_str("\tWARNING!!! Unable to remove the ATA security password used during erase!!\n");
+                    print_str("\tErase password that was used was: ");
+                    print_ATA_Security_Password(&ataPassword);
+                    print_str("\n");
+                }
+            }
+        }
+        else if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            print_str("\tWARNING!!! The drive is in a security state where clearing the password is not possible!\n");
+            print_str("\tPlease power cycle the drive and try clearing the password upon powerup.\n");
+            print_str("\tErase password that was used was: ");
+            print_ATA_Security_Password(&ataPassword);
+            print_str("\n");
+        }
+    }
+    if (hostResetDuringErase)
+    {
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            printf("\tThe host reset the drive during the erase.\n\tEnsure no other applications are trying to "
+                   "access\n\tthe drive while it is erasing.\n\n");
+        }
+    }
+}
+
+static eReturnValues ata_Security_Erase_Final_Results(tDevice*          device,
+                                                      eReturnValues     ataEraseResult,
+                                                      ataSecurityStatus finalSecurityStatus,
+                                                      seatimer_t        ataSecureEraseTimer)
+{
+    eReturnValues result = ataEraseResult;
+    if (SUCCESS == ataEraseResult && !finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
+    {
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            print_str("\tATA security erase has completed successfully.\n");
+            print_str("\tTime to erase was ");
+        }
+        result = SUCCESS;
+    }
+    else
+    {
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            print_str("\tATA Security erase failed to complete after ");
+        }
+        result = FAILURE;
+    }
+
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
+    {
+        uint16_t days                       = UINT16_C(0);
+        uint8_t  years                      = UINT8_C(0);
+        uint8_t  hours                      = UINT8_C(0);
+        uint8_t  minutes                    = UINT8_C(0);
+        uint8_t  seconds                    = UINT8_C(0);
+        double   ataSecureEraseTimerSeconds = get_Seconds(ataSecureEraseTimer);
+        convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, ataSecureEraseTimerSeconds), &years, &days, &hours,
+                                            &minutes, &seconds);
+        if (seconds > 0 || minutes > 0 || hours > 0 || days > 0 || years > 0)
+        {
+            print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
+        }
+        else
+        {
+            // response was in less than a second so display the time in those much smaller units.
+            // This is uncommon unless there was an error reported from the drive or it was a crypto erase
+            print_Command_Time(get_Nano_Seconds(ataSecureEraseTimer));
+        }
+        print_str("\n\n");
+    }
+    return result;
+}
+
 eReturnValues run_ATA_Security_Erase(tDevice*              device,
                                      eATASecurityEraseType eraseType,
                                      ataSecurityPassword   ataPassword,
@@ -1133,7 +1389,7 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
             printf("Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry "
                    "the operation.\n");
         }
-        return FAILURE;
+        return DEVICE_ACCESS_DENIED;
     }
     // ATA spec shows you can erase without unlocking the drive.
     // We may want to put this back in as a "just in case" or a "try it to see if the password was right" though.
@@ -1180,72 +1436,7 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
 
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        print_str("Starting ");
-        if (eraseType == ATA_SECURITY_ERASE_ENHANCED_ERASE)
-        {
-            print_str("Enhanced ATA Security Erase using ");
-        }
-        else
-        {
-            print_str("ATA Security Erase using ");
-        }
-        if (ataPassword.passwordType == ATA_PASSWORD_MASTER)
-        {
-            print_str("Master password: ");
-        }
-        else
-        {
-            print_str("User password: ");
-        }
-        print_ATA_Security_Password(&ataPassword);
-        if (eraseTimeMinutes == 0)
-        {
-            print_str("\n\tThe drive did not report an erase time estimate.\n");
-            print_str("\tA completion estimate is not available for this drive.\n");
-        }
-        else
-        {
-            bool maxPossibleTime = eraseTimeMinutes == UINT16_MAX ? true : false;
-            if (maxPossibleTime)
-            {
-                print_str("\n\tThe drive reported an estimated erase time longer than\n");
-                if (securityStatus.extendedTimeFormat)
-                {
-                    eraseTimeMinutes = ATA_SECURITY_MAX_EXTENDED_TIME_MINUTES;
-                    print_str("\t65532 minutes (max per ATA specification).\n");
-                }
-                else
-                {
-                    eraseTimeMinutes = ATA_SECURITY_MAX_TIME_MINUTES;
-                    print_str("\t508 minutes (max per ATA specification).\n");
-                }
-            }
-            time_t currentTime = time(M_NULLPTR);
-            time_t futureTime =
-                get_Future_Date_And_Time(currentTime, C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60));
-            uint16_t days    = UINT16_C(0);
-            uint8_t  hours   = UINT8_C(0);
-            uint8_t  minutes = UINT8_C(0);
-            uint8_t  seconds = UINT8_C(0);
-            DECLARE_ZERO_INIT_ARRAY(char, timeFormat, TIME_STRING_LENGTH);
-            convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, eraseTimeMinutes) * UINT64_C(60), M_NULLPTR, &days,
-                                                &hours, &minutes, &seconds);
-            printf("\n\tCurrent Time: %s\tDrive reported completion time: ",
-                   get_Current_Time_String(C_CAST(const time_t*, &currentTime), timeFormat, TIME_STRING_LENGTH));
-            if (maxPossibleTime)
-            {
-                print_str(">");
-            }
-            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-            print_str("from now.\n");
-            safe_memset(timeFormat, TIME_STRING_LENGTH, 0, TIME_STRING_LENGTH); // clear this again before reusing it
-            printf("\tEstimated completion Time : %s",
-                   get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
-        }
-        print_str("\n\tPlease DO NOT remove power to the drive during the erase\n");
-        print_str("\tas this will leave it in an uninitialized state with the password set.\n");
-        print_str("\tIf the power is removed, rerun this test with your utility.\n");
-        print_str("\tUpon erase completion, the password is automatically cleared.\n\n");
+        print_ATA_Security_Erase_Start_Info_To_Screen(eraseType, ataPassword, eraseTimeMinutes, securityStatus);
     }
     DECLARE_SEATIMER(ataSecureEraseTimer);
     uint32_t timeout = UINT32_C(0);
@@ -1266,59 +1457,8 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
     os_Unlock_Device(device);
     // before we read the bitfield again...try requesting sense data to see if that says there was a reset on the bus.
     // (6h/29h/00h)
-    bool hostResetDuringErase = false;
-    if (!satATASecuritySupported) // Only do the code below if we aren't using the SAT security protocol to perform the
-                                  // erase.
-    {
-        // If the host issued a reset, we may not get back correct status, but the status after the reset.
-        // After talking to a firmware engineer, a status of 50h and error of 01h would be what we could see.
-        // I added this check as a test to set the "host reset the drive" message at the end of the operation. - TJE
-        if (device->drive_info.lastCommandRTFRs.status == 0x50 && device->drive_info.lastCommandRTFRs.error == 0x01)
-        {
-            // ataEraseResult = FAILURE; //This is commented out because I'm not sure this is the right place to do
-            // this... The code that checks the security bits should still catch a failure. - TJE
-            hostResetDuringErase = true;
-        }
-    }
-#if defined(_WIN32) || defined(__FreeBSD__)
-    if (device->drive_info.interface_type != IDE_INTERFACE)
-#endif
-    {
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, validateCompletion, SPC3_SENSE_LEN);
-        uint8_t senseKey = UINT8_C(0);
-        uint8_t asc      = UINT8_C(0);
-        uint8_t ascq     = UINT8_C(0);
-        uint8_t fru      = UINT8_C(0);
-        if (did_Reset_Occur(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
-        {
-            hostResetDuringErase = true;
-        }
-        scsi_Request_Sense_Cmd(device, false, validateCompletion, SPC3_SENSE_LEN);
-        get_Sense_Key_ASC_ASCQ_FRU(validateCompletion, SPC3_SENSE_LEN, &senseKey, &asc, &ascq, &fru);
-        if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
-        {
-            print_str("ATA Security Validate Erase Completion, validate completion buffer:\n");
-            print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
-        }
-        eReturnValues senseResult = check_Sense_Key_ASC_ASCQ_And_FRU(device, senseKey, asc, ascq, fru);
-        if (senseResult != SUCCESS && ataEraseResult == SUCCESS)
-        {
-            ataEraseResult = FAILURE;
-        }
-        if (did_Reset_Occur(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
-        {
-            hostResetDuringErase = true;
-        }
-        if (device->deviceVerbosity >= VERBOSITY_BUFFERS)
-        {
-            print_str("ATA Security Validate Erase Completion, request sense command completion:\n");
-            print_Data_Buffer(validateCompletion, SPC3_SENSE_LEN, false);
-        }
-        if (did_Reset_Occur(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
-        {
-            hostResetDuringErase = true;
-        }
-    }
+    bool hostResetDuringErase = did_host_reset_occur(device, satATASecuritySupported, ataEraseResult);
+
     // Read the bitfield again to check if the drive is in a good or bad security state...a success should only leave it
     // at supported. If locked or enabled, we need to fail and disable the password.
     if (satATASecuritySupported)
@@ -1334,96 +1474,11 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
     DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
     ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
     get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
-    if (SUCCESS == ataEraseResult && !finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
-    {
-        if (VERBOSITY_QUIET < device->deviceVerbosity)
-        {
-            print_str("\tATA security erase has completed successfully.\n");
-            print_str("\tTime to erase was ");
-        }
-        result = SUCCESS;
-    }
-    else
-    {
-        if (VERBOSITY_QUIET < device->deviceVerbosity)
-        {
-            print_str("\tATA Security erase failed to complete after ");
-        }
-        result = FAILURE;
-    }
-
-    if (VERBOSITY_QUIET < device->deviceVerbosity)
-    {
-        uint16_t days                       = UINT16_C(0);
-        uint8_t  years                      = UINT8_C(0);
-        uint8_t  hours                      = UINT8_C(0);
-        uint8_t  minutes                    = UINT8_C(0);
-        uint8_t  seconds                    = UINT8_C(0);
-        double   ataSecureEraseTimerSeconds = get_Seconds(ataSecureEraseTimer);
-        convert_Seconds_To_Displayable_Time(C_CAST(uint64_t, ataSecureEraseTimerSeconds), &years, &days, &hours,
-                                            &minutes, &seconds);
-        if (seconds > 0 || minutes > 0 || hours > 0 || days > 0 || years > 0)
-        {
-            print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
-        }
-        else
-        {
-            // response was in less than a second so display the time in those much smaller units.
-            // This is uncommon unless there was an error reported from the drive or it was a crypto erase
-            print_Command_Time(get_Nano_Seconds(ataSecureEraseTimer));
-        }
-        print_str("\n\n");
-    }
+    result = ata_Security_Erase_Final_Results(device, ataEraseResult, finalSecurityStatus, ataSecureEraseTimer);
     if ((result == FAILURE || hostResetDuringErase))
     {
-        // check the initial state to see if security was already enabled. If it was, do not try to clear the password.
-        if (!securityStatus.securityEnabled)
-        {
-            // disable the password if it's enabled
-            if (finalSecurityStatus.securityLocked)
-            {
-                unlock_ATA_Security(device, ataPassword, satATASecuritySupported);
-                safe_memset(&finalSecurityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
-                ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
-                get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
-            }
-            if (finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
-            {
-                if (SUCCESS == disable_ATA_Security_Password(device, ataPassword, satATASecuritySupported))
-                {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
-                    {
-                        print_str("\tThe ATA Security password used during erase has been cleared.\n\n");
-                    }
-                }
-                else
-                {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
-                    {
-                        print_str("\tWARNING!!! Unable to remove the ATA security password used during erase!!\n");
-                        print_str("\tErase password that was used was: ");
-                        print_ATA_Security_Password(&ataPassword);
-                        print_str("\n");
-                    }
-                }
-            }
-            else if (VERBOSITY_QUIET < device->deviceVerbosity)
-            {
-                print_str("\tWARNING!!! The drive is in a security state where clearing the password is not possible!\n");
-                print_str("\tPlease power cycle the drive and try clearing the password upon powerup.\n");
-                print_str("\tErase password that was used was: ");
-                print_ATA_Security_Password(&ataPassword);
-                print_str("\n");
-            }
-        }
-        if (hostResetDuringErase)
-        {
-            if (VERBOSITY_QUIET < device->deviceVerbosity)
-            {
-                printf("\tThe host reset the drive during the erase.\n\tEnsure no other applications are trying to "
-                       "access\n\tthe drive while it is erasing.\n\n");
-            }
-        }
+        clear_Password_After_Erase_Failure(device, securityStatus, finalSecurityStatus, ataPassword,
+                                           satATASecuritySupported, hostResetDuringErase);
     }
     os_Update_File_System_Cache(device);
     return result;
