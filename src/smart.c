@@ -5175,7 +5175,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
             printf("\t  ^ - attribute has previously failed\n");
             printf("\t  %% - attribute is currently issuing a warning\n");
             printf("\t  ~ - attribute has previously warned about its condition\n");
-            printf("\tTemperature: (Celcius unless specified)\n");
+            printf("\tTemperature: (Celsius unless specified)\n");
             printf("\t  m = minimum\n");
             printf("\t  M = maximum\n");
             printf("\tColumns:\n");
