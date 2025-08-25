@@ -1146,19 +1146,13 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
             {
             case CDL_POLICY_TYPE_INACTIVE_TIME:
             case CDL_POLICY_TYPE_ACTIVE_TIME:
-                if (policyField == 0x00 || policyField == 0x03 || policyField == 0x04 || policyField == 0x05 ||
-                    policyField == 0x0D || policyField == 0x0F)
-                {
+                if (policyField == 0x00 || policyField == 0x0D || policyField == 0x0F)
                     return true;
-                }
                 break;
 
             case CDL_POLICY_TYPE_TOTAL_TIME:
-                if (policyField <= 0x02 || policyField == 0x03 || policyField == 0x04 || policyField == 0x05 ||
-                    policyField == 0x0D || policyField == 0x0F)
-                {
+                if (policyField <= 0x02 || policyField == 0x0D || policyField == 0x0F)
                     return true;
-                }
                 break;
 
             default:
@@ -1612,13 +1606,11 @@ void get_Supported_Policy_String(eDriveType     driveType,
             {
             case CDL_POLICY_TYPE_INACTIVE_TIME:
             case CDL_POLICY_TYPE_ACTIVE_TIME:
-                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
-                                    "0x00,0x03,0x04,0x05,0x0D,0x0F");
+                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x0D,0x0F");
                 break;
 
             case CDL_POLICY_TYPE_TOTAL_TIME:
-                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
-                                    "0x00,0x01,0x02,0x03,0x04,0x05,0x0D,0x0F");
+                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x01,0x02,0x0D,0x0F");
                 break;
 
             default:

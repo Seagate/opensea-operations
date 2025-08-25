@@ -1429,6 +1429,11 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
                         break;
                     }
                 }
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    printf("\n    DST is still in progress...please wait");
+                    flush_stdout();
+                }
                 delay_Seconds(delayTime);
             }
             if (dstAborted)
