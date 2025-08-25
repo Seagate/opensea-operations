@@ -3515,7 +3515,8 @@ eOSFeatureSupported is_Block_Sanitize_Operation_Supported(tDevice* device)
         }
 #else
         if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
-            device->drive_info.adapter_info.vendorIDValid && device->drive_info.adapter_info.vendorID == 0x059F)
+            device->drive_info.adapter_info.vendorIDValid &&
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
         else
             featureSupported = OS_FEATURE_SUPPORTED;
@@ -3592,7 +3593,8 @@ eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(tDevice* device)
         }
 #else
         if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
-            device->drive_info.adapter_info.vendorIDValid && device->drive_info.adapter_info.vendorID == 0x059F)
+            device->drive_info.adapter_info.vendorIDValid &&
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
         else
             featureSupported = OS_FEATURE_SUPPORTED;
@@ -3655,7 +3657,8 @@ eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(tDevice* device)
         }
 #else
         if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
-            device->drive_info.adapter_info.vendorIDValid && device->drive_info.adapter_info.vendorID == 0x059F)
+            device->drive_info.adapter_info.vendorIDValid &&
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
         else
             featureSupported = OS_FEATURE_SUPPORTED;
@@ -3814,7 +3817,7 @@ eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(M_ATTR_UNUSED tDevic
             featureSupported = OS_FEATURE_SUPPORTED;
 #else
         if (device->drive_info.interface_type == USB_INTERFACE && device->drive_info.adapter_info.vendorIDValid &&
-            device->drive_info.adapter_info.vendorID == 0x059F)
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
         else
             featureSupported = OS_FEATURE_SUPPORTED;
