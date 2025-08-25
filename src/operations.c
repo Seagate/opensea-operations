@@ -823,7 +823,7 @@ eReturnValues get_Supported_Erase_Methods(tDevice*    device,
     bool                      formatUnitAdded                    = false;
     bool                      nvmFormatAdded                     = false;
     bool isWriteSameSupported  = is_Write_Same_Supported(device, 0, C_CAST(uint32_t, device->drive_info.deviceMaxLba),
-                                                         &maxNumberOfLogicalBlocksPerCommand);
+                                                        &maxNumberOfLogicalBlocksPerCommand);
     bool isFormatUnitSupported = is_Format_Unit_Supported(device, M_NULLPTR);
     eraseMethod* currentErase  = C_CAST(eraseMethod*, eraseMethodList);
     if (currentErase == M_NULLPTR)
@@ -3514,7 +3514,12 @@ eOSFeatureSupported is_Block_Sanitize_Operation_Supported(tDevice* device)
             }
         }
 #else
-        featureSupported = OS_FEATURE_SUPPORTED;
+        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
+            device->drive_info.adapter_info.vendorIDValid &&
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else
+            featureSupported = OS_FEATURE_SUPPORTED;
 #endif
     }
 
@@ -3587,7 +3592,12 @@ eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(tDevice* device)
             }
         }
 #else
-        featureSupported = OS_FEATURE_SUPPORTED;
+        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
+            device->drive_info.adapter_info.vendorIDValid &&
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else
+            featureSupported = OS_FEATURE_SUPPORTED;
 #endif
     }
 
@@ -3646,7 +3656,12 @@ eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(tDevice* device)
             }
         }
 #else
-        featureSupported = OS_FEATURE_SUPPORTED;
+        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
+            device->drive_info.adapter_info.vendorIDValid &&
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else
+            featureSupported = OS_FEATURE_SUPPORTED;
 #endif
     }
 
@@ -3786,21 +3801,28 @@ eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(M_ATTR_UNUSED tDevic
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
 #if defined(_WIN32)
-    if (device->os_info.ioType == WIN_IOCTL_BASIC || device->os_info.ioType == WIN_IOCTL_SMART_ONLY ||
-        device->os_info.ioType == WIN_IOCTL_SMART_AND_IDE) // Not supported for WIN_IOCTL_BASIC or WIN_IOCTL_SMART_ONLY
-                                                           // or WIN_IOCTL_SMART_AND_IDE
-        featureSupported = OS_FEATURE_OS_BLOCKS;
-    else if (!is_Windows_PE() && !is_Windows_8_Or_Higher() &&
-             (device->drive_info.interface_type == USB_INTERFACE ||
-              device->drive_info.interface_type ==
-                  SCSI_INTERFACE)) // Non PE windows which are older than 8 will not support for USB or SCSI interface
-        featureSupported = OS_FEATURE_OS_BLOCKS;
-    else
-        featureSupported = OS_FEATURE_SUPPORTED;
+        if (device->os_info.ioType == WIN_IOCTL_BASIC || device->os_info.ioType == WIN_IOCTL_SMART_ONLY ||
+            device->os_info.ioType == WIN_IOCTL_SMART_AND_IDE) // Not supported for WIN_IOCTL_BASIC or
+                                                               // WIN_IOCTL_SMART_ONLY or WIN_IOCTL_SMART_AND_IDE
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else if (!is_Windows_PE() && !is_Windows_8_Or_Higher() &&
+                 (device->drive_info.interface_type == USB_INTERFACE ||
+                  device->drive_info.interface_type == SCSI_INTERFACE)) // Non PE windows which are older than 8 will
+                                                                        // not support for USB or SCSI interface
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else
+            featureSupported = OS_FEATURE_SUPPORTED;
 #else
-    featureSupported = OS_FEATURE_SUPPORTED;
+        if (device->drive_info.interface_type == USB_INTERFACE && device->drive_info.adapter_info.vendorIDValid &&
+            device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
+            featureSupported = OS_FEATURE_OS_BLOCKS;
+        else
+            featureSupported = OS_FEATURE_SUPPORTED;
 #endif
+    }
 
     return featureSupported;
 }
