@@ -5180,7 +5180,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
             print_str("\t  ^ - attribute has previously failed\n");
             printf("\t  %% - attribute is currently issuing a warning\n");
             print_str("\t  ~ - attribute has previously warned about its condition\n");
-            print_str("\tTemperature: (Celcius unless specified)\n");
+            print_str("\tTemperature: (Celsius unless specified)\n");
             print_str("\t  m = minimum\n");
             print_str("\t  M = maximum\n");
             print_str("\tColumns:\n");
@@ -6309,8 +6309,9 @@ bool is_SMART_Enabled(tDevice* device)
     {
     case ATA_DRIVE:
         // check identify data
-        if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
-            le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0)
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT0) ||
+            device->drive_info.passThroughHacks.ataPTHacks.smartEnabled)
         {
             enabled = true;
         }

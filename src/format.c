@@ -1607,6 +1607,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
             print_str("automatically. You may attempt to run this command again if recovery\n");
             print_str("does not appear successfull.\n");
         }
+        os_Get_Exclusive(device);
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
         // a weird case was found when changing the sector size on a drive with an existing partition on it.

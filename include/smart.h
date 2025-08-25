@@ -76,7 +76,6 @@ extern "C"
         SMART_ATTR_OUTPUT_RAW,
         SMART_ATTR_OUTPUT_ANALYZED,
         SMART_ATTR_OUTPUT_HYBRID,
-        SMART_ATTR_OUTPUT_JSON,
     } eSMARTAttrOutMode;
 
     //-----------------------------------------------------------------------------

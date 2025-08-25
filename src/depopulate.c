@@ -403,7 +403,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
         {
             snprintf_err_handle(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "No");
         }
-        printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%s\t%s\n", elementList[elementIter].elementIdentifier,
+        printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%-17s\t%s\n", elementList[elementIter].elementIdentifier,
                elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);
     }
     print_str("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
@@ -420,6 +420,7 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
 eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    os_Get_Exclusive(device);
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1023,6 +1024,15 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
                                                   uint64_t requestedMaxLBA,
                                                   bool     pollForProgress)
 {
+    return perform_Depopulate_Physical_Element2(device, elementDescriptorID, requestedMaxLBA, pollForProgress, false);
+}
+
+eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
+                                                   uint32_t elementDescriptorID,
+                                                   uint64_t requestedMaxLBA,
+                                                   bool     pollForProgress,
+                                                   bool     modifyZones)
+{
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);
     if (is_Depopulation_Feature_Supported(device, &depopTime))
@@ -1031,7 +1041,14 @@ eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
         {
             print_Depop_Start(depopTime, DEPOP_OPERATION_STRING);
         }
-        ret = depopulate_Physical_Element(device, elementDescriptorID, requestedMaxLBA);
+        if (modifyZones)
+        {
+            ret = depopulate_Physical_Element_And_Modify_Zones(device, elementDescriptorID);
+        }
+        else
+        {
+            ret = depopulate_Physical_Element(device, elementDescriptorID, requestedMaxLBA);
+        }
         if (ret != SUCCESS)
         {
             if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1167,6 +1184,7 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
 eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    os_Get_Exclusive(device);
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1275,6 +1293,7 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
 eReturnValues repopulate_Elements(tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    os_Get_Exclusive(device);
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
