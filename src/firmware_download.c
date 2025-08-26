@@ -174,6 +174,55 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice* 
 #endif //_WIN32 and WINVER >= WIN10
 }
 
+static uint16_t get_fwdl_segment_size(tDevice* device, uint16_t requestedSize, supportedDLModes fwdlSupport)
+{
+    uint16_t updateLen = requestedSize;
+    // Always allow overriding this automatic mode with the user's requested size!
+    if (requestedSize == FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO)
+    {
+        if (fwdlSupport.minSegmentSize == 0 && fwdlSupport.maxSegmentSize == UINT32_MAX)
+        {
+            // No minimum or maximum required. Use default we've always used.
+            requestedSize = DEFAULT_FWDL_SEGMENT_SIZE;
+        }
+        else
+        {
+            // First evaluate min/max requirements (if they exist)
+            if (fwdlSupport.minSegmentSize > DEFAULT_FWDL_SEGMENT_SIZE)
+            {
+                updateLen = fwdlSupport.minSegmentSize;
+            }
+            else
+            {
+                updateLen = M_Min(fwdlSupport.maxSegmentSize, DEFAULT_FWDL_SEGMENT_SIZE);
+            }
+        }
+
+        // Now, in Windows make further adjustments to work with Windows properly.
+#if defined(_WIN32) && defined(WINVER)
+        if (device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
+        {
+#    if WINVER >= SEA_WIN32_WINNT_WIN10
+            if (!device->os_info.fwdlIOsupport.fwdlIOSupported)
+            {
+                // changing the transfer size to single blocks as a workaround for old drivers. This is more
+                // generic than I would like, but do not currently have a better solution for this old issue.
+                // This issue goes back to Windows XP ATA passthrough days and only single sector transfers work
+                // properly on these old, strange drivers. Ideally this check is more enhanced for specific
+                // drivers that are known to have this issue, but there is not currently enough information to
+                // setup this more complicated check. -TJE
+                requestedSize = 1;
+            }
+#    else  // winver >=win10
+            // not enough information, so assume old XP workaround listed above. - TJE
+            requestedSize = 1;
+#    endif // winver >= win10
+        }
+#endif
+    }
+    return requestedSize;
+}
+
 eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
 {
     eReturnValues ret = SUCCESS;
@@ -385,46 +434,8 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 break;
             }
 
-            // multiple commands needed to do the download (segmented)
-            if (options->segmentSize == 0)
-            {
-                // If segment size is not specified, set to compatible defaults for now. This is more complicated on
-                // Windows due to old workarounds - TJE
-#if defined(_WIN32) && defined(WINVER)
-                if (device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
-                {
-#    if WINVER >= SEA_WIN32_WINNT_WIN10
-                    if (device->os_info.fwdlIOsupport.fwdlIOSupported)
-                    {
-                        options->segmentSize = 64;
-                        // this driver supports the FWDL ioctl, so it likely does not have a problem with multi-sector
-                        // transfers - TJE
-                    }
-                    else
-                    {
-                        // changing the transfer size to single blocks as a workaround for old drivers. This is more
-                        // generic than I would like, but do not currently have a better solution for this old issue.
-                        // This issue goes back to Windows XP ATA passthrough days and only single sector transfers work
-                        // properly on these old, strange drivers. Ideally this check is more enhanced for specific
-                        // drivers that are known to have this issue, but there is not currently enough information to
-                        // setup this more complicated check. -TJE
-                        options->segmentSize = 1;
-                    }
-#    else  // winver >=win10
-           // not enough information, so assume old XP workaround listed above. - TJE
-                    options->segmentSize = 1;
-#    endif // winver >= win10
-                }
-                else
-                {
-                    // not ATA passthrough, so do not worry about working around strange driver issues
-                    options->segmentSize = 64;
-                }
-#else
-                // Not Windows, so no strange driver workarounds necessary at this time - TJE
-                options->segmentSize = 64;
-#endif
-            }
+            options->segmentSize = get_fwdl_segment_size(device, options->segmentSize, fwdlSupport);
+
             downloadSize      = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
             downloadBlocks    = options->firmwareMemoryLength / downloadSize;
             downloadRemainder = options->firmwareMemoryLength % downloadSize;
@@ -950,20 +961,15 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                 if (updateGranularity == 0xFF)
                 {
                     // no granularity limits
-                    supportedModes->driveOffsetBoundary        = 0xFF;
-                    supportedModes->driveOffsetBoundaryInBytes = 1;
+                    // 2^2 = 4, which is a dword and smallest unit for the NVMe command
+                    supportedModes->driveOffsetBoundary = 2;
+                    // 4 because of DWords
+                    supportedModes->driveOffsetBoundaryInBytes = 4;
                 }
                 else if (updateGranularity > 0)
                 {
-                    // get the power of 2 that represents this byte value
-                    uint8_t  counter            = UINT8_C(0);
-                    uint32_t updateGranularityD = updateGranularity;
-                    while (updateGranularityD != 0)
-                    {
-                        updateGranularityD = updateGranularityD >> 1;
-                        ++counter;
-                    }
-                    supportedModes->driveOffsetBoundary = counter - 1;
+                    supportedModes->driveOffsetBoundary =
+                        C_CAST(uint8_t, log2_power2(supportedModes->driveOffsetBoundaryInBytes));
                     supportedModes->minSegmentSize =
                         C_CAST(uint16_t, supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE);
                     supportedModes->maxSegmentSize = UINT32_MAX;
@@ -971,24 +977,32 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                 else
                 {
                     // granularity not provided
-                    supportedModes->driveOffsetBoundary        = 0;
-                    supportedModes->driveOffsetBoundaryInBytes = 0;
+                    supportedModes->driveOffsetBoundary        = 2;
+                    supportedModes->driveOffsetBoundaryInBytes = 4;
+                    // 4096B assume this is the minimum
+                    supportedModes->minSegmentSize = 8;
 #if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
                     if (device->os_info.fwdlIOsupport.fwdlIOSupported)
                     {
                         // If we got here in Windows, then we need to make sure we follow any default rules MS sets for
                         // using their API
                         supportedModes->driveOffsetBoundaryInBytes = device->os_info.fwdlIOsupport.payloadAlignment;
-                        uint32_t byteAlignment                     = device->os_info.fwdlIOsupport.payloadAlignment;
-                        uint16_t counter                           = UINT16_C(0);
-                        while (byteAlignment != 0)
-                        {
-                            byteAlignment = byteAlignment >> 1;
-                            ++counter;
-                        }
-                        supportedModes->driveOffsetBoundary = C_CAST(uint8_t, counter - UINT8_C(1));
+                        supportedModes->driveOffsetBoundary =
+                            C_CAST(uint8_t, log2_power2(supportedModes->driveOffsetBoundaryInBytes));
+                        supportedModes->minSegmentSize =
+                            supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE;
                     }
-#endif
+#endif // defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+                }
+                // Vendor specific info lookup
+                uint16_t id = M_BytesTo2ByteValue(device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 9],
+                                                  device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 8]);
+                if (id == 0xFE19)
+                {
+                    // maximum segment size reported in same format as granularity in VS byte 3082
+                    supportedModes->maxSegmentSize =
+                        (device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 10] * 4096) / 512;
+                    // note division by 512 to match current use of this structure member
                 }
 #if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
                 if (device->os_info.fwdlIOsupport.fwdlIOSupported)
@@ -1000,7 +1014,7 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
                             device->os_info.fwdlIOsupport.maxXferSize / 512; // segments are in 512B blocks for
                     }
                 }
-#endif
+#endif // defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
                 supportedModes->firmwareSlotInfo.activateWithoutAResetSupported =
                     device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT4;
                 supportedModes->firmwareSlotInfo.numberOfSlots =
