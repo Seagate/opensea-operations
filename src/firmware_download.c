@@ -183,7 +183,7 @@ static uint16_t get_fwdl_segment_size(tDevice* device, uint16_t requestedSize, s
         if (fwdlSupport.minSegmentSize == 0 && fwdlSupport.maxSegmentSize == UINT32_MAX)
         {
             // No minimum or maximum required. Use default we've always used.
-            requestedSize = DEFAULT_FWDL_SEGMENT_SIZE;
+            updateLen = DEFAULT_FWDL_SEGMENT_SIZE;
         }
         else
         {
@@ -211,16 +211,18 @@ static uint16_t get_fwdl_segment_size(tDevice* device, uint16_t requestedSize, s
                 // properly on these old, strange drivers. Ideally this check is more enhanced for specific
                 // drivers that are known to have this issue, but there is not currently enough information to
                 // setup this more complicated check. -TJE
-                requestedSize = 1;
+                updateLen = 1;
             }
 #    else  // winver >=win10
-            // not enough information, so assume old XP workaround listed above. - TJE
-            requestedSize = 1;
+           // not enough information, so assume old XP workaround listed above. - TJE
+            updateLen = 1;
 #    endif // winver >= win10
         }
+#else
+        M_USE_UNUSED(device);
 #endif
     }
-    return requestedSize;
+    return updateLen;
 }
 
 eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
@@ -306,7 +308,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                                                   // received sense data ourselves in this case-TJE
         if (turStatus.senseKey == SENSE_KEY_NOT_READY)
         {
-            // check for "initilizing command required"
+            // check for "initializing command required"
             if (turStatus.asc == 0x04 && turStatus.ascq == 0x02)
             {
                 // send the start-stop unit command with the "start" bit set to one.
@@ -803,6 +805,742 @@ typedef struct s_supportedDLModesV2
                                        // or SCSI at this time - TJE
 } supportedDLModesV2, *ptrSupportedDLModesV2;
 
+static void get_ATA_Identify_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    // first check the bits in the identify data
+    if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word053) & BIT1) /* this is a validity bit for field 69 */
+        && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT8))
+    {
+        supportedModes->downloadMicrocodeSupported          = true;
+        supportedModes->firmwareDownloadDMACommandSupported = true;
+        supportedModes->fullBuffer                          = true;
+        supportedModes->driveOffsetBoundaryInBytes          = LEGACY_DRIVE_SEC_SIZE;
+        supportedModes->driveOffsetBoundary                 = 9;
+    }
+    if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT0) ||
+        (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT0))
+    {
+        supportedModes->downloadMicrocodeSupported = true;
+        supportedModes->fullBuffer                 = true;
+    }
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15) /*words 119, 120 valid*/
+    {
+        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT4) ||
+            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word120)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT4))
+        {
+            supportedModes->segmented = true;
+        }
+    }
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word234)))
+    {
+        supportedModes->minSegmentSize = M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word234),
+                                                             M_Byte0(device->drive_info.IdentifyData.ata.Word234));
+    }
+    else
+    {
+        supportedModes->minSegmentSize = 0;
+    }
+    if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word235)))
+    {
+        supportedModes->maxSegmentSize = M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word235),
+                                                             M_Byte0(device->drive_info.IdentifyData.ata.Word235));
+    }
+    else
+    {
+        supportedModes->maxSegmentSize = UINT32_MAX;
+    }
+    if (is_Seagate_Family(device) == SEAGATE &&
+        is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word243)) &&
+        le16_to_host(device->drive_info.IdentifyData.ata.Word243) & BIT12)
+    {
+        supportedModes->seagateDeferredPowerCycleActivate     = true;
+        supportedModes->deferredPowerCycleActivationSupported = true;
+    }
+}
+
+static void get_ATA_ID_Data_Log_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    // now try reading the supportd capabilities page of the identify device data log for the remaining info
+    // (deferred download)
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
+    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
+                                             ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities,
+                                             ATA_LOG_PAGE_LEN_BYTES, 0))
+    {
+        uint64_t supportedCapabilitiesQword = M_BytesTo8ByteValue(
+            supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13], supportedCapabilities[12],
+            supportedCapabilities[11], supportedCapabilities[10], supportedCapabilities[9], supportedCapabilities[8]);
+        uint64_t dlMicrocodeBits = M_BytesTo8ByteValue(
+            supportedCapabilities[23], supportedCapabilities[22], supportedCapabilities[21], supportedCapabilities[20],
+            supportedCapabilities[19], supportedCapabilities[18], supportedCapabilities[17], supportedCapabilities[16]);
+        // this bit should always be set to 1, but doesn't hurt to check
+        if (supportedCapabilitiesQword & ATA_ID_DATA_QWORD_VALID_BIT)
+        {
+            if (supportedCapabilitiesQword & BIT33)
+            {
+                supportedModes->downloadMicrocodeSupported          = true;
+                supportedModes->firmwareDownloadDMACommandSupported = true;
+                supportedModes->fullBuffer                          = true;
+            }
+            if (supportedCapabilitiesQword & BIT14)
+            {
+                supportedModes->downloadMicrocodeSupported = true;
+                supportedModes->fullBuffer                 = true;
+            }
+            if (supportedCapabilitiesQword & BIT3)
+            {
+                supportedModes->segmented = true;
+            }
+        }
+        if (dlMicrocodeBits & ATA_ID_DATA_QWORD_VALID_BIT)
+        {
+            if (dlMicrocodeBits & BIT34)
+            {
+                supportedModes->deferred                              = true;
+                supportedModes->deferredPowerCycleActivationSupported = true;
+            }
+            if (dlMicrocodeBits & BIT33)
+            {
+                supportedModes->fullBuffer = true;
+            }
+            if (dlMicrocodeBits & BIT32)
+            {
+                supportedModes->segmented = true;
+            }
+            supportedModes->maxSegmentSize = M_BytesTo2ByteValue(M_Byte3(dlMicrocodeBits), M_Byte2(dlMicrocodeBits));
+            if (supportedModes->downloadMicrocodeSupported &&
+                !(supportedModes->maxSegmentSize > 0 && supportedModes->maxSegmentSize < 0xFFFF))
+            {
+                supportedModes->maxSegmentSize = UINT32_MAX;
+            }
+            supportedModes->minSegmentSize = M_BytesTo2ByteValue(M_Byte1(dlMicrocodeBits), M_Byte0(dlMicrocodeBits));
+            if (supportedModes->downloadMicrocodeSupported &&
+                !(supportedModes->minSegmentSize > 0 && supportedModes->minSegmentSize < 0xFFFF))
+            {
+                supportedModes->minSegmentSize = 0;
+            }
+        }
+    }
+}
+
+static eReturnValues get_ATA_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    eReturnValues ret = SUCCESS;
+    get_ATA_Identify_Supported_FWDL_Modes(device, supportedModes);
+    get_ATA_ID_Data_Log_Supported_FWDL_Modes(device, supportedModes);
+    return ret;
+}
+
+static eReturnValues get_NVMe_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    eReturnValues ret = SUCCESS;
+    if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT2)
+    {
+        supportedModes->downloadMicrocodeSupported = true;
+        supportedModes->deferred                   = true;
+        supportedModes->multipleLogicalUnitsAffected =
+            MLU_AFFECTS_ALL_LU; // Firmware affects all namespaces attached to the controller
+        // byte 260
+        // BIT0 = firmware slot 1 is read only
+        // BITS 3:1 = number of supported firmware slots
+        // BIT4 = firmware activation without a reset
+        // byte 319 - update granularity
+        uint32_t updateGranularity                 = device->drive_info.IdentifyData.nvme.ctrl.fwug;
+        supportedModes->driveOffsetBoundaryInBytes = updateGranularity * 4096;
+        supportedModes->minSegmentSize             = 0;
+        supportedModes->maxSegmentSize             = UINT32_MAX;
+        if (updateGranularity == 0xFF)
+        {
+            // no granularity limits
+            // 2^2 = 4, which is a dword and smallest unit for the NVMe command
+            supportedModes->driveOffsetBoundary = 2;
+            // 4 because of DWords
+            supportedModes->driveOffsetBoundaryInBytes = 4;
+        }
+        else if (updateGranularity > 0)
+        {
+            supportedModes->driveOffsetBoundary =
+                C_CAST(uint8_t, log2_power2(supportedModes->driveOffsetBoundaryInBytes));
+            supportedModes->minSegmentSize =
+                C_CAST(uint16_t, supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE);
+            supportedModes->maxSegmentSize = UINT32_MAX;
+        }
+        else
+        {
+            // granularity not provided
+            supportedModes->driveOffsetBoundary        = 2;
+            supportedModes->driveOffsetBoundaryInBytes = 4;
+            // 4096B assume this is the minimum
+            supportedModes->minSegmentSize = 8;
+#if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+            if (device->os_info.fwdlIOsupport.fwdlIOSupported)
+            {
+                // If we got here in Windows, then we need to make sure we follow any default rules MS sets for
+                // using their API
+                supportedModes->driveOffsetBoundaryInBytes = device->os_info.fwdlIOsupport.payloadAlignment;
+                supportedModes->driveOffsetBoundary =
+                    C_CAST(uint8_t, log2_power2(supportedModes->driveOffsetBoundaryInBytes));
+                supportedModes->minSegmentSize = supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE;
+            }
+#endif // defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+        }
+        // Vendor specific info lookup
+        uint16_t id = M_BytesTo2ByteValue(device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 9],
+                                          device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 8]);
+        if (id == 0xFE19)
+        {
+            // maximum segment size reported in same format as granularity in VS byte 3082
+            supportedModes->maxSegmentSize =
+                (M_STATIC_CAST(uint32_t, device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 10]) * UINT32_C(4096)) / UINT32_C(512);
+            // note division by 512 to match current use of this structure member
+        }
+#if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+        if (device->os_info.fwdlIOsupport.fwdlIOSupported)
+        {
+            // If Windows, then we need to make sure we don't break their rules.-TJE
+            if ((supportedModes->maxSegmentSize / 512) > device->os_info.fwdlIOsupport.maxXferSize)
+            {
+                supportedModes->maxSegmentSize =
+                    device->os_info.fwdlIOsupport.maxXferSize / 512; // segments are in 512B blocks for
+            }
+        }
+#endif // defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
+        supportedModes->firmwareSlotInfo.activateWithoutAResetSupported =
+            device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT4;
+        supportedModes->firmwareSlotInfo.numberOfSlots =
+            get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1);
+        supportedModes->firmwareSlotInfo.slot1ReadOnly = device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT0;
+        // read the firmware log for more information
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareLog, 512);
+        nvmeGetLogPageCmdOpts firmwareLogOpts;
+        firmwareLogOpts.addr    = firmwareLog;
+        firmwareLogOpts.dataLen = 512;
+        firmwareLogOpts.lid     = 3;
+        firmwareLogOpts.nsid    = 0;
+        if (SUCCESS == nvme_Get_Log_Page(device, &firmwareLogOpts))
+        {
+            supportedModes->firmwareSlotInfo.firmwareSlotInfoValid = true;
+            supportedModes->firmwareSlotInfo.activeSlot            = get_bit_range_uint8(firmwareLog[0], 2, 0);
+            supportedModes->firmwareSlotInfo.nextSlotToBeActivated = get_bit_range_uint8(firmwareLog[0], 6, 4);
+            // set the firmware revision in each slot
+            for (uint32_t slotIter = UINT32_C(0), offset = UINT32_C(8);
+                 slotIter <= supportedModes->firmwareSlotInfo.numberOfSlots &&
+                 slotIter <= UINT32_C(7) /*max of 7 slots in spec and structure*/ && offset < UINT32_C(512);
+                 ++slotIter, offset += UINT32_C(8))
+            {
+                safe_memcpy(supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision, 9,
+                            &firmwareLog[offset], 8);
+                supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision[8] = '\0';
+            }
+        }
+    }
+    /*
+    //NOTE: This is the code that was previously for when running in SCSI translation, but showed up as an NVMe
+    drive. It probably wasn't used and falling into the next case will be ok. Keeping it as a comment for now -
+    TJE
+    //running in SCSI translation mode, so only set full & deferred download modes
+    supportedModes->downloadMicrocodeSupported = true;
+    supportedModes->fullBuffer = true;
+    supportedModes->deferred = true;
+    supportedModes->minSegmentSize = 0;
+    supportedModes->maxSegmentSize = UINT32_MAX;
+    //need to set the offset requirement...for now I'm setting the minimum the NVMe spec says can be
+    reported...should be OK...-TJE supportedModes->driveOffsetBoundaryInBytes = 4096;//4Kb is the minimum
+    specified in the NVMe specification that the drive may conform to..this should be good enough for the
+    translation. supportedModes->driveOffsetBoundary = 12;//power of 2
+    */
+    return ret;
+}
+
+static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    eReturnValues ret         = SUCCESS;
+    uint8_t*      extendedInq = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (extendedInq != M_NULLPTR)
+    {
+        ret = scsi_Inquiry(device, extendedInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false);
+        if (SUCCESS == ret)
+        {
+            if (extendedInq[12] & BIT7)
+            {
+                supportedModes->deferredPowerCycleActivationSupported = true;
+            }
+            if (extendedInq[12] & BIT6)
+            {
+                supportedModes->deferredHardResetActivationSupported = true;
+            }
+            if (extendedInq[12] & BIT5)
+            {
+                supportedModes->deferredVendorSpecificActivationSupported = true;
+            }
+            supportedModes->codeActivation = C_CAST(SCSIMicrocodeActivation, get_bit_range_uint8(extendedInq[4], 7, 6));
+            if (extendedInq[12] & BIT4) // dms valid
+            {
+                supportedModes->downloadMicrocodeSupported = true;
+                // bit 7 = dm_md_4 - temporary...not saving at this time since it's rarely used.
+                // bit 6 = dm_md_5
+                supportedModes->fullBuffer = M_ToBool(extendedInq[19] & BIT6);
+                // bit 5 = dm_md_6 - segmented temporary...not saving at this time since it's rarely used
+                // bit 4 = dm_md_7
+                supportedModes->segmented = M_ToBool(extendedInq[19] & BIT4);
+                // bit 3 = dm_md_d - deferred, select activation
+                supportedModes->deferredSelectActivation = M_ToBool(extendedInq[19] & BIT3);
+                // bit 2 = dm_md_e - deferred
+                supportedModes->deferred = M_ToBool(extendedInq[19] & BIT2);
+                // bit 1 = dm_md_f - activate deferred code (part of mode e. If mode e is supported, so should f
+                // - TJE
+            }
+            else
+            {
+                ret = NOT_SUPPORTED;
+            }
+        }
+        safe_free_aligned_core(C_CAST(void**, &extendedInq)); // PRH valgrind check
+    }
+    else
+    {
+        ret = MEMORY_FAILURE;
+    }
+    return ret;
+}
+
+static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(tDevice*            device,
+                                                                       ptrSupportedDLModes supportedModes)
+{
+    eReturnValues ret = SUCCESS;
+    // else try requesting all supported OPs and parse that information??? It could be report all is
+    // supported, but other modes are not
+    uint32_t reportAllOPsLength = UINT32_C(4);
+    uint8_t* reportAllOPs       = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (reportAllOPs != M_NULLPTR)
+    {
+        ret = scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs);
+        if (SUCCESS == ret)
+        {
+            // get the full length, then reallocate and reread
+            reportAllOPsLength =
+                M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
+            safe_free_aligned(&reportAllOPs);
+            reportAllOPs = M_REINTERPRET_CAST(
+                uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (reportAllOPs != M_NULLPTR)
+            {
+                if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0,
+                                                                     reportAllOPsLength, reportAllOPs))
+                {
+                    // loop through the data and check for the commands and service actions we
+                    // are interested in.
+                    uint32_t supportedCmdsIter   = UINT32_C(4);
+                    uint16_t cmdDescriptorLength = UINT16_C(8);
+                    uint32_t supportedCmdsLength =
+                        M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
+                    for (; supportedCmdsIter < supportedCmdsLength; supportedCmdsIter += cmdDescriptorLength)
+                    {
+                        uint8_t  operationCode      = reportAllOPs[supportedCmdsIter];
+                        uint16_t serviceAction      = M_BytesTo2ByteValue(reportAllOPs[supportedCmdsIter + 2],
+                                                                          reportAllOPs[supportedCmdsIter + 3]);
+                        bool     serviceActionValid = M_ToBool(reportAllOPs[supportedCmdsIter + 5] & BIT0);
+                        eMLU     mlu = C_CAST(eMLU, get_bit_range_uint8(reportAllOPs[supportedCmdsIter + 5], 5, 4));
+                        cmdDescriptorLength = (reportAllOPs[supportedCmdsIter + 5] & BIT1) ? 20 : 8;
+                        switch (operationCode)
+                        {
+                        case WRITE_BUFFER_CMD:
+                            if (serviceActionValid)
+                            {
+                                switch (serviceAction)
+                                {
+                                    // case SCSI_WB_DL_MICROCODE_TEMP_ACTIVATE:
+                                case SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE:
+                                    supportedModes->downloadMicrocodeSupported   = true;
+                                    supportedModes->fullBuffer                   = true;
+                                    supportedModes->multipleLogicalUnitsAffected = mlu;
+                                    break;
+                                    // case SCSI_WB_DL_MICROCODE_OFFSETS_ACTIVATE:
+                                case SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_ACTIVATE:
+                                    supportedModes->downloadMicrocodeSupported = true;
+                                    supportedModes->segmented                  = true;
+                                    // In this format, we cannot determine minimum or maximum
+                                    // transfer sizes. so set to max
+                                    supportedModes->maxSegmentSize               = 0xFFFF;
+                                    supportedModes->minSegmentSize               = 0;
+                                    supportedModes->multipleLogicalUnitsAffected = mlu;
+                                    break;
+                                case SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_SELECT_ACTIVATE_DEFER:
+                                    supportedModes->downloadMicrocodeSupported   = true;
+                                    supportedModes->deferredSelectActivation     = true;
+                                    supportedModes->multipleLogicalUnitsAffected = mlu;
+                                    break;
+                                case SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_DEFER:
+                                    supportedModes->downloadMicrocodeSupported   = true;
+                                    supportedModes->deferred                     = true;
+                                    supportedModes->multipleLogicalUnitsAffected = mlu;
+                                    break;
+                                case SCSI_WB_ACTIVATE_DEFERRED_MICROCODE: // not currently
+                                                                          // handled since it is
+                                                                          // assumed that this
+                                                                          // will be present if
+                                                                          // the deferred modes
+                                                                          // are supported
+                                default:
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                supportedModes->downloadMicrocodeSupported = true;
+                                supportedModes->scsiInfoPossiblyIncomplete = true;
+                                // setting segmented and full buffer download modes in here
+                                // because they SHOULD work on the products we care about
+                                // supporting.
+                                supportedModes->fullBuffer = true;
+                                if (device->drive_info.scsiVersion > 2) // SPC added segmented. Earlier products only
+                                                                        // supported full buffer
+                                {
+                                    supportedModes->segmented = true;
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    supportedModes->scsiInfoPossiblyIncomplete = true;
+                }
+            }
+        }
+        else
+        {
+            supportedModes->scsiInfoPossiblyIncomplete = true;
+            // NVMe needs some special case here
+            if (strncmp(device->drive_info.T10_vendor_ident, "NVMe", 4) == 0)
+            {
+                supportedModes->deferred                   = true;
+                supportedModes->downloadMicrocodeSupported = true;
+                supportedModes->fullBuffer                 = true;
+                supportedModes->scsiInfoPossiblyIncomplete =
+                    false; // setting this since we know it's NVMe, so we're pretty sure that this is
+                           // what we'll have from SCSI translation
+                supportedModes->maxSegmentSize               = UINT32_MAX;
+                supportedModes->minSegmentSize               = 0;
+                supportedModes->multipleLogicalUnitsAffected = MLU_AFFECTS_ALL_LU;
+            }
+            else
+            {
+                supportedModes->downloadMicrocodeSupported = true; // set this to on so we return good status...
+                supportedModes->scsiInfoPossiblyIncomplete = true;
+                // Setting supported stuff below even though we don't know for sure...should be safe
+                // enough.
+                supportedModes->fullBuffer     = true;
+                supportedModes->segmented      = true;
+                supportedModes->maxSegmentSize = UINT32_MAX;
+                supportedModes->minSegmentSize = 0;
+            }
+        }
+        safe_free_aligned(&reportAllOPs);
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    eReturnValues                ret = SUCCESS;
+    scsiOperationCodeInfoRequest writeBufSupReq;
+    safe_memset(&writeBufSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    writeBufSupReq.operationCode      = WRITE_BUFFER_CMD;
+    writeBufSupReq.serviceActionValid = true;
+    writeBufSupReq.serviceAction      = SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE;
+    eSCSICmdSupport writeBufSupport   = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
+    if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+    {
+        if (writeBufSupReq.requestRetriedWithoutSA)
+        {
+            supportedModes->scsiInfoPossiblyIncomplete = true;
+            // try to look at the mode bit field and determine which modes are supported...
+            uint8_t mode = writeBufSupReq.cdbUsageData[1] & 0x1F; // byte 1 of the write buffer cdb
+                                                                  // itself
+            if ((mode & 0x07) == 0x07)
+            {
+                // full and segmented supported
+                supportedModes->downloadMicrocodeSupported = true;
+                supportedModes->fullBuffer                 = true;
+                supportedModes->segmented                  = true;
+            }
+            else if (mode & BIT2) // we'll just say full only...no really good way to do this honestly
+            {
+                supportedModes->downloadMicrocodeSupported = true;
+                supportedModes->fullBuffer                 = true;
+            }
+            uint32_t length = M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
+                                                  writeBufSupReq.cdbUsageData[8]);
+            if (length == UINT32_C(0xFFFFFF) || length == 0)
+            {
+                supportedModes->maxSegmentSize = UINT32_MAX;
+                supportedModes->minSegmentSize = 0;
+            }
+            else
+            {
+                supportedModes->maxSegmentSize = length;
+                // the minimum is the lowest non-zero bit
+                uint32_t counter = UINT32_C(0);
+                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                {
+                    length = length >> 1;
+                    ++counter;
+                }
+                supportedModes->minSegmentSize = 1 << counter;
+            }
+        }
+        else
+        {
+            supportedModes->downloadMicrocodeSupported   = true;
+            supportedModes->fullBuffer                   = true;
+            supportedModes->multipleLogicalUnitsAffected = C_CAST(eMLU, writeBufSupReq.multipleLogicalUnits);
+            // request more service actions since this worked
+            writeBufSupReq.serviceAction = SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_ACTIVATE;
+            writeBufSupport              = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
+            if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+            {
+                supportedModes->segmented = true;
+                // set the min/max segment size from the cmd information bitfield
+                uint32_t length = M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
+                                                      writeBufSupReq.cdbUsageData[8]);
+                if (length == UINT32_C(0xFFFFFF) || length == 0)
+                {
+                    supportedModes->maxSegmentSize = UINT32_MAX;
+                    supportedModes->minSegmentSize = 0;
+                }
+                else
+                {
+                    supportedModes->maxSegmentSize = length;
+                    // the minimum is the lowest non-zero bit
+                    uint32_t counter = UINT32_C(0);
+                    while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                    {
+                        length = length >> 1;
+                        ++counter;
+                    }
+                    supportedModes->minSegmentSize = 1 << counter;
+                }
+            }
+            writeBufSupReq.serviceAction = SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_DEFER;
+            writeBufSupport              = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
+            if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+            {
+                supportedModes->deferred = true;
+                // set the min/max segment size from the cmd information bitfield
+                uint32_t length = M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
+                                                      writeBufSupReq.cdbUsageData[8]);
+                if (length == UINT32_C(0xFFFFFF) || length == 0)
+                {
+                    supportedModes->maxSegmentSize = UINT32_MAX;
+                    supportedModes->minSegmentSize = 0;
+                }
+                else
+                {
+                    supportedModes->maxSegmentSize = length;
+                    // the minimum is the lowest non-zero bit
+                    uint32_t counter = UINT32_C(0);
+                    while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                    {
+                        length = length >> 1;
+                        ++counter;
+                    }
+                    supportedModes->minSegmentSize = 1 << counter;
+                }
+            }
+            writeBufSupReq.serviceAction = SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_SELECT_ACTIVATE_DEFER;
+            writeBufSupport              = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
+            if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+            {
+                supportedModes->deferredSelectActivation = true;
+                // set the min/max segment size from the cmd information bitfield
+                uint32_t length = M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
+                                                      writeBufSupReq.cdbUsageData[8]);
+                if (length == UINT32_C(0xFFFFFF) || length == 0)
+                {
+                    supportedModes->maxSegmentSize = UINT32_MAX;
+                    supportedModes->minSegmentSize = 0;
+                }
+                else
+                {
+                    supportedModes->maxSegmentSize = length;
+                    // the minimum is the lowest non-zero bit
+                    uint32_t counter = UINT32_C(0);
+                    while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
+                    {
+                        length = length >> 1;
+                        ++counter;
+                    }
+                    supportedModes->minSegmentSize = 1 << counter;
+                }
+            }
+        }
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+static void get_SCSI_ReadBuffer_FWDL_Boundary(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, offsetReq, 4);
+    if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
+    {
+        supportedModes->driveOffsetBoundary        = offsetReq[0];
+        supportedModes->driveOffsetBoundaryInBytes = 1; // start with this
+        if (supportedModes->driveOffsetBoundary > 0 && supportedModes->driveOffsetBoundary != 0xFF)
+        {
+            uint16_t counter = UINT16_C(0);
+            while (counter < supportedModes->driveOffsetBoundary)
+            {
+                supportedModes->driveOffsetBoundaryInBytes = supportedModes->driveOffsetBoundaryInBytes << 1;
+                ++counter;
+            }
+        }
+        else
+        {
+            supportedModes->driveOffsetBoundaryInBytes = 1;
+        }
+    }
+    else
+    {
+        // assume 512B boundaries unless vendor ID is NVMe, in which case assume 4k
+        if (strncmp(device->drive_info.T10_vendor_ident, "NVMe", 4) == 0)
+        {
+            supportedModes->driveOffsetBoundaryInBytes = UINT32_C(4096);
+            supportedModes->driveOffsetBoundary        = 12;
+        }
+        else
+        {
+            supportedModes->driveOffsetBoundaryInBytes = LEGACY_DRIVE_SEC_SIZE;
+            supportedModes->driveOffsetBoundary        = 9;
+        }
+    }
+}
+
+static void get_Seagate_SCSI_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    // The code below is Seagate specific...should this be in Seagate Operations? - TJE
+    eSeagateFamily family = is_Seagate_Family(device);
+    if ((family == SEAGATE || family == SEAGATE_VENDOR_A) && supportedModes->scsiInfoPossiblyIncomplete)
+    {
+        uint8_t* c3VPD =
+            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (c3VPD != M_NULLPTR)
+        {
+            // If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific
+            // for the supported features
+            if (SUCCESS == scsi_Inquiry(device, c3VPD, 255, 0xC3, true, false))
+            {
+                supportedModes->downloadMicrocodeSupported = true;
+                supportedModes->scsiInfoPossiblyIncomplete =
+                    false; // turning this off because if we read this page we SHOULD know it's capabilities
+                supportedModes->fullBuffer = true;
+                // byte 63  bit7 = QNR
+                if (c3VPD[63] & BIT6)
+                {
+                    supportedModes->segmented = true;
+                }
+                // DO NOT turn the flag to false. It should already be false. If it was set to true, then the
+                // drive has already reported it supports this mode some other way.
+                if (c3VPD[82] & BIT6)
+                {
+                    supportedModes->deferred = true;
+                }
+                // DO NOT turn the flag to false. It should already be false. If it was set to true, then the
+                // drive has already reported it supports this mode some other way.
+            }
+        }
+        safe_free_aligned(&c3VPD);
+    }
+}
+
+static eReturnValues get_SCSI_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    eReturnValues ret = SUCCESS;
+    // before trying all the code below, look at the extended inquiry data page so see if the download modes are
+    // supported or not.
+    ret = get_SCSI_Ext_Inq_Supported_FWDL_Modes(device, supportedModes);
+
+    // PMC 8070 fails this command for some unknown reason even if a drive supports it, so skip these requests
+    // when this hack is set.-TJE
+    if (ret != SUCCESS && !device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)
+    {
+        ret = get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(device, supportedModes);
+        if (ret != SUCCESS)
+        {
+            ret = get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(device, supportedModes);
+        }
+    }
+    get_SCSI_ReadBuffer_FWDL_Boundary(device, supportedModes);
+
+    get_Seagate_SCSI_Supported_FWDL_Modes(device, supportedModes);
+    return ret;
+}
+
+static eReturnValues set_Recommended_FWDL_Mode(tDevice* device, ptrSupportedDLModes supportedModes)
+{
+    eReturnValues ret = SUCCESS;
+    // set the recommended download mode
+    if (supportedModes->downloadMicrocodeSupported)
+    {
+        // if version < 2 use these old lookup methods
+        if (supportedModes->version < SUPPORTED_FWDL_MODES_VERSION_V2)
+        {
+            // start low and work up to most recommended
+            supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_FULL);
+            if (supportedModes->segmented)
+            {
+                supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_SEGMENTED);
+            }
+            if (supportedModes->deferred &&
+                !device->drive_info.passThroughHacks.scsiHacks.writeBufferNoDeferredDownload)
+            {
+                supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_DEFERRED);
+            }
+        }
+        else
+        {
+            supportedModes->recommendedDownloadMode = FWDL_UPDATE_MODE_DEFERRED_PLUS_ACTIVATE;
+            if (!supportedModes->deferred ||
+                device->drive_info.passThroughHacks.scsiHacks.writeBufferNoDeferredDownload)
+            {
+                // even older ATA drives have no choice, so set these modes when needed
+                supportedModes->recommendedDownloadMode = FWDL_UPDATE_MODE_SEGMENTED;
+                if (!supportedModes->segmented)
+                {
+                    supportedModes->recommendedDownloadMode = FWDL_UPDATE_MODE_FULL;
+                }
+            }
+        }
+        supportedModes->recommendedSegmentSize =
+            get_fwdl_segment_size(device, FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO, *supportedModes);
+    }
+    else
+    {
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
 eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
@@ -813,705 +1551,19 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
         switch (device->drive_info.drive_type)
         {
         case ATA_DRIVE:
-        {
-            // first check the bits in the identify data
-            if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
-                 le16_to_host(device->drive_info.IdentifyData.ata.Word053) &
-                     BIT1) /* this is a validity bit for field 69 */
-                && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
-                    le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT8))
-            {
-                supportedModes->downloadMicrocodeSupported          = true;
-                supportedModes->firmwareDownloadDMACommandSupported = true;
-                supportedModes->fullBuffer                          = true;
-                supportedModes->driveOffsetBoundaryInBytes          = LEGACY_DRIVE_SEC_SIZE;
-                supportedModes->driveOffsetBoundary                 = 9;
-            }
-            if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
-                     le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
-                 le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT0) ||
-                (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
-                 le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT0))
-            {
-                supportedModes->downloadMicrocodeSupported = true;
-                supportedModes->fullBuffer                 = true;
-            }
-            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15) /*words 119, 120 valid*/
-            {
-                if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
-                     le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT4) ||
-                    (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word120)) &&
-                     le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT4))
-                {
-                    supportedModes->segmented = true;
-                }
-            }
-            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word234)))
-            {
-                supportedModes->minSegmentSize =
-                    M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word234),
-                                        M_Byte0(device->drive_info.IdentifyData.ata.Word234));
-            }
-            else
-            {
-                supportedModes->minSegmentSize = 0;
-            }
-            if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word235)))
-            {
-                supportedModes->maxSegmentSize =
-                    M_BytesTo2ByteValue(M_Byte1(device->drive_info.IdentifyData.ata.Word235),
-                                        M_Byte0(device->drive_info.IdentifyData.ata.Word235));
-            }
-            else
-            {
-                supportedModes->maxSegmentSize = UINT32_MAX;
-            }
-            if (is_Seagate_Family(device) == SEAGATE &&
-                is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word243)) &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word243) & BIT12)
-            {
-                supportedModes->seagateDeferredPowerCycleActivate     = true;
-                supportedModes->deferredPowerCycleActivationSupported = true;
-            }
-            // now try reading the supportd capabilities page of the identify device data log for the remaining info
-            // (deferred download)
-            DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
-            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                     ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities,
-                                                     ATA_LOG_PAGE_LEN_BYTES, 0))
-            {
-                uint64_t supportedCapabilitiesQword =
-                    M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13],
-                                        supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10],
-                                        supportedCapabilities[9], supportedCapabilities[8]);
-                uint64_t dlMicrocodeBits =
-                    M_BytesTo8ByteValue(supportedCapabilities[23], supportedCapabilities[22], supportedCapabilities[21],
-                                        supportedCapabilities[20], supportedCapabilities[19], supportedCapabilities[18],
-                                        supportedCapabilities[17], supportedCapabilities[16]);
-                // this bit should always be set to 1, but doesn't hurt to check
-                if (supportedCapabilitiesQword & ATA_ID_DATA_QWORD_VALID_BIT)
-                {
-                    if (supportedCapabilitiesQword & BIT33)
-                    {
-                        supportedModes->downloadMicrocodeSupported          = true;
-                        supportedModes->firmwareDownloadDMACommandSupported = true;
-                        supportedModes->fullBuffer                          = true;
-                    }
-                    if (supportedCapabilitiesQword & BIT14)
-                    {
-                        supportedModes->downloadMicrocodeSupported = true;
-                        supportedModes->fullBuffer                 = true;
-                    }
-                    if (supportedCapabilitiesQword & BIT3)
-                    {
-                        supportedModes->segmented = true;
-                    }
-                }
-                if (dlMicrocodeBits & ATA_ID_DATA_QWORD_VALID_BIT)
-                {
-                    if (dlMicrocodeBits & BIT34)
-                    {
-                        supportedModes->deferred                              = true;
-                        supportedModes->deferredPowerCycleActivationSupported = true;
-                    }
-                    if (dlMicrocodeBits & BIT33)
-                    {
-                        supportedModes->fullBuffer = true;
-                    }
-                    if (dlMicrocodeBits & BIT32)
-                    {
-                        supportedModes->segmented = true;
-                    }
-                    supportedModes->maxSegmentSize =
-                        M_BytesTo2ByteValue(M_Byte3(dlMicrocodeBits), M_Byte2(dlMicrocodeBits));
-                    if (supportedModes->downloadMicrocodeSupported &&
-                        !(supportedModes->maxSegmentSize > 0 && supportedModes->maxSegmentSize < 0xFFFF))
-                    {
-                        supportedModes->maxSegmentSize = UINT32_MAX;
-                    }
-                    supportedModes->minSegmentSize =
-                        M_BytesTo2ByteValue(M_Byte1(dlMicrocodeBits), M_Byte0(dlMicrocodeBits));
-                    if (supportedModes->downloadMicrocodeSupported &&
-                        !(supportedModes->minSegmentSize > 0 && supportedModes->minSegmentSize < 0xFFFF))
-                    {
-                        supportedModes->minSegmentSize = 0;
-                    }
-                }
-            }
-            supportedModes->recommendedSegmentSize = 64;
-        }
-        break;
+            ret = get_ATA_Supported_FWDL_Modes(device, supportedModes);
+            break;
         case NVME_DRIVE:
-            if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT2)
-            {
-                supportedModes->downloadMicrocodeSupported = true;
-                supportedModes->deferred                   = true;
-                supportedModes->multipleLogicalUnitsAffected =
-                    MLU_AFFECTS_ALL_LU; // Firmware affects all namespaces attached to the controller
-                // byte 260
-                // BIT0 = firmware slot 1 is read only
-                // BITS 3:1 = number of supported firmware slots
-                // BIT4 = firmware activation without a reset
-                // byte 319 - update granularity
-                uint32_t updateGranularity                 = device->drive_info.IdentifyData.nvme.ctrl.fwug;
-                supportedModes->driveOffsetBoundaryInBytes = updateGranularity * 4096;
-                supportedModes->minSegmentSize             = 0;
-                supportedModes->maxSegmentSize             = UINT32_MAX;
-                if (updateGranularity == 0xFF)
-                {
-                    // no granularity limits
-                    // 2^2 = 4, which is a dword and smallest unit for the NVMe command
-                    supportedModes->driveOffsetBoundary = 2;
-                    // 4 because of DWords
-                    supportedModes->driveOffsetBoundaryInBytes = 4;
-                }
-                else if (updateGranularity > 0)
-                {
-                    supportedModes->driveOffsetBoundary =
-                        C_CAST(uint8_t, log2_power2(supportedModes->driveOffsetBoundaryInBytes));
-                    supportedModes->minSegmentSize =
-                        C_CAST(uint16_t, supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE);
-                    supportedModes->maxSegmentSize = UINT32_MAX;
-                }
-                else
-                {
-                    // granularity not provided
-                    supportedModes->driveOffsetBoundary        = 2;
-                    supportedModes->driveOffsetBoundaryInBytes = 4;
-                    // 4096B assume this is the minimum
-                    supportedModes->minSegmentSize = 8;
-#if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
-                    if (device->os_info.fwdlIOsupport.fwdlIOSupported)
-                    {
-                        // If we got here in Windows, then we need to make sure we follow any default rules MS sets for
-                        // using their API
-                        supportedModes->driveOffsetBoundaryInBytes = device->os_info.fwdlIOsupport.payloadAlignment;
-                        supportedModes->driveOffsetBoundary =
-                            C_CAST(uint8_t, log2_power2(supportedModes->driveOffsetBoundaryInBytes));
-                        supportedModes->minSegmentSize =
-                            supportedModes->driveOffsetBoundaryInBytes / LEGACY_DRIVE_SEC_SIZE;
-                    }
-#endif // defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
-                }
-                // Vendor specific info lookup
-                uint16_t id = M_BytesTo2ByteValue(device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 9],
-                                                  device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 8]);
-                if (id == 0xFE19)
-                {
-                    // maximum segment size reported in same format as granularity in VS byte 3082
-                    supportedModes->maxSegmentSize =
-                        (device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 10] * 4096) / 512;
-                    // note division by 512 to match current use of this structure member
-                }
-#if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
-                if (device->os_info.fwdlIOsupport.fwdlIOSupported)
-                {
-                    // If Windows, then we need to make sure we don't break their rules.-TJE
-                    if ((supportedModes->maxSegmentSize / 512) > device->os_info.fwdlIOsupport.maxXferSize)
-                    {
-                        supportedModes->maxSegmentSize =
-                            device->os_info.fwdlIOsupport.maxXferSize / 512; // segments are in 512B blocks for
-                    }
-                }
-#endif // defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
-                supportedModes->firmwareSlotInfo.activateWithoutAResetSupported =
-                    device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT4;
-                supportedModes->firmwareSlotInfo.numberOfSlots =
-                    get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ctrl.frmw, 3, 1);
-                supportedModes->firmwareSlotInfo.slot1ReadOnly = device->drive_info.IdentifyData.nvme.ctrl.frmw & BIT0;
-                // read the firmware log for more information
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareLog, 512);
-                nvmeGetLogPageCmdOpts firmwareLogOpts;
-                firmwareLogOpts.addr    = firmwareLog;
-                firmwareLogOpts.dataLen = 512;
-                firmwareLogOpts.lid     = 3;
-                firmwareLogOpts.nsid    = 0;
-                if (SUCCESS == nvme_Get_Log_Page(device, &firmwareLogOpts))
-                {
-                    supportedModes->firmwareSlotInfo.firmwareSlotInfoValid = true;
-                    supportedModes->firmwareSlotInfo.activeSlot            = get_bit_range_uint8(firmwareLog[0], 2, 0);
-                    supportedModes->firmwareSlotInfo.nextSlotToBeActivated = get_bit_range_uint8(firmwareLog[0], 6, 4);
-                    // set the firmware revision in each slot
-                    for (uint32_t slotIter = UINT32_C(0), offset = UINT32_C(8);
-                         slotIter <= supportedModes->firmwareSlotInfo.numberOfSlots &&
-                         slotIter <= UINT32_C(7) /*max of 7 slots in spec and structure*/ && offset < UINT32_C(512);
-                         ++slotIter, offset += UINT32_C(8))
-                    {
-                        safe_memcpy(supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision, 9,
-                                    &firmwareLog[offset], 8);
-                        supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision[8] = '\0';
-                    }
-                }
-            }
-            /*
-            //NOTE: This is the code that was previously for when running in SCSI translation, but showed up as an NVMe
-            drive. It probably wasn't used and falling into the next case will be ok. Keeping it as a comment for now -
-            TJE
-            //running in SCSI translation mode, so only set full & deferred download modes
-            supportedModes->downloadMicrocodeSupported = true;
-            supportedModes->fullBuffer = true;
-            supportedModes->deferred = true;
-            supportedModes->minSegmentSize = 0;
-            supportedModes->maxSegmentSize = UINT32_MAX;
-            //need to set the offset requirement...for now I'm setting the minimum the NVMe spec says can be
-            reported...should be OK...-TJE supportedModes->driveOffsetBoundaryInBytes = 4096;//4Kb is the minimum
-            specified in the NVMe specification that the drive may conform to..this should be good enough for the
-            translation. supportedModes->driveOffsetBoundary = 12;//power of 2
-            */
+            ret = get_NVMe_Supported_FWDL_Modes(device, supportedModes);
             break;
         case SCSI_DRIVE:
-        {
-            // before trying all the code below, look at the extended inquiry data page so see if the download modes are
-            // supported or not.
-            uint8_t* extendedInq =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
-            if (extendedInq != M_NULLPTR)
-            {
-                if (SUCCESS ==
-                    scsi_Inquiry(device, extendedInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false))
-                {
-                    if (extendedInq[12] & BIT7)
-                    {
-                        supportedModes->deferredPowerCycleActivationSupported = true;
-                    }
-                    if (extendedInq[12] & BIT6)
-                    {
-                        supportedModes->deferredHardResetActivationSupported = true;
-                    }
-                    if (extendedInq[12] & BIT5)
-                    {
-                        supportedModes->deferredVendorSpecificActivationSupported = true;
-                    }
-                    supportedModes->codeActivation =
-                        C_CAST(SCSIMicrocodeActivation, get_bit_range_uint8(extendedInq[4], 7, 6));
-                    if (extendedInq[12] & BIT4) // dms valid
-                    {
-                        supportedModes->downloadMicrocodeSupported = true;
-                        // bit 7 = dm_md_4 - temporary...not saving at this time since it's rarely used.
-                        // bit 6 = dm_md_5
-                        supportedModes->fullBuffer = M_ToBool(extendedInq[19] & BIT6);
-                        // bit 5 = dm_md_6 - segmented temporary...not saving at this time since it's rarely used
-                        // bit 4 = dm_md_7
-                        supportedModes->segmented = M_ToBool(extendedInq[19] & BIT4);
-                        // bit 3 = dm_md_d - deferred, select activation
-                        supportedModes->deferredSelectActivation = M_ToBool(extendedInq[19] & BIT3);
-                        // bit 2 = dm_md_e - deferred
-                        supportedModes->deferred = M_ToBool(extendedInq[19] & BIT2);
-                        // bit 1 = dm_md_f - activate deferred code (part of mode e. If mode e is supported, so should f
-                        // - TJE
-                    }
-                }
-                safe_free_aligned_core(C_CAST(void**, &extendedInq)); // PRH valgrind check
-            }
-
-            // PMC 8070 fails this command for some unknown reason even if a drive supports it, so skip these requests
-            // when this hack is set.-TJE
-            if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)
-            {
-                scsiOperationCodeInfoRequest writeBufSupReq;
-                safe_memset(&writeBufSupReq, sizeof(scsiOperationCodeInfoRequest), 0,
-                            sizeof(scsiOperationCodeInfoRequest));
-                writeBufSupReq.operationCode      = WRITE_BUFFER_CMD;
-                writeBufSupReq.serviceActionValid = true;
-                writeBufSupReq.serviceAction      = SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE;
-                eSCSICmdSupport writeBufSupport   = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
-                if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
-                {
-                    if (writeBufSupReq.requestRetriedWithoutSA)
-                    {
-                        supportedModes->scsiInfoPossiblyIncomplete = true;
-                        // try to look at the mode bit field and determine which modes are supported...
-                        uint8_t mode = writeBufSupReq.cdbUsageData[1] & 0x1F; // byte 1 of the write buffer cdb
-                                                                              // itself
-                        if ((mode & 0x07) == 0x07)
-                        {
-                            // full and segmented supported
-                            supportedModes->downloadMicrocodeSupported = true;
-                            supportedModes->fullBuffer                 = true;
-                            supportedModes->segmented                  = true;
-                            supportedModes->recommendedSegmentSize     = 64;
-                        }
-                        else if (mode & BIT2) // we'll just say full only...no really good way to do this honestly
-                        {
-                            supportedModes->downloadMicrocodeSupported = true;
-                            supportedModes->fullBuffer                 = true;
-                        }
-                        uint32_t length =
-                            M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
-                                                writeBufSupReq.cdbUsageData[8]);
-                        if (length == UINT32_C(0xFFFFFF) || length == 0)
-                        {
-                            supportedModes->maxSegmentSize = UINT32_MAX;
-                            supportedModes->minSegmentSize = 0;
-                        }
-                        else
-                        {
-                            supportedModes->maxSegmentSize = length;
-                            // the minimum is the lowest non-zero bit
-                            uint32_t counter = UINT32_C(0);
-                            while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
-                            {
-                                length = length >> 1;
-                                ++counter;
-                            }
-                            supportedModes->minSegmentSize = 1 << counter;
-                        }
-                    }
-                    else
-                    {
-                        supportedModes->downloadMicrocodeSupported = true;
-                        supportedModes->fullBuffer                 = true;
-                        supportedModes->multipleLogicalUnitsAffected =
-                            C_CAST(eMLU, writeBufSupReq.multipleLogicalUnits);
-                        // request more service actions since this worked
-                        writeBufSupReq.serviceAction = SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_ACTIVATE;
-                        writeBufSupport              = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
-                        if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
-                        {
-                            supportedModes->segmented              = true;
-                            supportedModes->recommendedSegmentSize = 64;
-                            // set the min/max segment size from the cmd information bitfield
-                            uint32_t length =
-                                M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
-                                                    writeBufSupReq.cdbUsageData[8]);
-                            if (length == UINT32_C(0xFFFFFF) || length == 0)
-                            {
-                                supportedModes->maxSegmentSize = UINT32_MAX;
-                                supportedModes->minSegmentSize = 0;
-                            }
-                            else
-                            {
-                                supportedModes->maxSegmentSize = length;
-                                // the minimum is the lowest non-zero bit
-                                uint32_t counter = UINT32_C(0);
-                                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
-                                {
-                                    length = length >> 1;
-                                    ++counter;
-                                }
-                                supportedModes->minSegmentSize = 1 << counter;
-                            }
-                        }
-                        writeBufSupReq.serviceAction = SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_DEFER;
-                        writeBufSupport              = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
-                        if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
-                        {
-                            supportedModes->deferred               = true;
-                            supportedModes->recommendedSegmentSize = 64;
-                            // set the min/max segment size from the cmd information bitfield
-                            uint32_t length =
-                                M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
-                                                    writeBufSupReq.cdbUsageData[8]);
-                            if (length == UINT32_C(0xFFFFFF) || length == 0)
-                            {
-                                supportedModes->maxSegmentSize = UINT32_MAX;
-                                supportedModes->minSegmentSize = 0;
-                            }
-                            else
-                            {
-                                supportedModes->maxSegmentSize = length;
-                                // the minimum is the lowest non-zero bit
-                                uint32_t counter = UINT32_C(0);
-                                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
-                                {
-                                    length = length >> 1;
-                                    ++counter;
-                                }
-                                supportedModes->minSegmentSize = 1 << counter;
-                            }
-                        }
-                        writeBufSupReq.serviceAction = SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_SELECT_ACTIVATE_DEFER;
-                        writeBufSupport              = is_SCSI_Operation_Code_Supported(device, &writeBufSupReq);
-                        if (writeBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
-                        {
-                            supportedModes->deferredSelectActivation = true;
-                            supportedModes->recommendedSegmentSize   = 64;
-                            // set the min/max segment size from the cmd information bitfield
-                            uint32_t length =
-                                M_BytesTo4ByteValue(0, writeBufSupReq.cdbUsageData[6], writeBufSupReq.cdbUsageData[7],
-                                                    writeBufSupReq.cdbUsageData[8]);
-                            if (length == UINT32_C(0xFFFFFF) || length == 0)
-                            {
-                                supportedModes->maxSegmentSize = UINT32_MAX;
-                                supportedModes->minSegmentSize = 0;
-                            }
-                            else
-                            {
-                                supportedModes->maxSegmentSize = length;
-                                // the minimum is the lowest non-zero bit
-                                uint32_t counter = UINT32_C(0);
-                                while ((length & BIT0) == 0 && counter < UINT32_C(0xFFFFFF))
-                                {
-                                    length = length >> 1;
-                                    ++counter;
-                                }
-                                supportedModes->minSegmentSize = 1 << counter;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // else try requesting all supported OPs and parse that information??? It could be report all is
-                    // supported, but other modes are not
-                    uint32_t reportAllOPsLength = UINT32_C(4);
-                    uint8_t* reportAllOPs =
-                        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
-                    if (reportAllOPs != M_NULLPTR)
-                    {
-                        if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0,
-                                                                             reportAllOPsLength, reportAllOPs))
-                        {
-                            // get the full length, then reallocate and reread
-                            reportAllOPsLength = M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2],
-                                                                     reportAllOPs[3]) +
-                                                 4;
-                            safe_free_aligned(&reportAllOPs);
-                            reportAllOPs =
-                                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t),
-                                                                                 device->os_info.minimumAlignment));
-                            if (reportAllOPs != M_NULLPTR)
-                            {
-                                if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0,
-                                                                                     reportAllOPsLength, reportAllOPs))
-                                {
-                                    // loop through the data and check for the commands and service actions we
-                                    // are interested in.
-                                    uint32_t supportedCmdsIter   = UINT32_C(4);
-                                    uint16_t cmdDescriptorLength = UINT16_C(8);
-                                    uint32_t supportedCmdsLength =
-                                        M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2],
-                                                            reportAllOPs[3]) +
-                                        4;
-                                    for (; supportedCmdsIter < supportedCmdsLength;
-                                         supportedCmdsIter += cmdDescriptorLength)
-                                    {
-                                        uint8_t  operationCode = reportAllOPs[supportedCmdsIter];
-                                        uint16_t serviceAction = M_BytesTo2ByteValue(
-                                            reportAllOPs[supportedCmdsIter + 2], reportAllOPs[supportedCmdsIter + 3]);
-                                        bool serviceActionValid = M_ToBool(reportAllOPs[supportedCmdsIter + 5] & BIT0);
-                                        eMLU mlu                = C_CAST(
-                                            eMLU, get_bit_range_uint8(reportAllOPs[supportedCmdsIter + 5], 5, 4));
-                                        cmdDescriptorLength = (reportAllOPs[supportedCmdsIter + 5] & BIT1) ? 20 : 8;
-                                        switch (operationCode)
-                                        {
-                                        case WRITE_BUFFER_CMD:
-                                            if (serviceActionValid)
-                                            {
-                                                switch (serviceAction)
-                                                {
-                                                    // case SCSI_WB_DL_MICROCODE_TEMP_ACTIVATE:
-                                                case SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE:
-                                                    supportedModes->downloadMicrocodeSupported   = true;
-                                                    supportedModes->fullBuffer                   = true;
-                                                    supportedModes->multipleLogicalUnitsAffected = mlu;
-                                                    break;
-                                                    // case SCSI_WB_DL_MICROCODE_OFFSETS_ACTIVATE:
-                                                case SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_ACTIVATE:
-                                                    supportedModes->downloadMicrocodeSupported = true;
-                                                    supportedModes->segmented                  = true;
-                                                    // In this format, we cannot determine minimum or maximum
-                                                    // transfer sizes. so set to max
-                                                    supportedModes->maxSegmentSize               = 0xFFFF;
-                                                    supportedModes->minSegmentSize               = 0;
-                                                    supportedModes->multipleLogicalUnitsAffected = mlu;
-                                                    break;
-                                                case SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_SELECT_ACTIVATE_DEFER:
-                                                    supportedModes->downloadMicrocodeSupported   = true;
-                                                    supportedModes->deferredSelectActivation     = true;
-                                                    supportedModes->multipleLogicalUnitsAffected = mlu;
-                                                    break;
-                                                case SCSI_WB_DL_MICROCODE_OFFSETS_SAVE_DEFER:
-                                                    supportedModes->downloadMicrocodeSupported   = true;
-                                                    supportedModes->deferred                     = true;
-                                                    supportedModes->multipleLogicalUnitsAffected = mlu;
-                                                    break;
-                                                case SCSI_WB_ACTIVATE_DEFERRED_MICROCODE: // not currently
-                                                                                          // handled since it is
-                                                                                          // assumed that this
-                                                                                          // will be present if
-                                                                                          // the deferred modes
-                                                                                          // are supported
-                                                default:
-                                                    break;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                supportedModes->downloadMicrocodeSupported = true;
-                                                supportedModes->scsiInfoPossiblyIncomplete = true;
-                                                // setting segmented and full buffer download modes in here
-                                                // because they SHOULD work on the products we care about
-                                                // supporting.
-                                                supportedModes->fullBuffer = true;
-                                                if (device->drive_info.scsiVersion >
-                                                    2) // SPC added segmented. Earlier products only supported
-                                                       // full buffer
-                                                {
-                                                    supportedModes->segmented = true;
-                                                }
-                                            }
-                                            break;
-                                        default:
-                                            break;
-                                        }
-                                    }
-                                    supportedModes->recommendedSegmentSize = 64;
-                                }
-                                else
-                                {
-                                    supportedModes->scsiInfoPossiblyIncomplete = true;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            supportedModes->scsiInfoPossiblyIncomplete = true;
-                            // NVMe needs some special case here
-                            if (strncmp(device->drive_info.T10_vendor_ident, "NVMe", 4) == 0)
-                            {
-                                supportedModes->deferred                   = true;
-                                supportedModes->downloadMicrocodeSupported = true;
-                                supportedModes->fullBuffer                 = true;
-                                supportedModes->scsiInfoPossiblyIncomplete =
-                                    false; // setting this since we know it's NVMe, so we're pretty sure that this is
-                                           // what we'll have from SCSI translation
-                                supportedModes->recommendedSegmentSize       = 64;
-                                supportedModes->maxSegmentSize               = UINT32_MAX;
-                                supportedModes->minSegmentSize               = 0;
-                                supportedModes->multipleLogicalUnitsAffected = MLU_AFFECTS_ALL_LU;
-                            }
-                            else
-                            {
-                                supportedModes->downloadMicrocodeSupported =
-                                    true; // set this to on so we return good status...
-                                supportedModes->scsiInfoPossiblyIncomplete = true;
-                                // Setting supported stuff below even though we don't know for sure...should be safe
-                                // enough.
-                                supportedModes->fullBuffer             = true;
-                                supportedModes->segmented              = true;
-                                supportedModes->recommendedSegmentSize = 64;
-                                supportedModes->maxSegmentSize         = UINT32_MAX;
-                                supportedModes->minSegmentSize         = 0;
-                            }
-                        }
-                        safe_free_aligned(&reportAllOPs);
-                    }
-                }
-            }
-            DECLARE_ZERO_INIT_ARRAY(uint8_t, offsetReq, 4);
-            if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
-            {
-                supportedModes->driveOffsetBoundary        = offsetReq[0];
-                supportedModes->driveOffsetBoundaryInBytes = 1; // start with this
-                if (supportedModes->driveOffsetBoundary > 0 && supportedModes->driveOffsetBoundary != 0xFF)
-                {
-                    uint16_t counter = UINT16_C(0);
-                    while (counter < supportedModes->driveOffsetBoundary)
-                    {
-                        supportedModes->driveOffsetBoundaryInBytes = supportedModes->driveOffsetBoundaryInBytes << 1;
-                        ++counter;
-                    }
-                }
-                else
-                {
-                    supportedModes->driveOffsetBoundaryInBytes = 1;
-                }
-            }
-            else
-            {
-                // assume 512B boundaries unless vendor ID is NVMe, in which case assume 4k
-                if (strncmp(device->drive_info.T10_vendor_ident, "NVMe", 4) == 0)
-                {
-                    supportedModes->driveOffsetBoundaryInBytes = UINT32_C(4096);
-                    supportedModes->driveOffsetBoundary        = 12;
-                }
-                else
-                {
-                    supportedModes->driveOffsetBoundaryInBytes = LEGACY_DRIVE_SEC_SIZE;
-                    supportedModes->driveOffsetBoundary        = 9;
-                }
-            }
-
-            // The code below is Seagate specific...should this be in Seagate Operations? - TJE
-            eSeagateFamily family = is_Seagate_Family(device);
-            if ((family == SEAGATE || family == SEAGATE_VENDOR_A) && supportedModes->scsiInfoPossiblyIncomplete)
-            {
-                uint8_t* c3VPD = M_REINTERPRET_CAST(
-                    uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (c3VPD != M_NULLPTR)
-                {
-                    // If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific
-                    // for the supported features
-                    if (SUCCESS == scsi_Inquiry(device, c3VPD, 255, 0xC3, true, false))
-                    {
-                        supportedModes->downloadMicrocodeSupported = true;
-                        supportedModes->scsiInfoPossiblyIncomplete =
-                            false; // turning this off because if we read this page we SHOULD know it's capabilities
-                        supportedModes->fullBuffer = true;
-                        // byte 63  bit7 = QNR
-                        if (c3VPD[63] & BIT6)
-                        {
-                            supportedModes->segmented = true;
-                        }
-                        // DO NOT turn the flag to false. It should already be false. If it was set to true, then the
-                        // drive has already reported it supports this mode some other way.
-                        if (c3VPD[82] & BIT6)
-                        {
-                            supportedModes->deferred = true;
-                        }
-                        // DO NOT turn the flag to false. It should already be false. If it was set to true, then the
-                        // drive has already reported it supports this mode some other way.
-                    }
-                }
-                safe_free_aligned(&c3VPD);
-            }
-        }
-        break;
+            ret = get_SCSI_Supported_FWDL_Modes(device, supportedModes);
+            break;
         default:
             ret = NOT_SUPPORTED;
             break;
         }
-        // set the recommended download mode
-        if (supportedModes->downloadMicrocodeSupported)
-        {
-            // if version < 2 use these old lookup methods
-            if (supportedModes->version < SUPPORTED_FWDL_MODES_VERSION_V2)
-            {
-                // start low and work up to most recommended
-                supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_FULL);
-                if (supportedModes->segmented)
-                {
-                    supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_SEGMENTED);
-                }
-                if (supportedModes->deferred &&
-                    !device->drive_info.passThroughHacks.scsiHacks.writeBufferNoDeferredDownload)
-                {
-                    supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_DEFERRED);
-                }
-            }
-            else
-            {
-                supportedModes->recommendedDownloadMode = FWDL_UPDATE_MODE_DEFERRED_PLUS_ACTIVATE;
-                if (!supportedModes->deferred ||
-                    device->drive_info.passThroughHacks.scsiHacks.writeBufferNoDeferredDownload)
-                {
-                    // even older ATA drives have no choice, so set these modes when needed
-                    supportedModes->recommendedDownloadMode = FWDL_UPDATE_MODE_SEGMENTED;
-                    if (!supportedModes->segmented)
-                    {
-                        supportedModes->recommendedDownloadMode = FWDL_UPDATE_MODE_FULL;
-                    }
-                }
-            }
-        }
-        else
-        {
-            ret = NOT_SUPPORTED;
-        }
+        ret = set_Recommended_FWDL_Mode(device, supportedModes);
     }
     else
     {
