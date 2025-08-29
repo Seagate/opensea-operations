@@ -41,6 +41,16 @@ extern "C"
         FWDL_UPDATE_MODE_AUTOMATIC = 0xFF // This will look up the best possible mode for you!
     } eFirmwareUpdateMode;
 
+//! \def FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO
+//! \brief automatically chooses the size for you based on drive reporting and
+//! known OS limitations
+#define FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO (0)
+
+//! \def DEFAULT_FWDL_SEGMENT_SIZE
+//! \brief the default segment size used if \a FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO
+//! is specified. This is 32k per segment.
+#define DEFAULT_FWDL_SEGMENT_SIZE    (64)
+
 #define FIRMWARE_UPDATE_DATA_VERSION 3
 
     typedef struct s_firmwareUpdateData
