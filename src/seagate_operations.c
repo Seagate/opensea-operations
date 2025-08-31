@@ -1727,20 +1727,22 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         printf("\tRevision: %" PRIu8 ".%" PRIu8 "\n", pwrTelData->majorRevision, pwrTelData->minorRevision);
         printf("\tTemperature (C): %" PRIu8 "\n", pwrTelData->temperatureCelcius);
         printf("\tPower Cycle Count: %" PRIu16 "\n", pwrTelData->powerCycleCount);
-        // printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
+        printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
         if (pwrTelData->totalMeasurementTimeRequested == 0)
         {
             printf("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
+            printf("\tDrive Timestamp When The Log Was Retrieved (seconds): %.6f\n", C_CAST(double, pwrTelData->driveTimeStampWhenTheLogWasRetrieved) / 1000000.0);
         }
         else
         {
             printf("\tMeasurement Time (seconds): %" PRIu16 "\n", pwrTelData->totalMeasurementTimeRequested);
+            printf("\tDrive Timestamp For Host Requested Measurement (seconds): %.6f\n", C_CAST(double, pwrTelData->driveTimeStampForHostRequestedMeasurement) / 1000000.0);
         }
         printf("\tMeasurement Window (ms): %" PRIu16 "\n", pwrTelData->measurementWindowTimeMilliseconds);
 
         printf("\nIndividual Power Measurements\n");
         // Note, while the spacing may not make much sense, it definitely works with the widths below.
-        printf("    #\t     Time       \t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
+        printf("    #\t  Time (sec)\t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
         uint16_t measurementCounter = UINT16_C(0);
         for (uint16_t measurementNumber = UINT16_C(0); measurementNumber < pwrTelData->numberOfMeasurements &&
                                                        measurementNumber < POWER_TELEMETRY_MAXIMUM_MEASUREMENTS;
@@ -1748,15 +1750,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         {
             double power5VWatts    = pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts / 1000.0;
             double power12VWatts   = pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts / 1000.0;
-            double measurementTime = measurementNumber * stepTime;
-            if (pwrTelData->totalMeasurementTimeRequested == 0)
-            {
-                measurementTime += C_CAST(double, pwrTelData->driveTimeStampWhenTheLogWasRetrieved);
-            }
-            else
-            {
-                measurementTime += C_CAST(double, pwrTelData->driveTimeStampForHostRequestedMeasurement);
-            }
+            double measurementTime = measurementNumber * stepTime / 1000.0;
             if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 &&
                 pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
             {
@@ -1765,17 +1759,17 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             // NOTE: Original format was 10.6, 6.3, 6.3, 6.3. Trying to widen to match the header
             if (pwrTelData->measurementFormat == 5)
             {
-                printf("%5" PRIu16 "\t%16.6f\t%12.3f\t%13s\t%11.3f\n", measurementNumber, measurementTime, power5VWatts,
+                printf("%5" PRIu16 "\t%12.3f\t%12.3f\t%13s\t%11.3f\n", measurementNumber, measurementTime, power5VWatts,
                        "N/A", power5VWatts);
             }
             else if (pwrTelData->measurementFormat == 12)
             {
-                printf("%5" PRIu16 "\t%16.6f\t%12s\t%13.3f\t%11.3f\n", measurementNumber, measurementTime, "N/A",
+                printf("%5" PRIu16 "\t%12.3f\t%12s\t%13.3f\t%11.3f\n", measurementNumber, measurementTime, "N/A",
                        power12VWatts, power12VWatts);
             }
             else
             {
-                printf("%5" PRIu16 "\t%16.6f\t%12.3f\t%13.3f\t%11.3f\n", measurementNumber, measurementTime,
+                printf("%5" PRIu16 "\t%12.3f\t%12.3f\t%13.3f\t%11.3f\n", measurementNumber, measurementTime,
                        power5VWatts, power12VWatts, power5VWatts + power12VWatts);
             }
             // update min/max values
