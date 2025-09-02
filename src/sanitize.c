@@ -76,7 +76,7 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
             *sanitizeStatus = SANITIZE_STATUS_NEVER_SANITIZED;
         }
     }
-    else
+    else if (result != OS_COMMAND_BLOCKED && result != OS_PASSTHROUGH_FAILURE && result != OS_COMMAND_NOT_AVAILABLE)
     {
         // need to check if there was a reason reported for failing this command.
         // first check that the abort bit was set because if that isn't there, then we won't be able to identify a
@@ -111,6 +111,10 @@ static eReturnValues get_ATA_Sanitize_Progress(tDevice*         device,
         {
             *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
         }
+    }
+    else
+    {
+        *sanitizeStatus = SANITIZE_STATUS_UNKNOWN;
     }
     *percentComplete *= 100.0;
     *percentComplete /= 65536.0;
@@ -509,7 +513,7 @@ eReturnValues get_Sanitize_Device_Features(tDevice* device, sanitizeFeaturesSupp
     //       This is here because of some strange behavior when issued that is still under investigation.
     if (strcasecmp("Rugged SSD4", device->drive_info.product_identification) == 0 && opts != M_NULLPTR)
     {
-        opts->blockErase = false;
+        opts->blockErase         = false;
         opts->sanitizeCmdEnabled = false;
     }
     RESTORE_NONNULL_COMPARE
