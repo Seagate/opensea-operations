@@ -96,15 +96,15 @@ extern "C"
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMode);
 
-#define MAX_SMART_STATUS_STRING_LENGTH          21  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FIELD_NAME_LENGTH               91  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FIELD_SHORT_NAME_LENGTH         41  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_ANALYZED_FIELD_NAME_LENGTH      41  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    129 // This leaves room for a M_NULLPTR terminating character
-#define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91  // This leaves room for a M_NULLPTR terminating character
-#define MAX_HYBRID_RAW_STRING_LENGTH            24  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        9   // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FEILD_COUNT                     4   // Right now we have identified maximum 4 field for attributes
+#define MAX_SMART_STATUS_STRING_LENGTH          21 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FIELD_NAME_LENGTH               47 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FIELD_SHORT_NAME_LENGTH         41 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_ANALYZED_FIELD_NAME_LENGTH      41 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    86 // This leaves room for a M_NULLPTR terminating character
+#define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91 // This leaves room for a M_NULLPTR terminating character
+#define MAX_HYBRID_RAW_STRING_LENGTH            24 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        9  // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FEILD_COUNT                     4  // Right now we have identified maximum 4 field for attributes
 
     M_DECLARE_ENUM(eATAAttributeRawFieldUnitType,
                    /*!< No Unit. */
@@ -138,49 +138,6 @@ extern "C"
                    /*!< Unknown Unit. */
                    RAW_FIELD_UNIT_UNKNOWN = 14);
 
-    typedef struct s_ataAttributeRawFieldData
-    {
-        char                          fieldName[MAX_RAW_FIELD_NAME_LENGTH];
-        char                          fieldShortName[MAX_RAW_FIELD_SHORT_NAME_LENGTH];
-        int64_t                       fieldValue; // making it signed to handle negative values as well
-        eATAAttributeRawFieldUnitType fieldUnit;
-    } ataAttributeRawFieldData;
-
-    typedef struct s_ataAttributeRawData
-    {
-        uint8_t                  rawData[SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT];
-        char                     rawHybridString[MAX_HYBRID_RAW_STRING_LENGTH];
-        uint8_t                  userFieldCount; // maximum allowed MAX_RAW_FEILD_COUNT
-        ataAttributeRawFieldData rawField[MAX_RAW_FEILD_COUNT];
-
-        bool    int64TypeAnalyzedFieldValid; // will be true if raw data has any field representable in int64_t format
-        int64_t int64TypeAnalyzedFieldValue;
-        eATAAttributeRawFieldUnitType int64TypeAnalyzedFieldUnit;
-        char                          int64TypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char                          int64TypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-
-        bool   doubleTypeAnalyzedFieldValid; // will be true if raw data has any field representable in double format
-        double doubleTypeAnalyzedFieldValue;
-        eATAAttributeRawFieldUnitType doubleTypeAnalyzedFieldUnit;
-        char                          doubleTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char                          doubleTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-
-        bool stringTypeAnalyzedFieldValid; // will be true if raw data has any field representable in some string format
-        char stringTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char stringTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char stringTypeAnalyzedFieldValue[MAX_RAW_ANALYZED_STRING_VALUE_LENGTH];
-    } ataAttributeRawData;
-
-    typedef struct s_ataAttributeTypeData
-    {
-        bool preFailAttribute;
-        bool onlineDataCollection;
-        bool performanceIndicator;
-        bool errorRateIndicator;
-        bool eventCounter;
-        bool selfPreserving;
-    } ataAttributeTypeData;
-
     M_DECLARE_ENUM(eATAAttributeThresholdType,
                    /*!< Unknown Threshold. */
                    THRESHOLD_UNKNOWN = 0,
@@ -206,36 +163,72 @@ extern "C"
         /*!< Attribute has issued Warning in past, worst is less than threshold value(non-warranty attribute). */
         FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST = 4);
 
-    typedef struct s_ataAttributeThresholdInfo
-    {
-        uint8_t thresholdValue;
-        eATAAttributeThresholdType
-            thresholdType; // Since we have added this enum, no need to add threshold valid boolean flag
-        eATAAttributeFailStatus
-             failStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
-        char failStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
-    } ataAttributeThresholdInfo;
+    // clang-format off
+    M_PACK_ALIGN_STRUCT(ataAttributeRawFieldData, 1,
+                        char                          fieldName[MAX_RAW_FIELD_NAME_LENGTH];
+                        char                          fieldShortName[MAX_RAW_FIELD_SHORT_NAME_LENGTH];
+                        int64_t                       fieldValue; // making it signed to handle negative values as well
+                        eATAAttributeRawFieldUnitType fieldUnit;
+    );
 
-    typedef struct s_ataSMARTAnalyzedAttribute
-    {
-        bool                      isValid;
-        uint8_t                   attributeNumber;
-        char                      attributeName[MAX_ATTRIBUTE_NAME_LENGTH];
-        uint16_t                  status;
-        ataAttributeTypeData      attributeType;
-        ataAttributeThresholdInfo thresholdInfo;
-        uint8_t                   nominal;
-        uint8_t                   worstEver;
-        bool                      seeAnalyzedFlag;
-        ataAttributeRawData       rawData;
-    } ataSMARTAnalyzedAttribute;
+    M_PACK_ALIGN_STRUCT(ataAttributeRawData, 1,
+                        uint8_t                  rawData[SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT];
+                        char                     rawHybridString[MAX_HYBRID_RAW_STRING_LENGTH];
+                        uint8_t                  userFieldCount; // maximum allowed MAX_RAW_FEILD_COUNT
+                        ataAttributeRawFieldData rawField[MAX_RAW_FEILD_COUNT];
 
-    typedef struct s_ataSMARTAnalyzedData
-    {
-        ataSMARTAnalyzedAttribute
-            attributes[ATA_SMART_LOG_MAX_ATTRIBUTES]; // attribute numbers 1 - 255 are valid (check valid bit to make
-                                                      // sure it's a used attribute)
-    } ataSMARTAnalyzedData;
+                        bool    int64TypeAnalyzedFieldValid; // will be true if raw data has any field representable in int64_t format
+                        int64_t int64TypeAnalyzedFieldValue;
+                        eATAAttributeRawFieldUnitType int64TypeAnalyzedFieldUnit;
+                        char                          int64TypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char                          int64TypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+
+                        bool   doubleTypeAnalyzedFieldValid; // will be true if raw data has any field representable in double format
+                        double doubleTypeAnalyzedFieldValue;
+                        eATAAttributeRawFieldUnitType doubleTypeAnalyzedFieldUnit;
+                        char                          doubleTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char                          doubleTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+
+                        bool stringTypeAnalyzedFieldValid; // will be true if raw data has any field representable in some string format
+                        char stringTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char stringTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char stringTypeAnalyzedFieldValue[MAX_RAW_ANALYZED_STRING_VALUE_LENGTH];
+    );
+
+    M_PACK_ALIGN_STRUCT(ataAttributeTypeData, 1, 
+                        bool preFailAttribute; 
+                        bool onlineDataCollection;
+                        bool performanceIndicator;
+                        bool errorRateIndicator;
+                        bool eventCounter;
+                        bool selfPreserving;
+    );
+
+    M_PACK_ALIGN_STRUCT(ataAttributeThresholdInfo, 1,
+                        uint8_t                    thresholdValue;
+                        eATAAttributeThresholdType thresholdType; // Since we have added this enum, no need to add threshold valid boolean flag
+                        eATAAttributeFailStatus    failStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
+                        char                       failStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
+    );
+
+    M_PACK_ALIGN_STRUCT(ataSMARTAnalyzedAttribute, 1, 
+                        bool                      isValid; 
+                        uint8_t                   attributeNumber;
+                        char                      attributeName[MAX_ATTRIBUTE_NAME_LENGTH];
+                        uint16_t                  status;
+                        ataAttributeTypeData      attributeType;
+                        ataAttributeThresholdInfo thresholdInfo;
+                        uint8_t                   nominal;
+                        uint8_t                   worstEver;
+                        bool                      seeAnalyzedFlag;
+                        ataAttributeRawData       rawData;
+    );
+
+    M_PACK_ALIGN_STRUCT(ataSMARTAnalyzedData, 1,
+                        ataSMARTAnalyzedAttribute attributes[ATA_SMART_LOG_MAX_ATTRIBUTES]; // attribute numbers 1 - 255 are valid (check
+                                                                      // valid bit to make sure it's a used attribute)
+    );
+    // clang-format on
 
     static M_INLINE void safe_free_ata_smart_analyzed_data(ataSMARTAnalyzedData** smartData)
     {

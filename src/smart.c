@@ -1339,12 +1339,14 @@ static void get_Raw_Field_From_RawData(const uint8_t*                rawData,
                                        eRawFieldStartEndBit          field4Type,
                                        eATAAttributeRawFieldUnitType field4Unit)
 {
+    int64_t value                   = 0;
     analyzedRawData->userFieldCount = maxField;
     if (field1Name != M_NULLPTR && safe_strlen(field1Name) > 0)
     {
         safe_strcpy(analyzedRawData->rawField[0].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field1Name);
-        get_Int64_From_Raw_7_Byte(rawData, field1Type, &analyzedRawData->rawField[0].fieldValue);
-        analyzedRawData->rawField[0].fieldUnit = field1Unit;
+        get_Int64_From_Raw_7_Byte(rawData, field1Type, &value);
+        analyzedRawData->rawField[0].fieldValue = value;
+        analyzedRawData->rawField[0].fieldUnit  = field1Unit;
         if (field1ShortName != M_NULLPTR && safe_strlen(field1ShortName) > 0)
             safe_strcpy(analyzedRawData->rawField[0].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field1ShortName);
     }
@@ -1352,8 +1354,9 @@ static void get_Raw_Field_From_RawData(const uint8_t*                rawData,
     if (field2Name != M_NULLPTR && safe_strlen(field2Name) > 0)
     {
         safe_strcpy(analyzedRawData->rawField[1].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field2Name);
-        get_Int64_From_Raw_7_Byte(rawData, field2Type, &analyzedRawData->rawField[1].fieldValue);
-        analyzedRawData->rawField[1].fieldUnit = field2Unit;
+        get_Int64_From_Raw_7_Byte(rawData, field2Type, &value);
+        analyzedRawData->rawField[1].fieldValue = value;
+        analyzedRawData->rawField[1].fieldUnit  = field2Unit;
         if (field2ShortName != M_NULLPTR && safe_strlen(field2ShortName) > 0)
             safe_strcpy(analyzedRawData->rawField[1].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field2ShortName);
     }
@@ -1361,8 +1364,9 @@ static void get_Raw_Field_From_RawData(const uint8_t*                rawData,
     if (field3Name != M_NULLPTR && safe_strlen(field3Name) > 0)
     {
         safe_strcpy(analyzedRawData->rawField[2].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field3Name);
-        get_Int64_From_Raw_7_Byte(rawData, field3Type, &analyzedRawData->rawField[2].fieldValue);
-        analyzedRawData->rawField[2].fieldUnit = field3Unit;
+        get_Int64_From_Raw_7_Byte(rawData, field3Type, &value);
+        analyzedRawData->rawField[2].fieldValue = value;
+        analyzedRawData->rawField[2].fieldUnit  = field3Unit;
         if (field3ShortName != M_NULLPTR && safe_strlen(field3ShortName) > 0)
             safe_strcpy(analyzedRawData->rawField[2].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field3ShortName);
     }
@@ -1370,8 +1374,9 @@ static void get_Raw_Field_From_RawData(const uint8_t*                rawData,
     if (field4Name != M_NULLPTR && safe_strlen(field4Name) > 0)
     {
         safe_strcpy(analyzedRawData->rawField[3].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field4Name);
-        get_Int64_From_Raw_7_Byte(rawData, field4Type, &analyzedRawData->rawField[3].fieldValue);
-        analyzedRawData->rawField[3].fieldUnit = field4Unit;
+        get_Int64_From_Raw_7_Byte(rawData, field4Type, &value);
+        analyzedRawData->rawField[3].fieldValue = value;
+        analyzedRawData->rawField[3].fieldUnit  = field4Unit;
         if (field4ShortName != M_NULLPTR && safe_strlen(field4ShortName) > 0)
             safe_strcpy(analyzedRawData->rawField[3].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field4ShortName);
     }
@@ -1612,7 +1617,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                     snprintf_err_handle(head, 3, "%" PRIu8 "", bitIter);
                                     if (safe_strlen(failedHeadString) > 0)
                                     {
-                                        safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, ", ");
+                                        safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, ",");
                                     }
                                     safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, head);
                                 }
@@ -1702,9 +1707,9 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         get_Raw_Field_From_RawData(
                             smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
                             &smartAnylyzedData->attributes[iter].rawData, 3, 0, "Command Timeout Count", "Timeouts",
-                            START_0_END_1, RAW_FIELD_UNIT_COUNT, "Command Timeout Count> 5 second completion",
+                            START_0_END_1, RAW_FIELD_UNIT_COUNT, "Command Timeout Count > 5 second completion",
                             "Timeouts > 5 seconds", START_2_END_3, RAW_FIELD_UNIT_COUNT,
-                            "Command Timeout Count> 7.5 second completion", "Timeouts > 7.5 seconds", START_4_END_5,
+                            "Command Timeout Count > 7.5 second completion", "Timeouts > 7.5 seconds", START_4_END_5,
                             RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                             RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
@@ -1943,12 +1948,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                     case 1:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
                                                    &smartAnylyzedData->attributes[iter].rawData, 1, 0,
-                                                   "Correctable, Soft LDPC correctable errors since last power cycle",
-                                                   "Correctable Errors", START_0_END_3, RAW_FIELD_UNIT_COUNT, M_NULLPTR,
+                                                   "Correctable, Soft LDPC correctable errors", "Correctable Errors",
+                                                   START_0_END_3, RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
                                                    M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
-                                                   RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
-                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                                                   RAW_FIELD_UNIT_UNKNOWN);
                         break;
                     case 9:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2052,14 +2057,13 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         break;
                     case 177:
-                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
-                                                   &smartAnylyzedData->attributes[iter].rawData, 1, 0,
-                                                   "Wear Range delta calculated as 100 * [(MW - LW)/MRW]",
-                                                   "Wear Range Delta", START_0_END_1, RAW_FIELD_UNIT_NONE, M_NULLPTR,
-                                                   M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
-                                                   M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
-                                                   RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
-                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        get_Raw_Field_From_RawData(
+                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                            &smartAnylyzedData->attributes[iter].rawData, 1, 0, "Wear Range delta as 100*[(MW-LW)/MRW]",
+                            "Wear Range Delta", START_0_END_1, RAW_FIELD_UNIT_NONE, M_NULLPTR, M_NULLPTR,
+                            START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
+                            START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
+                            START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         break;
                     case 183:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2106,14 +2110,13 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                             C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
                         break;
                     case 195:
-                        get_Raw_Field_From_RawData(
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
-                            &smartAnylyzedData->attributes[iter].rawData, 3, 0, "RAISE-1 Recoveries", M_NULLPTR,
-                            START_0_END_1, RAW_FIELD_UNIT_NONE, "RAISE-2 Recoveries", M_NULLPTR, START_2_END_3,
-                            RAW_FIELD_UNIT_NONE,
-                            "Number of Times RAISE is Used to Restore Date Being Programmed After a Program Failure",
-                            "RAISE Corrections", START_4_END_5, RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR,
-                            START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                        get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                   &smartAnylyzedData->attributes[iter].rawData, 3, 0,
+                                                   "RAISE-1 Recoveries", M_NULLPTR, START_0_END_1, RAW_FIELD_UNIT_NONE,
+                                                   "RAISE-2 Recoveries", M_NULLPTR, START_2_END_3, RAW_FIELD_UNIT_NONE,
+                                                   "Number of Times RAISE is Used", "RAISE Corrections", START_4_END_5,
+                                                   RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR,
+                                                   START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         break;
                     case 198:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2191,7 +2194,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
                                                    &smartAnylyzedData->attributes[iter].rawData, 2, 0, "Free Space",
                                                    M_NULLPTR, START_0_END_3, RAW_FIELD_UNIT_NONE,
-                                                   "Free Space Percentage in Hundreths of a Percent", "Free Space",
+                                                   "Free Space Percentage in Hundreths of Percent", "Free Space",
                                                    START_4_END_5, RAW_FIELD_UNIT_PERCENTAGE, M_NULLPTR, M_NULLPTR,
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
@@ -2557,12 +2560,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         case 177:
                             get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
                                                        &smartAnylyzedData->attributes[iter].rawData, 1, 0,
-                                                       "Wear Range Delta calculated as 100 * [(ME - LE)/PE Cycle]",
-                                                       "Wear Range Delta", START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE,
-                                                       M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
-                                                       RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
+                                                       "Wear Range Delta as 100*[(ME-LE)/PE-Cycle]", "Wear Range Delta",
+                                                       START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE, M_NULLPTR, M_NULLPTR,
                                                        START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
-                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                                                       RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         case 192:
                             get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2599,14 +2602,14 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                 RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         case 231:
-                            get_Raw_Field_From_RawData(
-                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
-                                &smartAnylyzedData->attributes[iter].rawData, 1, 0,
-                                "SSD Life Left calculated as 100 - [[AE / Rated PE Cycle] * 100]", "Life Left",
-                                START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE, M_NULLPTR, M_NULLPTR,
-                                START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
-                                START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
-                                START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                            get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                       &smartAnylyzedData->attributes[iter].rawData, 1, 0,
+                                                       "SSD Life Left as 100-[[AE/Rated PE-Cycle]*100]", "Life Left",
+                                                       START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE, M_NULLPTR, M_NULLPTR,
+                                                       START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                                                       RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         case 232:
                             get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2905,12 +2908,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                         case 177:
                             get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
                                                        &smartAnylyzedData->attributes[iter].rawData, 1, 0,
-                                                       "Wear Range Delta calculated as 100 * [(ME - LE)/PE Cycle]",
-                                                       "Wear Range Delta", START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE,
-                                                       M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
-                                                       RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
+                                                       "Wear Range Delta as 100*[(ME-LE)/PE-Cycle]", "Wear Range Delta",
+                                                       START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE, M_NULLPTR, M_NULLPTR,
                                                        START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
-                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                                                       RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         case 192:
                             get_Raw_Field_From_RawData(
@@ -2946,14 +2949,14 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*   
                                 START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         case 231:
-                            get_Raw_Field_From_RawData(
-                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
-                                &smartAnylyzedData->attributes[iter].rawData, 2, 0,
-                                "SSD Life Left calculated as 100 - [[AE / Rated PE Cycle] * 100]", "Life Left",
-                                START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE, "Throttling level", M_NULLPTR, START_5_END_5,
-                                RAW_FIELD_UNIT_NONE, M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
-                                RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
-                                RAW_FIELD_UNIT_UNKNOWN);
+                            get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                                       &smartAnylyzedData->attributes[iter].rawData, 2, 0,
+                                                       "SSD Life Left as 100-[[AE/Rated PE-Cycle]*100]", "Life Left",
+                                                       START_0_END_0, RAW_FIELD_UNIT_PERCENTAGE, "Throttling level",
+                                                       M_NULLPTR, START_5_END_5, RAW_FIELD_UNIT_NONE, M_NULLPTR,
+                                                       M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN,
+                                                       M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
+                                                       RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         case 232:
                             get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -4895,53 +4898,70 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
         break;
     }
 
-    // print raw field data
-    for (uint8_t iter = 0; iter < smartAnalyzedAttribute.rawData.userFieldCount; iter++)
-    {
-        char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
-        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.rawField[iter].fieldUnit, &unitString, false);
-        if (safe_strlen(unitString) > 0) // to not print space at the end of value
-            printf("\t%s (%s): %" PRId64 "\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName, unitString,
-                   smartAnalyzedAttribute.rawData.rawField[iter].fieldValue);
-        else
-            printf("\t%s: %" PRId64 "\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName,
-                   smartAnalyzedAttribute.rawData.rawField[iter].fieldValue);
-        safe_free(&unitString);
-    }
+    bool noAnalyzedFields = (smartAnalyzedAttribute.rawData.userFieldCount == 0 &&
+                             !smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValid &&
+                             !smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValid &&
+                             !smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValid);
 
-    // print analyzed values if any available
-    if (smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValid)
+    if (noAnalyzedFields)
     {
-        printf("\t%s: %s\n", smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldName,
-               smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValue);
+        printf("\tRaw Data: ");
+        for (uint8_t rawIter = UINT8_C(0); rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
+        {
+            printf("%02" PRIX8 "", smartAnalyzedAttribute.rawData.rawData[6 - rawIter]);
+        }
+        printf("h\n");
     }
-    if (smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValid)
+    else
     {
-        char* analyzedUnitString =
-            M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
-        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldUnit, &analyzedUnitString,
-                                  false);
-        if (safe_strlen(analyzedUnitString) > 0) // to not print space at the end of value
-            printf("\t%s (%s): %" PRId64 "\n", smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldName,
-                   analyzedUnitString, smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValue);
-        else
-            printf("\t%s: %" PRId64 "\n", smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldName,
-                   smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValue);
-        safe_free(&analyzedUnitString);
-    }
-    if (smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValid)
-    {
-        char* analyzedUnitString =
-            M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
-        get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldUnit, &analyzedUnitString,
-                                  false);
-        if (safe_strlen(analyzedUnitString) > 0) // to not print space at the end of value
-            printf("\t%s (%s): %f\n", smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldName, analyzedUnitString,
-                   smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValue);
-        else
-            printf("\t%s: %f\n", smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldName,
-                   smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValue);
-        safe_free(&analyzedUnitString);
+        // print raw field data
+        for (uint8_t iter = 0; iter < smartAnalyzedAttribute.rawData.userFieldCount; iter++)
+        {
+            char* unitString = M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+            get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.rawField[iter].fieldUnit, &unitString, false);
+            if (safe_strlen(unitString) > 0) // to not print space at the end of value
+                printf("\t%s (%s): %" PRId64 "\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName, unitString,
+                       smartAnalyzedAttribute.rawData.rawField[iter].fieldValue);
+            else
+                printf("\t%s: %" PRId64 "\n", smartAnalyzedAttribute.rawData.rawField[iter].fieldName,
+                       smartAnalyzedAttribute.rawData.rawField[iter].fieldValue);
+            safe_free(&unitString);
+        }
+
+        // print analyzed values if any available
+        if (smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValid)
+        {
+            printf("\t%s: %s\n", smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldName,
+                   smartAnalyzedAttribute.rawData.stringTypeAnalyzedFieldValue);
+        }
+        if (smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValid)
+        {
+            char* analyzedUnitString =
+                M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+            get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldUnit, &analyzedUnitString,
+                                      false);
+            if (safe_strlen(analyzedUnitString) > 0) // to not print space at the end of value
+                printf("\t%s (%s): %" PRId64 "\n", smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldName,
+                       analyzedUnitString, smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValue);
+            else
+                printf("\t%s: %" PRId64 "\n", smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldName,
+                       smartAnalyzedAttribute.rawData.int64TypeAnalyzedFieldValue);
+            safe_free(&analyzedUnitString);
+        }
+        if (smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValid)
+        {
+            char* analyzedUnitString =
+                M_REINTERPRET_CAST(char*, safe_calloc(MAX_RAW_FEILD_UNIT_STRING_LENGTH, sizeof(char)));
+            get_Raw_Field_Unit_String(smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldUnit, &analyzedUnitString,
+                                      false);
+            if (safe_strlen(analyzedUnitString) > 0) // to not print space at the end of value
+                printf("\t%s (%s): %f\n", smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldName,
+                       analyzedUnitString, smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValue);
+            else
+                printf("\t%s: %f\n", smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldName,
+                       smartAnalyzedAttribute.rawData.doubleTypeAnalyzedFieldValue);
+            safe_free(&analyzedUnitString);
+        }
     }
 }
 
