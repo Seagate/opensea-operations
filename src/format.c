@@ -1653,7 +1653,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
             printf("If this command takes an hour or the command reports a failure due to\n");
             printf("interruption by the system with a reset, recovery will be attempted\n");
             printf("automatically. You may attempt to run this command again if recovery\n");
-            printf("does not appear successfull.\n");
+            printf("does not appear successful.\n");
         }
         os_Get_Exclusive(device);
         os_Lock_Device(device);
@@ -1667,27 +1667,64 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         bool mbrEraseWarning = false;
         if (device->drive_info.deviceBlockSize > 0)
         {
-            uint8_t* eraseMBR =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
-            if (eraseMBR != M_NULLPTR)
+            uint8_t* eraseMBR = M_NULLPTR;
+            // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
+            // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
+            // why it will also be erased
+            eReturnValues writeMBR = SUCCESS;
+            eReturnValues writeBackupMBR = SUCCESS;
+            if (device->drive_info.drive_type != SCSI_DRIVE && !is_Blocksize_And_Capacity_In_Sync(device) && device->drive_info.bridge_info.childDeviceBlockSize > 0)
             {
-                // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
-                // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
-                // why it will also be erased
-                eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-                eReturnValues writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
-                                                         device->drive_info.deviceBlockSize);
-                if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+                // use a passthrough write instead
+                eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.bridge_info.childDeviceBlockSize, sizeof(uint8_t),
+                                                                device->os_info.minimumAlignment));
+                if (eraseMBR != M_NULLPTR)
+                {
+                    if (device->drive_info.drive_type == ATA_DRIVE)
+                    {
+                        writeMBR = ata_Write(device, 0, false, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
+                        writeBackupMBR = ata_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, false, eraseMBR,
+                                                            device->drive_info.bridge_info.childDeviceBlockSize);
+                    }
+                    else if (device->drive_info.drive_type == NVME_DRIVE)
+                    {
+                        writeMBR = nvme_Write(device, 0, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
+                        writeBackupMBR = nvme_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
+                                                            device->drive_info.bridge_info.childDeviceBlockSize);
+                    }
+                    else
+                    {
+                        mbrEraseWarning = true;
+                    }
+                }
+                else
                 {
                     mbrEraseWarning = true;
                 }
-                safe_free_aligned(&eraseMBR);
+
             }
             else
             {
+                eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
+                                                                device->os_info.minimumAlignment));
+                if (eraseMBR != M_NULLPTR)
+                {
+                    writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+                    writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
+                                                        device->drive_info.deviceBlockSize);
+                }
+                else
+                {
+                    mbrEraseWarning = true;
+                }
+            }
+            if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+            {
                 mbrEraseWarning = true;
             }
+            safe_free_aligned(&eraseMBR);
             if (mbrEraseWarning)
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
