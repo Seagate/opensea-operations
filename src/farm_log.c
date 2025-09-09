@@ -2769,7 +2769,7 @@ static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* sta
         size_t   asciioffset = SIZE_T_C(0);
         uint32_t rawdata     = b_swap_32(M_DoubleWord0(firstqword));
         safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
-        farmASCIIData[asciilen] = 0;
+        farmASCIIData[asciilen - 1] = 0;
         print_Statistic_Name(statisticname);
         printf("\t\t%s\n", farmASCIIData);
         safe_free(&farmASCIIData);
@@ -2817,7 +2817,7 @@ static void print_Stat_If_Supported_And_Valid_Date_Of_Assembly(uint64_t doaQword
         size_t   asciioffset = SIZE_T_C(0);
         uint32_t rawdata     = M_DoubleWord0(doaQword);
         safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
-        farmASCIIData[asciilen] = 0;
+        farmASCIIData[asciilen - 1] = 0;
         print_Statistic_Name("Date Of Assembly\t\t");
         // first 2 digits are year
         DECLARE_ZERO_INIT_ARRAY(char, year, 5);
