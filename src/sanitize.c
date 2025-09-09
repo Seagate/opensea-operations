@@ -703,7 +703,10 @@ static eReturnValues sanitize_Poll_For_Progress(tDevice* device, uint32_t delayT
     {
         printf("\n");
     }
-    os_Update_File_System_Cache(device);
+    if (ret == SUCCESS && sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
+    {
+       os_Update_File_System_Cache(device);
+    }
     return ret;
 }
 
