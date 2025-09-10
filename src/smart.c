@@ -1229,29 +1229,29 @@ static void get_ata_Attribute_Threshold_From_Threshold_Data(uint8_t             
         {
             if (isWarrantied)
             {
-                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_FAILING_NOW;
-                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                thresholdInfo->currentFailStatus = FAIL_STATUS_ATTRIBUTE_FAILING;
+                safe_strcpy(thresholdInfo->currentFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute is currently failing.");
             }
             else
             {
-                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_WARNING_NOW;
-                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                thresholdInfo->currentFailStatus = FAIL_STATUS_ATTRIBUTE_WARNING;
+                safe_strcpy(thresholdInfo->currentFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute is currently issuing warning.");
             }
         }
-        else if (thresholdValue >= worst)
+        if (thresholdValue >= worst)
         {
             if (isWarrantied)
             {
-                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST;
-                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                thresholdInfo->pastFailStatus = FAIL_STATUS_ATTRIBUTE_FAILING;
+                safe_strcpy(thresholdInfo->pastFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute has previously failed.");
             }
             else
             {
-                thresholdInfo->failStatus = FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST;
-                safe_strcpy(thresholdInfo->failStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                thresholdInfo->pastFailStatus = FAIL_STATUS_ATTRIBUTE_WARNING;
+                safe_strcpy(thresholdInfo->pastFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
                             "Attribute has previously warned about it's condition.");
             }
         }
@@ -4758,23 +4758,30 @@ static void print_ATA_SMART_Attribute_Raw(bool isWarrantied, ataSMARTAnalyzedAtt
 
     if (smartAnalyzedAttribute.thresholdInfo.thresholdType != THRESHOLD_UNKNOWN)
     {
-        switch (smartAnalyzedAttribute.thresholdInfo.failStatus)
+        switch (smartAnalyzedAttribute.thresholdInfo.currentFailStatus)
         {
-        case FAIL_STATUS_ATTRIBUTE_FAILING_NOW:
+        case FAIL_STATUS_ATTRIBUTE_FAILING:
             safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
             break;
-        case FAIL_STATUS_ATTRIBUTE_WARNING_NOW:
+        case FAIL_STATUS_ATTRIBUTE_WARNING:
             safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
             break;
-        case FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST:
+        default:
+            break;
+        }
+
+        switch (smartAnalyzedAttribute.thresholdInfo.pastFailStatus)
+        {
+        case FAIL_STATUS_ATTRIBUTE_FAILING:
             safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
             break;
-        case FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST:
+        case FAIL_STATUS_ATTRIBUTE_WARNING:
             safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
             break;
         default:
             break;
         }
+
         printf("%-5s%3" PRIu8 " %-35s  %04" PRIX16 "h    %02" PRIX8 "h     %02" PRIX8 "h     %02" PRIX8 "h   ", flags,
                smartAnalyzedAttribute.attributeNumber, smartAnalyzedAttribute.attributeName,
                smartAnalyzedAttribute.status, smartAnalyzedAttribute.nominal, smartAnalyzedAttribute.worstEver,
@@ -5036,18 +5043,24 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTAnalyzedAttribute smartAnal
             break;
         }
 
-        switch (smartAnalyzedAttribute.thresholdInfo.failStatus)
+        switch (smartAnalyzedAttribute.thresholdInfo.currentFailStatus)
         {
-        case FAIL_STATUS_ATTRIBUTE_FAILING_NOW:
+        case FAIL_STATUS_ATTRIBUTE_FAILING:
             safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
             break;
-        case FAIL_STATUS_ATTRIBUTE_WARNING_NOW:
+        case FAIL_STATUS_ATTRIBUTE_WARNING:
             safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
             break;
-        case FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST:
+        default:
+            break;
+        }
+
+        switch (smartAnalyzedAttribute.thresholdInfo.pastFailStatus)
+        {
+        case FAIL_STATUS_ATTRIBUTE_FAILING:
             safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
             break;
-        case FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST:
+        case FAIL_STATUS_ATTRIBUTE_WARNING:
             safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
             break;
         default:

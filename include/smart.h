@@ -150,18 +150,15 @@ extern "C"
                    /*!< Threshold set to invalid value. */
                    THRESHOLD_INVALID = 4);
 
-    M_DECLARE_ENUM(
-        eATAAttributeFailStatus,
-        /*!< Attribute Fail Status Not Set. */
-        FAIL_STATUS_NOT_SET = 0,
-        /*!< Attribute Failing now, nominal is less than threshold value(warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_FAILING_NOW = 1,
-        /*!< Attribute is issuing Warning now, nominal is less than threshold value(non-warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_WARNING_NOW = 2,
-        /*!< Attribute Failed in past, worst is less than threshold value(warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST = 3,
-        /*!< Attribute has issued Warning in past, worst is less than threshold value(non-warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST = 4);
+    M_DECLARE_ENUM(eATAAttributeFailStatus,
+                   /*!< Attribute Fail Status Not Set. */
+                   FAIL_STATUS_NOT_SET = 0,
+                   /*!< Attribute Failing, nominal is less than threshold value or worst is less than threshold
+                      value(warranty attribute). */
+                   FAIL_STATUS_ATTRIBUTE_FAILING = 1,
+                   /*!< Attribute is issuing Warning now, nominal is less than threshold value or worst is less than
+                      threshold value(non-warranty attribute). */
+                   FAIL_STATUS_ATTRIBUTE_WARNING = 2);
 
     // clang-format off
     M_PACK_ALIGN_STRUCT(ataAttributeRawFieldData, 1,
@@ -207,8 +204,10 @@ extern "C"
     M_PACK_ALIGN_STRUCT(ataAttributeThresholdInfo, 1,
                         uint8_t                    thresholdValue;
                         eATAAttributeThresholdType thresholdType; // Since we have added this enum, no need to add threshold valid boolean flag
-                        eATAAttributeFailStatus    failStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
-                        char                       failStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
+                        eATAAttributeFailStatus    currentFailStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
+                        char                       currentFailStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
+                        eATAAttributeFailStatus    pastFailStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
+                        char                       pastFailStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
     );
 
     M_PACK_ALIGN_STRUCT(ataSMARTAnalyzedAttribute, 1, 
