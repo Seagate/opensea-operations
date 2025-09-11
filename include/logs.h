@@ -839,7 +839,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(tDevice* device);
 
     M_NONNULL_PARAM_LIST(1, 5)
-    M_PARAM_RO(1)
+    M_PARAM_RW(1)
     M_PARAM_WO(5)
     OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
                                                                  eScsiModePageControl mpc,
@@ -855,7 +855,7 @@ extern "C"
            MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN))
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1)
+    M_PARAM_RW(1)
     M_NULL_TERM_STRING(5)
     M_PARAM_RO(5)
     M_NULL_TERM_STRING(6)

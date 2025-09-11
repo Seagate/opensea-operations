@@ -1628,13 +1628,15 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
 }
 #define ENABLE_DST_LOG_DEBUG 0 // set to non zero to enable this debug.
 
+M_NONNULL_PARAM_LIST(1, 2)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
 static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret             = NOT_SUPPORTED;
     uint8_t*      selfTestResults = M_NULLPTR;
     uint32_t      logSize         = UINT32_C(0);
     // used for compatibility purposes with drives that may have GPL, but not support the ext log...
-    // device->drive_info.ata_Options.generalPurposeLoggingSupported = false;//for debugging SMART log version
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported &&
         SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
     {
@@ -1988,6 +1990,9 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries e
     return ret;
 }
 
+M_NONNULL_PARAM_LIST(1, 2)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
 static eReturnValues get_SCSI_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -2033,6 +2038,9 @@ static eReturnValues get_SCSI_DST_Log_Entries(tDevice* device, ptrDstLogEntries 
     return ret;
 }
 
+M_NONNULL_PARAM_LIST(1, 2)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
 static eReturnValues get_NVMe_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -2125,6 +2133,10 @@ eReturnValues get_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
     case SCSI_DRIVE:
         return get_SCSI_DST_Log_Entries(device, entries);
     default:
+        if (entries != M_NULLPTR)
+        {
+            safe_memset(entries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
+        }
         return NOT_SUPPORTED;
     }
 }

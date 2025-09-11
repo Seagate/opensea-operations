@@ -467,7 +467,7 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues
     disable_Free_Fall_Control_Feature(tDevice* device); // disables the free fall control feature
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RW(1) OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(tDevice* device);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues enable_Disable_AAM_Feature(tDevice* device, bool enable);

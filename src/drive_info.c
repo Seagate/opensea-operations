@@ -6988,9 +6988,13 @@ static eReturnValues get_SCSI_Diagnostic_Data(tDevice*                    device
 }
 
 // report supported operation codes to figure out additional features.
+M_NONNULL_PARAM_LIST(1, 2, 3)
+M_PARAM_RW(1)
+M_PARAM_RW(2)
+M_PARAM_RO(3)
 static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    device,
                                                    ptrDriveInformationSAS_SATA driveInfo,
-                                                   ptrSCSIIdentifyInfo         scsiInfo)
+                                                   const ptrSCSIIdentifyInfo         scsiInfo)
 {
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
