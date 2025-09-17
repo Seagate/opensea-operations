@@ -9120,6 +9120,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
             {
                 printf("\tLow Current Spinup: Disabled\n");
             }
+
         }
     }
     // SMART Status
@@ -9508,13 +9509,10 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)
+eReturnValues get_Drive_Information(tDevice* device, ptrDriveInformation ataDriveInfo, ptrDriveInformation scsiDriveInfo, 
+                            ptrDriveInformation usbDriveInfo, ptrDriveInformation nvmeDriveInfo)
 {
-    eReturnValues       ret           = SUCCESS;
-    ptrDriveInformation ataDriveInfo  = M_NULLPTR;
-    ptrDriveInformation scsiDriveInfo = M_NULLPTR;
-    ptrDriveInformation usbDriveInfo  = M_NULLPTR;
-    ptrDriveInformation nvmeDriveInfo = M_NULLPTR;
+    eReturnValues       ret = SUCCESS;
 #if defined(DEBUG_DRIVE_INFO_TIME)
     DECLARE_SEATIMER(ataTime);
     DECLARE_SEATIMER(scsiTime);
@@ -9603,6 +9601,18 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
     print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
     printf("\n");
 #endif // DEBUG_DRIVE_INFO_TIME
+    return ret;
+}
+
+eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)
+{
+    eReturnValues       ret           = SUCCESS;
+    ptrDriveInformation ataDriveInfo  = M_NULLPTR;
+    ptrDriveInformation scsiDriveInfo = M_NULLPTR;
+    ptrDriveInformation usbDriveInfo  = M_NULLPTR;
+    ptrDriveInformation nvmeDriveInfo = M_NULLPTR;
+
+    ret = get_Drive_Information(device, ataDriveInfo, scsiDriveInfo, usbDriveInfo, nvmeDriveInfo);
 
     if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
     {
