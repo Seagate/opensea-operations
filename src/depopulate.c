@@ -30,7 +30,7 @@
 #include "platform_helper.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
 
-bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTime)
+bool is_Depopulation_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -113,8 +113,8 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
                                                         blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
                 // Work around for SATLs
                 // Some do not support report supported operation codes, so this relies on this field being non-zero.
-                // Only flip this if the commands above are reporting "unknown" which means the lookup returned something
-                // like invalid command operation code, or something like that.
+                // Only flip this if the commands above are reporting "unknown" which means the lookup returned
+                // something like invalid command operation code, or something like that.
                 if (!supported && *depopulationTime > 0 && getElementStatusSupported == SCSI_CMD_SUPPORT_UNKNOWN)
                 {
                     supported = true;
@@ -125,7 +125,7 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
     return supported;
 }
 
-eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors)
+eReturnValues get_Number_Of_Descriptors(const tDevice* device, uint32_t* numberOfDescriptors)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -157,7 +157,7 @@ eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescr
     return ret;
 }
 
-eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
+eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
                                                  uint32_t           numberOfElementsExpected,
                                                  uint32_t*          depopElementID,
                                                  uint16_t*          maximumDepopulatedElements,
@@ -283,7 +283,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
     return ret;
 }
 
-eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
+eReturnValues get_Physical_Element_Descriptors(const tDevice*     device,
                                                uint32_t           numberOfElementsExpected,
                                                ptrPhysicalElement elementList)
 {
@@ -417,10 +417,10 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
 }
 
 // NOTE: This definition belongs in opensea-transport cmds.h/.c
-eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
+eReturnValues depopulate_Physical_Element(const tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -438,7 +438,7 @@ eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescr
 // NOTE: This may NOT give percentage. This will happen on ATA drives, but you can check that it is still running or
 // not. - TJE On ATA drives, if in progress, the progress variable will get set to 255 since it is not possible to
 // determine actual progress
-eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
+eReturnValues get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -723,7 +723,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
     return ret;
 }
 
-eReturnValues show_Depop_Repop_Progress(tDevice* device)
+eReturnValues show_Depop_Repop_Progress(const tDevice* device)
 {
     eReturnValues ret         = NOT_SUPPORTED;
     eDepopStatus  depopStatus = DEPOP_NOT_IN_PROGRESS;
@@ -782,19 +782,19 @@ eReturnValues show_Depop_Repop_Progress(tDevice* device)
     return ret;
 }
 
-eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
-                                                  uint32_t elementDescriptorID,
-                                                  uint64_t requestedMaxLBA,
-                                                  bool     pollForProgress)
+eReturnValues perform_Depopulate_Physical_Element(const tDevice* device,
+                                                  uint32_t       elementDescriptorID,
+                                                  uint64_t       requestedMaxLBA,
+                                                  bool           pollForProgress)
 {
     return perform_Depopulate_Physical_Element2(device, elementDescriptorID, requestedMaxLBA, pollForProgress, false);
 }
 
-eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
-                                                   uint32_t elementDescriptorID,
-                                                   uint64_t requestedMaxLBA,
-                                                   bool     pollForProgress,
-                                                   bool     modifyZones)
+eReturnValues perform_Depopulate_Physical_Element2(const tDevice* device,
+                                                   uint32_t       elementDescriptorID,
+                                                   uint64_t       requestedMaxLBA,
+                                                   bool           pollForProgress,
+                                                   bool           modifyZones)
 {
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);
@@ -840,8 +840,8 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
             uint8_t ascq     = UINT8_C(0);
             uint8_t fru      = UINT8_C(0);
             // First check what sense data we already have...
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                        &ascq, &fru);
+            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq,
+                                       &fru);
             // if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext
             // command.
             if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
@@ -895,8 +895,8 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
                 // activation
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, currentSettings, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                            ATA_ID_DATA_LOG_CURRENT_SETTINGS, currentSettings,
-                                                            LEGACY_DRIVE_SEC_SIZE, 0))
+                                                         ATA_ID_DATA_LOG_CURRENT_SETTINGS, currentSettings,
+                                                         LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     uint64_t currentSettingsHeader = M_BytesTo8ByteValue(
                         currentSettings[7], currentSettings[6], currentSettings[5], currentSettings[4],
@@ -937,8 +937,8 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
             get_Number_Of_Descriptors(device, &numberOfDescriptors);
             if (numberOfDescriptors > 0)
             {
-                ptrPhysicalElement elementList = M_REINTERPRET_CAST(
-                    ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
+                ptrPhysicalElement elementList =
+                    M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
                 if (elementList != M_NULLPTR)
                 {
                     safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
@@ -954,8 +954,7 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
                                 // found the descriptor, so it's not a issue of not finding it
                                 foundDescriptor = true;
                                 // check associated maxLBA
-                                if (elementList[elementID].associatedCapacity != UINT64_MAX &&
-                                    requestedMaxLBA != 0 &&
+                                if (elementList[elementID].associatedCapacity != UINT64_MAX && requestedMaxLBA != 0 &&
                                     requestedMaxLBA > elementList[elementID].associatedCapacity)
                                 {
                                     // tried requesting a new capacity greater than what the device can support...so
@@ -985,7 +984,7 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
                 else
                 {
                     printf("Depopulation failed with invalid field. Invalid element specified, or invalid new max "
-                            "LBA or some other error\n");
+                           "LBA or some other error\n");
                 }
             }
         }
@@ -1055,7 +1054,7 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
     return ret;
 }
 
-bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime)
+bool is_Depopulate_And_Modify_Zones_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1152,10 +1151,10 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
 }
 
 // NOTE: This definition belongs in opensea-transport cmds.h/.c
-eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
+eReturnValues depopulate_Physical_Element_And_Modify_Zones(const tDevice* device, uint32_t elementDescriptorID)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1170,7 +1169,7 @@ eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint
     return ret;
 }
 
-bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime)
+bool is_Repopulate_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1248,10 +1247,10 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
     return supported;
 }
 
-eReturnValues repopulate_Elements(tDevice* device)
+eReturnValues repopulate_Elements(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1266,7 +1265,7 @@ eReturnValues repopulate_Elements(tDevice* device)
     return ret;
 }
 
-eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForProgress)
+eReturnValues perform_Repopulate_Physical_Element(const tDevice* device, bool pollForProgress)
 {
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);
@@ -1303,8 +1302,8 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
             uint8_t ascq     = UINT8_C(0);
             uint8_t fru      = UINT8_C(0);
             // First check what sense data we already have...
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                        &ascq, &fru);
+            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq,
+                                       &fru);
             // if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext
             // command.
             if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
@@ -1316,8 +1315,8 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                 ret = FAILURE;
             }
             else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x2C &&
-                        ascq == 0x00) // command sequence error means all depopulated elements do not allow restoration
-                                    // (at least one needs to support this)
+                     ascq == 0x00) // command sequence error means all depopulated elements do not allow restoration
+                                   // (at least one needs to support this)
             {
                 ret = FAILURE;
             }
@@ -1358,8 +1357,8 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                 // activation
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, currentSettings, LEGACY_DRIVE_SEC_SIZE);
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                            ATA_ID_DATA_LOG_CURRENT_SETTINGS, currentSettings,
-                                                            LEGACY_DRIVE_SEC_SIZE, 0))
+                                                         ATA_ID_DATA_LOG_CURRENT_SETTINGS, currentSettings,
+                                                         LEGACY_DRIVE_SEC_SIZE, 0))
                 {
                     uint64_t currentSettingsHeader = M_BytesTo8ByteValue(
                         currentSettings[7], currentSettings[6], currentSettings[5], currentSettings[4],
@@ -1399,8 +1398,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                         {
                             safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
                                         numberOfDescriptors * sizeof(physicalElement));
-                            if (SUCCESS ==
-                                get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
+                            if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                             {
                                 // figure out if any depopulated elements support being repopulated
 
@@ -1434,7 +1432,7 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
                             if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                             {
                                 printf("Repopulation of elements is not supported as currently depopulated "
-                                        "elements do not\n");
+                                       "elements do not\n");
                                 printf("support being repopulated.\n");
                             }
                             ret = FAILURE;

@@ -33,7 +33,7 @@
 // and set only possible if supported (check identify bit) If frozen, identify, identify dma, restore, set will all be
 // aborted. If id bit shows supported, but the dco ident fails, consider the drive in a frozen state -TJE
 
-bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
+bool is_DCO_Supported(const tDevice* device, bool* dmaSupport)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -63,7 +63,7 @@ bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
     return supported;
 }
 
-eReturnValues dco_Restore(tDevice* device)
+eReturnValues dco_Restore(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_DCO_Supported(device, M_NULLPTR))
@@ -83,7 +83,7 @@ eReturnValues dco_Restore(tDevice* device)
     return ret;
 }
 
-eReturnValues dco_Freeze_Lock(tDevice* device)
+eReturnValues dco_Freeze_Lock(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_DCO_Supported(device, M_NULLPTR))
@@ -97,7 +97,7 @@ eReturnValues dco_Freeze_Lock(tDevice* device)
     return ret;
 }
 
-eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
+eReturnValues dco_Identify(const tDevice* device, ptrDcoData data)
 {
     eReturnValues ret           = NOT_SUPPORTED;
     bool          dcoDMASupport = false;
@@ -191,7 +191,7 @@ eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
     return ret;
 }
 
-void show_DCO_Identify_Data(ptrDcoData data)
+void show_DCO_Identify_Data(const ptrDcoData data)
 {
     DISABLE_NONNULL_COMPARE
     if (data != M_NULLPTR)
@@ -362,7 +362,7 @@ void show_DCO_Identify_Data(ptrDcoData data)
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues dco_Set(tDevice* device, ptrDcoData data)
+eReturnValues dco_Set(const tDevice* device, const ptrDcoData data)
 {
     eReturnValues ret           = NOT_SUPPORTED;
     bool          dcoDMASupport = false;

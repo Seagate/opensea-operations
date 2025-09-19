@@ -32,7 +32,7 @@
 #include "scsi_helper.h"
 #include "scsi_helper_func.h"
 
-bool is_Persistent_Reservations_Supported(tDevice* device)
+bool is_Persistent_Reservations_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -119,7 +119,7 @@ typedef struct s_persistentReservationCapabilitiesV1
 
 #define PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 1
 
-eReturnValues get_Persistent_Reservations_Capabilities(tDevice*                             device,
+eReturnValues get_Persistent_Reservations_Capabilities(const tDevice*                       device,
                                                        ptrPersistentReservationCapabilities prCapabilities)
 {
     // note: some older drives don't support report capabilities...need to figure out what to do about those - TJE
@@ -590,7 +590,7 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues get_Registration_Key_Count(tDevice* device, uint16_t* keyCount)
+eReturnValues get_Registration_Key_Count(const tDevice* device, uint16_t* keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -635,7 +635,7 @@ typedef struct s_registrationKeysDataV1
                                  // are filled in when read.
 } registrationKeysDataV1, *ptrRegistrationKeysDataV1;
 
-eReturnValues get_Registration_Keys(tDevice* device, uint16_t numberOfKeys, ptrRegistrationKeysData keys)
+eReturnValues get_Registration_Keys(const tDevice* device, uint16_t numberOfKeys, ptrRegistrationKeysData keys)
 {
     // get only registration keys
     eReturnValues ret = NOT_SUPPORTED;
@@ -736,7 +736,7 @@ void show_Registration_Keys(ptrRegistrationKeysData keys)
 }
 
 // If supporting "extents", multiple can be reported, but this capability is obsolete, so this will likely return 1 or 0
-eReturnValues get_Reservation_Count(tDevice* device, uint16_t* reservationKeyCount)
+eReturnValues get_Reservation_Count(const tDevice* device, uint16_t* reservationKeyCount)
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
@@ -798,7 +798,7 @@ typedef struct s_reservationsDataV1
         reservation[1]; // variable length depending on how it was allocated. Should always be AT LEAST one of these
 } reservationsDataV1, *ptrReservationsDataV1;
 
-eReturnValues get_Reservations(tDevice* device, uint16_t numberReservations, ptrReservationsData reservations)
+eReturnValues get_Reservations(const tDevice* device, uint16_t numberReservations, ptrReservationsData reservations)
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
@@ -1056,7 +1056,7 @@ void show_Reservations(ptrReservationsData reservations)
     }
 }
 
-eReturnValues get_Full_Status_Key_Count(tDevice* device, uint16_t* keyCount)
+eReturnValues get_Full_Status_Key_Count(const tDevice* device, uint16_t* keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -1157,7 +1157,7 @@ typedef struct s_fullReservationInfoV1
         reservationKey[1]; // Variable size depending on how many will be reported by the device at a given time.
 } fullReservationInfoV1, *ptrFullReservationInfoV1;
 
-eReturnValues get_Full_Status(tDevice* device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation)
+eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation)
 {
     // if newer SPC, use the read full status subcommand.
     // If older SPC, use the get_Registrations and get_Reservations functions to get all the data we need to collect. -
@@ -1659,11 +1659,11 @@ static void format_Basic_Info(uint8_t* ptrData, uint32_t dataLength, ptrPersiste
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues register_Key(tDevice* device,
-                           uint64_t registrationKey,
-                           bool     allTargetPorts,
-                           bool     persistThroughPowerLoss,
-                           bool     ignoreExisting)
+eReturnValues register_Key(const tDevice* device,
+                           uint64_t       registrationKey,
+                           bool           allTargetPorts,
+                           bool           persistThroughPowerLoss,
+                           bool           ignoreExisting)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1704,7 +1704,7 @@ eReturnValues register_Key(tDevice* device,
     return ret;
 }
 
-eReturnValues unregister_Key(tDevice* device, uint64_t currentRegistrationKey)
+eReturnValues unregister_Key(const tDevice* device, uint64_t currentRegistrationKey)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1734,7 +1734,7 @@ eReturnValues unregister_Key(tDevice* device, uint64_t currentRegistrationKey)
     return ret;
 }
 
-eReturnValues acquire_Reservation(tDevice* device, uint64_t key, eReservationType resType)
+eReturnValues acquire_Reservation(const tDevice* device, uint64_t key, eReservationType resType)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1822,7 +1822,7 @@ eReturnValues acquire_Reservation(tDevice* device, uint64_t key, eReservationTyp
     return ret;
 }
 
-eReturnValues release_Reservation(tDevice* device, uint64_t key, eReservationType resType)
+eReturnValues release_Reservation(const tDevice* device, uint64_t key, eReservationType resType)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1910,7 +1910,7 @@ eReturnValues release_Reservation(tDevice* device, uint64_t key, eReservationTyp
     return ret;
 }
 
-eReturnValues clear_Reservations(tDevice* device, uint64_t key)
+eReturnValues clear_Reservations(const tDevice* device, uint64_t key)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -1939,7 +1939,7 @@ eReturnValues clear_Reservations(tDevice* device, uint64_t key)
     return ret;
 }
 
-eReturnValues preempt_Reservation(tDevice*         device,
+eReturnValues preempt_Reservation(const tDevice*   device,
                                   uint64_t         key,
                                   uint64_t         preemptKey,
                                   bool             abort,

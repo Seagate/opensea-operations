@@ -31,7 +31,7 @@
 #include "platform_helper.h"
 #include <ctype.h>
 
-bool sat_ATA_Security_Protocol_Supported(tDevice* device)
+bool sat_ATA_Security_Protocol_Supported(const tDevice* device)
 {
     bool supported = false;
     // For non-ATA/IDE interfaces, we need to check if the translator (SATL) supports the ATA security protocol.
@@ -73,7 +73,7 @@ bool sat_ATA_Security_Protocol_Supported(tDevice* device)
     return supported;
 }
 
-void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT)
+void get_ATA_Security_Info(const tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT)
 {
     if (useSAT) // if SAT ATA security supported, use it so the SATL manages the erase.
     {
@@ -621,7 +621,7 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseTy
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues set_ATA_Security_Password(tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues set_ATA_Security_Password(const tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
 {
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
@@ -646,7 +646,7 @@ eReturnValues set_ATA_Security_Password(tDevice* device, ataSecurityPassword ata
     return ret;
 }
 
-eReturnValues disable_ATA_Security_Password(tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues disable_ATA_Security_Password(const tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
 {
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
@@ -671,7 +671,7 @@ eReturnValues disable_ATA_Security_Password(tDevice* device, ataSecurityPassword
     return ret;
 }
 
-eReturnValues unlock_ATA_Security(tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
+eReturnValues unlock_ATA_Security(const tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
 {
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
@@ -696,7 +696,7 @@ eReturnValues unlock_ATA_Security(tDevice* device, ataSecurityPassword ataPasswo
     return ret;
 }
 
-eReturnValues start_ATA_Security_Erase(tDevice*              device,
+eReturnValues start_ATA_Security_Erase(const tDevice*        device,
                                        ataSecurityPassword   ataPassword,
                                        eATASecurityEraseType eraseType,
                                        uint32_t              timeout,
@@ -742,7 +742,7 @@ eReturnValues start_ATA_Security_Erase(tDevice*              device,
 
 // Attempts an unlock if needed
 // TODO: Check if security count expired!
-eReturnValues run_Disable_ATA_Security_Password(tDevice*            device,
+eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
                                                 ataSecurityPassword ataPassword,
                                                 bool                forceSATvalid,
                                                 bool                forceSAT)
@@ -843,7 +843,7 @@ eReturnValues run_Disable_ATA_Security_Password(tDevice*            device,
     return ret;
 }
 
-eReturnValues run_Freeze_ATA_Security(tDevice* device, bool forceSATvalid, bool forceSAT)
+eReturnValues run_Freeze_ATA_Security(const tDevice* device, bool forceSATvalid, bool forceSAT)
 {
     eReturnValues ret                     = UNKNOWN;
     bool          satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
@@ -886,7 +886,7 @@ eReturnValues run_Freeze_ATA_Security(tDevice* device, bool forceSATvalid, bool 
 
 // Will only unlock the drive
 // TODO: Check if security count expired!
-eReturnValues run_Unlock_ATA_Security(tDevice*            device,
+eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
                                       ataSecurityPassword ataPassword,
                                       bool                forceSATvalid,
                                       bool                forceSAT)
@@ -980,7 +980,7 @@ eReturnValues run_Unlock_ATA_Security(tDevice*            device,
     return ret;
 }
 
-eReturnValues run_Set_ATA_Security_Password(tDevice*            device,
+eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
                                             ataSecurityPassword ataPassword,
                                             bool                forceSATvalid,
                                             bool                forceSAT)
@@ -1041,7 +1041,7 @@ eReturnValues run_Set_ATA_Security_Password(tDevice*            device,
     return ret;
 }
 
-eReturnValues run_ATA_Security_Erase(tDevice*              device,
+eReturnValues run_ATA_Security_Erase(const tDevice*        device,
                                      eATASecurityEraseType eraseType,
                                      ataSecurityPassword   ataPassword,
                                      bool                  forceSATvalid,
@@ -1242,7 +1242,7 @@ eReturnValues run_ATA_Security_Erase(tDevice*              device,
     {
         timeout = MAX_CMD_TIMEOUT_SECONDS;
     }
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     start_Timer(&ataSecureEraseTimer);

@@ -3037,7 +3037,7 @@ static eReturnValues get_ATA_Drive_Info_From_SMART_Data(ptrDriveInformationSAS_S
     return ret;
 }
 
-static eReturnValues get_Security_Features_From_Security_Protocol(tDevice*              device,
+static eReturnValues get_Security_Features_From_Security_Protocol(const tDevice*        device,
                                                                   securityProtocolInfo* info,
                                                                   uint8_t*              securityProtocolList,
                                                                   uint32_t              dataLength)
@@ -3177,7 +3177,7 @@ static eReturnValues get_Security_Features_From_Security_Protocol(tDevice*      
     return ret;
 }
 
-eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
     eReturnValues                  ret                         = SUCCESS;
     bool                           smartStatusFromSCTStatusLog = false;
@@ -3193,10 +3193,10 @@ eReturnValues get_ATA_Drive_Information(tDevice* device, ptrDriveInformationSAS_
     safe_memcpy(&driveInfo->adapterInformation, sizeof(adapterInfo), &device->drive_info.adapter_info,
                 sizeof(adapterInfo));
     ataCap.seagateFamily = is_Seagate_Family(device);
-    if (SUCCESS == ata_Identify(device, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata), LEGACY_DRIVE_SEC_SIZE))
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
+    if (SUCCESS == ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE))
     {
-        get_ATA_Drive_Info_From_Identify(driveInfo, &ataCap, C_CAST(uint8_t*, &device->drive_info.IdentifyData.ata),
-                                         LEGACY_DRIVE_SEC_SIZE);
+        get_ATA_Drive_Info_From_Identify(driveInfo, &ataCap, iddata, LEGACY_DRIVE_SEC_SIZE);
         if (is_Seagate_Family(device) && device->drive_info.interface_type != IDE_INTERFACE &&
             device->drive_info.interface_type != SCSI_INTERFACE)
         {
@@ -3690,7 +3690,7 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo
     return ret;
 }
 
-static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
+static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                                        ptrDriveInformationSAS_SATA driveInfo,
                                        ptrSCSIIdentifyInfo         scsiInfo)
 {
@@ -3843,12 +3843,12 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
                                 remove_Leading_And_Trailing_Whitespace_Len(driveInfo->serialNumber, SERIAL_NUM_LEN);
                                 for (uint8_t iter = UINT8_C(0); iter < SERIAL_NUM_LEN; ++iter)
                                 {
-                                    if (!safe_isprint(device->drive_info.serialNumber[iter]))
+                                    if (!safe_isprint(driveInfo->serialNumber[iter]))
                                     {
-                                        device->drive_info.serialNumber[iter] = ' ';
+                                        driveInfo->serialNumber[iter] = ' ';
                                     }
                                 }
-                                remove_Leading_And_Trailing_Whitespace(device->drive_info.serialNumber);
+                                remove_Leading_And_Trailing_Whitespace(driveInfo->serialNumber);
                                 // For Seagate and LaCie USB drives, need to remove leading or trailing zeroes.
                                 if (is_Seagate_USB_Vendor_ID(driveInfo->vendorID) ||
                                     is_LaCie_USB_Vendor_ID(driveInfo->vendorID))
@@ -4318,14 +4318,14 @@ static eReturnValues get_SCSI_VPD_Data(tDevice*                    device,
             // SCSI(1)/SASI/CCS don't have VPD pages. Try getting the SN from here (and that's all you get!)
             safe_memcpy(driveInfo->serialNumber, SERIAL_NUM_LEN + 1, &device->drive_info.scsiVpdData.inquiryData[36],
                         SERIAL_NUM_LEN);
-            device->drive_info.serialNumber[SERIAL_NUM_LEN] = '\0';
+            driveInfo->serialNumber[SERIAL_NUM_LEN] = '\0';
         }
         safe_free_aligned(&tempBuf);
     }
     return ret;
 }
 
-static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
+static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                                        ptrDriveInformationSAS_SATA driveInfo,
                                        ptrSCSIIdentifyInfo         scsiInfo)
 {
@@ -5000,7 +5000,7 @@ static eReturnValues get_SCSI_Log_Data(tDevice*                    device,
     return ret;
 }
 
-static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    device,
+static eReturnValues get_SCSI_Read_Capacity_Data(const tDevice*              device,
                                                  ptrDriveInformationSAS_SATA driveInfo,
                                                  ptrSCSIIdentifyInfo         scsiInfo)
 {
@@ -5108,7 +5108,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(tDevice*                    dev
     return ret;
 }
 
-static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
+static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         ptrDriveInformationSAS_SATA driveInfo,
                                         ptrSCSIIdentifyInfo         scsiInfo)
 {
@@ -6883,7 +6883,7 @@ static eReturnValues get_SCSI_Mode_Data(tDevice*                    device,
 }
 
 // which diag pages are suppored to add to features list
-static eReturnValues get_SCSI_Diagnostic_Data(tDevice*                    device,
+static eReturnValues get_SCSI_Diagnostic_Data(const tDevice*              device,
                                               ptrDriveInformationSAS_SATA driveInfo,
                                               ptrSCSIIdentifyInfo         scsiInfo)
 {
@@ -6989,12 +6989,12 @@ static eReturnValues get_SCSI_Diagnostic_Data(tDevice*                    device
 
 // report supported operation codes to figure out additional features.
 M_NONNULL_PARAM_LIST(1, 2, 3)
-M_PARAM_RW(1)
+M_PARAM_RO(1)
 M_PARAM_RW(2)
 M_PARAM_RO(3)
-static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    device,
+static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice*              device,
                                                    ptrDriveInformationSAS_SATA driveInfo,
-                                                   const ptrSCSIIdentifyInfo         scsiInfo)
+                                                   const ptrSCSIIdentifyInfo   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
@@ -7035,7 +7035,8 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
                     // for report op codes, set hacks flag and return
                     if (scsiInfo->version >= 5)
                     {
-                        device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations = true;
+                        M_CONST_CAST(tDevice*, device)
+                            ->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations = true;
                     }
                     return NOT_SUPPORTED;
                 }
@@ -7186,8 +7187,8 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
                 supportedDLModes.size    = sizeof(supportedDLModes);
                 supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
                 // change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
-                eDriveType tempDevType        = device->drive_info.drive_type;
-                device->drive_info.drive_type = SCSI_DRIVE;
+                const eDriveType tempDevType                          = device->drive_info.drive_type;
+                M_CONST_CAST(tDevice*, device)->drive_info.drive_type = SCSI_DRIVE;
                 if (SUCCESS == get_Supported_FWDL_Modes(device, &supportedDLModes))
                 {
                     driveInfo->fwdlSupport.downloadSupported  = supportedDLModes.downloadMicrocodeSupported;
@@ -7197,7 +7198,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
                     driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired =
                         supportedDLModes.seagateDeferredPowerCycleActivate;
                 }
-                device->drive_info.drive_type = tempDevType;
+                M_CONST_CAST(tDevice*, device)->drive_info.drive_type = tempDevType;
                 // ATA Passthrough commands
                 safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
                             sizeof(scsiOperationCodeInfoRequest));
@@ -7233,7 +7234,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(tDevice*                    d
     return ret;
 }
 
-eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+eReturnValues get_SCSI_Drive_Information(const tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE
@@ -7426,7 +7427,7 @@ eReturnValues get_SCSI_Drive_Information(tDevice* device, ptrDriveInformationSAS
 
 // currently using the bitfields in here, other commands are sometimes run to read additional information
 // may need to reorganize more in the future to eliminate needing to pass in tDevice -TJE
-static eReturnValues get_NVMe_Controller_Identify_Data(tDevice*                device,
+static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice*          device,
                                                        ptrDriveInformationNVMe driveInfo,
                                                        uint8_t*                nvmeIdentifyData,
                                                        uint32_t                identifyDataLength)
@@ -7881,7 +7882,7 @@ static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe dr
 }
 
 // TODO: Move code in controller data reading DST log to here
-static eReturnValues get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe driveInfo)
+static eReturnValues get_NVMe_Log_Data(const tDevice* device, ptrDriveInformationNVMe driveInfo)
 {
     eReturnValues ret = SUCCESS;
     if (!device || !driveInfo)
@@ -7933,7 +7934,7 @@ static eReturnValues get_NVMe_Log_Data(tDevice* device, ptrDriveInformationNVMe 
     return ret;
 }
 
-eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo)
+eReturnValues get_NVMe_Drive_Information(const tDevice* device, ptrDriveInformationNVMe driveInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -9512,7 +9513,7 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation)
+eReturnValues print_Drive_Information(const tDevice* device, bool showChildInformation)
 {
     eReturnValues       ret           = SUCCESS;
     ptrDriveInformation ataDriveInfo  = M_NULLPTR;
@@ -9694,7 +9695,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
     return ret;
 }
 
-const char* print_drive_type(tDevice* device)
+const char* print_drive_type(const tDevice* device)
 {
     DISABLE_NONNULL_COMPARE
     if (device != M_NULLPTR)

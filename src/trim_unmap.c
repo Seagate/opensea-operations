@@ -26,7 +26,7 @@
 #include "platform_helper.h"
 #include "trim_unmap.h"
 
-static bool is_ATA_Data_Set_Management_XL_Supported(tDevice* device)
+static bool is_ATA_Data_Set_Management_XL_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
@@ -98,7 +98,7 @@ static bool is_ATA_Data_Set_Management_XL_Supported(tDevice* device)
     return supported;
 }
 
-bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDescriptors, uint32_t* maxLBACount)
+bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapBlockDescriptors, uint32_t* maxLBACount)
 {
     bool supported = false;
     switch (device->drive_info.drive_type)
@@ -220,7 +220,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
     return supported;
 }
 
-eReturnValues trim_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues trim_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret = UNKNOWN;
     switch (device->drive_info.drive_type)
@@ -241,7 +241,7 @@ eReturnValues trim_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t rang
     return ret;
 }
 
-eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues nvme_Deallocate_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -302,7 +302,7 @@ eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t
     return ret;
 }
 
-eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues ata_Trim_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -421,7 +421,7 @@ eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range)
     return ret;
 }
 
-eReturnValues scsi_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);

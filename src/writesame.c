@@ -29,7 +29,7 @@
 #include "platform_helper.h"
 #include "writesame.h"
 
-bool is_Write_Same_Supported(tDevice*               device,
+bool is_Write_Same_Supported(const tDevice*         device,
                              M_ATTR_UNUSED uint64_t startingLBA,
                              uint64_t               requesedNumberOfLogicalBlocks,
                              uint64_t*              maxNumberOfLogicalBlocksPerCommand)
@@ -176,11 +176,11 @@ bool is_Write_Same_Supported(tDevice*               device,
 }
 
 // we need to know where we started at and the range in order to properly calculate progress
-eReturnValues get_Writesame_Progress(tDevice* device,
-                                     double*  progress,
-                                     bool*    writeSameInProgress,
-                                     uint64_t startingLBA,
-                                     uint64_t range)
+eReturnValues get_Writesame_Progress(const tDevice* device,
+                                     double*        progress,
+                                     bool*          writeSameInProgress,
+                                     uint64_t       startingLBA,
+                                     uint64_t       range)
 {
     eReturnValues ret    = SUCCESS;
     *writeSameInProgress = false;
@@ -285,7 +285,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
     return ret;
 }
 
-eReturnValues show_Write_Same_Current_LBA(tDevice* device)
+eReturnValues show_Write_Same_Current_LBA(const tDevice* device)
 {
     eReturnValues ret        = SUCCESS;
     uint64_t      currentLBA = UINT64_C(0);
@@ -379,12 +379,12 @@ eReturnValues show_Write_Same_Current_LBA(tDevice* device)
     return ret;
 }
 
-eReturnValues writesame(tDevice* device,
-                        uint64_t startingLba,
-                        uint64_t numberOfLogicalBlocks,
-                        bool     pollForProgress,
-                        uint8_t* pattern,
-                        uint32_t patternLength)
+eReturnValues writesame(const tDevice* device,
+                        uint64_t       startingLba,
+                        uint64_t       numberOfLogicalBlocks,
+                        bool           pollForProgress,
+                        uint8_t*       pattern,
+                        uint32_t       patternLength)
 {
     eReturnValues ret               = UNKNOWN;
     uint64_t      maxWriteSameRange = UINT64_C(0);
@@ -422,7 +422,7 @@ eReturnValues writesame(tDevice* device,
         // start the write same for the requested range
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
-            os_Get_Exclusive(device);
+            os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
         }
         os_Lock_Device(device);
         if (pattern && patternLength == device->drive_info.deviceBlockSize)

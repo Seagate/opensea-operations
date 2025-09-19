@@ -27,7 +27,7 @@
 #define CDL_T2A_DESCRIPTOR_OFFSET                                  8
 #define CDL_T2B_DESCRIPTOR_OFFSET                                  8
 
-eReturnValues enable_Disable_CDL_Feature(tDevice* device, eCDLFeatureSet countField)
+eReturnValues enable_Disable_CDL_Feature(const tDevice* device, eCDLFeatureSet countField)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -44,7 +44,7 @@ eReturnValues enable_Disable_CDL_Feature(tDevice* device, eCDLFeatureSet countFi
     return ret;
 }
 
-static eReturnValues get_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues get_ATA_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -255,7 +255,7 @@ static eCDLTimeFieldUnitType translate_Value_To_CDL_Unit(uint8_t unitValue)
     return unitType;
 }
 
-static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues get_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -400,7 +400,7 @@ static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSet
     return ret;
 }
 
-eReturnValues get_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues get_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -802,7 +802,7 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
     return ret;
 }
 
-eReturnValues print_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!cdlSettings)
@@ -822,7 +822,7 @@ eReturnValues print_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
     return ret;
 }
 
-static eReturnValues config_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues config_ATA_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (!cdlSettings)
@@ -934,7 +934,7 @@ static uint8_t translate_CDL_Unit_To_Value(eCDLTimeFieldUnitType unitType)
     return value;
 }
 
-static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues config_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (!cdlSettings)
@@ -1111,7 +1111,7 @@ static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdl
     return ret;
 }
 
-eReturnValues config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!cdlSettings)
@@ -1540,7 +1540,7 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
     return ret;
 }
 
-eReturnValues is_Valid_Config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (!cdlSettings)

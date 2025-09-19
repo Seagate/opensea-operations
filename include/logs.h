@@ -39,7 +39,7 @@ extern "C"
 #define TOTAL_CONSTITUENT_PAGES 32
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API const char* get_Drive_ID_For_Logfile_Name(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API const char* get_Drive_ID_For_Logfile_Name(const tDevice* device);
 
     // Meant to be a little simpler to call when you don't want to calculate a bunch of lengths for the function above
     // using device info. NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
@@ -53,7 +53,7 @@ extern "C"
     M_NULL_TERM_STRING(6)
     M_PARAM_RO(6)
     OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
-        tDevice*                 device,
+        const tDevice*           device,
         secureFileInfo**         file,                    /*required*/
         eLogFileNamingConvention logFileNamingConvention, /*required*/
         const char* logPath, // optional /*requested path to output to. Will be checked for security. If NULL,
@@ -64,7 +64,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_ATA_Log_Size(tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
+    //  get_ATA_Log_Size(const tDevice *device, uint8_t logAddress, uint32_t *logFileSize, bool gpl, bool smart)
     //
     //! \brief   Description: This function will check for the size of an ATA log as reported in the GPL or SMART
     //! directory.
@@ -88,11 +88,11 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(3)
     OPENSEA_OPERATIONS_API eReturnValues
-    get_ATA_Log_Size(tDevice* device, uint8_t logAddress, uint32_t* logFileSize, bool gpl, bool smart);
+    get_ATA_Log_Size(const tDevice* device, uint8_t logAddress, uint32_t* logFileSize, bool gpl, bool smart);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_SCSI_Log_Size(tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize)
+    //  get_SCSI_Log_Size(const tDevice *device, uint8_t logPage, uint8_t logSubPage, uint32_t *logFileSize)
     //
     //! \brief   Description: This function will check for the size of an SCSI log and/or log subpage as reported by the
     //! device.
@@ -114,14 +114,14 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 4)
     M_PARAM_RO(1)
     M_PARAM_WO(4)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(tDevice*  device,
-                                                           uint8_t   logPage,
-                                                           uint8_t   logSubPage,
-                                                           uint32_t* logFileSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(const tDevice* device,
+                                                           uint8_t        logPage,
+                                                           uint8_t        logSubPage,
+                                                           uint32_t*      logFileSize);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_SCSI_VPD_Page_Size(tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSize)
+    //  get_SCSI_VPD_Page_Size(const tDevice *device, uint8_t vpdPage, uint32_t *vpdPageSize)
     //
     //! \brief   Description: This function will check for the size of an SCSI VPD page as reported by the device.
     //
@@ -139,9 +139,9 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD_Page_Size(tDevice*  device,
-                                                                uint8_t   vpdPage,
-                                                                uint32_t* vpdPageSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD_Page_Size(const tDevice* device,
+                                                                uint8_t        vpdPage,
+                                                                uint32_t*      vpdPageSize);
 
     //-----------------------------------------------------------------------------
     //
@@ -177,18 +177,18 @@ extern "C"
     M_PARAM_WO_SIZE(8, 9)
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(tDevice*    device,
-                                                     uint8_t     logAddress,
-                                                     const char* logName,
-                                                     const char* fileExtension,
-                                                     bool        GPL,
-                                                     bool        SMART,
-                                                     bool        toBuffer,
-                                                     uint8_t*    myBuf,
-                                                     uint32_t    bufSize,
-                                                     const char* filePath,
-                                                     uint32_t    transferSizeBytes,
-                                                     uint16_t    featureRegister);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(const tDevice* device,
+                                                     uint8_t        logAddress,
+                                                     const char*    logName,
+                                                     const char*    fileExtension,
+                                                     bool           GPL,
+                                                     bool           SMART,
+                                                     bool           toBuffer,
+                                                     uint8_t*       myBuf,
+                                                     uint32_t       bufSize,
+                                                     const char*    filePath,
+                                                     uint32_t       transferSizeBytes,
+                                                     uint16_t       featureRegister);
 
     //-----------------------------------------------------------------------------
     //
@@ -221,20 +221,20 @@ extern "C"
     M_PARAM_WO_SIZE(7, 8)
     M_NULL_TERM_STRING(9)
     M_PARAM_RO(9)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(tDevice*    device,
-                                                      uint8_t     logAddress,
-                                                      uint8_t     subpage,
-                                                      const char* logName,
-                                                      const char* fileExtension,
-                                                      bool        toBuffer,
-                                                      uint8_t*    myBuf,
-                                                      uint32_t    bufSize,
-                                                      const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(const tDevice* device,
+                                                      uint8_t        logAddress,
+                                                      uint8_t        subpage,
+                                                      const char*    logName,
+                                                      const char*    fileExtension,
+                                                      bool           toBuffer,
+                                                      uint8_t*       myBuf,
+                                                      uint32_t       bufSize,
+                                                      const char*    filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_SCSI_VPD(tDevice *device, uint8_t pageCode, const char *logName, const char *fileExtension, bool toBuffer,
-    //! uint8_t *myBuf, uint32_t bufSize)
+    //! get_SCSI_VPD(const tDevice *device, uint8_t pageCode, const char *logName, const char *fileExtension, bool
+    //! toBuffer, uint8_t *myBuf, uint32_t bufSize)
     //
     //! \brief   generic function to pull an SCSI log and save it to a file
     //
@@ -262,14 +262,14 @@ extern "C"
     M_PARAM_WO_SIZE(6, 7)
     M_NULL_TERM_STRING(8)
     M_PARAM_RO(8)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(tDevice*    device,
-                                                      uint8_t     pageCode,
-                                                      const char* logName,
-                                                      const char* fileExtension,
-                                                      bool        toBuffer,
-                                                      uint8_t*    myBuf,
-                                                      uint32_t    bufSize,
-                                                      const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(const tDevice* device,
+                                                      uint8_t        pageCode,
+                                                      const char*    logName,
+                                                      const char*    fileExtension,
+                                                      bool           toBuffer,
+                                                      uint8_t*       myBuf,
+                                                      uint32_t       bufSize,
+                                                      const char*    filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -288,7 +288,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(tDevice* device, const char* filePath);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(const tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -307,7 +308,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(tDevice* device, const char* filePath);
+    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(const tDevice* device, const char* filePath);
 
 #define TELEMETRY_LOG_SMALL_DATA_SET  1
 #define TELEMETRY_LOG_MEDIUM_DATA_SET 2
@@ -347,14 +348,14 @@ extern "C"
     M_PARAM_WO_SIZE(5, 6)
     M_NULL_TERM_STRING(7)
     M_PARAM_RO(7)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(tDevice*    device,
-                                                            bool        currentOrSaved,
-                                                            uint8_t     islDataSet,
-                                                            bool        saveToFile,
-                                                            uint8_t*    ptrData,
-                                                            uint32_t    dataSize,
-                                                            const char* filePath,
-                                                            uint32_t    transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(const tDevice* device,
+                                                            bool           currentOrSaved,
+                                                            uint8_t        islDataSet,
+                                                            bool           saveToFile,
+                                                            uint8_t*       ptrData,
+                                                            uint32_t       dataSize,
+                                                            const char*    filePath,
+                                                            uint32_t       transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -373,7 +374,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(tDevice* device, const char* filePath);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(const tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -393,8 +395,8 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(tDevice*    device,
-                                                                                    const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(const tDevice* device,
+                                                                                    const char*    filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -416,7 +418,7 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(3)
     M_PARAM_RO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(tDevice* device, bool extLog, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(const tDevice* device, bool extLog, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -435,7 +437,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(tDevice* device, const char* filePath);
+    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(const tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -455,7 +457,7 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(tDevice* device, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(const tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -475,11 +477,11 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(tDevice* device, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(const tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //  pull_SCSI_G_List(tDevice *device)
+    //  pull_SCSI_G_List(const tDevice *device)
     //
     //! \brief   Description: This function pulls the G-List from SAS drives using the read defect data 12 command.
     //                        Pulled with log block address descriptors (LBAs)
@@ -495,11 +497,11 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(tDevice* device, const char* filePath);
+    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(const tDevice* device, const char* filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //  pull_SCSI_Informational_Exceptions_Log(tDevice *device)
+    //  pull_SCSI_Informational_Exceptions_Log(const tDevice *device)
     //
     //! \brief   Description: This function pulls the Informational Exceptions log from a SCSI drive.
     //
@@ -515,7 +517,8 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(tDevice* device, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(const tDevice* device,
+                                                                                const char*    filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -531,7 +534,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_Logs(tDevice* device, uint64_t flags);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_Logs(const tDevice* device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -547,7 +550,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Logs(tDevice* device, uint64_t flags);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Logs(const tDevice* device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -563,7 +566,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_ATA_Logs(tDevice* device, uint64_t flags);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -579,7 +582,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(tDevice* device, uint64_t flags);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(const tDevice* device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -603,23 +606,23 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(5)
     M_PARAM_RO(5)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(tDevice*     device,
-                                                          uint8_t      logNum,
-                                                          uint8_t      subpage,
-                                                          eLogPullMode mode,
-                                                          const char*  filePath,
-                                                          uint32_t     transferSizeBytes,
-                                                          uint32_t     logLengthOverride);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(const tDevice* device,
+                                                          uint8_t        logNum,
+                                                          uint8_t        subpage,
+                                                          eLogPullMode   mode,
+                                                          const char*    filePath,
+                                                          uint32_t       transferSizeBytes,
+                                                          uint32_t       logLengthOverride);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(4)
     M_PARAM_RO(4)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(tDevice*     device,
-                                                                    uint8_t      bufferID,
-                                                                    eLogPullMode mode,
-                                                                    const char*  filePath,
-                                                                    uint32_t     transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(const tDevice* device,
+                                                                    uint8_t        bufferID,
+                                                                    eLogPullMode   mode,
+                                                                    const char*    filePath,
+                                                                    uint32_t       transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -636,19 +639,20 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(tDevice* device, uint64_t flags);
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(const tDevice* device,
+                                                                                       uint64_t       flags);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API bool is_SCSI_Read_Buffer_16_Supported(
-        tDevice* device); // use for determining how to use this command to pull error history
+        const tDevice* device); // use for determining how to use this command to pull error history
 
     // Error history is formatted in vendor specific mannors.
     // Only exception is the current/saved internal status data. This should be pulled using the
     // pull_Internal_Status_Log() function instead!
     //-----------------------------------------------------------------------------
     //
-    //   get_SCSI_Error_History_Size(tDevice *device, uint8_t bufferID, uint32_t *errorHistorySize, bool
+    //   get_SCSI_Error_History_Size(const tDevice *device, uint8_t bufferID, uint32_t *errorHistorySize, bool
     //   createNewSnapshot)
     //
     //! \brief   Description: This function will check for the existance of an error history buffer ID and if found,
@@ -669,15 +673,15 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History_Size(tDevice*  device,
-                                                                     uint8_t   bufferID,
-                                                                     uint32_t* errorHistorySize,
-                                                                     bool      createNewSnapshot,
-                                                                     bool      useReadBuffer16);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History_Size(const tDevice* device,
+                                                                     uint8_t        bufferID,
+                                                                     uint32_t*      errorHistorySize,
+                                                                     bool           createNewSnapshot,
+                                                                     bool           useReadBuffer16);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_SCSI_Error_History(tDevice *device, uint8_t bufferID, const char *logName, bool createNewSnapshot,
+    //! get_SCSI_Error_History(const tDevice *device, uint8_t bufferID, const char *logName, bool createNewSnapshot,
     //! const char *fileExtension, bool toBuffer, uint8_t *myBuf, uint32_t bufSize,
     //! const char * const filePath);
     //
@@ -709,24 +713,24 @@ extern "C"
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
     M_PARAM_WO(12)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(tDevice*    device,
-                                                                uint8_t     bufferID,
-                                                                const char* logName,
-                                                                bool        createNewSnapshot,
-                                                                bool        useReadBuffer16,
-                                                                const char* fileExtension,
-                                                                bool        toBuffer,
-                                                                uint8_t*    myBuf,
-                                                                uint32_t    bufSize,
-                                                                const char* filePath,
-                                                                uint32_t    transferSizeBytes,
-                                                                char*       fileNameUsed);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(const tDevice* device,
+                                                                uint8_t        bufferID,
+                                                                const char*    logName,
+                                                                bool           createNewSnapshot,
+                                                                bool           useReadBuffer16,
+                                                                const char*    fileExtension,
+                                                                bool           toBuffer,
+                                                                uint8_t*       myBuf,
+                                                                uint32_t       bufSize,
+                                                                const char*    filePath,
+                                                                uint32_t       transferSizeBytes,
+                                                                char*          fileNameUsed);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice*           device,
                                                            const char*              filePath,
                                                            uint32_t                 transferSizeBytes,
                                                            uint32_t                 issueFactory,
@@ -737,7 +741,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  pull_FARM_Log(tDevice *device, const char * const filePath);
+    //  pull_FARM_Log(const tDevice *device, const char * const filePath);
     //
     //! \brief   Description: This function pulls the Seagate FARM log from ATA drives
     //
@@ -759,7 +763,7 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice*           device,
                                                        const char*              filePath,
                                                        uint32_t                 transferSizeBytes,
                                                        uint32_t                 issueFactory,
@@ -769,7 +773,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  is_FARM_Log_Supported(tDevice *device);
+    //  is_FARM_Log_Supported(const tDevice *device);
     //
     //! \brief   Description: This function check's if the Seagate Current FARM log is supported
     //
@@ -779,11 +783,11 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Factory_FARM_Log_Supported(tDevice *device);
+    //  is_Factory_FARM_Log_Supported(const tDevice *device);
     //
     //! \brief   Description: This function check's if the Seagate FARM Factory log is supported
     //
@@ -793,11 +797,12 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_FARM_Log_Supported(tDevice *device);
+    //  is_FARM_Log_Supported(const tDevice *device);
     //
     //! \brief   Description: This function check's if the Seagate FARM Time-Series log is supported
     //
@@ -808,11 +813,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_FARM_Sticky_Log_Supported(tDevice *device);
+    //  is_FARM_Sticky_Log_Supported(const tDevice *device);
     //
     //! \brief   Description: This function check's if the Seagate FARM Sticky log is supported
     //
@@ -822,11 +827,12 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_FARM_Long_Saved_Log_Supported(tDevice *device);
+    //  is_FARM_Long_Saved_Log_Supported(const tDevice *device);
     //
     //! \brief   Description: This function check's if the Seagate FARM Sticky log is supported
     //
@@ -836,12 +842,13 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(const tDevice* device);
 
     M_NONNULL_PARAM_LIST(1, 5)
-    M_PARAM_RW(1)
+    M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(tDevice*             device,
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice*       device,
                                                                  eScsiModePageControl mpc,
                                                                  uint8_t              modePage,
                                                                  uint8_t              subpage,
@@ -855,7 +862,7 @@ extern "C"
            MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN))
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RW(1)
+    M_PARAM_RO(1)
     M_NULL_TERM_STRING(5)
     M_PARAM_RO(5)
     M_NULL_TERM_STRING(6)
@@ -865,7 +872,7 @@ extern "C"
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
     M_PARAM_WO(11)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(tDevice*             device,
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice*       device,
                                                             eScsiModePageControl mpc,
                                                             uint8_t              modePage,
                                                             uint8_t              subpage,
@@ -896,7 +903,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues modify_SCSI_Block_Descriptor(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues modify_SCSI_Block_Descriptor(const tDevice*           device,
                                                                       modifyScsiBlkDescFields  modifications,
                                                                       modifyScsiBlkDescFields* endingBlockDescriptor);
 
@@ -906,10 +913,10 @@ extern "C"
     //  and SCSI
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(tDevice*     device,
-                                                                  uint8_t      logNum,
-                                                                  eLogPullMode mode,
-                                                                  uint32_t     nvmeLogSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(const tDevice* device,
+                                                                  uint8_t        logNum,
+                                                                  eLogPullMode   mode,
+                                                                  uint32_t       nvmeLogSizeBytes);
 
 #if defined(__cplusplus)
 }
