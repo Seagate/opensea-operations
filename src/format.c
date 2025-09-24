@@ -484,7 +484,10 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
             {
                 printf("\n");
             }
-            os_Update_File_System_Cache(device);
+            if (ret == SUCCESS && formatParameters.formatType == FORMAT_STD_FORMAT)
+            {
+                os_Update_File_System_Cache(device);
+            }
         }
         else
         {
@@ -1826,7 +1829,6 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
             ret = run_Format_Unit(device, formatUnitParameters, true);
         }
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
     }
     return ret;
 }
@@ -2074,7 +2076,10 @@ eReturnValues run_NVMe_Format(const tDevice* device, runNVMFormatParameters nvmP
         {
             printf("\n");
         }
-        os_Update_File_System_Cache(device);
+        if (nvmParams.newSize.currentBlockSize)
+        {
+            os_Update_File_System_Cache(device);
+        }
     }
     return ret;
 }

@@ -293,7 +293,10 @@ eReturnValues nvme_Deallocate_Range(const tDevice* device, uint64_t startLBA, ui
         ret = nvme_Dataset_Management(device, C_CAST(uint8_t, NVME_0_BASED_ADJUST(descriptorCount)), true, false, false,
                                       deallocate, 4096);
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
+        if (ret == SUCCESS)
+        {
+            os_Update_File_System_Cache(device);
+        }
     }
     else
     {
@@ -408,7 +411,10 @@ eReturnValues ata_Trim_Range(const tDevice* device, uint64_t startLBA, uint64_t 
             trimOffset += trimCommandLen;
         }
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
+        if (ret == SUCCESS)
+        {
+            os_Update_File_System_Cache(device);
+        }
 #if defined(_DEBUG)
         printf("TRIM Offset: %" PRIu32 "\n", trimOffset);
 #endif
@@ -567,7 +573,10 @@ eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_
             safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen);
         }
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
+        if (ret == SUCCESS)
+        {
+            os_Update_File_System_Cache(device);
+        }
 #if defined(_DEBUG)
         printf("UNMAP offset: %" PRIu32 "\n", unmapOffset);
 #endif

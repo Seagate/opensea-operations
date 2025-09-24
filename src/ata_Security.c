@@ -1332,6 +1332,7 @@ eReturnValues run_ATA_Security_Erase(const tDevice*        device,
             printf("\tTime to erase was ");
         }
         result = SUCCESS;
+        os_Update_File_System_Cache(device);
     }
     else
     {
@@ -1381,6 +1382,7 @@ eReturnValues run_ATA_Security_Erase(const tDevice*        device,
             {
                 if (SUCCESS == disable_ATA_Security_Password(device, ataPassword, satATASecuritySupported))
                 {
+                    os_Update_File_System_Cache(device);
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
                         printf("\tThe ATA Security password used during erase has been cleared.\n\n");
@@ -1415,6 +1417,5 @@ eReturnValues run_ATA_Security_Erase(const tDevice*        device,
             }
         }
     }
-    os_Update_File_System_Cache(device);
     return result;
 }
