@@ -9509,17 +9509,25 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues get_Drive_Information(tDevice* device, ptrDriveInformation ataDriveInfo, ptrDriveInformation scsiDriveInfo, 
-                            ptrDriveInformation usbDriveInfo, ptrDriveInformation nvmeDriveInfo)
+eReturnValues get_Drive_Information(tDevice*             device,
+                                    ptrDriveInformation* ataDriveInfo,
+                                    ptrDriveInformation* scsiDriveInfo,
+                                    ptrDriveInformation* usbDriveInfo,
+                                    ptrDriveInformation* nvmeDriveInfo,
+                                    bool                 showChildInformation,
+                                    bool*                 isSCSI_ATA,
+                                    bool*                 isSCSI_NVME,
+                                    bool*                 isUSB)
 {
-    eReturnValues       ret = SUCCESS;
+    eReturnValues ret = SUCCESS;
+
 #if defined(DEBUG_DRIVE_INFO_TIME)
     DECLARE_SEATIMER(ataTime);
     DECLARE_SEATIMER(scsiTime);
     DECLARE_SEATIMER(nvmeTime);
 #endif // DEBUG_DRIVE_INFO_TIME
     // Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
-    scsiDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+    *scsiDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
     if (device->drive_info.drive_type == ATA_DRIVE ||
         (device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe &&
          device->drive_info.drive_type != NVME_DRIVE))
@@ -9527,12 +9535,12 @@ eReturnValues get_Drive_Information(tDevice* device, ptrDriveInformation ataDriv
 #if defined(DEBUG_DRIVE_INFO_TIME)
         start_Timer(&ataTime);
 #endif // DEBUG_DRIVE_INFO_TIME
-       // allocate ataDriveInfo since this is an ATA drive
-        ataDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-        if (ataDriveInfo != M_NULLPTR)
+       // allocate *ataDriveInfo since this is an ATA drive
+        *ataDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+        if (*ataDriveInfo != M_NULLPTR)
         {
-            ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-            ret                    = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
+            (*ataDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+            ret                       = get_ATA_Drive_Information(device, &(*ataDriveInfo)->sasSata);
         }
 #if defined(DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&ataTime);
@@ -9544,24 +9552,25 @@ eReturnValues get_Drive_Information(tDevice* device, ptrDriveInformation ataDriv
         start_Timer(&nvmeTime);
 #endif // DEBUG_DRIVE_INFO_TIME
        // allocate nvmeDriveInfo since this is an NVMe drive
-        nvmeDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-        if (nvmeDriveInfo != M_NULLPTR)
+        *nvmeDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+        if (*nvmeDriveInfo != M_NULLPTR)
         {
-            nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
-            ret                     = get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
+            (*nvmeDriveInfo)->infoType = DRIVE_INFO_NVME;
+            ret                        = get_NVMe_Drive_Information(device, &(*nvmeDriveInfo)->nvme);
         }
 #if defined(DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&nvmeTime);
 #endif // DEBUG_DRIVE_INFO_TIME
     }
-    if (scsiDriveInfo != M_NULLPTR)
+    if (*scsiDriveInfo != M_NULLPTR)
     {
 #if defined(DEBUG_DRIVE_INFO_TIME)
         start_Timer(&scsiTime);
 #endif // DEBUG_DRIVE_INFO_TIME
-       // now that we have software translation always get the scsi data.
-        scsiDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-        ret                     = get_SCSI_Drive_Information(device, &scsiDriveInfo->sasSata);
+       // Now that we have software translation, always get the SCSI data
+        (*scsiDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+        ret                        = get_SCSI_Drive_Information(device, &(*scsiDriveInfo)->sasSata);
+
 #if defined(DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&scsiTime);
 #endif // DEBUG_DRIVE_INFO_TIME
@@ -9601,6 +9610,65 @@ eReturnValues get_Drive_Information(tDevice* device, ptrDriveInformation ataDriv
     print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
     printf("\n");
 #endif // DEBUG_DRIVE_INFO_TIME
+
+    if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
+    {
+            if (showChildInformation &&
+                (device->drive_info.drive_type != SCSI_DRIVE ||
+                 device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
+                *scsiDriveInfo && (*ataDriveInfo || *nvmeDriveInfo))
+        {
+            if ((device->drive_info.drive_type == ATA_DRIVE ||
+                 device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
+                *ataDriveInfo)
+            {
+                //print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
+                *isSCSI_ATA = true;
+            }
+            else if (device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo)
+            {
+                //print_Parent_And_Child_Information(scsiDriveInfo, nvmeDriveInfo);
+                *isSCSI_NVME = true;
+            }
+        }
+        else {
+            if ((device->drive_info.interface_type == USB_INTERFACE ||
+                 device->drive_info.interface_type == IEEE_1394_INTERFACE) &&
+                *ataDriveInfo && *scsiDriveInfo && device->drive_info.drive_type == ATA_DRIVE)
+            {
+                *usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+                if (*usbDriveInfo != M_NULLPTR)
+                {
+                    (*usbDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+                    generate_External_Drive_Information(&(*usbDriveInfo)->sasSata, &(*scsiDriveInfo)->sasSata,
+                                                        &(*ataDriveInfo)->sasSata);
+                    *isUSB = true;
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                    printf("Error allocating memory for USB - ATA drive info\n");
+                }
+            }
+            else if (device->drive_info.interface_type == USB_INTERFACE &&
+                     device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo && *scsiDriveInfo)
+            {
+                *usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+                if (*usbDriveInfo != M_NULLPTR)
+                {
+                    (*usbDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+                    generate_External_NVMe_Drive_Information(&(*usbDriveInfo)->sasSata, &(*scsiDriveInfo)->sasSata,
+                                                             &(*nvmeDriveInfo)->nvme);
+                    *isUSB = true;
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                    printf("Error allocating memory for USB - NVMe drive info\n");
+                }
+            }
+        }
+    }
     return ret;
 }
 
@@ -9611,85 +9679,43 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
     ptrDriveInformation scsiDriveInfo = M_NULLPTR;
     ptrDriveInformation usbDriveInfo  = M_NULLPTR;
     ptrDriveInformation nvmeDriveInfo = M_NULLPTR;
-
-    ret = get_Drive_Information(device, ataDriveInfo, scsiDriveInfo, usbDriveInfo, nvmeDriveInfo);
+    bool isSCSI_ATA = FALSE, isSCSI_NVME = FALSE, isUSB = FALSE;
+    ret = get_Drive_Information(device, &ataDriveInfo, &scsiDriveInfo, &usbDriveInfo, &nvmeDriveInfo,
+                                showChildInformation, &isSCSI_ATA, &isSCSI_NVME, &isUSB);
 
     if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
     {
         // call the print functions appropriately
-        if (showChildInformation &&
-            (device->drive_info.drive_type != SCSI_DRIVE ||
-             device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
-            scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
+        if (isSCSI_ATA && scsiDriveInfo && ataDriveInfo)
         {
-            if ((device->drive_info.drive_type == ATA_DRIVE ||
-                 device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
-                ataDriveInfo)
+            print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
+        }
+        else if (isSCSI_NVME && scsiDriveInfo && nvmeDriveInfo)
+        {
+            print_Parent_And_Child_Information(scsiDriveInfo, nvmeDriveInfo);
+        }
+        else if (isUSB && usbDriveInfo)
+        {
+            print_Device_Information(usbDriveInfo);
+        }
+        else // ata or scsi
+        {
+            if (device->drive_info.drive_type == ATA_DRIVE && ataDriveInfo)
             {
-                print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
+                print_Device_Information(ataDriveInfo);
             }
             else if (device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo)
             {
-                print_Parent_And_Child_Information(scsiDriveInfo, nvmeDriveInfo);
+                print_Device_Information(nvmeDriveInfo);
+                // print_Nvme_Ctrl_Information(device);
             }
-        }
-        else
-        {
-            // ONLY call the external function when we are able to get some passthrough information back as well
-            if ((device->drive_info.interface_type == USB_INTERFACE ||
-                 device->drive_info.interface_type == IEEE_1394_INTERFACE) &&
-                ataDriveInfo && scsiDriveInfo && device->drive_info.drive_type == ATA_DRIVE)
+            else if (scsiDriveInfo != M_NULLPTR)
             {
-                usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-                if (usbDriveInfo != M_NULLPTR)
-                {
-                    usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-                    generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata,
-                                                        &ataDriveInfo->sasSata);
-                    print_Device_Information(usbDriveInfo);
-                }
-                else
-                {
-                    ret = MEMORY_FAILURE;
-                    printf("Error allocating memory for USB - ATA drive info\n");
-                }
+                print_Device_Information(scsiDriveInfo);
             }
-            else if (device->drive_info.interface_type == USB_INTERFACE &&
-                     device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo && scsiDriveInfo)
+            else
             {
-                usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-                if (usbDriveInfo != M_NULLPTR)
-                {
-                    usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-                    generate_External_NVMe_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata,
-                                                             &nvmeDriveInfo->nvme);
-                    print_Device_Information(usbDriveInfo);
-                }
-                else
-                {
-                    ret = MEMORY_FAILURE;
-                    printf("Error allocating memory for USB - NVMe drive info\n");
-                }
-            }
-            else // ata or scsi
-            {
-                if (device->drive_info.drive_type == ATA_DRIVE && ataDriveInfo)
-                {
-                    print_Device_Information(ataDriveInfo);
-                }
-                else if (device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo)
-                {
-                    print_Device_Information(nvmeDriveInfo);
-                    // print_Nvme_Ctrl_Information(device);
-                }
-                else if (scsiDriveInfo != M_NULLPTR)
-                {
-                    print_Device_Information(scsiDriveInfo);
-                }
-                else
-                {
-                    printf("Error allocating memory to get device information.\n");
-                }
+                printf("Error allocating memory to get device information.\n");
             }
         }
     }

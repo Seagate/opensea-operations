@@ -564,11 +564,19 @@ extern "C"
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    M_PARAM_WO(3)
+    M_PARAM_WO(4)
+    M_PARAM_WO(5)
     OPENSEA_OPERATIONS_API eReturnValues get_Drive_Information(tDevice*            device,
-                                                               ptrDriveInformation ataDriveInfo,
-                                                               ptrDriveInformation scsiDriveInfo,
-                                                               ptrDriveInformation usbDriveInfo,
-                                                               ptrDriveInformation nvmeDriveInfo);
+                                                               ptrDriveInformation* ataDriveInfo,
+                                                               ptrDriveInformation* scsiDriveInfo,
+                                                               ptrDriveInformation* usbDriveInfo,
+                                                               ptrDriveInformation* nvmeDriveInfo,
+                                                               bool showChildInformation, 
+                                                               bool *isSCSI_ATA,
+                                                               bool *isSCSI_NVME, 
+                                                               bool *isUSB);
 
     M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) const char* print_drive_type(tDevice* device);
 
