@@ -9679,7 +9679,7 @@ eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation
     ptrDriveInformation scsiDriveInfo = M_NULLPTR;
     ptrDriveInformation usbDriveInfo  = M_NULLPTR;
     ptrDriveInformation nvmeDriveInfo = M_NULLPTR;
-    bool isSCSI_ATA = FALSE, isSCSI_NVME = FALSE, isUSB = FALSE;
+    bool isSCSI_ATA = false, isSCSI_NVME = false, isUSB = false;
     ret = get_Drive_Information(device, &ataDriveInfo, &scsiDriveInfo, &usbDriveInfo, &nvmeDriveInfo,
                                 showChildInformation, &isSCSI_ATA, &isSCSI_NVME, &isUSB);
 
