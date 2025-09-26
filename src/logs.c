@@ -1177,15 +1177,28 @@ eReturnValues modify_SCSI_Block_Descriptor(const tDevice*           device,
     return ret;
 }
 
+// TODO: Need to move this to a different location in opensea-transport instead of this layer.-TJE
 bool is_SCSI_Read_Buffer_16_Supported(const tDevice* device)
 {
-    bool                         supported = false;
-    scsiOperationCodeInfoRequest readBuf16SupReq;
-    safe_memset(&readBuf16SupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
-    readBuf16SupReq.operationCode      = READ_BUFFER_16_CMD;
-    readBuf16SupReq.serviceActionValid = false;
-    eSCSICmdSupport readBuf16Support   = is_SCSI_Operation_Code_Supported(device, &readBuf16SupReq);
-    if (readBuf16Support == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+    bool supported = false;
+    if (device->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize == INT8_C(0))
+    {
+        scsiOperationCodeInfoRequest readBuf16SupReq;
+        safe_memset(&readBuf16SupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+        readBuf16SupReq.operationCode      = READ_BUFFER_16_CMD;
+        readBuf16SupReq.serviceActionValid = false;
+        eSCSICmdSupport readBuf16Support   = is_SCSI_Operation_Code_Supported(device, &readBuf16SupReq);
+        if (readBuf16Support == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+        {
+            supported                                                                               = true;
+            M_CONST_CAST(tDevice*, device)->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize = INT8_C(16);
+        }
+        else
+        {
+            M_CONST_CAST(tDevice*, device)->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize = INT8_C(10);
+        }
+    }
+    else if (device->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize == INT8_C(16))
     {
         supported = true;
     }
