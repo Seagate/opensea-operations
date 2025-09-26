@@ -625,7 +625,9 @@ eReturnValues run_Sanitize_Operation(const tDevice*      device,
     return run_Sanitize_Operation2(device, sanitizeOptions);
 }
 
-static eReturnValues sanitize_Poll_For_Progress(const tDevice* device, uint32_t delayTime)
+static eReturnValues sanitize_Poll_For_Progress(const tDevice* device,
+                                                uint32_t       delayTime,
+                                                eSanitizeErase sanitizeEraseOperation)
 {
     eReturnValues ret             = IN_PROGRESS;
     uint8_t       minutes         = UINT8_C(0);
@@ -673,7 +675,19 @@ static eReturnValues sanitize_Poll_For_Progress(const tDevice* device, uint32_t 
     }
     if (sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
     {
-        os_Update_File_System_Cache(device);
+        writeAfterErase writeReq;
+        safe_memset(&writeReq, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
+        if (SUCCESS == is_Write_After_Erase_Required(device, &writeReq))
+        {
+            if (sanitizeEraseOperation == OVERWRITE_ERASE ||
+                !(writeReq.blockErase > WAEREQ_READ_COMPLETES_GOOD_STATUS ||
+                  writeReq.cryptoErase > WAEREQ_READ_COMPLETES_GOOD_STATUS))
+            {
+                // Only run this file system rescan if we are confident the drive is in a state where it can respond to
+                // the read commands properly. -TJE
+                os_Update_File_System_Cache(device);
+            }
+        }
     }
     return ret;
 }
@@ -731,7 +745,7 @@ eReturnValues run_Sanitize_Operation2(const tDevice* device, sanitizeOperationOp
         {
             if (sanitizeOptions.pollForProgress)
             {
-                return sanitize_Poll_For_Progress(device, delayTime);
+                return sanitize_Poll_For_Progress(device, delayTime, sanitizeOptions.sanitizeEraseOperation);
             }
             else
             {
@@ -820,7 +834,7 @@ eReturnValues run_Sanitize_Operation2(const tDevice* device, sanitizeOperationOp
 
         if (sanitizeOptions.pollForProgress && ret == SUCCESS)
         {
-            ret = sanitize_Poll_For_Progress(device, delayTime);
+            ret = sanitize_Poll_For_Progress(device, delayTime, sanitizeOptions.sanitizeEraseOperation);
         }
         os_Unlock_Device(device);
     }
