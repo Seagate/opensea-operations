@@ -6997,7 +6997,9 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice*              d
                                                    const ptrSCSIIdentifyInfo   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
-    if (device && driveInfo && scsiInfo)
+    DISABLE_NONNULL_COMPARE
+    if (device != M_NULLPTR && driveInfo != M_NULLPTR && scsiInfo != M_NULLPTR)
+    RESTORE_NONNULL_COMPARE
     {
         // mostly for USB devices to prevent sending commands that don't usually
         // work in the first place.

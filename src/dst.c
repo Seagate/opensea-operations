@@ -1997,10 +1997,12 @@ static eReturnValues get_SCSI_DST_Log_Entries(const tDevice* device, ptrDstLogEn
 {
     eReturnValues ret = NOT_SUPPORTED;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, dstLog, LP_SELF_TEST_RESULTS_LEN);
+    DISABLE_NONNULL_COMPARE
     if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SELF_TEST_RESULTS, 0, 1, dstLog,
                                       LP_SELF_TEST_RESULTS_LEN))
     {
@@ -2044,10 +2046,12 @@ M_PARAM_WO(2)
 static eReturnValues get_NVMe_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (is_Self_Test_Supported(device))
     {
         nvmeGetLogPageCmdOpts dstLogParms;
@@ -2133,10 +2137,12 @@ eReturnValues get_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entrie
     case SCSI_DRIVE:
         return get_SCSI_DST_Log_Entries(device, entries);
     default:
+        DISABLE_NONNULL_COMPARE
         if (entries != M_NULLPTR)
         {
             safe_memset(entries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
         }
+        RESTORE_NONNULL_COMPARE
         return NOT_SUPPORTED;
     }
 }

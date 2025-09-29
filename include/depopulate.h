@@ -106,7 +106,7 @@ extern "C"
                                                                           uint32_t           numberOfElementsExpected,
                                                                           ptrPhysicalElement elementList);
 
-    M_NONNULL_PARAM_LIST(1, 3)
+    M_NONNULL_PARAM_LIST(1, 6)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
     M_PARAM_RW(4)
