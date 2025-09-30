@@ -562,21 +562,31 @@ extern "C"
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation);
 
+    typedef enum _eDriveTypeForPrint
+    {
+        PRINT_INFO_FOR_ATA_DRIVE,
+        PRINT_INFO_FOR_NVME_DRIVE,
+        PRINT_INFO_FOR_SCSI_DRIVE,
+        PRINT_INFO_FOR_USB_DRIVE,
+        PRINT_INFO_FOR_ATA_SCSI_DRIVE,
+        PRINT_INFO_FOR_NVME_SCSI_DRIVE,
+        PRINT_INFO_FOR_UNKNOWN_DRIVE
+    } eDriveTypeForPrintInfo;
+
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    M_PARAM_WO(2)
     M_PARAM_WO(3)
     M_PARAM_WO(4)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues get_Drive_Information(tDevice*            device,
-                                                               ptrDriveInformation* ataDriveInfo,
-                                                               ptrDriveInformation* scsiDriveInfo,
-                                                               ptrDriveInformation* usbDriveInfo,
-                                                               ptrDriveInformation* nvmeDriveInfo,
-                                                               bool showChildInformation, 
-                                                               bool *isSCSI_ATA,
-                                                               bool *isSCSI_NVME, 
-                                                               bool *isUSB);
+    M_PARAM_WO(6)
+    M_PARAM_WO(7)
+    OPENSEA_OPERATIONS_API eReturnValues get_Drive_Information(tDevice*                device,
+                                                               bool                    showChildInformation,
+                                                               ptrDriveInformation*    ataDriveInfo,
+                                                               ptrDriveInformation*    scsiDriveInfo,
+                                                               ptrDriveInformation*    nvmeDriveInfo,
+                                                               ptrDriveInformation*    usbDriveInfo,
+                                                               eDriveTypeForPrintInfo* driveType);
 
     M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) const char* print_drive_type(tDevice* device);
 
