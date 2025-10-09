@@ -70,7 +70,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_SCSI_Defect_List(tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool
+    //  get_SCSI_Defect_List(const tDevice *device, eSCSIAddressDescriptors defectListFormat, bool grownList, bool
     //  primaryList, scsiDefectList **defects)
     //
     //! \brief   Description:  Use this function to read SCSI Primary and Grown defects. This function will allocate teh
@@ -91,7 +91,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List(tDevice*                device,
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List(const tDevice*          device,
                                                               eSCSIAddressDescriptors defectListFormat,
                                                               bool                    grownList,
                                                               bool                    primaryList,
@@ -148,12 +148,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues create_Random_Uncorrectables(tDevice*      device,
-                                                                      uint16_t      numberOfRandomLBAs,
-                                                                      bool          readUncorrectables,
-                                                                      bool          flaggedErrors,
-                                                                      custom_Update updateFunction,
-                                                                      void*         updateData);
+    OPENSEA_OPERATIONS_API eReturnValues create_Random_Uncorrectables(const tDevice* device,
+                                                                      uint16_t       numberOfRandomLBAs,
+                                                                      bool           readUncorrectables,
+                                                                      bool           flaggedErrors,
+                                                                      custom_Update  updateFunction,
+                                                                      void*          updateData);
 
     //-----------------------------------------------------------------------------
     //
@@ -178,12 +178,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues create_Uncorrectables(tDevice*      device,
-                                                               uint64_t      startingLBA,
-                                                               uint64_t      range,
-                                                               bool          readUncorrectables,
-                                                               custom_Update updateFunction,
-                                                               void*         updateData);
+    OPENSEA_OPERATIONS_API eReturnValues create_Uncorrectables(const tDevice* device,
+                                                               uint64_t       startingLBA,
+                                                               uint64_t       range,
+                                                               bool           readUncorrectables,
+                                                               custom_Update  updateFunction,
+                                                               void*          updateData);
 
     //-----------------------------------------------------------------------------
     //
@@ -206,15 +206,15 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues flag_Uncorrectables(tDevice*      device,
-                                                             uint64_t      startingLBA,
-                                                             uint64_t      range,
-                                                             custom_Update updateFunction,
-                                                             void*         updateData);
+    OPENSEA_OPERATIONS_API eReturnValues flag_Uncorrectables(const tDevice* device,
+                                                             uint64_t       startingLBA,
+                                                             uint64_t       range,
+                                                             custom_Update  updateFunction,
+                                                             void*          updateData);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Read_Long_Write_Long_Supported(tDevice *device)
+    //  is_Read_Long_Write_Long_Supported(const tDevice *device)
     //
     //! \brief   Description:  Checks if a drive supports using read long and write long commands to create errors on a
     //! drive. (This is obsolete on new drives)
@@ -227,11 +227,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Long_Write_Long_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Long_Write_Long_Supported(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  corrupt_LBA_Read_Write_Long(tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
+    //  corrupt_LBA_Read_Write_Long(const tDevice *device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
     //
     //! \brief   Description:  Performs a read long, modify, write long on a drive to a single (physical) sector to
     //! create an error condition
@@ -250,13 +250,13 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device,
-                                                                     uint64_t corruptLBA,
-                                                                     uint16_t numberOfBytesToCorrupt);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBA_Read_Write_Long(const tDevice* device,
+                                                                     uint64_t       corruptLBA,
+                                                                     uint16_t       numberOfBytesToCorrupt);
 
     //-----------------------------------------------------------------------------
     //
-    //  corrupt_LBAs(tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t
+    //  corrupt_LBAs(const tDevice *device, uint64_t startingLBA, uint64_t range, bool readCorruptedLBAs, uint16_t
     //  numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
     //
     //! \brief   Description:  Uses the corrupt_LBA_Read_Write_Long function to corrupt a range of LBAs
@@ -278,17 +278,17 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBAs(tDevice*      device,
-                                                      uint64_t      startingLBA,
-                                                      uint64_t      range,
-                                                      bool          readCorruptedLBAs,
-                                                      uint16_t      numberOfBytesToCorrupt,
-                                                      custom_Update updateFunction,
-                                                      void*         updateData);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBAs(const tDevice* device,
+                                                      uint64_t       startingLBA,
+                                                      uint64_t       range,
+                                                      bool           readCorruptedLBAs,
+                                                      uint16_t       numberOfBytesToCorrupt,
+                                                      custom_Update  updateFunction,
+                                                      void*          updateData);
 
     //-----------------------------------------------------------------------------
     //
-    //  corrupt_Random_LBAs(tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t
+    //  corrupt_Random_LBAs(const tDevice *device, uint16_t numberOfRandomLBAs, bool readCorruptedLBAs, uint16_t
     //  numberOfBytesToCorrupt, custom_Update updateFunction, void *updateData)
     //
     //! \brief   Description:  Uses the corrupt_LBA_Read_Write_Long function to corrupt random LBAs
@@ -309,12 +309,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues corrupt_Random_LBAs(tDevice*      device,
-                                                             uint16_t      numberOfRandomLBAs,
-                                                             bool          readCorruptedLBAs,
-                                                             uint16_t      numberOfBytesToCorrupt,
-                                                             custom_Update updateFunction,
-                                                             void*         updateData);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_Random_LBAs(const tDevice* device,
+                                                             uint16_t       numberOfRandomLBAs,
+                                                             bool           readCorruptedLBAs,
+                                                             uint16_t       numberOfBytesToCorrupt,
+                                                             custom_Update  updateFunction,
+                                                             void*          updateData);
 
     typedef struct s_pendingDefect
     {
@@ -333,7 +333,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(tDevice*         device,
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(const tDevice*   device,
                                                                         ptrPendingDefect defectList,
                                                                         uint32_t*        numberOfDefects);
 
@@ -341,7 +341,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice*         device,
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevice*   device,
                                                                          ptrPendingDefect defectList,
                                                                          uint32_t*        numberOfDefects);
 
@@ -349,7 +349,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(tDevice*         device,
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(const tDevice*   device,
                                                                     ptrPendingDefect defectList,
                                                                     uint32_t*        numberOfDefects);
 
@@ -361,7 +361,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_DST_Log(tDevice*         device,
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_DST_Log(const tDevice*   device,
                                                                ptrPendingDefect defectList,
                                                                uint32_t*        numberOfDefects);
 
@@ -385,7 +385,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(tDevice*             device,
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(const tDevice*       device,
                                                                           ptrBackgroundResults results,
                                                                           uint16_t*            numberOfResults);
 
@@ -393,7 +393,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(const tDevice*   device,
                                                                                 ptrPendingDefect defectList,
                                                                                 uint32_t*        numberOfDefects);
 

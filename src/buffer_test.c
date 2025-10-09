@@ -27,7 +27,7 @@
 
 #include "buffer_test.h"
 
-static bool are_Buffer_Commands_Available(tDevice* device)
+static bool are_Buffer_Commands_Available(const tDevice* device)
 {
     bool supported = false;
     // Check if read/write buffer commands are supported on SATA and SAS
@@ -82,7 +82,7 @@ static bool are_Buffer_Commands_Available(tDevice* device)
     return supported;
 }
 
-static eReturnValues get_Buffer_Size(tDevice* device, uint32_t* bufferSize, uint8_t* offsetBoundary)
+static eReturnValues get_Buffer_Size(const tDevice* device, uint32_t* bufferSize, uint8_t* offsetBoundary)
 {
     eReturnValues ret = SUCCESS;
     if (!bufferSize || !offsetBoundary)
@@ -108,7 +108,7 @@ static eReturnValues get_Buffer_Size(tDevice* device, uint32_t* bufferSize, uint
     return ret;
 }
 
-static eReturnValues send_Read_Buffer_Command(tDevice* device, uint8_t* ptrData, uint32_t dataSize)
+static eReturnValues send_Read_Buffer_Command(const tDevice* device, uint8_t* ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -128,7 +128,7 @@ static eReturnValues send_Read_Buffer_Command(tDevice* device, uint8_t* ptrData,
     }
 }
 
-static eReturnValues send_Write_Buffer_Command(tDevice* device, uint8_t* ptrData, uint32_t dataSize)
+static eReturnValues send_Write_Buffer_Command(const tDevice* device, uint8_t* ptrData, uint32_t dataSize)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -148,7 +148,7 @@ static eReturnValues send_Write_Buffer_Command(tDevice* device, uint8_t* ptrData
     }
 }
 
-static bool was_There_A_CRC_Error_On_Last_Command(tDevice* device)
+static bool was_There_A_CRC_Error_On_Last_Command(const tDevice* device)
 {
     bool    crc            = false;
     bool    checkSenseData = false;
@@ -231,7 +231,7 @@ static bool was_There_A_CRC_Error_On_Last_Command(tDevice* device)
 }
 
 // Function for simple byte pattern tests. take counter for number of times to try it?
-static void perform_Byte_Pattern_Test(tDevice*              device,
+static void perform_Byte_Pattern_Test(const tDevice*        device,
                                       uint32_t              pattern,
                                       uint32_t              deviceBufferSize,
                                       ptrPatternTestResults testResults)
@@ -324,7 +324,7 @@ static void perform_Byte_Pattern_Test(tDevice*              device,
 }
 
 // Function for Walking 1's/0's test
-static void perform_Walking_Test(tDevice*              device,
+static void perform_Walking_Test(const tDevice*        device,
                                  bool                  walkingZeros,
                                  uint32_t              deviceBufferSize,
                                  ptrPatternTestResults testResults)
@@ -440,7 +440,9 @@ static void perform_Walking_Test(tDevice*              device,
     safe_free_aligned(&returnBuffer);
 }
 // Function for random data pattern test
-static void perform_Random_Pattern_Test(tDevice* device, uint32_t deviceBufferSize, ptrPatternTestResults testResults)
+static void perform_Random_Pattern_Test(const tDevice*        device,
+                                        uint32_t              deviceBufferSize,
+                                        ptrPatternTestResults testResults)
 {
     uint32_t numberOfTimesToTest = UINT32_C(10);
     uint8_t* patternBuffer =
@@ -538,7 +540,7 @@ static void perform_Random_Pattern_Test(tDevice* device, uint32_t deviceBufferSi
 // Slower interface speed = longer test time to get a confident result.
 
 // master function for the whole test.
-eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResults)
+eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults testResults)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE

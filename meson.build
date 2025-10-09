@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.1.1', default_options : ['warning_level=2'])
+project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.3.0', default_options : ['warning_level=2'])
 
 c = meson.get_compiler('c')
 
@@ -75,6 +75,8 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
   '-Wreturn-type',
   '-Wpointer-bool-conversion',
   '-fvisibility=hidden', #to work similarly to Window's DLL import/export
+  '-Wmismatched-dealloc',
+  '-Wfree-nonheap-object',
   ]
 
   if c.get_id().contains('gcc') and c.version().version_compare('>=10.0')

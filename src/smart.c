@@ -34,7 +34,7 @@
 #include "smart.h"
 #include "usb_hacks.h"
 
-eReturnValues get_SMART_Attributes(tDevice* device, smartLogData* smartAttrs)
+eReturnValues get_SMART_Attributes(const tDevice* device, smartLogData* smartAttrs)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE && is_SMART_Enabled(device))
@@ -128,7 +128,7 @@ eReturnValues get_SMART_Attributes(tDevice* device, smartLogData* smartAttrs)
     return ret;
 }
 
-void get_Attribute_Name(tDevice* device, uint8_t attributeNumber, char** attributeName)
+void get_Attribute_Name(const tDevice* device, uint8_t attributeNumber, char** attributeName)
 {
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
     /*
@@ -1391,7 +1391,7 @@ static void get_Raw_Field_From_RawData(const uint8_t*                rawData,
 }
 
 // TODO - see if we can avoid this, or find a better approch
-static bool get_See_Analyzed_Flag(tDevice* device, uint8_t attributeID)
+static bool get_See_Analyzed_Flag(const tDevice* device, uint8_t attributeID)
 {
     bool seeAnalyzedFlag = false;
     switch (is_Seagate_Family(device))
@@ -1437,7 +1437,7 @@ static bool get_See_Analyzed_Flag(tDevice* device, uint8_t attributeID)
     return seeAnalyzedFlag;
 }
 
-static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(tDevice*              device,
+static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevice*        device,
                                                                      const smartLogData*   smartData,
                                                                      ataSMARTAnalyzedData* smartAnylyzedData,
                                                                      bool*                 dataFormatVerified)
@@ -3238,7 +3238,7 @@ static void print_ATA_SMART_Attribute_Raw(ataSMARTValue* currentAttribute, char*
     snprintf_err_handle(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                             ");
 }
 
-static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
+static void print_Raw_ATA_Attributes(const tDevice* device, smartLogData* smartData)
 {
     // making the attribute name seperate so that if we add is_Seagate() logic in we can turn on and off printing the
     // name
@@ -3570,7 +3570,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTValue*                     
     snprintf_err_handle(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "                                          ");
 }
 
-static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData)
+static void print_Hybrid_ATA_Attributes(const tDevice* device, smartLogData* smartData)
 {
     char* attributeName      = M_REINTERPRET_CAST(char*, safe_calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
     bool  dataFormatVerified = false;
@@ -3890,7 +3890,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
     safe_free(&attributeName);
 }
 
-static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartData)
+static void print_Analyzed_ATA_Attributes(const tDevice* device, smartLogData* smartData)
 {
     // making the attribute name seperate so that if we add is_Seagate() logic in we can turn on and off printing the
     // name
@@ -4801,7 +4801,7 @@ static void print_ATA_SMART_Attribute_Raw(bool isWarrantied, ataSMARTAnalyzedAtt
     printf("h\n");
 }
 
-static void print_Raw_ATA_Attributes(tDevice* device, smartLogData* smartData)
+static void print_Raw_ATA_Attributes(const tDevice* device, smartLogData* smartData)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -4972,7 +4972,7 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
     }
 }
 
-static void print_Analyzed_ATA_Attributes(tDevice* device, smartLogData* smartData)
+static void print_Analyzed_ATA_Attributes(const tDevice* device, smartLogData* smartData)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -5167,7 +5167,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTAnalyzedAttribute smartAnal
            smartAnalyzedAttribute.rawData.rawHybridString);
 }
 
-static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData)
+static void print_Hybrid_ATA_Attributes(const tDevice* device, smartLogData* smartData)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -5242,7 +5242,7 @@ static void print_Hybrid_ATA_Attributes(tDevice* device, smartLogData* smartData
 }
 #endif
 
-eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMode)
+eReturnValues print_SMART_Attributes(const tDevice* device, eSMARTAttrOutMode outputMode)
 {
     eReturnValues ret = UNKNOWN;
     smartLogData  smartData;
@@ -5289,7 +5289,7 @@ eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMo
     return ret;
 }
 
-eReturnValues get_ATA_Analyzed_SMART_Attributes(tDevice* device, ataSMARTAnalyzedData* smartAnylyzedData)
+eReturnValues get_ATA_Analyzed_SMART_Attributes(const tDevice* device, ataSMARTAnalyzedData* smartAnylyzedData)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -5311,7 +5311,7 @@ eReturnValues get_ATA_Analyzed_SMART_Attributes(tDevice* device, ataSMARTAnalyze
     return ret;
 }
 
-eReturnValues show_NVMe_Health(tDevice* device)
+eReturnValues show_NVMe_Health(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == NVME_DRIVE)
@@ -5429,7 +5429,7 @@ eReturnValues show_NVMe_Health(tDevice* device)
     return ret;
 }
 
-bool is_SMART_Command_Transport_Supported(tDevice* device)
+bool is_SMART_Command_Transport_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -5443,7 +5443,7 @@ bool is_SMART_Command_Transport_Supported(tDevice* device)
     return supported;
 }
 
-bool is_SMART_Error_Logging_Supported(tDevice* device)
+bool is_SMART_Error_Logging_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -5461,7 +5461,7 @@ bool is_SMART_Error_Logging_Supported(tDevice* device)
     return supported;
 }
 
-static eReturnValues get_ATA_SMART_Status_From_SCT_Log(tDevice* device)
+static eReturnValues get_ATA_SMART_Status_From_SCT_Log(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_SMART_Command_Transport_Supported(device))
@@ -5526,7 +5526,7 @@ static bool is_Attr_In_Valid_Range(uint8_t attributeValue)
     return validrange;
 }
 
-eReturnValues ata_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
+eReturnValues ata_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo)
 {
     eReturnValues ret = NOT_SUPPORTED; // command return value
     if (is_SMART_Enabled(device))
@@ -6014,7 +6014,7 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t  asc,
     *reasonStringOutputLength = C_CAST(uint8_t, safe_strlen(reasonString));
 }
 //
-eReturnValues scsi_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
+eReturnValues scsi_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (VERBOSITY_COMMAND_NAMES <= device->deviceVerbosity)
@@ -6230,7 +6230,7 @@ eReturnValues scsi_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-eReturnValues nvme_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
+eReturnValues nvme_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo)
 {
     eReturnValues ret = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, smartLogPage, LEGACY_DRIVE_SEC_SIZE);
@@ -6312,7 +6312,7 @@ eReturnValues nvme_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
     return ret;
 }
 
-eReturnValues run_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
+eReturnValues run_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo)
 {
     eReturnValues result = UNKNOWN;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -6330,7 +6330,7 @@ eReturnValues run_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo)
     return result;
 }
 
-bool is_SMART_Enabled(tDevice* device)
+bool is_SMART_Enabled(const tDevice* device)
 {
     bool enabled = false;
     switch (device->drive_info.drive_type)
@@ -6385,7 +6385,7 @@ bool is_SMART_Enabled(tDevice* device)
     return enabled;
 }
 
-bool is_SMART_Check_Supported(tDevice* device)
+bool is_SMART_Check_Supported(const tDevice* device)
 {
     bool supported = false;
     switch (device->drive_info.drive_type)
@@ -6432,7 +6432,7 @@ bool is_SMART_Check_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues get_Pending_List_Count(tDevice* device, uint32_t* pendingCount)
+eReturnValues get_Pending_List_Count(const tDevice* device, uint32_t* pendingCount)
 {
     eReturnValues ret = SUCCESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -6504,7 +6504,7 @@ eReturnValues get_Pending_List_Count(tDevice* device, uint32_t* pendingCount)
     return ret;
 }
 
-eReturnValues get_Grown_List_Count(tDevice* device, uint32_t* grownCount)
+eReturnValues get_Grown_List_Count(const tDevice* device, uint32_t* grownCount)
 {
     eReturnValues ret = SUCCESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -6588,12 +6588,12 @@ eReturnValues get_Grown_List_Count(tDevice* device, uint32_t* grownCount)
 }
 
 // there is also a "get" method that should be added below
-eReturnValues sct_Set_Feature_Control(tDevice*    device,
-                                      eSCTFeature sctFeature,
-                                      bool        enableDisable,
-                                      bool        defaultValue,
-                                      bool        isVolatile,
-                                      uint16_t    hdaTemperatureIntervalOrState)
+eReturnValues sct_Set_Feature_Control(const tDevice* device,
+                                      eSCTFeature    sctFeature,
+                                      bool           enableDisable,
+                                      bool           defaultValue,
+                                      bool           isVolatile,
+                                      uint16_t       hdaTemperatureIntervalOrState)
 {
     eReturnValues ret = NOT_SUPPORTED;
     // Note: SCT is a SATA thing. No SCSI equivalent
@@ -6684,12 +6684,12 @@ eReturnValues sct_Set_Feature_Control(tDevice*    device,
     return ret;
 }
 
-eReturnValues sct_Get_Feature_Control(tDevice*    device,
-                                      eSCTFeature sctFeature,
-                                      bool*       enableDisable,
-                                      bool*       defaultValue,
-                                      uint16_t*   hdaTemperatureIntervalOrState,
-                                      uint16_t*   featureOptionFlags)
+eReturnValues sct_Get_Feature_Control(const tDevice* device,
+                                      eSCTFeature    sctFeature,
+                                      bool*          enableDisable,
+                                      bool*          defaultValue,
+                                      uint16_t*      hdaTemperatureIntervalOrState,
+                                      uint16_t*      featureOptionFlags)
 {
     eReturnValues ret = NOT_SUPPORTED;
     // Note: SCT is a SATA thing. No SCSI equivalent
@@ -6815,7 +6815,7 @@ eReturnValues sct_Get_Feature_Control(tDevice*    device,
     return ret;
 }
 
-eReturnValues sct_Set_Command_Timer(tDevice*                 device,
+eReturnValues sct_Set_Command_Timer(const tDevice*           device,
                                     eSCTErrorRecoveryCommand ercCommand,
                                     uint32_t                 timerValueMilliseconds,
                                     bool                     isVolatile)
@@ -6853,7 +6853,7 @@ eReturnValues sct_Set_Command_Timer(tDevice*                 device,
     return ret;
 }
 
-eReturnValues sct_Get_Command_Timer(tDevice*                 device,
+eReturnValues sct_Get_Command_Timer(const tDevice*           device,
                                     eSCTErrorRecoveryCommand ercCommand,
                                     uint32_t*                timerValueMilliseconds,
                                     bool                     isVolatile)
@@ -6889,7 +6889,7 @@ eReturnValues sct_Get_Command_Timer(tDevice*                 device,
     return ret;
 }
 
-eReturnValues sct_Restore_Command_Timer(tDevice* device, eSCTErrorRecoveryCommand ercCommand)
+eReturnValues sct_Restore_Command_Timer(const tDevice* device, eSCTErrorRecoveryCommand ercCommand)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -6915,7 +6915,7 @@ eReturnValues sct_Restore_Command_Timer(tDevice* device, eSCTErrorRecoveryComman
     return ret;
 }
 
-eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice* device, uint32_t* minRcvTimeLmtMilliseconds)
+eReturnValues sct_Get_Min_Recovery_Time_Limit(const tDevice* device, uint32_t* minRcvTimeLmtMilliseconds)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_SMART_Command_Transport_Supported(device))
@@ -6941,7 +6941,7 @@ eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice* device, uint32_t* minRcvT
     return ret;
 }
 
-eReturnValues enable_Disable_SMART_Feature(tDevice* device, bool enable)
+eReturnValues enable_Disable_SMART_Feature(const tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -6983,7 +6983,7 @@ eReturnValues enable_Disable_SMART_Feature(tDevice* device, bool enable)
     return ret;
 }
 
-eReturnValues set_MRIE_Mode(tDevice* device, uint8_t mrieMode, bool driveDefault)
+eReturnValues set_MRIE_Mode(const tDevice* device, uint8_t mrieMode, bool driveDefault)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -7020,7 +7020,7 @@ eReturnValues set_MRIE_Mode(tDevice* device, uint8_t mrieMode, bool driveDefault
 }
 
 // always gets the control data. log data is optional
-eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice*                          device,
+eReturnValues get_SCSI_Informational_Exceptions_Info(const tDevice*                    device,
                                                      eScsiModePageControl              mpc,
                                                      ptrInformationalExceptionsControl controlData,
                                                      ptrInformationalExceptionsLog     logData)
@@ -7111,7 +7111,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(tDevice*                   
     return ret;
 }
 
-eReturnValues set_SCSI_Informational_Exceptions_Info(tDevice*                          device,
+eReturnValues set_SCSI_Informational_Exceptions_Info(const tDevice*                    device,
                                                      bool                              save,
                                                      ptrInformationalExceptionsControl controlData)
 {
@@ -7207,7 +7207,7 @@ eReturnValues set_SCSI_Informational_Exceptions_Info(tDevice*                   
     return ret;
 }
 
-eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice* device, bool enable)
+eReturnValues enable_Disable_SMART_Attribute_Autosave(const tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -7236,7 +7236,7 @@ eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice* device, bool enab
     return ret;
 }
 
-eReturnValues enable_Disable_SMART_Auto_Offline(tDevice* device, bool enable)
+eReturnValues enable_Disable_SMART_Auto_Offline(const tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -7265,7 +7265,7 @@ eReturnValues enable_Disable_SMART_Auto_Offline(tDevice* device, bool enable)
     return ret;
 }
 
-eReturnValues get_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
+eReturnValues get_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -7307,7 +7307,7 @@ eReturnValues get_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
     return ret;
 }
 
-eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
+eReturnValues print_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -7490,7 +7490,7 @@ eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo)
     return ret;
 }
 
-eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
+eReturnValues nvme_Print_Temp_Statistics(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
@@ -7610,7 +7610,7 @@ eReturnValues nvme_Print_Temp_Statistics(tDevice* device)
     return ret;
 }
 
-eReturnValues nvme_Print_PCI_Statistics(tDevice* device)
+eReturnValues nvme_Print_PCI_Statistics(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
@@ -7695,7 +7695,7 @@ eReturnValues nvme_Print_PCI_Statistics(tDevice* device)
 #define SUMMARY_SMART_ERROR_LOG_COMMAND_SIZE         UINT8_C(12)
 #define SUMMARY_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE UINT8_C(5)
 
-eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice* device, ptrSummarySMARTErrorLog smartErrorLog)
+eReturnValues get_ATA_Summary_SMART_Error_Log(const tDevice* device, ptrSummarySMARTErrorLog smartErrorLog)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -7855,7 +7855,7 @@ eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice* device, ptrSummarySMARTEr
 #define COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE     UINT8_C(5)
 
 // This function will automatically select SMART vs GPL log
-eReturnValues get_ATA_Comprehensive_SMART_Error_Log(tDevice*                      device,
+eReturnValues get_ATA_Comprehensive_SMART_Error_Log(const tDevice*                device,
                                                     ptrComprehensiveSMARTErrorLog smartErrorLog,
                                                     bool                          forceSMARTLog)
 {

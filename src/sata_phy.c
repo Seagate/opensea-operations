@@ -110,7 +110,8 @@ static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters c
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters /* optional */)
+eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          device,
+                                                   ptrSATAPhyEventCounters counters /* optional */)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -140,7 +141,7 @@ eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEv
     return ret;
 }
 
-eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
+eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEventCounters counters)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
