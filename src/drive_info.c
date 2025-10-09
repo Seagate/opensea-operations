@@ -3685,6 +3685,7 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo
             driveInfo->copyrightValid = true;
             safe_memcpy(&driveInfo->copyrightInfo[0], 50, &inquiryData[97], 48);
             driveInfo->copyrightInfo[49] = '\0';
+            remove_Leading_And_Trailing_Control_Char_Len(driveInfo->copyrightInfo, 50);
         }
     }
     return ret;
