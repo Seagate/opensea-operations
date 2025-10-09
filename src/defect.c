@@ -30,7 +30,7 @@
 #include "logs.h"
 #include "smart.h"
 
-eReturnValues get_SCSI_Defect_List(tDevice*                device,
+eReturnValues get_SCSI_Defect_List(const tDevice*          device,
                                    eSCSIAddressDescriptors defectListFormat,
                                    bool                    grownList,
                                    bool                    primaryList,
@@ -239,7 +239,7 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                         scsiOperationCodeInfoRequest readDefDataSupReq;
                         safe_memset(&readDefDataSupReq, sizeof(scsiOperationCodeInfoRequest), 0,
                                     sizeof(scsiOperationCodeInfoRequest));
-                        readDefDataSupReq.operationCode      = READ_BUFFER_CMD;
+                        readDefDataSupReq.operationCode      = READ_DEFECT_DATA_12_CMD;
                         readDefDataSupReq.serviceActionValid = false;
                         eSCSICmdSupport readDefectSupport =
                             is_SCSI_Operation_Code_Supported(device, &readDefDataSupReq);
@@ -262,10 +262,12 @@ eReturnValues get_SCSI_Defect_List(tDevice*                device,
                                                                         C_CAST(uint8_t, defectListFormat),
                                                                         numberOfElements + 1, dataLength, defectData))
                                 {
-                                    // If this reported length is less than the saved list length we already have, then
-                                    // this is responding to the index properly, and is therefore supported.
-                                    if (M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6],
-                                                            defectData[7]) < defectListLength)
+                                    // If this reported length is non-zero and less than the saved list length we
+                                    // already have, then this is responding to the index properly, and is therefore
+                                    // supported.
+                                    uint32_t newDefectListLength =
+                                        M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
+                                    if (newDefectListLength != 0 && newDefectListLength < defectListLength)
                                     {
                                         multipleCommandsSupported = true;
                                     }
@@ -816,12 +818,12 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues create_Random_Uncorrectables(tDevice*      device,
-                                           uint16_t      numberOfRandomLBAs,
-                                           bool          readUncorrectables,
-                                           bool          flaggedErrors,
-                                           custom_Update updateFunction,
-                                           void*         updateData)
+eReturnValues create_Random_Uncorrectables(const tDevice* device,
+                                           uint16_t       numberOfRandomLBAs,
+                                           bool           readUncorrectables,
+                                           bool           flaggedErrors,
+                                           custom_Update  updateFunction,
+                                           void*          updateData)
 {
     eReturnValues ret      = SUCCESS;
     uint16_t      iterator = UINT16_C(0);
@@ -849,7 +851,7 @@ eReturnValues create_Random_Uncorrectables(tDevice*      device,
     return ret;
 }
 
-eReturnValues create_Uncorrectables(tDevice*                    device,
+eReturnValues create_Uncorrectables(const tDevice*              device,
                                     uint64_t                    startingLBA,
                                     uint64_t                    range,
                                     bool                        readUncorrectables,
@@ -926,7 +928,7 @@ eReturnValues create_Uncorrectables(tDevice*                    device,
     return ret;
 }
 
-eReturnValues flag_Uncorrectables(tDevice*                    device,
+eReturnValues flag_Uncorrectables(const tDevice*              device,
                                   uint64_t                    startingLBA,
                                   uint64_t                    range,
                                   M_ATTR_UNUSED custom_Update updateFunction,
@@ -961,7 +963,7 @@ eReturnValues flag_Uncorrectables(tDevice*                    device,
     return ret;
 }
 
-bool is_Read_Long_Write_Long_Supported(tDevice* device)
+bool is_Read_Long_Write_Long_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1016,7 +1018,7 @@ bool is_Read_Long_Write_Long_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
+eReturnValues corrupt_LBA_Read_Write_Long(const tDevice* device, uint64_t corruptLBA, uint16_t numberOfBytesToCorrupt)
 {
     eReturnValues ret                        = NOT_SUPPORTED;
     bool          multipleLogicalPerPhysical = false; // used to set the physical block bit when applicable
@@ -1252,7 +1254,7 @@ eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device, uint64_t corruptLBA, 
     return ret;
 }
 
-eReturnValues corrupt_LBAs(tDevice*                    device,
+eReturnValues corrupt_LBAs(const tDevice*              device,
                            uint64_t                    startingLBA,
                            uint64_t                    range,
                            bool                        readCorruptedLBAs,
@@ -1314,12 +1316,12 @@ eReturnValues corrupt_LBAs(tDevice*                    device,
     return ret;
 }
 
-eReturnValues corrupt_Random_LBAs(tDevice*      device,
-                                  uint16_t      numberOfRandomLBAs,
-                                  bool          readCorruptedLBAs,
-                                  uint16_t      numberOfBytesToCorrupt,
-                                  custom_Update updateFunction,
-                                  void*         updateData)
+eReturnValues corrupt_Random_LBAs(const tDevice* device,
+                                  uint16_t       numberOfRandomLBAs,
+                                  bool           readCorruptedLBAs,
+                                  uint16_t       numberOfBytesToCorrupt,
+                                  custom_Update  updateFunction,
+                                  void*          updateData)
 {
     eReturnValues ret      = SUCCESS;
     uint16_t      iterator = UINT16_C(0);
@@ -1340,7 +1342,9 @@ eReturnValues corrupt_Random_LBAs(tDevice*      device,
     return ret;
 }
 
-eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevice*   device,
+                                              ptrPendingDefect defectList,
+                                              uint32_t*        numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -1443,7 +1447,9 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* device, ptrPendingDefect 
     return ret;
 }
 
-eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_ATA_Pending_List(const tDevice*   device,
+                                             ptrPendingDefect defectList,
+                                             uint32_t*        numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -1509,7 +1515,7 @@ eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* device, ptrPendingDefect d
     return ret;
 }
 
-eReturnValues get_LBAs_From_Pending_List(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_Pending_List(const tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1541,7 +1547,9 @@ void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPen
     }
 }
 
-eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundResults results, uint16_t* numberOfResults)
+eReturnValues get_SCSI_Background_Scan_Results(const tDevice*       device,
+                                               ptrBackgroundResults results,
+                                               uint16_t*            numberOfResults)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -1616,7 +1624,7 @@ eReturnValues get_SCSI_Background_Scan_Results(tDevice* device, ptrBackgroundRes
     return ret;
 }
 
-eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
+eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(const tDevice*   device,
                                                      ptrPendingDefect defectList,
                                                      uint32_t*        numberOfDefects)
 {
@@ -1657,7 +1665,7 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
 }
 
 // Defect list for this should be at least MAX_DST_ENTRIES in size
-eReturnValues get_LBAs_From_DST_Log(tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
+eReturnValues get_LBAs_From_DST_Log(const tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE

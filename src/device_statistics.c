@@ -749,7 +749,7 @@ static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* stat)
     return statisticPopulated;
 }
 
-static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_ATA_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (deviceStats == M_NULLPTR)
@@ -989,7 +989,7 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
     return ret;
 }
 
-static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_SCSI_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (deviceStats == M_NULLPTR)
@@ -8226,7 +8226,7 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatist
     return ret;
 }
 
-eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -9293,7 +9293,7 @@ static void print_Humidity_Statistic(statistic theStatistic, const char* statist
     }
 }
 
-static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_ATA_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = SUCCESS;
     if (deviceStats == M_NULLPTR)
@@ -9549,7 +9549,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     return ret;
 }
 
-static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = SUCCESS;
     if (deviceStats == M_NULLPTR)
@@ -9934,7 +9934,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     return ret;
 }
 
-eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+eReturnValues print_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -9956,7 +9956,7 @@ eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics device
     return ret;
 }
 
-static M_INLINE bool is_ATA_Timestamp_Supported(tDevice* device)
+static M_INLINE bool is_ATA_Timestamp_Supported(const tDevice* device)
 {
     bool supported = false;
     // This command is supported when the date and time timestamp statistic is supported
@@ -9998,7 +9998,7 @@ static M_INLINE bool is_ATA_Timestamp_Supported(tDevice* device)
     return supported;
 }
 
-static M_INLINE bool is_SCSI_Timestamp_Supported(tDevice* device)
+static M_INLINE bool is_SCSI_Timestamp_Supported(const tDevice* device)
 {
     bool     supported = false;
     uint32_t ctrlexLen = UINT32_C(0);
@@ -10028,7 +10028,7 @@ static M_INLINE bool is_SCSI_Timestamp_Supported(tDevice* device)
     return supported;
 }
 
-bool is_Timestamp_Supported(tDevice* device)
+bool is_Timestamp_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -10049,7 +10049,7 @@ bool is_Timestamp_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues set_Date_And_Time_Timestamp(tDevice* device)
+eReturnValues set_Date_And_Time_Timestamp(const tDevice* device)
 {
     eReturnValues ret  = NOT_SUPPORTED;
     uint64_t      time = get_Milliseconds_Since_Unix_Epoch();
@@ -10102,7 +10102,7 @@ eReturnValues set_Date_And_Time_Timestamp(tDevice* device)
 // Next enhancement: Compare the values read during reinitialization to reading again afterwards. Determine which
 // statistics were reset to provide a list to share with the user
 // NOTE: While this log can be read with smart read log, it can only be reinitialized with read log ext commands - TJE
-eReturnValues ata_Device_Statistics_Reinitialize(tDevice* device, eDeviceStatisticsLog reinitializeRequest)
+eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* device, eDeviceStatisticsLog reinitializeRequest)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)

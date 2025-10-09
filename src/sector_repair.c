@@ -27,11 +27,11 @@
 #include "cmds.h"
 #include "sector_repair.h"
 
-eReturnValues repair_LBA(tDevice*    device,
-                         ptrErrorLBA LBA,
-                         bool        forcePassthroughCommand,
-                         bool        automaticWriteReallocationEnabled,
-                         bool        automaticReadReallocationEnabled)
+eReturnValues repair_LBA(const tDevice* device,
+                         ptrErrorLBA    LBA,
+                         bool           forcePassthroughCommand,
+                         bool           automaticWriteReallocationEnabled,
+                         bool           automaticReadReallocationEnabled)
 {
     eReturnValues ret = UNKNOWN;
     uint16_t      logicalPerPhysical =
@@ -437,9 +437,9 @@ void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
     }
 }
 
-eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
-                                                 bool*    automaticWriteReallocationEnabled,
-                                                 bool*    automaticReadReallocationEnabled)
+eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
+                                                 bool*          automaticWriteReallocationEnabled,
+                                                 bool*          automaticReadReallocationEnabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE

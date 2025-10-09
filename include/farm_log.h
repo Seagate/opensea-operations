@@ -31,7 +31,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  pull_FARM_Combined_Log(tDevice *device, const char * const filePath);
+    //  pull_FARM_Combined_Log(const tDevice *device, const char * const filePath);
     //
     //! \brief   Description: This function pulls the Seagate Combined FARM log. This Log is a combination of all
     //!						  FARM Log Subpages.
@@ -50,7 +50,7 @@ extern "C"
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
 
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                                                                 const char* const        filePath,
                                                                 uint32_t                 transferSizeBytes,
                                                                 int                      sataFarmCopyType,
@@ -570,7 +570,7 @@ extern "C"
     } farmLogData;
 
     // TODO: Option to select which FARM data between current, saved, factory
-    eReturnValues read_FARM_Data(tDevice* device, farmLogData* farmdata);
+    eReturnValues read_FARM_Data(const tDevice* device, farmLogData* farmdata);
 
     void print_FARM_Data(farmLogData* farmdata);
 

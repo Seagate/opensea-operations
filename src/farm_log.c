@@ -120,7 +120,7 @@ typedef struct s_farmPtrAndLen
     size_t   alloclen;
 } farmPtrAndLen;
 
-static eReturnValues pullATAFarmLogs(tDevice*                device,
+static eReturnValues pullATAFarmLogs(const tDevice*          device,
                                      uint32_t                transferSizeBytes,
                                      int                     sataFarmCopyType,
                                      uint8_t*                header,
@@ -723,7 +723,7 @@ static eReturnValues pullATAFarmLogs(tDevice*                device,
     return SUCCESS;
 }
 
-static eReturnValues pullSCSIFarmLogs(tDevice*                device,
+static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
                                       uint8_t*                header,
                                       tZeroPaddingBufferSize* zeroPaddingBufferSize,
                                       uint8_t*                farmCurrentHeader,
@@ -1103,7 +1103,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
     return returnValue;
 }
 
-eReturnValues pull_FARM_Combined_Log(tDevice*                 device,
+eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                                      const char* const        filePath,
                                      uint32_t                 transferSizeBytes,
                                      int                      sataFarmCopyType,
@@ -2469,7 +2469,7 @@ static farmLogData* sata_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, fa
 }
 
 // TODO: Option to select which FARM data between current, saved, factory
-eReturnValues read_FARM_Data(tDevice* device, farmLogData* farmdata)
+eReturnValues read_FARM_Data(const tDevice* device, farmLogData* farmdata)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2769,7 +2769,7 @@ static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* sta
         size_t   asciioffset = SIZE_T_C(0);
         uint32_t rawdata     = b_swap_32(M_DoubleWord0(firstqword));
         safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
-        farmASCIIData[asciilen] = 0;
+        farmASCIIData[asciilen - 1] = 0;
         print_Statistic_Name(statisticname);
         printf("\t\t%s\n", farmASCIIData);
         safe_free(&farmASCIIData);
@@ -2817,7 +2817,7 @@ static void print_Stat_If_Supported_And_Valid_Date_Of_Assembly(uint64_t doaQword
         size_t   asciioffset = SIZE_T_C(0);
         uint32_t rawdata     = M_DoubleWord0(doaQword);
         safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
-        farmASCIIData[asciilen] = 0;
+        farmASCIIData[asciilen - 1] = 0;
         print_Statistic_Name("Date Of Assembly\t\t");
         // first 2 digits are year
         DECLARE_ZERO_INIT_ARRAY(char, year, 5);

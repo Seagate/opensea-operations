@@ -35,22 +35,22 @@
 #include "smart.h"
 #include <stdlib.h>
 
-eReturnValues ata_Abort_DST(tDevice* device)
+eReturnValues ata_Abort_DST(const tDevice* device)
 {
     return ata_SMART_Offline(device, 0x7F, 15);
 }
 
-eReturnValues scsi_Abort_DST(tDevice* device)
+eReturnValues scsi_Abort_DST(const tDevice* device)
 {
     return scsi_Send_Diagnostic(device, 4, 0, 0, 0, 0, 0, M_NULLPTR, 0, 15);
 }
 
-eReturnValues nvme_Abort_DST(tDevice* device, uint32_t nsid)
+eReturnValues nvme_Abort_DST(const tDevice* device, uint32_t nsid)
 {
     return nvme_Device_Self_Test(device, nsid, 0x0F);
 }
 
-eReturnValues abort_DST(tDevice* device)
+eReturnValues abort_DST(const tDevice* device)
 {
     eReturnValues result = UNKNOWN;
     switch (device->drive_info.drive_type)
@@ -71,7 +71,7 @@ eReturnValues abort_DST(tDevice* device)
     return result;
 }
 
-eReturnValues ata_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status)
+eReturnValues ata_Get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
 {
     eReturnValues result = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, temp_buf, 512);
@@ -86,7 +86,7 @@ eReturnValues ata_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, u
     return result;
 }
 
-eReturnValues scsi_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status)
+eReturnValues scsi_Get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
 {
     // 04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
     eReturnValues result   = UNKNOWN;
@@ -114,7 +114,7 @@ eReturnValues scsi_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, 
     return result;
 }
 
-eReturnValues nvme_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status)
+eReturnValues nvme_Get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
 {
     eReturnValues result = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeSelfTestLogBuf,
@@ -158,7 +158,7 @@ eReturnValues nvme_Get_DST_Progress(tDevice* device, uint32_t* percentComplete, 
     return result;
 }
 
-eReturnValues get_DST_Progress(tDevice* device, uint32_t* percentComplete, uint8_t* status)
+eReturnValues get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
 {
     eReturnValues result = UNKNOWN;
     *percentComplete     = 0;
@@ -372,7 +372,7 @@ void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues print_DST_Progress(tDevice* device)
+eReturnValues print_DST_Progress(const tDevice* device)
 {
     eReturnValues result          = UNKNOWN;
     uint32_t      percentComplete = UINT32_C(0);
@@ -435,7 +435,7 @@ eReturnValues print_DST_Progress(tDevice* device)
     return result;
 }
 
-bool is_Self_Test_Supported(tDevice* device)
+bool is_Self_Test_Supported(const tDevice* device)
 {
     bool supported = false;
     switch (device->drive_info.drive_type)
@@ -505,7 +505,7 @@ bool is_Self_Test_Supported(tDevice* device)
     return supported;
 }
 
-bool is_Conveyence_Self_Test_Supported(tDevice* device)
+bool is_Conveyence_Self_Test_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -522,7 +522,7 @@ bool is_Conveyence_Self_Test_Supported(tDevice* device)
     return supported;
 }
 
-bool is_Selective_Self_Test_Supported(tDevice* device)
+bool is_Selective_Self_Test_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -539,7 +539,7 @@ bool is_Selective_Self_Test_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues send_DST(tDevice* device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
+eReturnValues send_DST(const tDevice* device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (commandTimeout == 0)
@@ -650,7 +650,7 @@ eReturnValues send_DST(tDevice* device, eDSTType DSTType, bool captiveForeground
     return ret;
 }
 
-static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, uint16_t* offlineTimeSeconds)
+static bool is_ATA_SMART_Offline_Supported(const tDevice* device, bool* abortRestart, uint16_t* offlineTimeSeconds)
 {
     bool supported = false;
     if (is_SMART_Enabled(device))
@@ -702,7 +702,7 @@ static bool is_ATA_SMART_Offline_Supported(tDevice* device, bool* abortRestart, 
     return supported;
 }
 
-static eReturnValues get_SMART_Offline_Status(tDevice* device, uint8_t* status)
+static eReturnValues get_SMART_Offline_Status(const tDevice* device, uint8_t* status)
 {
     eReturnValues ret = SUCCESS;
     if (status == M_NULLPTR)
@@ -725,7 +725,7 @@ static eReturnValues get_SMART_Offline_Status(tDevice* device, uint8_t* status)
 //       ever restart on its own. The standards just say it restarts after a "vendor specific event". Because of this,
 //       the polling code is removed entirely unless the following #define is set to reenable it. -TJE
 // #define ENABLE_SMART_OFFLINE_ROUTINE_POLLING 1
-eReturnValues run_SMART_Offline(tDevice* device)
+eReturnValues run_SMART_Offline(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -872,11 +872,11 @@ eReturnValues run_SMART_Offline(tDevice* device)
     return ret;
 }
 
-eReturnValues run_DST(tDevice* device,
-                      eDSTType DSTType,
-                      bool     pollForProgress,
-                      bool     captiveForeground,
-                      bool     ignoreMaxTime)
+eReturnValues run_DST(const tDevice* device,
+                      eDSTType       DSTType,
+                      bool           pollForProgress,
+                      bool           captiveForeground,
+                      bool           ignoreMaxTime)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_Self_Test_Supported(device))
@@ -1167,7 +1167,7 @@ eReturnValues run_DST(tDevice* device,
     return ret;
 }
 
-eReturnValues get_Long_DST_Time(tDevice* device, uint8_t* hours, uint8_t* minutes)
+eReturnValues get_Long_DST_Time(const tDevice* device, uint8_t* hours, uint8_t* minutes)
 {
     eReturnValues ret = UNKNOWN;
     DISABLE_NONNULL_COMPARE
@@ -1302,7 +1302,7 @@ eReturnValues get_Long_DST_Time(tDevice* device, uint8_t* hours, uint8_t* minute
     return ret;
 }
 
-bool get_Error_LBA_From_DST_Log(tDevice* device, uint64_t* lba)
+bool get_Error_LBA_From_DST_Log(const tDevice* device, uint64_t* lba)
 {
     bool isValidLBA = false;
     *lba            = UINT64_MAX; // set to something crazy in case caller ignores return type
@@ -1320,7 +1320,7 @@ bool get_Error_LBA_From_DST_Log(tDevice* device, uint64_t* lba)
     return isValidLBA;
 }
 
-eReturnValues run_DST_And_Clean(tDevice*                device,
+eReturnValues run_DST_And_Clean(const tDevice*          device,
                                 uint16_t                errorLimit,
                                 custom_Update           updateFunction,
                                 void*                   updateData,
@@ -1628,13 +1628,15 @@ eReturnValues run_DST_And_Clean(tDevice*                device,
 }
 #define ENABLE_DST_LOG_DEBUG 0 // set to non zero to enable this debug.
 
-static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
+M_NONNULL_PARAM_LIST(1, 2)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_ATA_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret             = NOT_SUPPORTED;
     uint8_t*      selfTestResults = M_NULLPTR;
     uint32_t      logSize         = UINT32_C(0);
     // used for compatibility purposes with drives that may have GPL, but not support the ext log...
-    // device->drive_info.ata_Options.generalPurposeLoggingSupported = false;//for debugging SMART log version
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported &&
         SUCCESS == get_ATA_Log_Size(device, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG, &logSize, true, false) && logSize > 0)
     {
@@ -1988,14 +1990,19 @@ static eReturnValues get_ATA_DST_Log_Entries(tDevice* device, ptrDstLogEntries e
     return ret;
 }
 
-static eReturnValues get_SCSI_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
+M_NONNULL_PARAM_LIST(1, 2)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_SCSI_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, dstLog, LP_SELF_TEST_RESULTS_LEN);
+    DISABLE_NONNULL_COMPARE
     if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SELF_TEST_RESULTS, 0, 1, dstLog,
                                       LP_SELF_TEST_RESULTS_LEN))
     {
@@ -2033,13 +2040,18 @@ static eReturnValues get_SCSI_DST_Log_Entries(tDevice* device, ptrDstLogEntries 
     return ret;
 }
 
-static eReturnValues get_NVMe_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
+M_NONNULL_PARAM_LIST(1, 2)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_NVMe_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
     if (entries == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     if (is_Self_Test_Supported(device))
     {
         nvmeGetLogPageCmdOpts dstLogParms;
@@ -2114,7 +2126,7 @@ static eReturnValues get_NVMe_DST_Log_Entries(tDevice* device, ptrDstLogEntries 
     return ret;
 }
 
-eReturnValues get_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
+eReturnValues get_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
 {
     switch (device->drive_info.drive_type)
     {
@@ -2125,6 +2137,12 @@ eReturnValues get_DST_Log_Entries(tDevice* device, ptrDstLogEntries entries)
     case SCSI_DRIVE:
         return get_SCSI_DST_Log_Entries(device, entries);
     default:
+        DISABLE_NONNULL_COMPARE
+        if (entries != M_NULLPTR)
+        {
+            safe_memset(entries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
+        }
+        RESTORE_NONNULL_COMPARE
         return NOT_SUPPORTED;
     }
 }

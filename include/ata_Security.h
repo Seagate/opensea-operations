@@ -74,7 +74,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  sat_ATA_Security_Protocol_Supported(tDevice *device)
+    //  sat_ATA_Security_Protocol_Supported(const tDevice *device)
     //
     //! \brief   Description:  Checks if the SAT ATA Security protocol is supportd or not.
     //
@@ -86,7 +86,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool sat_ATA_Security_Protocol_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool sat_ATA_Security_Protocol_Supported(const tDevice* device);
 
     typedef struct s_ataSecurityStatus
     {
@@ -130,7 +130,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API
-    void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
+    void get_ATA_Security_Info(const tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
@@ -205,7 +205,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(const tDevice*      device,
                                                                        ataSecurityPassword ataPassword,
                                                                        bool                useSAT);
 
@@ -227,7 +227,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(const tDevice*      device,
                                                                    ataSecurityPassword ataPassword,
                                                                    bool                useSAT);
 
@@ -249,7 +249,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(const tDevice*      device,
                                                              ataSecurityPassword ataPassword,
                                                              bool                useSAT);
 
@@ -276,7 +276,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(tDevice*              device,
+    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(const tDevice*        device,
                                                                   ataSecurityPassword   ataPassword,
                                                                   eATASecurityEraseType eraseType,
                                                                   uint32_t              timeout,
@@ -303,7 +303,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(tDevice*              device,
+    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(const tDevice*        device,
                                                                 eATASecurityEraseType eraseType,
                                                                 ataSecurityPassword   ataPassword,
                                                                 bool                  forceSATvalid,
@@ -332,14 +332,14 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
                                                                            ataSecurityPassword ataPassword,
                                                                            bool                forceSATvalid,
                                                                            bool                forceSAT);
 
     //-----------------------------------------------------------------------------
     //
-    //  run_Set_ATA_Security_Password(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool
+    //  run_Set_ATA_Security_Password(const tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool
     //  forceSAT)
     //
     //! \brief   Sets an ATA security password. NOTE: This is not recommended from software since some systems may not
@@ -363,14 +363,15 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
                                                                        ataSecurityPassword ataPassword,
                                                                        bool                forceSATvalid,
                                                                        bool                forceSAT);
 
     //-----------------------------------------------------------------------------
     //
-    //  run_Unlock_ATA_Security(tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool forceSAT)
+    //  run_Unlock_ATA_Security(const tDevice *device, ataSecurityPassword ataPassword, bool forceSATvalid, bool
+    //  forceSAT)
     //
     //! \brief   Unlocks ATA security with the provided password. This is useful if the ATA security erase was
     //! interrupted and a password is still set on the drive. Note that this takes the ASCII password sent in and uses
@@ -391,14 +392,14 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
                                                                  ataSecurityPassword ataPassword,
                                                                  bool                forceSATvalid,
                                                                  bool                forceSAT);
 
     //-----------------------------------------------------------------------------
     //
-    //  run_Freeze_ATA_Security(tDevice *device, bool forceSATvalid, bool forceSAT)
+    //  run_Freeze_ATA_Security(const tDevice *device, bool forceSATvalid, bool forceSAT)
     //
     //! \brief   Freezes ATA security with the freezelock command. This is used to prevent other ATA security commands
     //! from being processed by the drive.
@@ -416,7 +417,9 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(tDevice* device, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(const tDevice* device,
+                                                                 bool           forceSATvalid,
+                                                                 bool           forceSAT);
 
 #if defined(__cplusplus)
 }

@@ -27,7 +27,7 @@
 #define CDL_T2A_DESCRIPTOR_OFFSET                                  8
 #define CDL_T2B_DESCRIPTOR_OFFSET                                  8
 
-eReturnValues enable_Disable_CDL_Feature(tDevice* device, eCDLFeatureSet countField)
+eReturnValues enable_Disable_CDL_Feature(const tDevice* device, eCDLFeatureSet countField)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -44,18 +44,18 @@ eReturnValues enable_Disable_CDL_Feature(tDevice* device, eCDLFeatureSet countFi
     return ret;
 }
 
-static eReturnValues get_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues get_ATA_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
 
     // read the logaddress 0x18, logpage 0x00
     // Note - read this page at begining, as this will tell if the feature is supported or not
-    uint32_t logSize = 0;
+    uint32_t logSize = UINT32_C(0);
     ret              = get_ATA_Log_Size(device, ATA_LOG_COMMAND_DURATION_LIMITS_LOG, &logSize, true, false);
     if (ret == SUCCESS)
     {
@@ -72,7 +72,7 @@ static eReturnValues get_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlSett
             cdlSettings->ataCDLSettings.performanceVsCommandCompletion = M_Nibble0(logBuffer[0]);
 
             uint8_t* cdlReadDescriptorBuffer = logBuffer + CDL_READ_DESCRIPTOR_OFFSET;
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
             {
                 cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].timeFieldUnitType =
                     CDL_TIME_FIELD_UNIT_TYPE_MICROSECONDS;
@@ -105,7 +105,7 @@ static eReturnValues get_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlSett
             }
 
             uint8_t* cdlWriteDescriptorBuffer = logBuffer + CDL_WRITE_DESCRIPTOR_OFFSET;
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
             {
                 cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].timeFieldUnitType =
                     CDL_TIME_FIELD_UNIT_TYPE_MICROSECONDS;
@@ -255,17 +255,17 @@ static eCDLTimeFieldUnitType translate_Value_To_CDL_Unit(uint8_t unitValue)
     return unitType;
 }
 
-static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues get_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
 
     // read T2A mode page
-    uint32_t modePageLength = 0;
+    uint32_t modePageLength = UINT32_C(0);
     if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x07, &modePageLength))
     {
         uint8_t* modeData =
@@ -301,7 +301,7 @@ static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSet
             cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines =
                 M_Nibble1(modeData[offsetToModePage + 7]);
             uint8_t* cdlT2ADescriptorBuffer = modeData + offsetToModePage + CDL_T2A_DESCRIPTOR_OFFSET;
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
             {
                 cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].timeFieldUnitType =
                     translate_Value_To_CDL_Unit(
@@ -366,7 +366,7 @@ static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSet
             // parse the mode page buffer
             cdlSettings->isSupported        = true;
             uint8_t* cdlT2BDescriptorBuffer = modeData + offsetToModePage + CDL_T2B_DESCRIPTOR_OFFSET;
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
             {
                 cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].timeFieldUnitType =
                     translate_Value_To_CDL_Unit(
@@ -400,7 +400,7 @@ static eReturnValues get_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSet
     return ret;
 }
 
-eReturnValues get_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues get_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -595,7 +595,7 @@ static void translate_Policy_To_String(eDriveType     driveType,
 static eReturnValues print_ATA_CDL_Settings(tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -640,7 +640,7 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings* cdlSettings)
             printf("\tPerformance Versus Command Completion : %s\n", statusTranslation);
         }
 
-        for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
+        for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
         {
             printf("\tDescriptor : R%" PRIu8 "\n", (descriptorIndex + 1));
             printf("\t\tInactive Time (us) : %" PRIu32 "\n",
@@ -667,7 +667,7 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings* cdlSettings)
             }
         }
 
-        for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
+        for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
         {
             printf("\tDescriptor : W%" PRIu8 "\n", (descriptorIndex + 1));
             printf("\t\tInactive Time (us) : %" PRIu32 "\n",
@@ -705,7 +705,7 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings* cdlSettings)
 static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -732,7 +732,7 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
             cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines, statusTranslation);
         printf("\tPerformance Versus Command Duration Guidelines : %s\n", statusTranslation);
 
-        for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
+        for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
         {
             printf("\tT2A Descriptor : %" PRIu8 "\n", (descriptorIndex + 1));
             printf("\t\tInactive Time (us) : %" PRIu32 "\n",
@@ -763,7 +763,7 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
             printf("\t\tCommand Duration Guideline Policy : %s\n", policyTranslation);
         }
 
-        for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
+        for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
         {
             printf("\tT2B Descriptor : %" PRIu8 "\n", (descriptorIndex + 1));
             printf("\t\tInactive Time (us) : %" PRIu32 "\n",
@@ -802,13 +802,15 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
     return ret;
 }
 
-eReturnValues print_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!cdlSettings)
+    DISABLE_NONNULL_COMPARE
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -822,16 +824,16 @@ eReturnValues print_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
     return ret;
 }
 
-static eReturnValues config_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues config_ATA_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
 
     // read current CDL settings
-    uint32_t logSize = 0;
+    uint32_t logSize = UINT32_C(0);
     ret              = get_ATA_Log_Size(device, ATA_LOG_COMMAND_DURATION_LIMITS_LOG, &logSize, true, false);
     if (ret == SUCCESS)
     {
@@ -850,7 +852,7 @@ static eReturnValues config_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlS
                 (M_Nibble1(logBuffer[0]) << 4) | M_Nibble0(cdlSettings->ataCDLSettings.performanceVsCommandCompletion);
 
             uint8_t* cdlReadDescriptorBuffer = (logBuffer + CDL_READ_DESCRIPTOR_OFFSET);
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
             {
                 cdlReadDescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0] =
                     (M_Nibble0(cdlSettings->ataCDLSettings.cdlReadDescriptor[descriptorIndex].activeTimePolicy) << 4) |
@@ -867,7 +869,7 @@ static eReturnValues config_ATA_CDL_Settings(tDevice* device, tCDLSettings* cdlS
             }
 
             uint8_t* cdlWriteDescriptorBuffer = logBuffer + CDL_WRITE_DESCRIPTOR_OFFSET;
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
             {
                 cdlWriteDescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0] =
                     (M_Nibble0(cdlSettings->ataCDLSettings.cdlWriteDescriptor[descriptorIndex].activeTimePolicy) << 4) |
@@ -934,16 +936,16 @@ static uint8_t translate_CDL_Unit_To_Value(eCDLTimeFieldUnitType unitType)
     return value;
 }
 
-static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+static eReturnValues config_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
 
     // read T2A mode page before modifying data
-    uint32_t modePageLength = 0;
+    uint32_t modePageLength = UINT32_C(0);
     ret                     = get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x07, &modePageLength);
     if (SUCCESS == ret)
     {
@@ -980,7 +982,7 @@ static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdl
                 (M_Nibble0(cdlSettings->scsiCDLSettings.performanceVsCommandDurationGuidelines) << 4) |
                 M_Nibble0(modeData[offsetToModePage + 7]);
             uint8_t* cdlT2ADescriptorBuffer = modeData + offsetToModePage + CDL_T2A_DESCRIPTOR_OFFSET;
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
             {
                 cdlT2ADescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0] =
                     (M_Nibble1(cdlT2ADescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0]) << 4) |
@@ -1061,7 +1063,7 @@ static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdl
             }
 
             uint8_t* cdlT2BDescriptorBuffer = modeData + offsetToModePage + CDL_T2B_DESCRIPTOR_OFFSET;
-            for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
+            for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
             {
                 cdlT2BDescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0] =
                     (M_Nibble1(cdlT2BDescriptorBuffer[(descriptorIndex * CDL_DESCRIPTOR_LENGTH) + 0]) << 4) |
@@ -1111,13 +1113,15 @@ static eReturnValues config_SCSI_CDL_Settings(tDevice* device, tCDLSettings* cdl
     return ret;
 }
 
-eReturnValues config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!cdlSettings)
+    DISABLE_NONNULL_COMPARE
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1280,7 +1284,7 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
 static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1296,7 +1300,7 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
     }
 
     // check fields for each read descriptor
-    for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
+    for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_READ_DESCRIPTOR; descriptorIndex++)
     {
         // if Active Time Policy Type is supported, then check the user provided field value for validation
         if (!is_Valid_Supported_Policy(ATA_DRIVE, CDL_POLICY_TYPE_ACTIVE_TIME,
@@ -1345,7 +1349,7 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
     }
 
     // check fields for each write descriptor
-    for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
+    for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_WRITE_DESCRIPTOR; descriptorIndex++)
     {
         // if Active Time Policy Type is supported, then check the user provided field value for validation
         if (!is_Valid_Supported_Policy(
@@ -1399,7 +1403,7 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
 static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings)
 {
     eReturnValues ret = SUCCESS;
-    if (!cdlSettings)
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
@@ -1414,7 +1418,7 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
     }
 
     // check fields for each T2A descriptor
-    for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
+    for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2A_DESCRIPTOR; descriptorIndex++)
     {
         // check the user provided field value for validation
         if (!(cdlSettings->scsiCDLSettings.cdlT2ADescriptor[descriptorIndex].timeFieldUnitType ==
@@ -1476,7 +1480,7 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
     }
 
     // check fields for each T2B descriptor
-    for (uint8_t descriptorIndex = 0; descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
+    for (uint8_t descriptorIndex = UINT8_C(0); descriptorIndex < MAX_CDL_T2B_DESCRIPTOR; descriptorIndex++)
     {
         // check the user provided field value for validation
         if (!(cdlSettings->scsiCDLSettings.cdlT2BDescriptor[descriptorIndex].timeFieldUnitType ==
@@ -1540,13 +1544,15 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
     return ret;
 }
 
-eReturnValues is_Valid_Config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings)
+eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (!cdlSettings)
+    DISABLE_NONNULL_COMPARE
+    if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1737,27 +1743,27 @@ uint32_t convert_CDL_TimeField_To_Microseconds(eCDLTimeFieldUnitType unitType, u
     switch (unitType)
     {
     case CDL_TIME_FIELD_UNIT_TYPE_MILLISECONDS:
-        convertedValue = value * 1000;
+        convertedValue = value * UINT32_C(1000);
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_SECONDS:
-        convertedValue = value * 1000000;
+        convertedValue = value * UINT32_C(1000000);
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_500_NANOSECONDS:
-        convertedValue = C_CAST(uint32_t, value * 0.5);
+        convertedValue = value / UINT32_C(2);
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_10_MILLISECONDS:
-        convertedValue = value * 10000;
+        convertedValue = value * UINT32_C(10000);
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_500_MILLISECONDS:
-        convertedValue = value * 500000;
+        convertedValue = value * UINT32_C(500000);
         break;
 
     case CDL_TIME_FIELD_UNIT_TYPE_NO_VALUE:
-        convertedValue = 0;
+        convertedValue = UINT32_C(0);
         break;
 
     default:
