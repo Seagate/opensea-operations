@@ -38,7 +38,7 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 
-eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice* device, uint8_t speedGen)
+eReturnValues seagate_ata_SCT_SATA_phy_speed(const tDevice* device, uint8_t speedGen)
 {
     eReturnValues ret             = UNKNOWN;
     uint8_t*      sctSATAPhySpeed = M_REINTERPRET_CAST(
@@ -96,7 +96,7 @@ typedef enum eSASPhySpeedsEnum
 } eSASPhySpeeds;
 
 // valid phySpeedGen values are 1 - 5. This will need to be modified if SAS get's higher link rates than 22.5Gb/s
-eReturnValues scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber)
+eReturnValues scsi_Set_Phy_Speed(const tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber)
 {
     eReturnValues ret = SUCCESS;
     if (phySpeedGen > SET_PHY_SPEED_MAX_GENERATION)
@@ -234,7 +234,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allP
     return ret;
 }
 
-eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyIdentifier)
+eReturnValues set_phy_speed(const tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyIdentifier)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -281,7 +281,7 @@ eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, 
     return ret;
 }
 
-bool is_SCT_Low_Current_Spinup_Supported(tDevice* device)
+bool is_SCT_Low_Current_Spinup_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
@@ -302,7 +302,7 @@ bool is_SCT_Low_Current_Spinup_Supported(tDevice* device)
     return supported;
 }
 
-int is_Low_Current_Spin_Up_Enabled(tDevice* device, bool sctCommandSupported)
+int is_Low_Current_Spin_Up_Enabled(const tDevice* device, bool sctCommandSupported)
 {
     int lowPowerSpinUpEnabled = 0;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
@@ -335,7 +335,7 @@ int is_Low_Current_Spin_Up_Enabled(tDevice* device, bool sctCommandSupported)
     return lowPowerSpinUpEnabled;
 }
 
-eReturnValues seagate_SCT_Low_Current_Spinup(tDevice* device, eSeagateLCSpinLevel spinupLevel)
+eReturnValues seagate_SCT_Low_Current_Spinup(const tDevice* device, eSeagateLCSpinLevel spinupLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
@@ -354,7 +354,7 @@ eReturnValues seagate_SCT_Low_Current_Spinup(tDevice* device, eSeagateLCSpinLeve
     return ret;
 }
 
-eReturnValues set_Low_Current_Spin_Up(tDevice* device, bool useSCTCommand, eSeagateLCSpinLevel state)
+eReturnValues set_Low_Current_Spin_Up(const tDevice* device, bool useSCTCommand, eSeagateLCSpinLevel state)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
@@ -390,7 +390,7 @@ eReturnValues set_Low_Current_Spin_Up(tDevice* device, bool useSCTCommand, eSeag
     return ret;
 }
 
-eReturnValues set_SSC_Feature_SATA(tDevice* device, eSSCFeatureState mode)
+eReturnValues set_SSC_Feature_SATA(const tDevice* device, eSSCFeatureState mode)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -426,7 +426,7 @@ eReturnValues set_SSC_Feature_SATA(tDevice* device, eSSCFeatureState mode)
     return ret;
 }
 
-eReturnValues get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode)
+eReturnValues get_SSC_Feature_SATA(const tDevice* device, eSSCFeatureState* mode)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -463,7 +463,7 @@ eReturnValues get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode)
     return ret;
 }
 
-static eReturnValues seagate_SAS_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes)
+static eReturnValues seagate_SAS_Get_JIT_Modes(const tDevice* device, ptrSeagateJITModes jitModes)
 {
     eReturnValues  ret    = NOT_SUPPORTED;
     eSeagateFamily family = is_Seagate_Family(device);
@@ -528,7 +528,7 @@ static eReturnValues seagate_SAS_Get_JIT_Modes(tDevice* device, ptrSeagateJITMod
     return ret;
 }
 
-eReturnValues seagate_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes)
+eReturnValues seagate_Get_JIT_Modes(const tDevice* device, ptrSeagateJITModes jitModes)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -538,11 +538,11 @@ eReturnValues seagate_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes
     return ret;
 }
 
-static eReturnValues seagate_SAS_Set_JIT_Modes(tDevice* device,
-                                               bool     disableVjit,
-                                               uint8_t  jitMode,
-                                               bool     revertToDefaults,
-                                               bool     nonvolatile)
+static eReturnValues seagate_SAS_Set_JIT_Modes(const tDevice* device,
+                                               bool           disableVjit,
+                                               uint8_t        jitMode,
+                                               bool           revertToDefaults,
+                                               bool           nonvolatile)
 {
     eReturnValues  ret    = NOT_SUPPORTED;
     eSeagateFamily family = is_Seagate_Family(device);
@@ -662,11 +662,11 @@ static eReturnValues seagate_SAS_Set_JIT_Modes(tDevice* device,
     return ret;
 }
 
-eReturnValues seagate_Set_JIT_Modes(tDevice* device,
-                                    bool     disableVjit,
-                                    uint8_t  jitMode,
-                                    bool     revertToDefaults,
-                                    bool     nonvolatile)
+eReturnValues seagate_Set_JIT_Modes(const tDevice* device,
+                                    bool           disableVjit,
+                                    uint8_t        jitMode,
+                                    bool           revertToDefaults,
+                                    bool           nonvolatile)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -676,7 +676,7 @@ eReturnValues seagate_Set_JIT_Modes(tDevice* device,
     return ret;
 }
 
-eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* enabled)
+eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, bool* enabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -829,7 +829,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
     return ret;
 }
 
-eReturnValues seagate_Set_Power_Balance(tDevice* device, ePowerBalanceMode powerMode)
+eReturnValues seagate_Set_Power_Balance(const tDevice* device, ePowerBalanceMode powerMode)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -910,7 +910,7 @@ eReturnValues seagate_Set_Power_Balance(tDevice* device, ePowerBalanceMode power
     return ret;
 }
 
-eReturnValues get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSupport)
+eReturnValues get_IDD_Support(const tDevice* device, ptrIDDSupportedFeatures iddSupport)
 {
     eReturnValues ret = NOT_SUPPORTED;
     // IDD is only on ATA drives
@@ -970,7 +970,7 @@ eReturnValues get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSuppor
 
 #define IDD_READY_TIME_SECONDS 120
 
-eReturnValues get_Approximate_IDD_Time(tDevice* device, eIDDTests iddTest, uint64_t* timeInSeconds)
+eReturnValues get_Approximate_IDD_Time(const tDevice* device, eIDDTests iddTest, uint64_t* timeInSeconds)
 {
     eReturnValues ret = NOT_SUPPORTED;
     *timeInSeconds    = 0;
@@ -1040,7 +1040,7 @@ eReturnValues get_Approximate_IDD_Time(tDevice* device, eIDDTests iddTest, uint6
     return ret;
 }
 
-eReturnValues get_IDD_Status(tDevice* device, uint8_t* status)
+eReturnValues get_IDD_Status(const tDevice* device, uint8_t* status)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1223,7 +1223,7 @@ void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool
     RESTORE_NONNULL_COMPARE
 }
 
-static eReturnValues start_IDD_Operation(tDevice* device, eIDDTests iddOperation, bool captiveForeground)
+static eReturnValues start_IDD_Operation(const tDevice* device, eIDDTests iddOperation, bool captiveForeground)
 {
     eReturnValues ret = NOT_SUPPORTED;
     os_Lock_Device(device);
@@ -1356,7 +1356,7 @@ static eReturnValues start_IDD_Operation(tDevice* device, eIDDTests iddOperation
 }
 
 // this is a seagate drive specific feature. Will now work on other drives
-eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, bool captive)
+eReturnValues run_IDD(const tDevice* device, eIDDTests IDDtest, bool pollForProgress, bool captive)
 {
     eReturnValues result = UNKNOWN;
     if (is_Seagate_Family(device) != NON_SEAGATE)
@@ -1497,7 +1497,7 @@ eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, 
     return result;
 }
 
-bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice* device)
+bool is_Seagate_Power_Telemetry_Feature_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1533,7 +1533,7 @@ bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice* device)
 #define SCSI_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(6240)
 
 // This can be used to save this log to a binary file to be read later.
-eReturnValues pull_Power_Telemetry_Log(tDevice* device, const char* filePath, uint32_t transferSizeBytes)
+eReturnValues pull_Power_Telemetry_Log(const tDevice* device, const char* filePath, uint32_t transferSizeBytes)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1550,7 +1550,7 @@ eReturnValues pull_Power_Telemetry_Log(tDevice* device, const char* filePath, ui
     return ret;
 }
 
-eReturnValues request_Power_Measurement(tDevice*                          device,
+eReturnValues request_Power_Measurement(const tDevice*                    device,
                                         uint16_t                          timeMeasurementSeconds,
                                         ePowerTelemetryMeasurementOptions measurementOption)
 {
@@ -1595,7 +1595,7 @@ eReturnValues request_Power_Measurement(tDevice*                          device
     return ret;
 }
 
-eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry pwrTelData)
+eReturnValues get_Power_Telemetry_Data(const tDevice* device, ptrSeagatePwrTelemetry pwrTelData)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -1822,7 +1822,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
     RESTORE_NONNULL_COMPARE
 }
 
-bool is_Seagate_Quick_Format_Supported(tDevice* device)
+bool is_Seagate_Quick_Format_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE) // This is only available on SATA drives.
@@ -1858,7 +1858,7 @@ bool is_Seagate_Quick_Format_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues seagate_Quick_Format(tDevice* device)
+eReturnValues seagate_Quick_Format(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2285,7 +2285,7 @@ void print_smart_log_CF(fb_log_page_CF* pLogPageCF)
 }
 
 // Seagate Unique...
-eReturnValues get_Ext_Smrt_Log(tDevice* device) //, nvmeGetLogPageCmdOpts * getLogPageCmdOpts)
+eReturnValues get_Ext_Smrt_Log(const tDevice* device) //, nvmeGetLogPageCmdOpts * getLogPageCmdOpts)
 {
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
@@ -2315,7 +2315,7 @@ eReturnValues get_Ext_Smrt_Log(tDevice* device) //, nvmeGetLogPageCmdOpts * getL
     }
 }
 
-eReturnValues clr_Pcie_Correctable_Errs(tDevice* device)
+eReturnValues clr_Pcie_Correctable_Errs(const tDevice* device)
 {
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
@@ -2344,7 +2344,7 @@ typedef enum eATAMaxSupportLogEntriesEnum
     SUPPORTED_MAX_ENTRIES_VERSION_2 = 22
 } eATAMaxSupportLogEntries;
 
-bool is_Seagate_DeviceStatistics_Supported(tDevice* device)
+bool is_Seagate_DeviceStatistics_Supported(const tDevice* device)
 {
     bool     supported = false;
     uint32_t logSize   = UINT32_C(0);
@@ -2372,7 +2372,8 @@ bool is_Seagate_DeviceStatistics_Supported(tDevice* device)
     return supported;
 }
 
-static eReturnValues get_Seagate_ATA_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice*             device,
+                                                      ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (seagateDeviceStats == M_NULLPTR)
@@ -2787,7 +2788,8 @@ typedef enum eSeagateSMARTStatusLogPageParamCodeEnum
     ERASE_SECURITY_FILE_FAILURES     = 0x0050,
 } eSeagateSMARTStatusLogPageParamCode;
 
-static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+static eReturnValues get_Seagate_SCSI_DeviceStatistics(const tDevice*             device,
+                                                       ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (seagateDeviceStats == M_NULLPTR)
@@ -2892,7 +2894,7 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice* device, ptrSeaga
     return ret;
 }
 
-eReturnValues get_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+eReturnValues get_Seagate_DeviceStatistics(const tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -3291,7 +3293,7 @@ static void print_Seagate_SCSI_DeviceStatistics(ptrSeagateDeviceStatistics seaga
     }
 }
 
-void print_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+void print_Seagate_DeviceStatistics(const tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -3303,7 +3305,7 @@ void print_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics 
     }
 }
 
-eReturnValues get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
+eReturnValues get_Seagate_SCSI_Firmware_Numbers(const tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE

@@ -32,7 +32,7 @@
 #include "platform_helper.h"
 #include "seagate_operations.h"
 
-bool is_Format_Unit_Supported(tDevice* device, bool* fastFormatSupported)
+bool is_Format_Unit_Supported(const tDevice* device, bool* fastFormatSupported)
 {
     bool supported = false;
     if (fastFormatSupported != M_NULLPTR)
@@ -79,7 +79,7 @@ bool is_Format_Unit_Supported(tDevice* device, bool* fastFormatSupported)
     return supported;
 }
 
-eReturnValues get_Format_Progress(tDevice* device, double* percentComplete)
+eReturnValues get_Format_Progress(const tDevice* device, double* percentComplete)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
     *percentComplete = 0.0;
@@ -119,7 +119,7 @@ eReturnValues get_Format_Progress(tDevice* device, double* percentComplete)
     }
 }
 
-eReturnValues show_Format_Unit_Progress(tDevice* device)
+eReturnValues show_Format_Unit_Progress(const tDevice* device)
 {
     eReturnValues ret             = UNKNOWN;
     double        percentComplete = 0.0;
@@ -151,7 +151,7 @@ eReturnValues show_Format_Unit_Progress(tDevice* device)
     return ret;
 }
 
-eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatParameters, bool pollForProgress)
+eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters formatParameters, bool pollForProgress)
 {
     eReturnValues ret                   = SUCCESS;
     uint8_t*      dataBuf               = M_NULLPTR;
@@ -485,7 +485,10 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
             {
                 print_str("\n");
             }
-            os_Update_File_System_Cache(device);
+            if (ret == SUCCESS && formatParameters.formatType == FORMAT_STD_FORMAT)
+            {
+                os_Update_File_System_Cache(device);
+            }
         }
         else
         {
@@ -497,7 +500,7 @@ eReturnValues run_Format_Unit(tDevice* device, runFormatUnitParameters formatPar
     return ret;
 }
 
-eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus)
+eReturnValues get_Format_Status(const tDevice* device, ptrFormatStatus formatStatus)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE
@@ -774,7 +777,7 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
     RESTORE_NONNULL_COMPARE
 }
 
-bool is_Set_Sector_Configuration_Supported(tDevice* device)
+bool is_Set_Sector_Configuration_Supported(const tDevice* device)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -831,14 +834,14 @@ bool is_Set_Sector_Configuration_Supported(tDevice* device)
     return false;
 }
 
-uint32_t get_Number_Of_Supported_Sector_Sizes(M_ATTR_UNUSED tDevice* device)
+uint32_t get_Number_Of_Supported_Sector_Sizes(M_ATTR_UNUSED const tDevice* device)
 {
     // this function is obsolete now that there is a static size in the supported formats structure.
     // so this just needs to return 1
     return UINT32_C(1);
 }
 
-static eReturnValues ata_Get_Supported_Formats(tDevice* device, ptrSupportedFormats formats)
+static eReturnValues ata_Get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device))
@@ -902,7 +905,7 @@ static eReturnValues ata_Get_Supported_Formats(tDevice* device, ptrSupportedForm
     return ret;
 }
 
-static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFormats formats)
+static eReturnValues scsi_Get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
 {
     eReturnValues ret         = NOT_SUPPORTED;
     uint8_t*      inquiryData = C_CAST(
@@ -1204,7 +1207,7 @@ static eReturnValues scsi_Get_Supported_Formats(tDevice* device, ptrSupportedFor
     return ret;
 }
 
-static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFormats formats)
+static eReturnValues nvme_Get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
 {
     // read the PI support from identify namespace structure
     if (device->drive_info.IdentifyData.nvme.ns.dpc > 0)
@@ -1278,7 +1281,7 @@ static eReturnValues nvme_Get_Supported_Formats(tDevice* device, ptrSupportedFor
     return SUCCESS;
 }
 
-eReturnValues get_Supported_Formats(tDevice* device, ptrSupportedFormats formats)
+eReturnValues get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -1504,10 +1507,10 @@ void show_Supported_Formats(ptrSupportedFormats formats)
 
 // this function takes a sector size and maps it to the descriptor check code to use in the set sector configuration
 // command
-eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
-                                                      uint32_t  logicalBlockLength,
-                                                      uint16_t* descriptorCheckCode,
-                                                      uint8_t*  descriptorIndex)
+eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(const tDevice* device,
+                                                      uint32_t       logicalBlockLength,
+                                                      uint16_t*      descriptorCheckCode,
+                                                      uint8_t*       descriptorIndex)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE
@@ -1557,7 +1560,7 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
 }
 
 // this is used to determine which fast format mode to use.
-static bool is_Requested_Sector_Size_Multiple(tDevice* device, uint32_t sectorSize)
+static bool is_Requested_Sector_Size_Multiple(const tDevice* device, uint32_t sectorSize)
 {
     uint32_t larger = device->drive_info.deviceBlockSize > sectorSize ? device->drive_info.deviceBlockSize : sectorSize;
     uint32_t smaller =
@@ -1577,12 +1580,12 @@ static bool is_Requested_Sector_Size_Multiple(tDevice* device, uint32_t sectorSi
     }
 }
 
-eReturnValues set_Sector_Configuration(tDevice* device, uint32_t sectorSize)
+eReturnValues set_Sector_Configuration(const tDevice* device, uint32_t sectorSize)
 {
     return set_Sector_Configuration_With_Force(device, sectorSize, false);
 }
 
-eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sectorSize, bool force)
+eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_t sectorSize, bool force)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_Set_Sector_Configuration_Supported(device) || force)
@@ -1607,7 +1610,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
             print_str("automatically. You may attempt to run this command again if recovery\n");
             print_str("does not appear successfull.\n");
         }
-        os_Get_Exclusive(device);
+        os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
         // a weird case was found when changing the sector size on a drive with an existing partition on it.
@@ -1619,27 +1622,67 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
         bool mbrEraseWarning = false;
         if (device->drive_info.deviceBlockSize > 0)
         {
-            uint8_t* eraseMBR =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
-            if (eraseMBR != M_NULLPTR)
+            uint8_t* eraseMBR = M_NULLPTR;
+            // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
+            // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
+            // why it will also be erased
+            eReturnValues writeMBR       = SUCCESS;
+            eReturnValues writeBackupMBR = SUCCESS;
+            if (device->drive_info.drive_type != SCSI_DRIVE && !is_Blocksize_And_Capacity_In_Sync(device) &&
+                device->drive_info.bridge_info.childDeviceBlockSize > 0)
             {
-                // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
-                // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
-                // why it will also be erased
-                eReturnValues writeMBR = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-                eReturnValues writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
-                                                         device->drive_info.deviceBlockSize);
-                if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+                // use a passthrough write instead
+                eraseMBR = M_REINTERPRET_CAST(uint8_t*,
+                                              safe_calloc_aligned(device->drive_info.bridge_info.childDeviceBlockSize,
+                                                                  sizeof(uint8_t), device->os_info.minimumAlignment));
+                if (eraseMBR != M_NULLPTR)
+                {
+                    if (device->drive_info.drive_type == ATA_DRIVE)
+                    {
+                        writeMBR =
+                            ata_Write(device, 0, false, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
+                        writeBackupMBR = ata_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, false,
+                                                   eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
+                    }
+                    else if (device->drive_info.drive_type == NVME_DRIVE)
+                    {
+                        writeMBR       = nvme_Write(device, 0, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
+                                                    device->drive_info.bridge_info.childDeviceBlockSize);
+                        writeBackupMBR = nvme_Write(device, device->drive_info.bridge_info.childDeviceMaxLba,
+                                                    NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
+                                                    device->drive_info.bridge_info.childDeviceBlockSize);
+                    }
+                    else
+                    {
+                        mbrEraseWarning = true;
+                    }
+                }
+                else
                 {
                     mbrEraseWarning = true;
                 }
-                safe_free_aligned(&eraseMBR);
             }
             else
             {
+                eraseMBR = M_REINTERPRET_CAST(uint8_t*,
+                                              safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
+                                                                  device->os_info.minimumAlignment));
+                if (eraseMBR != M_NULLPTR)
+                {
+                    writeMBR       = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+                    writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
+                                               device->drive_info.deviceBlockSize);
+                }
+                else
+                {
+                    mbrEraseWarning = true;
+                }
+            }
+            if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+            {
                 mbrEraseWarning = true;
             }
+            safe_free_aligned(&eraseMBR);
             if (mbrEraseWarning)
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -1662,7 +1705,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
             }
             delay_Seconds(1);
             // need to call the fill_drive_info again to update device information
-            fill_Drive_Info_Data(device);
+            fill_Drive_Info_Data(M_CONST_CAST(tDevice*, device));
             bool setSizeSupported = is_Set_Sector_Configuration_Supported(device);
             if (!setSizeSupported || force)
             {
@@ -1684,7 +1727,7 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
                         }
                     }
                     // try refreshing the device one more time incase the status was just not right.
-                    fill_Drive_Info_Data(device);
+                    fill_Drive_Info_Data(M_CONST_CAST(tDevice*, device));
                     if (!is_Set_Sector_Configuration_Supported(device))
                     {
                         // nothing else we can do at this point.
@@ -1740,12 +1783,11 @@ eReturnValues set_Sector_Configuration_With_Force(tDevice* device, uint32_t sect
             ret = run_Format_Unit(device, formatUnitParameters, true);
         }
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
     }
     return ret;
 }
 
-eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
+eReturnValues get_NVM_Format_Progress(const tDevice* device, uint8_t* percentComplete)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE
@@ -1757,7 +1799,7 @@ eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
     *percentComplete = UINT8_C(0);
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        ret = nvme_Identify(device, M_REINTERPRET_CAST(uint8_t*, &device->drive_info.IdentifyData.nvme.ns),
+        ret = nvme_Identify(device, M_CONST_CAST(uint8_t*, &device->drive_info.IdentifyData.nvme.ns),
                             device->drive_info.namespaceID, NVME_IDENTIFY_NS);
         if (ret == SUCCESS)
         {
@@ -1779,7 +1821,7 @@ eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete)
     return ret;
 }
 
-eReturnValues show_NVM_Format_Progress(tDevice* device)
+eReturnValues show_NVM_Format_Progress(const tDevice* device)
 {
     eReturnValues ret             = UNKNOWN;
     uint8_t       percentComplete = UINT8_C(0);
@@ -1802,7 +1844,7 @@ eReturnValues show_NVM_Format_Progress(tDevice* device)
     return ret;
 }
 #define NVME_2_0_MAX_FORMATS 64U
-static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize, uint16_t metadataSize)
+static uint8_t map_NVM_Format_To_Format_Number(const tDevice* device, uint32_t lbaSize, uint16_t metadataSize)
 {
     uint8_t fmtNum             = UINT8_MAX;
     uint8_t maxDriveLBAformats = NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf);
@@ -1821,7 +1863,7 @@ static uint8_t map_NVM_Format_To_Format_Number(tDevice* device, uint32_t lbaSize
     return fmtNum;
 }
 
-eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
+eReturnValues get_NVMe_Format_Support(const tDevice* device, ptrNvmeFormatSupport formatSupport)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -1861,7 +1903,7 @@ eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport form
     return ret;
 }
 
-eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams, bool pollForProgress)
+eReturnValues run_NVMe_Format(const tDevice* device, runNVMFormatParameters nvmParams, bool pollForProgress)
 {
     eReturnValues     ret = SUCCESS;
     nvmeFormatCmdOpts formatCmdOptions;
@@ -1988,7 +2030,10 @@ eReturnValues run_NVMe_Format(tDevice* device, runNVMFormatParameters nvmParams,
         {
             print_str("\n");
         }
-        os_Update_File_System_Cache(device);
+        if (nvmParams.newSize.currentBlockSize)
+        {
+            os_Update_File_System_Cache(device);
+        }
     }
     return ret;
 }

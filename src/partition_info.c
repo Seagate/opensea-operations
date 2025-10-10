@@ -618,12 +618,12 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID* guid)
 
 #define GPT_SIGNATURE_STR_LEN RSIZE_T_C(8)
 
-static eReturnValues fill_GPT_Data(tDevice*   device,
-                                   uint8_t*   gptDataBuf,
-                                   uint32_t   gptDataSize,
-                                   ptrGPTData gpt,
-                                   uint32_t   sizeOfGPTDataStruct,
-                                   uint64_t   lba)
+static eReturnValues fill_GPT_Data(const tDevice* device,
+                                   uint8_t*       gptDataBuf,
+                                   uint32_t       gptDataSize,
+                                   ptrGPTData     gpt,
+                                   uint32_t       sizeOfGPTDataStruct,
+                                   uint64_t       lba)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (gptDataBuf && gpt && gptDataSize >= UINT32_C(32768) &&
@@ -820,7 +820,7 @@ static eReturnValues fill_GPT_Data(tDevice*   device,
     return ret;
 }
 
-ptrPartitionInfo get_Partition_Info(tDevice* device)
+ptrPartitionInfo get_Partition_Info(const tDevice* device)
 {
     ptrPartitionInfo partitionData = M_REINTERPRET_CAST(ptrPartitionInfo, safe_calloc(1, sizeof(partitionInfo)));
     // This function will read LBA 0 for 32KiB first, enough to handle most situations

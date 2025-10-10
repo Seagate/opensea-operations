@@ -147,27 +147,27 @@ extern "C"
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(tDevice* device, eCDLFeatureSet countField);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(const tDevice* device, eCDLFeatureSet countField);
 
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
 
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
 
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
 
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)

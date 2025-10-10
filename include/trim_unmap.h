@@ -46,9 +46,9 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API bool is_Trim_Or_Unmap_Supported(tDevice*  device,
-                                                           uint32_t* maxTrimOrUnmapBlockDescriptors,
-                                                           uint32_t* maxLBACount);
+    OPENSEA_OPERATIONS_API bool is_Trim_Or_Unmap_Supported(const tDevice* device,
+                                                           uint32_t*      maxTrimOrUnmapBlockDescriptors,
+                                                           uint32_t*      maxLBACount);
 
     //-----------------------------------------------------------------------------
     //
@@ -68,7 +68,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -89,7 +89,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -109,7 +109,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(const tDevice* device, uint64_t startLBA, uint64_t range);
 
     //-----------------------------------------------------------------------------
     //
@@ -130,7 +130,9 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(const tDevice* device,
+                                                               uint64_t       startLBA,
+                                                               uint64_t       range);
 
 #if defined(__cplusplus)
 }

@@ -590,7 +590,8 @@ extern "C"
         safe_free_core(M_REINTERPRET_CAST(void**, info));
     }
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API ptrPartitionInfo get_Partition_Info(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API ptrPartitionInfo get_Partition_Info(const tDevice* device);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Partition_Info(ptrPartitionInfo partitionTable);

@@ -33,7 +33,7 @@
 
 // There is no specific way to enable or disable this on SCSI, so this simulates the behavior according to what we see
 // with ATA
-static eReturnValues scsi_Enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_field, bool saveChanges)
+static eReturnValues scsi_Enable_Disable_EPC_Feature(const tDevice* device, eEPCFeatureSet lba_field, bool saveChanges)
 {
     eReturnValues ret = UNKNOWN;
     // setup the structure and send these changes to the drive.
@@ -77,7 +77,7 @@ static eReturnValues scsi_Enable_Disable_EPC_Feature(tDevice* device, eEPCFeatur
 
 //-----------------------------------------------------------------------------
 //
-//  enable_Disable_EPC_Feature (tDevice *device, eEPCFeatureSet lba_field))
+//  enable_Disable_EPC_Feature (const tDevice *device, eEPCFeatureSet lba_field))
 //
 //! \brief   Enable the EPC Feature or Disable it [SATA Only)
 //
@@ -88,7 +88,7 @@ static eReturnValues scsi_Enable_Disable_EPC_Feature(tDevice* device, eEPCFeatur
 //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
 //
 //-----------------------------------------------------------------------------
-eReturnValues enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_field)
+eReturnValues enable_Disable_EPC_Feature(const tDevice* device, eEPCFeatureSet lba_field)
 {
     eReturnValues ret = UNKNOWN;
 
@@ -112,7 +112,7 @@ eReturnValues enable_Disable_EPC_Feature(tDevice* device, eEPCFeatureSet lba_fie
     return ret;
 }
 
-eReturnValues print_Current_Power_Mode(tDevice* device)
+eReturnValues print_Current_Power_Mode(const tDevice* device)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -340,7 +340,7 @@ eReturnValues print_Current_Power_Mode(tDevice* device)
     return ret;
 }
 
-eReturnValues transition_Power_State(tDevice* device, ePowerConditionID newState)
+eReturnValues transition_Power_State(const tDevice* device, ePowerConditionID newState)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -488,7 +488,7 @@ eReturnValues transition_Power_State(tDevice* device, ePowerConditionID newState
     return ret;
 }
 
-eReturnValues get_NVMe_Power_States(tDevice* device, ptrNVMeSupportedPowerStates nvmps)
+eReturnValues get_NVMe_Power_States(const tDevice* device, ptrNVMeSupportedPowerStates nvmps)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -794,7 +794,7 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues transition_NVM_Power_State(tDevice* device, uint8_t newState)
+eReturnValues transition_NVM_Power_State(const tDevice* device, uint8_t newState)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == NVME_DRIVE)
@@ -816,7 +816,7 @@ eReturnValues transition_NVM_Power_State(tDevice* device, uint8_t newState)
     return ret;
 }
 
-static eReturnValues ata_Set_EPC_Power_Mode(tDevice*                  device,
+static eReturnValues ata_Set_EPC_Power_Mode(const tDevice*            device,
                                             ePowerConditionID         powerCondition,
                                             ptrPowerConditionSettings powerConditionSettings,
                                             bool                      saveChanges)
@@ -871,7 +871,7 @@ static eReturnValues ata_Set_EPC_Power_Mode(tDevice*                  device,
     return ret;
 }
 
-eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
+eReturnValues scsi_Set_Power_Conditions(const tDevice*          device,
                                         bool                    restoreAllToDefaults,
                                         ptrPowerConditionTimers powerConditions,
                                         bool                    saveChanges)
@@ -1240,7 +1240,7 @@ eReturnValues scsi_Set_Power_Conditions(tDevice*                device,
     return ret;
 }
 
-static eReturnValues scsi_Set_EPC_Power_Conditions(tDevice*                device,
+static eReturnValues scsi_Set_EPC_Power_Conditions(const tDevice*          device,
                                                    bool                    restoreAllToDefaults,
                                                    ptrPowerConditionTimers powerConditions,
                                                    bool                    saveChanges)
@@ -1250,7 +1250,7 @@ static eReturnValues scsi_Set_EPC_Power_Conditions(tDevice*                devic
 
 // This function will go through and change each requested setting.
 // The first failure that happens will cause the function to fail and not proceed to set any other timer values.
-static eReturnValues ata_Set_EPC_Power_Conditions(tDevice*                device,
+static eReturnValues ata_Set_EPC_Power_Conditions(const tDevice*          device,
                                                   bool                    restoreAllToDefaults,
                                                   ptrPowerConditionTimers powerConditions,
                                                   bool                    saveChanges)
@@ -1330,7 +1330,7 @@ static eReturnValues ata_Set_EPC_Power_Conditions(tDevice*                device
     return ret;
 }
 
-eReturnValues set_EPC_Power_Conditions(tDevice*                device,
+eReturnValues set_EPC_Power_Conditions(const tDevice*          device,
                                        bool                    restoreAllToDefaults,
                                        ptrPowerConditionTimers powerConditions,
                                        bool                    saveChanges)
@@ -1348,7 +1348,7 @@ eReturnValues set_EPC_Power_Conditions(tDevice*                device,
     return ret;
 }
 
-eReturnValues get_Power_State(tDevice* device, uint32_t* powerState, eFeatureModeSelect selectValue)
+eReturnValues get_Power_State(const tDevice* device, uint32_t* powerState, eFeatureModeSelect selectValue)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == NVME_DRIVE)
@@ -1391,7 +1391,7 @@ eReturnValues get_Power_State(tDevice* device, uint32_t* powerState, eFeatureMod
     return ret;
 }
 
-eReturnValues get_Power_Consumption_Identifiers(tDevice* device, ptrPowerConsumptionIdentifiers identifiers)
+eReturnValues get_Power_Consumption_Identifiers(const tDevice* device, ptrPowerConsumptionIdentifiers identifiers)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE) // this is only available on SCSI drives.
@@ -1630,7 +1630,7 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues set_Power_Consumption(tDevice*       device,
+eReturnValues set_Power_Consumption(const tDevice* device,
                                     ePCActiveLevel activeLevelField,
                                     uint8_t        powerConsumptionIdentifier,
                                     bool           resetToDefault)
@@ -1689,9 +1689,9 @@ eReturnValues set_Power_Consumption(tDevice*       device,
     return ret;
 }
 
-eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device,
-                                                             double   watts,
-                                                             uint8_t* powerConsumptionIdentifier)
+eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* device,
+                                                             double         watts,
+                                                             uint8_t*       powerConsumptionIdentifier)
 {
     eReturnValues               ret = NOT_SUPPORTED;
     powerConsumptionIdentifiers identifiers;
@@ -1847,7 +1847,7 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(tDevice* device,
     return ret;
 }
 
-eReturnValues enable_Disable_APM_Feature(tDevice* device, bool enable)
+eReturnValues enable_Disable_APM_Feature(const tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1882,7 +1882,7 @@ eReturnValues enable_Disable_APM_Feature(tDevice* device, bool enable)
 //  80h = minimum power consumption without standby mode
 //  81h - FDh = intermediate power management levels without standby mode
 //  FEh = maximum performance.
-eReturnValues set_APM_Level(tDevice* device, uint8_t apmLevel)
+eReturnValues set_APM_Level(const tDevice* device, uint8_t apmLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1898,7 +1898,7 @@ eReturnValues set_APM_Level(tDevice* device, uint8_t apmLevel)
     return ret;
 }
 
-eReturnValues get_APM_Level(tDevice* device, uint8_t* apmLevel)
+eReturnValues get_APM_Level(const tDevice* device, uint8_t* apmLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1922,7 +1922,7 @@ eReturnValues get_APM_Level(tDevice* device, uint8_t* apmLevel)
     return ret;
 }
 
-static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
+static eReturnValues ata_Get_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -2019,7 +2019,7 @@ static eReturnValues ata_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSet
     return ret;
 }
 
-static eReturnValues scsi_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
+static eReturnValues scsi_Get_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -2259,7 +2259,7 @@ static eReturnValues scsi_Get_EPC_Settings(tDevice* device, ptrEpcSettings epcSe
     return ret;
 }
 
-eReturnValues get_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
+eReturnValues get_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -2325,7 +2325,7 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char* c
     print_str("\n");
 }
 
-void print_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
+void print_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
 {
     DISABLE_NONNULL_COMPARE
     if (epcSettings == M_NULLPTR)
@@ -2372,7 +2372,7 @@ void print_EPC_Settings(tDevice* device, ptrEpcSettings epcSettings)
 // the VPD page as it doesn't exist on old drives.
 //             These functions should probaby be combined at some point
 
-eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice*                  device,
+eReturnValues scsi_Set_Legacy_Power_Conditions(const tDevice*            device,
                                                bool                      restoreAllToDefaults,
                                                ptrPowerConditionSettings standbyTimer,
                                                ptrPowerConditionSettings idleTimer,
@@ -2399,7 +2399,7 @@ eReturnValues scsi_Set_Legacy_Power_Conditions(tDevice*                  device,
 
 // using 100 millisecond increments since that is what SCSI uses and the methodology in here will match SAT spec. This
 // seemed simpler - TJE
-static eReturnValues ata_Set_Standby_Timer(tDevice* device, uint32_t hundredMillisecondIncrements)
+static eReturnValues ata_Set_Standby_Timer(const tDevice* device, uint32_t hundredMillisecondIncrements)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word049)) &&
@@ -2458,7 +2458,7 @@ static eReturnValues ata_Set_Standby_Timer(tDevice* device, uint32_t hundredMill
     return ret;
 }
 
-eReturnValues scsi_Set_Standby_Timer_State(tDevice* device, bool enable, bool saveChanges)
+eReturnValues scsi_Set_Standby_Timer_State(const tDevice* device, bool enable, bool saveChanges)
 {
     powerConditionSettings standbyTimer;
     safe_memset(&standbyTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
@@ -2469,10 +2469,10 @@ eReturnValues scsi_Set_Standby_Timer_State(tDevice* device, bool enable, bool sa
     return scsi_Set_Legacy_Power_Conditions(device, false, &standbyTimer, M_NULLPTR, saveChanges);
 }
 
-eReturnValues set_Standby_Timer(tDevice* device,
-                                uint32_t hundredMillisecondIncrements,
-                                bool     restoreToDefault,
-                                bool     saveChanges)
+eReturnValues set_Standby_Timer(const tDevice* device,
+                                uint32_t       hundredMillisecondIncrements,
+                                bool           restoreToDefault,
+                                bool           saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2506,7 +2506,7 @@ eReturnValues set_Standby_Timer(tDevice* device,
     return ret;
 }
 
-eReturnValues scsi_Set_Idle_Timer_State(tDevice* device, bool enable, bool saveChanges)
+eReturnValues scsi_Set_Idle_Timer_State(const tDevice* device, bool enable, bool saveChanges)
 {
     powerConditionSettings idleTimer;
     safe_memset(&idleTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
@@ -2517,10 +2517,10 @@ eReturnValues scsi_Set_Idle_Timer_State(tDevice* device, bool enable, bool saveC
     return scsi_Set_Legacy_Power_Conditions(device, false, M_NULLPTR, &idleTimer, saveChanges);
 }
 
-eReturnValues set_Idle_Timer(tDevice* device,
-                             uint32_t hundredMillisecondIncrements,
-                             bool     restoreToDefault,
-                             bool     saveChanges)
+eReturnValues set_Idle_Timer(const tDevice* device,
+                             uint32_t       hundredMillisecondIncrements,
+                             bool           restoreToDefault,
+                             bool           saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -2544,9 +2544,9 @@ eReturnValues set_Idle_Timer(tDevice* device,
     return ret;
 }
 
-eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevice* device,
-                                                                          bool*    supported,
-                                                                          bool*    enabled)
+eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(const tDevice* device,
+                                                                          bool*          supported,
+                                                                          bool*          enabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
@@ -2582,7 +2582,7 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(tDevic
     return ret;
 }
 
-eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevice* device, bool enable)
+eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(const tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
@@ -2613,7 +2613,9 @@ eReturnValues sata_Set_Device_Initiated_Interface_Power_State_Transitions(tDevic
     return ret;
 }
 
-eReturnValues sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice* device, bool* supported, bool* enabled)
+eReturnValues sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(const tDevice* device,
+                                                                        bool*          supported,
+                                                                        bool*          enabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
@@ -2649,7 +2651,7 @@ eReturnValues sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice*
     return ret;
 }
 
-eReturnValues sata_Set_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice* device, bool enable)
+eReturnValues sata_Set_Device_Automatic_Partial_To_Slumber_Transtisions(const tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
@@ -2687,7 +2689,7 @@ eReturnValues sata_Set_Device_Automatic_Partial_To_Slumber_Transtisions(tDevice*
     return ret;
 }
 
-eReturnValues transition_To_Active(tDevice* device)
+eReturnValues transition_To_Active(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE)
@@ -2715,7 +2717,7 @@ eReturnValues transition_To_Active(tDevice* device)
     return ret;
 }
 
-eReturnValues transition_To_Standby(tDevice* device)
+eReturnValues transition_To_Standby(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2739,7 +2741,7 @@ eReturnValues transition_To_Standby(tDevice* device)
     return ret;
 }
 
-eReturnValues transition_To_Idle(tDevice* device, bool unload)
+eReturnValues transition_To_Idle(const tDevice* device, bool unload)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2784,7 +2786,7 @@ eReturnValues transition_To_Idle(tDevice* device, bool unload)
     return ret;
 }
 
-eReturnValues transition_To_Sleep(tDevice* device)
+eReturnValues transition_To_Sleep(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2803,13 +2805,13 @@ eReturnValues transition_To_Sleep(tDevice* device)
     return ret;
 }
 
-eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
-                                       bool     enablePartial,
-                                       bool     enableSlumber,
-                                       bool     partialValid,
-                                       bool     slumberValid,
-                                       bool     allPhys,
-                                       uint8_t  phyNumber)
+eReturnValues scsi_Set_Partial_Slumber(const tDevice* device,
+                                       bool           enablePartial,
+                                       bool           enableSlumber,
+                                       bool           partialValid,
+                                       bool           slumberValid,
+                                       bool           allPhys,
+                                       uint8_t        phyNumber)
 {
     eReturnValues ret = SUCCESS;
     if (!partialValid && !slumberValid)
@@ -2941,7 +2943,7 @@ eReturnValues scsi_Set_Partial_Slumber(tDevice* device,
     return ret;
 }
 
-eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8_t* phyCount)
+eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(const tDevice* device, uint8_t* phyCount)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE
@@ -2982,7 +2984,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(tDevice* device, uint8
     return ret;
 }
 
-eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(tDevice*            device,
+eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(const tDevice*      device,
                                                                     bool                allPhys,
                                                                     uint8_t             phyNumber,
                                                                     ptrSasEnhPhyControl enhPhyControlData,
@@ -3152,7 +3154,7 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
     print_str("\n");
 }
 
-eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info)
+eReturnValues get_PUIS_Info(const tDevice* device, ptrPuisInfo info)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -3190,7 +3192,7 @@ eReturnValues get_PUIS_Info(tDevice* device, ptrPuisInfo info)
     return ret;
 }
 
-eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable)
+eReturnValues enable_Disable_PUIS_Feature(const tDevice* device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -3212,7 +3214,7 @@ eReturnValues enable_Disable_PUIS_Feature(tDevice* device, bool enable)
     return ret;
 }
 
-eReturnValues puis_Spinup(tDevice* device)
+eReturnValues puis_Spinup(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)

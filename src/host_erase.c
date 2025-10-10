@@ -32,12 +32,12 @@
 #include "operations_Common.h"
 #include "platform_helper.h"
 
-eReturnValues erase_Range(tDevice* device,
-                          uint64_t eraseRangeStart,
-                          uint64_t eraseRangeEnd,
-                          uint8_t* pattern,
-                          uint32_t patternLength,
-                          bool     hideLBACounter)
+eReturnValues erase_Range(const tDevice* device,
+                          uint64_t       eraseRangeStart,
+                          uint64_t       eraseRangeEnd,
+                          uint8_t*       pattern,
+                          uint32_t       patternLength,
+                          bool           hideLBACounter)
 {
     eReturnValues ret         = SUCCESS;
     uint32_t      sectors     = get_Sector_Count_For_Read_Write(device);
@@ -189,12 +189,12 @@ eReturnValues erase_Range(tDevice* device,
     return ret;
 }
 
-eReturnValues erase_Time(tDevice* device,
-                         uint64_t eraseStartLBA,
-                         uint64_t eraseTime,
-                         uint8_t* pattern,
-                         uint32_t patternLength,
-                         bool     hideLBACounter)
+eReturnValues erase_Time(const tDevice* device,
+                         uint64_t       eraseStartLBA,
+                         uint64_t       eraseTime,
+                         uint8_t*       pattern,
+                         uint32_t       patternLength,
+                         bool           hideLBACounter)
 {
     eReturnValues ret         = UNKNOWN;
     time_t        currentTime = 0;
@@ -313,7 +313,7 @@ eReturnValues erase_Time(tDevice* device,
 }
 
 // This erases the first 32KiB and last 32 KiB of the drive.
-eReturnValues erase_Boot_Sectors(tDevice* device)
+eReturnValues erase_Boot_Sectors(const tDevice* device)
 {
     eReturnValues ret         = SUCCESS;
     uint32_t      sectors     = get_Sector_Count_For_Read_Write(device);

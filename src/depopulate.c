@@ -30,7 +30,7 @@
 #include "platform_helper.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
 
-bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTime)
+bool is_Depopulation_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -101,16 +101,23 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
             getElementStatusSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
             supported = true;
-            if (depopulationTime != M_NULLPTR)
+        }
+        if (depopulationTime != M_NULLPTR)
+        {
+            *depopulationTime = UINT64_MAX;
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
+            if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
+                                        BLOCK_DEVICE_CHARACTERISTICS, true, false))
             {
-                *depopulationTime = UINT64_MAX;
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
-                if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
-                                            BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                *depopulationTime = M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
+                                                        blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+                // Work around for SATLs
+                // Some do not support report supported operation codes, so this relies on this field being non-zero.
+                // Only flip this if the commands above are reporting "unknown" which means the lookup returned
+                // something like invalid command operation code, or something like that.
+                if (!supported && *depopulationTime > 0 && getElementStatusSupported == SCSI_CMD_SUPPORT_UNKNOWN)
                 {
-                    *depopulationTime =
-                        M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
-                                            blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+                    supported = true;
                 }
             }
         }
@@ -118,7 +125,7 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
     return supported;
 }
 
-eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors)
+eReturnValues get_Number_Of_Descriptors(const tDevice* device, uint32_t* numberOfDescriptors)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -150,7 +157,7 @@ eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescr
     return ret;
 }
 
-eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
+eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
                                                  uint32_t           numberOfElementsExpected,
                                                  uint32_t*          depopElementID,
                                                  uint16_t*          maximumDepopulatedElements,
@@ -280,7 +287,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
     return ret;
 }
 
-eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
+eReturnValues get_Physical_Element_Descriptors(const tDevice*     device,
                                                uint32_t           numberOfElementsExpected,
                                                ptrPhysicalElement elementList)
 {
@@ -417,10 +424,10 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
 }
 
 // NOTE: This definition belongs in opensea-transport cmds.h/.c
-eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
+eReturnValues depopulate_Physical_Element(const tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -435,7 +442,7 @@ eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescr
     return ret;
 }
 
-static eReturnValues ata_get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
+static eReturnValues ata_get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret                       = NOT_SUPPORTED;
     bool          workaroundIncompleteSense = false;
@@ -555,7 +562,7 @@ static eReturnValues ata_get_Depopulate_Progress(tDevice* device, eDepopStatus* 
     return ret;
 }
 
-static eReturnValues scsi_get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
+static eReturnValues scsi_get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
@@ -638,7 +645,7 @@ static eReturnValues scsi_get_Depopulate_Progress(tDevice* device, eDepopStatus*
 // NOTE: This may NOT give percentage. This will happen on ATA drives, but you can check that it is still running or
 // not. - TJE On ATA drives, if in progress, the progress variable will get set to 255 since it is not possible to
 // determine actual progress
-eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
+eReturnValues get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -659,7 +666,7 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
     return ret;
 }
 
-eReturnValues show_Depop_Repop_Progress(tDevice* device)
+eReturnValues show_Depop_Repop_Progress(const tDevice* device)
 {
     eReturnValues ret         = NOT_SUPPORTED;
     eDepopStatus  depopStatus = DEPOP_NOT_IN_PROGRESS;
@@ -746,7 +753,7 @@ static M_INLINE void print_Depop_Start(uint64_t depopTime, const char* operation
 M_NONNULL_PARAM_LIST(1)
 M_NULL_TERM_STRING(3)
 M_PARAM_RO(3)
-static eReturnValues determine_Depop_Failure_Reason(tDevice*      device,
+static eReturnValues determine_Depop_Failure_Reason(const tDevice*      device,
                                                     eReturnValues ret,
                                                     const char*   operation,
                                                     uint32_t      elementDescriptorID,
@@ -852,7 +859,7 @@ static eReturnValues determine_Depop_Failure_Reason(tDevice*      device,
 M_NONNULL_PARAM_LIST(1)
 M_NULL_TERM_STRING(3)
 M_PARAM_RO(3)
-static eReturnValues check_Depop_Command_Result_SCSI(tDevice*      device,
+static eReturnValues check_Depop_Command_Result_SCSI(const tDevice*      device,
                                                      eReturnValues ret,
                                                      const char*   operation,
                                                      uint32_t      elementDescriptorID,
@@ -888,7 +895,7 @@ static eReturnValues check_Depop_Command_Result_SCSI(tDevice*      device,
 M_NONNULL_PARAM_LIST(1, 3)
 M_NULL_TERM_STRING(3)
 M_PARAM_RO(3)
-static eReturnValues check_Depop_Command_Result_ATA(tDevice*      device,
+static eReturnValues check_Depop_Command_Result_ATA(const tDevice*      device,
                                                     eReturnValues ret,
                                                     const char*   operation,
                                                     uint32_t      elementDescriptorID,
@@ -965,7 +972,7 @@ static eReturnValues check_Depop_Command_Result_ATA(tDevice*      device,
 }
 
 M_NONNULL_PARAM_LIST(1, 2)
-M_NULL_TERM_STRING(2) M_PARAM_RO(2) static eReturnValues poll_Depop_Progress(tDevice* device, const char* operation)
+M_NULL_TERM_STRING(2) M_PARAM_RO(2) static eReturnValues poll_Depop_Progress(const tDevice* device, const char* operation)
 {
     eReturnValues ret = SUCCESS;
     // SCSI and ATA will be handled differently.
@@ -1019,19 +1026,19 @@ M_NULL_TERM_STRING(2) M_PARAM_RO(2) static eReturnValues poll_Depop_Progress(tDe
     return ret;
 }
 
-eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
-                                                  uint32_t elementDescriptorID,
-                                                  uint64_t requestedMaxLBA,
-                                                  bool     pollForProgress)
+eReturnValues perform_Depopulate_Physical_Element(const tDevice* device,
+                                                  uint32_t       elementDescriptorID,
+                                                  uint64_t       requestedMaxLBA,
+                                                  bool           pollForProgress)
 {
     return perform_Depopulate_Physical_Element2(device, elementDescriptorID, requestedMaxLBA, pollForProgress, false);
 }
 
-eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
-                                                   uint32_t elementDescriptorID,
-                                                   uint64_t requestedMaxLBA,
-                                                   bool     pollForProgress,
-                                                   bool     modifyZones)
+eReturnValues perform_Depopulate_Physical_Element2(const tDevice* device,
+                                                   uint32_t       elementDescriptorID,
+                                                   uint64_t       requestedMaxLBA,
+                                                   bool           pollForProgress,
+                                                   bool           modifyZones)
 {
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);
@@ -1073,7 +1080,7 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
     return ret;
 }
 
-static bool is_Depopulate_And_Modify_Zones_Supported_ATA(tDevice* device, uint64_t* depopulationTime)
+static bool is_Depopulate_And_Modify_Zones_Supported_ATA(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     // support is listed in the ID Data log, supported capabilities page
@@ -1138,7 +1145,7 @@ static bool is_Depopulate_And_Modify_Zones_Supported_ATA(tDevice* device, uint64
     return supported;
 }
 
-static bool is_Depopulate_And_Modify_Zones_Supported_SCSI(tDevice* device, uint64_t* depopulationTime)
+static bool is_Depopulate_And_Modify_Zones_Supported_SCSI(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     // send some report supported operation code commands to figure it out
@@ -1166,7 +1173,7 @@ static bool is_Depopulate_And_Modify_Zones_Supported_SCSI(tDevice* device, uint6
     return supported;
 }
 
-bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime)
+bool is_Depopulate_And_Modify_Zones_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1181,10 +1188,10 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
 }
 
 // NOTE: This definition belongs in opensea-transport cmds.h/.c
-eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
+eReturnValues depopulate_Physical_Element_And_Modify_Zones(const tDevice* device, uint32_t elementDescriptorID)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1199,7 +1206,7 @@ eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint
     return ret;
 }
 
-static bool is_Repopulate_Feature_Supported_ATA(tDevice* device, uint64_t* depopulationTime)
+static bool is_Repopulate_Feature_Supported_ATA(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     // support is listed in the ID Data log, supported capabilities page
@@ -1248,7 +1255,7 @@ static bool is_Repopulate_Feature_Supported_ATA(tDevice* device, uint64_t* depop
     return supported;
 }
 
-static bool is_Repopulate_Feature_Supported_SCSI(tDevice* device, uint64_t* depopulationTime)
+static bool is_Repopulate_Feature_Supported_SCSI(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     // send some report supported operation code commands to figure it out
@@ -1276,7 +1283,7 @@ static bool is_Repopulate_Feature_Supported_SCSI(tDevice* device, uint64_t* depo
     return supported;
 }
 
-bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime)
+bool is_Repopulate_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1290,10 +1297,10 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
     return supported;
 }
 
-eReturnValues repopulate_Elements(tDevice* device)
+eReturnValues repopulate_Elements(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1308,7 +1315,7 @@ eReturnValues repopulate_Elements(tDevice* device)
     return ret;
 }
 
-eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForProgress)
+eReturnValues perform_Repopulate_Physical_Element(const tDevice* device, bool pollForProgress)
 {
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);

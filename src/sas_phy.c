@@ -26,7 +26,7 @@
 
 #include "sas_phy.h"
 
-bool is_SAS_Phy_Diagnostic_Page_Supported(tDevice* device)
+bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* device)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedDiagnosticPages, 50);
     if (SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 50, supportedDiagnosticPages, 50, 15) &&
@@ -107,7 +107,7 @@ static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t                 diagP
     return ret;
 }
 
-eReturnValues start_SAS_Test_Pattern(tDevice*                device,
+eReturnValues start_SAS_Test_Pattern(const tDevice*          device,
                                      uint8_t                 phyIdentifier,
                                      eSASPhyTestPattern      pattern,
                                      bool                    sataTestFunction,
@@ -128,7 +128,7 @@ eReturnValues start_SAS_Test_Pattern(tDevice*                device,
     return ret;
 }
 
-eReturnValues stop_SAS_Test_Pattern(tDevice* device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
+eReturnValues stop_SAS_Test_Pattern(const tDevice* device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
 {
     eReturnValues ret = SUCCESS;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, sasDiagPage, 32);

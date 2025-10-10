@@ -27,7 +27,7 @@
 #include "cmds.h"
 #include "sector_repair.h"
 
-static eReturnValues reallocate_LBAs(tDevice* device, ptrErrorLBA LBA)
+static eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA LBA)
 {
     eReturnValues ret       = SUCCESS;
     bool          longLBA   = false;
@@ -261,7 +261,7 @@ static eReturnValues reallocate_LBAs(tDevice* device, ptrErrorLBA LBA)
     return ret;
 }
 
-eReturnValues repair_LBA(tDevice*    device,
+eReturnValues repair_LBA(const tDevice*    device,
                          ptrErrorLBA LBA,
                          bool        forcePassthroughCommand,
                          bool        automaticWriteReallocationEnabled,
@@ -450,9 +450,9 @@ void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
     }
 }
 
-eReturnValues get_Automatic_Reallocation_Support(tDevice* device,
-                                                 bool*    automaticWriteReallocationEnabled,
-                                                 bool*    automaticReadReallocationEnabled)
+eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
+                                                 bool*          automaticWriteReallocationEnabled,
+                                                 bool*          automaticReadReallocationEnabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE

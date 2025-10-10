@@ -41,6 +41,16 @@ extern "C"
         FWDL_UPDATE_MODE_AUTOMATIC = 0xFF // This will look up the best possible mode for you!
     } eFirmwareUpdateMode;
 
+//! \def FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO
+//! \brief automatically chooses the size for you based on drive reporting and
+//! known OS limitations
+#define FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO (0)
+
+//! \def DEFAULT_FWDL_SEGMENT_SIZE
+//! \brief the default segment size used if \a FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO
+//! is specified. This is 32k per segment.
+#define DEFAULT_FWDL_SEGMENT_SIZE    (64)
+
 #define FIRMWARE_UPDATE_DATA_VERSION 3
 
     typedef struct s_firmwareUpdateData
@@ -87,7 +97,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* options);
 
     // See extended inquiry VPD page in SPC spec for details
     typedef enum eSCSIMicrocodeActivationEnum
@@ -151,7 +162,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
+    //  get_Supported_FWDL_Modes(const tDevice *device, ptrSupportedDLModes supportedModes)
     //
     //! \brief   Description:  This function will print out the supported firmware information reported by the drive.
     //!          Note: For SAS, this may not be accurate on older products that don't support the "report supported
@@ -170,11 +181,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(const tDevice*      device,
+                                                                  ptrSupportedDLModes supportedModes);
 
     //-----------------------------------------------------------------------------
     //
-    //  show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
+    //  show_Supported_FWDL_Modes(const tDevice *device, ptrSupportedDLModes supportedModes)
     //
     //! \brief   Description:  This function will print out the supported firmware information reported by the drive.
     //
@@ -189,7 +201,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes);
 
 #if defined(__cplusplus)
 }

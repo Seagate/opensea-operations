@@ -135,7 +135,7 @@ extern "C"
     //! \param[in] device pointer to the device structure representing the drive to check
     //! \return true means supported, false means not supported.
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool sat_ATA_Security_Protocol_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool sat_ATA_Security_Protocol_Supported(const tDevice* device);
 
     //! \struct ataSecurityStatus
     //! \brief This structure holds all ATA security information that can be read from the device.
@@ -209,7 +209,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API
-    void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
+    void get_ATA_Security_Info(const tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
 
     //! \fn void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported);
     //! \brief Prints the ATA Security info to stdout
@@ -270,7 +270,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(const tDevice*      device,
                                                                        ataSecurityPassword ataPassword,
                                                                        bool                useSAT);
 
@@ -286,7 +286,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(const tDevice*      device,
                                                                    ataSecurityPassword ataPassword,
                                                                    bool                useSAT);
 
@@ -302,7 +302,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(const tDevice*      device,
                                                              ataSecurityPassword ataPassword,
                                                              bool                useSAT);
 
@@ -328,7 +328,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(tDevice*              device,
+    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(const tDevice*        device,
                                                                   ataSecurityPassword   ataPassword,
                                                                   eATASecurityEraseType eraseType,
                                                                   uint32_t              timeout,
@@ -353,7 +353,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(tDevice*              device,
+    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(const tDevice*        device,
                                                                 eATASecurityEraseType eraseType,
                                                                 ataSecurityPassword   ataPassword,
                                                                 bool                  forceSATvalid,
@@ -375,7 +375,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
                                                                            ataSecurityPassword ataPassword,
                                                                            bool                forceSATvalid,
                                                                            bool                forceSAT);
@@ -396,7 +396,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
                                                                        ataSecurityPassword ataPassword,
                                                                        bool                forceSATvalid,
                                                                        bool                forceSAT);
@@ -417,7 +417,7 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(tDevice*            device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
                                                                  ataSecurityPassword ataPassword,
                                                                  bool                forceSATvalid,
                                                                  bool                forceSAT);
@@ -435,7 +435,9 @@ extern "C"
     //! other values may be returned if some other failure occurs.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(tDevice* device, bool forceSATvalid, bool forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(const tDevice* device,
+                                                                 bool           forceSATvalid,
+                                                                 bool           forceSAT);
 
 #if defined(__cplusplus)
 }

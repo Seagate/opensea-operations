@@ -24,7 +24,7 @@
 
 #include "zoned_operations.h"
 
-eReturnValues get_Number_Of_Zones(tDevice*              device,
+eReturnValues get_Number_Of_Zones(const tDevice*        device,
                                   eZoneReportingOptions reportingOptions,
                                   uint64_t              startingLBA,
                                   uint32_t*             numberOfMatchingZones)
@@ -60,7 +60,7 @@ eReturnValues get_Number_Of_Zones(tDevice*              device,
     return SUCCESS;
 }
 
-eReturnValues get_Zone_Descriptors(tDevice*              device,
+eReturnValues get_Zone_Descriptors(const tDevice*        device,
                                    eZoneReportingOptions reportingOptions,
                                    uint64_t              startingLBA,
                                    uint32_t              numberOfZoneDescriptors,
