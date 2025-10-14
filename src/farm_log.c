@@ -171,7 +171,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmCurrentLog.alloclen ||
                         ferror(tempFile))
                     {
-                        printf("error in writing farmcurrent.bin file\n");
+                        print_str("error in writing farmcurrent.bin file\n");
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFile);
@@ -182,7 +182,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm Current log\n");
+                    print_str("Error pulling Farm Current log\n");
                 }
             }
 
@@ -207,7 +207,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmFactoryLog.alloclen ||
                         ferror(tempFile))
                     {
-                        printf("error in writing farmfactory.bin file\n");
+                        print_str("error in writing farmfactory.bin file\n");
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFile);
@@ -218,7 +218,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm Factory log\n");
+                    print_str("Error pulling Farm Factory log\n");
                 }
             }
 
@@ -243,7 +243,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmSavedLog.alloclen ||
                         ferror(tempFile))
                     {
-                        printf("error in writing farmsaved.bin file\n");
+                        print_str("error in writing farmsaved.bin file\n");
                         return ERROR_WRITING_FILE;
                     }
                     fclose(tempFile);
@@ -254,7 +254,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm Saved log\n");
+                    print_str("Error pulling Farm Saved log\n");
                 }
             }
         }
@@ -288,7 +288,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                                tempFileTimeseries) != farmTimeSeriesLog.alloclen ||
                         ferror(tempFileTimeseries))
                     {
-                        printf("error in writing farmtimeseries.bin file\n");
+                        print_str("error in writing farmtimeseries.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -312,7 +312,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmLongSavedLog.alloclen ||
                         ferror(tempFileLongSave))
                     {
-                        printf("error in writing farmlongsaved.bin file\n");
+                        print_str("error in writing farmlongsaved.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -337,7 +337,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmStickyLog.alloclen ||
                         ferror(tempFileSticky))
                     {
-                        printf("error in writing farmsticky.bin file\n");
+                        print_str("error in writing farmsticky.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -349,7 +349,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm Time series log\n");
+                    print_str("Error pulling Farm Time series log\n");
                 }
             }
             safe_free_aligned(&farmTimeSeriesFramesLog);
@@ -382,7 +382,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmWorkLoadTraceLog.alloclen ||
                         ferror(tempFile))
                     {
-                        printf("error in writing farmworkloadtrace.bin file\n");
+                        print_str("error in writing farmworkloadtrace.bin file\n");
                         safe_free_aligned(&farmWorkloadTraceFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -394,7 +394,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm workload trace log\n");
+                    print_str("Error pulling Farm workload trace log\n");
                 }
             }
             safe_free_aligned(&farmWorkloadTraceFramesLog);
@@ -431,7 +431,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmCurrentLog.alloclen ||
                         ferror(tempCurrentFile))
                     {
-                        printf("error in writing farmcurrent.bin file\n");
+                        print_str("error in writing farmcurrent.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -455,7 +455,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmSavedLog.alloclen ||
                         ferror(tempSavedFile))
                     {
-                        printf("error in writing farmsaved.bin file\n");
+                        print_str("error in writing farmsaved.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -480,7 +480,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                                tempTimeSeriesFile) != farmTimeSeriesLog.alloclen ||
                         ferror(tempTimeSeriesFile))
                     {
-                        printf("error in writing farmtimeseries.bin file\n");
+                        print_str("error in writing farmtimeseries.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -506,7 +506,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmLongSavedLog.alloclen ||
                         ferror(tempLongSavedFile))
                     {
-                        printf("error in writing farmlongsaved.bin file\n");
+                        print_str("error in writing farmlongsaved.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -532,7 +532,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmStickyLog.alloclen ||
                         ferror(tempStickyFile))
                     {
-                        printf("error in writing farmsticky.bin file\n");
+                        print_str("error in writing farmsticky.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -559,7 +559,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmFactoryLog.alloclen ||
                         ferror(tempFactoryFile))
                     {
-                        printf("error in writing farmfactory.bin file\n");
+                        print_str("error in writing farmfactory.bin file\n");
                         safe_free_aligned(&farmTimeSeriesFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -571,7 +571,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm Time series log\n");
+                    print_str("Error pulling Farm Time series log\n");
                 }
             }
             safe_free_aligned(&farmTimeSeriesFramesLog);
@@ -604,7 +604,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                             farmWorkLoadTraceLog.alloclen ||
                         ferror(tempFile))
                     {
-                        printf("error in writing farmworkloadtrace.bin file\n");
+                        print_str("error in writing farmworkloadtrace.bin file\n");
                         safe_free_aligned(&farmWorkloadTraceFramesLog);
                         return ERROR_WRITING_FILE;
                     }
@@ -616,7 +616,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm workload trace log\n");
+                    print_str("Error pulling Farm workload trace log\n");
                 }
             }
             safe_free_aligned(&farmWorkloadTraceFramesLog);
@@ -760,7 +760,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
             // print error
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Error pulling Farm Current log\n");
+                print_str("Error pulling Farm Current log\n");
             }
         }
         else
@@ -779,7 +779,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
                         farmCurrentLog.alloclen ||
                     ferror(tempFile))
                 {
-                    printf("error in writing farmcurrent.bin file\n");
+                    print_str("error in writing farmcurrent.bin file\n");
                     return ERROR_WRITING_FILE;
                 }
                 fclose(tempFile);
@@ -799,7 +799,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
             // print error
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Error pulling Farm Factory log\n");
+                print_str("Error pulling Farm Factory log\n");
             }
         }
         else
@@ -818,7 +818,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
                         farmFactoryLog.alloclen ||
                     ferror(tempFile))
                 {
-                    printf("error in writing farmfactory.bin file\n");
+                    print_str("error in writing farmfactory.bin file\n");
                     return ERROR_WRITING_FILE;
                 }
                 fclose(tempFile);
@@ -866,12 +866,12 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
             errno_t fileopenerr = safe_fopen(&tempFile, "farmtimeseries.bin", "w+b");
             if (fileopenerr == 0 && tempFile != M_NULLPTR)
             {
-                printf("writing into farmtimeseries.bin file\n");
+                print_str("writing into farmtimeseries.bin file\n");
                 if (fwrite(farmTimeSeriesLog.ptr, sizeof(uint8_t), farmTimeSeriesLog.alloclen, tempFile) !=
                         farmTimeSeriesLog.alloclen ||
                     ferror(tempFile))
                 {
-                    printf("error in writing farmtimeseries.bin file\n");
+                    print_str("error in writing farmtimeseries.bin file\n");
                     return ERROR_WRITING_FILE;
                 }
                 fclose(tempFile);
@@ -938,7 +938,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
                         farmLongSavedLog.alloclen ||
                     ferror(tempFile))
                 {
-                    printf("error in writing farmlongsaved.bin file\n");
+                    print_str("error in writing farmlongsaved.bin file\n");
                     return ERROR_WRITING_FILE;
                 }
                 fclose(tempFile);
@@ -990,7 +990,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
                         farmStickyLog.alloclen ||
                     ferror(tempFile))
                 {
-                    printf("error in writing farmsticky.bin file\n");
+                    print_str("error in writing farmsticky.bin file\n");
                     return ERROR_WRITING_FILE;
                 }
                 fclose(tempFile);
@@ -1086,7 +1086,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
             {
                 if (SEC_FILE_SUCCESS != secure_Close_File(farmFile))
                 {
-                    printf("Error closing file!\n");
+                    print_str("Error closing file!\n");
                 }
                 free_Secure_File_Info(&farmFile);
                 returnValue = ERROR_WRITING_FILE;
@@ -1096,7 +1096,7 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
         {
             if (SEC_FILE_SUCCESS != secure_Close_File(farmFile))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
             free_Secure_File_Info(&farmFile);
             returnValue = MEMORY_FAILURE;
@@ -1429,7 +1429,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("No Farm log available for this drive.\n");
+                print_str("No Farm log available for this drive.\n");
             }
             returnValue = FAILURE;
             break;
@@ -1466,7 +1466,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
             }
             if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
             free_Secure_File_Info(&farmCombinedLog);
             returnValue = ERROR_WRITING_FILE;
@@ -1487,7 +1487,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1507,7 +1507,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1527,7 +1527,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1547,7 +1547,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1567,7 +1567,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1587,7 +1587,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1607,7 +1607,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1637,7 +1637,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1664,7 +1664,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1691,7 +1691,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1718,7 +1718,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1745,7 +1745,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1772,7 +1772,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1799,7 +1799,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                     }
                     if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
                     {
-                        printf("Error closing file!\n");
+                        print_str("Error closing file!\n");
                     }
                     free_Secure_File_Info(&farmCombinedLog);
                     returnValue = ERROR_WRITING_FILE;
@@ -1816,7 +1816,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
             }
             if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
             {
-                printf("Error closing file!\n");
+                print_str("Error closing file!\n");
             }
             free_Secure_File_Info(&farmCombinedLog);
             returnValue = ERROR_WRITING_FILE;
@@ -1825,7 +1825,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
 
         if (SEC_FILE_SUCCESS != secure_Close_File(farmCombinedLog))
         {
-            printf("Error closing file!\n");
+            print_str("Error closing file!\n");
         }
         free_Secure_File_Info(&farmCombinedLog);
     } while (0);
@@ -2857,24 +2857,24 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Recording_Type(const char
         {
             uint64_t recordingType = get_Farm_Qword_Data(statisticData);
             // TODO: There is likely a better way to deal with this - TJE
-            printf("\t\t");
+            print_str("\t\t");
             if (recordingType & FARM_DRIVE_RECORDING_SMR)
             {
-                printf("SMR");
+                print_str("SMR");
             }
             if (recordingType & FARM_DRIVE_RECORDING_SMR && recordingType & FARM_DRIVE_RECORDING_CMR)
             {
-                printf(", CMR");
+                print_str(", CMR");
             }
             else if (recordingType & FARM_DRIVE_RECORDING_CMR)
             {
-                printf("CMR");
+                print_str("CMR");
             }
-            printf("\n");
+            print_str("\n");
         }
         else
         {
-            printf("\t\tInvalid\n");
+            print_str("\t\tInvalid\n");
         }
     }
 }
@@ -2910,11 +2910,11 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Bool(const char* statisti
             {
                 printf("\t\t%s", printfalse);
             }
-            printf("\n");
+            print_str("\n");
         }
         else
         {
-            printf("\t\tInvalid\n");
+            print_str("\t\tInvalid\n");
         }
     }
 }
@@ -3011,7 +3011,7 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
     {
         if (get_Farm_Qword_Data(driveInfo->pageNumber) == FARM_PAGE_DRIVE_INFO)
         {
-            printf("---Drive Info---\n");
+            print_str("---Drive Info---\n");
             print_Stat_If_Supported_And_Valid_ASCII("Model Number", &driveInfo->modelNumber[0],
                                                     FARM_DRIVE_INFO_MN_ASCII_LEN);
             print_Stat_If_Supported_And_Valid_ASCII("Serial Number", &driveInfo->sn[0], FARM_DRIVE_INFO_SN_ASCII_LEN);
@@ -3104,7 +3104,7 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
     {
         if (get_Farm_Qword_Data(work->pageNumber) == FARM_PAGE_WORKLOAD)
         {
-            printf("---Workload Info---\n");
+            print_str("---Workload Info---\n");
             print_Stat_If_Supported_And_Valid_Uint64("Rated Workload (%)", work->ratedWorkloadPercentage);
             print_Stat_If_Supported_And_Valid_Uint64("Total # of Read Commands", work->totalReadCommands);
             print_Stat_If_Supported_And_Valid_Uint64("Total # of Write Commands", work->totalWriteCommands);
@@ -3406,7 +3406,7 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
     {
         if (get_Farm_Qword_Data(error->pageNumber) == FARM_PAGE_ERROR_STATS)
         {
-            printf("---Error Info---\n");
+            print_str("---Error Info---\n");
             print_Stat_If_Supported_And_Valid_Uint64("# of Unrecoverable Read Errors",
                                                      error->numberOfUnrecoverableReadErrors);
             print_Stat_If_Supported_And_Valid_Uint64("# of Unrecoverable Write Errors",
@@ -3522,7 +3522,7 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
     {
         if (get_Farm_Qword_Data(env->pageNumber) == FARM_PAGE_ENVIRONMENT_STATS)
         {
-            printf("---Environment Info---\n");
+            print_str("---Environment Info---\n");
             print_Stat_If_Supported_And_Valid_int64_Factor("Current Temperature (C)", env->currentTemperature,
                                                            farminterface == FARM_DRIVE_INTERFACE_SAS ? 0.1 : 1.0);
             print_Stat_If_Supported_And_Valid_int64_Factor("Highest Temperature (C)", env->highestTemperature,
@@ -3673,7 +3673,7 @@ static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(const char
             {
                 precision = 5;
             }
-            printf("\t");
+            print_str("\t");
             for (int statNum = 0; statNum < THREE_STATS_IN_ONE; ++statNum)
             {
                 int64_t signedval = M_STATIC_CAST(int64_t, get_Farm_Qword_Data(statisticData[statNum]));
@@ -3686,7 +3686,7 @@ static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(const char
                 }
                 printCnt = printf("\t%0.*f", precision, M_STATIC_CAST(double, signedval) * conversionFactor);
             }
-            printf("\n");
+            print_str("\n");
             if (printCnt > 0)
             {
                 printed = true;
@@ -3722,14 +3722,14 @@ static M_INLINE bool print_3_Stat_If_Supported_And_Valid_Uint64_Factor(const cha
                 precision = 4;
             }
             int printCnt = 0;
-            printf("\t");
+            print_str("\t");
             for (int statNum = 0; statNum < THREE_STATS_IN_ONE; ++statNum)
             {
                 printCnt =
                     printf("\t%.*f", precision,
                            M_STATIC_CAST(double, get_Farm_Qword_Data(statisticData[statNum])) * conversionFactor);
             }
-            printf("\n");
+            print_str("\n");
             if (printCnt > 0)
             {
                 printed = true;
@@ -3834,7 +3834,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
     {
         if (get_Farm_Qword_Data(reli->pageNumber) == FARM_PAGE_RELIABILITY_STATS)
         {
-            printf("---Reliability Info---\n");
+            print_str("---Reliability Info---\n");
             print_Stat_If_Supported_And_Valid_Uint64("# DOS Scans Performed", reli->numDOSScansPerformed);
             print_Stat_If_Supported_And_Valid_Uint64("# LBAs corrected by ISP", reli->numLBAsCorrectedByISP);
             print_Stat_If_Supported_And_Valid_Uint64("# DOS Scans Performed Actuator 1",
@@ -3962,7 +3962,7 @@ void print_FARM_Data(farmLogData* farmdata)
         {
             headcnt = FARM_MAX_HEADS;
         }
-        printf("=== Field Accessible Reliability Metrics ===\n");
+        print_str("=== Field Accessible Reliability Metrics ===\n");
         printf("FARM Version: %" PRIu64 ".%" PRIu64 "\n", get_Farm_Qword_Data(farmdata->header.majorVersion),
                get_Farm_Qword_Data(farmdata->header.minorVersion));
         print_Farm_Drive_Info(&farmdata->driveinfo, &farminterface);

@@ -196,173 +196,372 @@ void show_DCO_Identify_Data(const ptrDcoData data)
     DISABLE_NONNULL_COMPARE
     if (data != M_NULLPTR)
     {
-        printf("\n===============================\n");
-        printf(" DCO Identify Changable Fields \n");
-        printf("===============================\n");
+        print_str("\n===============================\n");
+        print_str(" DCO Identify Changable Fields \n");
+        print_str("===============================\n");
         printf("Data Revision: %" PRIu16 "\n", data->revision);
-        printf("Multi-word DMA modes (MWDMA):\n");
+        print_str("Multi-word DMA modes (MWDMA):\n");
         if (data->mwdma.mwdma2)
         {
-            printf("\tMWDMA 2 (16.7 MB/s)\n");
+            print_str("\tMWDMA 2 (16.7 MB/s)\n");
         }
         if (data->mwdma.mwdma1)
         {
-            printf("\tMWDMA 1 (13.3 MB/s)\n");
+            print_str("\tMWDMA 1 (13.3 MB/s)\n");
         }
         if (data->mwdma.mwdma0)
         {
-            printf("\tMWDMA 0 (4.2 MB/s)\n");
+            print_str("\tMWDMA 0 (4.2 MB/s)\n");
         }
-        printf("Ultra DMA modes (UDMA):\n");
+        print_str("Ultra DMA modes (UDMA):\n");
         if (data->udma.udma6)
         {
-            printf("\tUDMA 6 (133 MB/s)\n");
+            print_str("\tUDMA 6 (133 MB/s)\n");
         }
         if (data->udma.udma5)
         {
-            printf("\tUDMA 5 (100 MB/s)\n");
+            print_str("\tUDMA 5 (100 MB/s)\n");
         }
         if (data->udma.udma4)
         {
-            printf("\tUDMA 4 (66.7 MB/s)\n");
+            print_str("\tUDMA 4 (66.7 MB/s)\n");
         }
         if (data->udma.udma3)
         {
-            printf("\tUDMA 3 (44.4 MB/s)\n");
+            print_str("\tUDMA 3 (44.4 MB/s)\n");
         }
         if (data->udma.udma2)
         {
-            printf("\tUDMA 2 (33.3 MB/s)\n");
+            print_str("\tUDMA 2 (33.3 MB/s)\n");
         }
         if (data->udma.udma1)
         {
-            printf("\tUDMA 1 (25 MB/s)\n");
+            print_str("\tUDMA 1 (25 MB/s)\n");
         }
         if (data->udma.udma0)
         {
-            printf("\tUDMA 0 (16.7 MB/s)\n");
+            print_str("\tUDMA 0 (16.7 MB/s)\n");
         }
         printf("Maximum LBA: %" PRIu64 "\n", data->maxLBA);
-        printf("Command set/Features 1:\n");
+        print_str("Command set/Features 1:\n");
         if (data->feat1.writeReadVerify)
         {
-            printf("\tWrite-Read-Verify\n");
+            print_str("\tWrite-Read-Verify\n");
         }
         if (data->feat1.smartConveyanceSelfTest)
         {
-            printf("\tSMART Conveyance Self-test\n");
+            print_str("\tSMART Conveyance Self-test\n");
         }
         if (data->feat1.smartSelectiveSelfTest)
         {
-            printf("\tSMART Selective Self-test\n");
+            print_str("\tSMART Selective Self-test\n");
         }
         if (data->feat1.forceUnitAccess)
         {
-            printf("\tForced Unit Access\n");
+            print_str("\tForced Unit Access\n");
         }
         if (data->feat1.timeLimitedCommands)
         {
-            printf("\tTime Limited Commands (TLC)\n");
+            print_str("\tTime Limited Commands (TLC)\n");
         }
         if (data->feat1.streaming)
         {
-            printf("\tStreaming\n");
+            print_str("\tStreaming\n");
         }
         if (data->feat1.fourtyEightBitAddress)
         {
-            printf("\t48-bit Addressing\n");
+            print_str("\t48-bit Addressing\n");
         }
         if (data->feat1.hostProtectedArea)
         {
-            printf("\tHost Protected Area (HPA)\n");
+            print_str("\tHost Protected Area (HPA)\n");
         }
         if (data->feat1.automaticAccousticManagement)
         {
-            printf("\tAutomatic Acoustic Management (AAM)\n");
+            print_str("\tAutomatic Acoustic Management (AAM)\n");
         }
         if (data->feat1.readWriteDMAQueued)
         {
-            printf("\tRead/Write DMA Queued (TCQ)\n");
+            print_str("\tRead/Write DMA Queued (TCQ)\n");
         }
         if (data->feat1.powerUpInStandby)
         {
-            printf("\tPower Up In Standby (PUIS)\n");
+            print_str("\tPower Up In Standby (PUIS)\n");
         }
         if (data->feat1.ATAsecurity)
         {
-            printf("\tATA Security\n");
+            print_str("\tATA Security\n");
         }
         if (data->feat1.smartErrorLog)
         {
-            printf("\tSMART Error Logging\n");
+            print_str("\tSMART Error Logging\n");
         }
         if (data->feat1.smartSelfTest)
         {
-            printf("\tSMART Self-test\n");
+            print_str("\tSMART Self-test\n");
         }
         if (data->feat1.smartFeature)
         {
-            printf("\tSMART Feature\n");
+            print_str("\tSMART Feature\n");
         }
-        printf("SATA Command set/Features:\n");
+        print_str("SATA Command set/Features:\n");
         if (data->sataFeat.softwareSettingsPreservation)
         {
-            printf("\tSoftware Settings Preservation (SSP)\n");
+            print_str("\tSoftware Settings Preservation (SSP)\n");
         }
         if (data->sataFeat.asynchronousNotification)
         {
-            printf("\tAsynchronous Notification\n");
+            print_str("\tAsynchronous Notification\n");
         }
         if (data->sataFeat.interfacePowerManagement)
         {
-            printf("\tInterface Power Management\n");
+            print_str("\tInterface Power Management\n");
         }
         if (data->sataFeat.nonZeroBufferOffsets)
         {
-            printf("\tNon-zero Buffer Offsets\n");
+            print_str("\tNon-zero Buffer Offsets\n");
         }
         if (data->sataFeat.ncqFeature)
         {
-            printf("\tNative Command Queueing Feature (NCQ)\n");
+            print_str("\tNative Command Queueing Feature (NCQ)\n");
         }
-        printf("Command set/Features 2:\n");
+        print_str("Command set/Features 2:\n");
         if (data->feat2.nvCache)
         {
-            printf("\tNon-Volatile Cache (NV Cache)\n");
+            print_str("\tNon-Volatile Cache (NV Cache)\n");
         }
         if (data->feat2.nvCachePowerManagement)
         {
-            printf("\tNV Cache Power Management\n");
+            print_str("\tNV Cache Power Management\n");
         }
         if (data->feat2.writeUncorrectable)
         {
-            printf("\tWrite Uncorrectable\n");
+            print_str("\tWrite Uncorrectable\n");
         }
         if (data->feat2.trustedComputing)
         {
-            printf("\tTrusted Computing (TCG)\n");
+            print_str("\tTrusted Computing (TCG)\n");
         }
         if (data->feat2.freeFall)
         {
-            printf("\tFree-fall Control\n");
+            print_str("\tFree-fall Control\n");
         }
         if (data->feat2.dataSetManagement)
         {
-            printf("\tData Set Management (TRIM)\n");
+            print_str("\tData Set Management (TRIM)\n");
         }
         if (data->feat2.extendedPowerConditions)
         {
-            printf("\tExtended Power Conditions (EPC)\n");
+            print_str("\tExtended Power Conditions (EPC)\n");
         }
         if (!data->validChecksum)
         {
-            printf("WARNING: Drive returned invalid checksum on DCO Identify data!\n");
+            print_str("WARNING: Drive returned invalid checksum on DCO Identify data!\n");
         }
     }
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues dco_Set(const tDevice* device, const ptrDcoData data)
+M_NONNULL_PARAM_LIST(1, 3)
+M_PARAM_RW_SIZE(1, 2)
+M_PARAM_RO(3)
+static M_INLINE void dco_Set_DMA_Modes(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+{
+    // mwdma bits
+    if (!data->mwdma.mwdma2)
+    {
+        M_CLEAR_BIT8(dcoIdentData[2], 2);
+    }
+    if (!data->mwdma.mwdma1)
+    {
+        M_CLEAR_BIT8(dcoIdentData[2], 1);
+    }
+    if (!data->mwdma.mwdma0)
+    {
+        M_CLEAR_BIT8(dcoIdentData[2], 0);
+    }
+    // udma
+    if (!data->udma.udma6)
+    {
+        M_CLEAR_BIT8(dcoIdentData[4], 6);
+    }
+    if (!data->udma.udma5)
+    {
+        M_CLEAR_BIT8(dcoIdentData[4], 5);
+    }
+    if (!data->udma.udma4)
+    {
+        M_CLEAR_BIT8(dcoIdentData[4], 4);
+    }
+    if (!data->udma.udma3)
+    {
+        M_CLEAR_BIT8(dcoIdentData[4], 3);
+    }
+    if (!data->udma.udma2)
+    {
+        M_CLEAR_BIT8(dcoIdentData[4], 2);
+    }
+    if (!data->udma.udma1)
+    {
+        M_CLEAR_BIT8(dcoIdentData[4], 1);
+    }
+    if (!data->udma.udma0)
+    {
+        M_CLEAR_BIT8(dcoIdentData[4], 0);
+    }
+}
+
+M_NONNULL_PARAM_LIST(1, 3)
+M_PARAM_RW_SIZE(1, 2)
+M_PARAM_RO(3)
+static M_INLINE void dco_Set_MaxLBA(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+{
+    // maxLBA
+    dcoIdentData[13] = M_Byte7(data->maxLBA);
+    dcoIdentData[12] = M_Byte6(data->maxLBA);
+    dcoIdentData[11] = M_Byte5(data->maxLBA);
+    dcoIdentData[10] = M_Byte4(data->maxLBA);
+    dcoIdentData[9]  = M_Byte3(data->maxLBA);
+    dcoIdentData[8]  = M_Byte2(data->maxLBA);
+    dcoIdentData[7]  = M_Byte1(data->maxLBA);
+    dcoIdentData[6]  = M_Byte0(data->maxLBA);
+}
+
+M_NONNULL_PARAM_LIST(1, 3)
+M_PARAM_RW_SIZE(1, 2)
+M_PARAM_RO(3)
+static M_INLINE void dco_Set_Features1(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+{
+    // features 1
+    if (!data->feat1.writeReadVerify)
+    {
+        M_CLEAR_BIT8(dcoIdentData[15], 6);
+    }
+    if (!data->feat1.smartConveyanceSelfTest)
+    {
+        M_CLEAR_BIT8(dcoIdentData[15], 5);
+    }
+    if (!data->feat1.smartSelectiveSelfTest)
+    {
+        M_CLEAR_BIT8(dcoIdentData[15], 4);
+    }
+    if (!data->feat1.forceUnitAccess)
+    {
+        M_CLEAR_BIT8(dcoIdentData[15], 3);
+    }
+    if (!data->feat1.timeLimitedCommands)
+    {
+        M_CLEAR_BIT8(dcoIdentData[15], 2);
+    }
+    if (!data->feat1.streaming)
+    {
+        M_CLEAR_BIT8(dcoIdentData[15], 1);
+    }
+    if (!data->feat1.fourtyEightBitAddress)
+    {
+        M_CLEAR_BIT8(dcoIdentData[15], 0);
+    }
+    if (!data->feat1.hostProtectedArea)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 7);
+    }
+    if (!data->feat1.automaticAccousticManagement)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 6);
+    }
+    if (!data->feat1.readWriteDMAQueued)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 5);
+    }
+    if (!data->feat1.powerUpInStandby)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 4);
+    }
+    if (!data->feat1.ATAsecurity)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 3);
+    }
+    if (!data->feat1.smartErrorLog)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 2);
+    }
+    if (!data->feat1.smartSelfTest)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 1);
+    }
+    if (!data->feat1.smartFeature)
+    {
+        M_CLEAR_BIT8(dcoIdentData[14], 0);
+    }
+}
+
+M_NONNULL_PARAM_LIST(1, 3)
+M_PARAM_RW_SIZE(1, 2)
+M_PARAM_RO(3)
+static M_INLINE void dco_Set_Sata_Features(uint8_t*               dcoIdentData,
+                                           M_ATTR_UNUSED uint32_t dcoIdentDataSize,
+                                           ptrDcoData             data)
+{
+    if (!data->sataFeat.softwareSettingsPreservation)
+    {
+        M_CLEAR_BIT8(dcoIdentData[16], 4);
+    }
+    if (!data->sataFeat.asynchronousNotification)
+    {
+        M_CLEAR_BIT8(dcoIdentData[16], 3);
+    }
+    if (!data->sataFeat.interfacePowerManagement)
+    {
+        M_CLEAR_BIT8(dcoIdentData[16], 2);
+    }
+    if (!data->sataFeat.nonZeroBufferOffsets)
+    {
+        M_CLEAR_BIT8(dcoIdentData[16], 1);
+    }
+    if (!data->sataFeat.ncqFeature)
+    {
+        M_CLEAR_BIT8(dcoIdentData[16], 0);
+    }
+    // sata reserved in word 9
+}
+
+M_NONNULL_PARAM_LIST(1, 3)
+M_PARAM_RW_SIZE(1, 2)
+M_PARAM_RO(3)
+static M_INLINE void dco_Set_Features2(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+{
+    // feature set 2
+    if (!data->feat2.nvCache)
+    {
+        M_CLEAR_BIT8(dcoIdentData[43], 7);
+    }
+    if (!data->feat2.nvCachePowerManagement)
+    {
+        M_CLEAR_BIT8(dcoIdentData[43], 6);
+    }
+    if (!data->feat2.writeUncorrectable)
+    {
+        M_CLEAR_BIT8(dcoIdentData[43], 5);
+    }
+    if (!data->feat2.trustedComputing)
+    {
+        M_CLEAR_BIT8(dcoIdentData[43], 4);
+    }
+    if (!data->feat2.freeFall)
+    {
+        M_CLEAR_BIT8(dcoIdentData[43], 3);
+    }
+    if (!data->feat2.dataSetManagement)
+    {
+        M_CLEAR_BIT8(dcoIdentData[43], 2);
+    }
+    if (!data->feat2.extendedPowerConditions)
+    {
+        M_CLEAR_BIT8(dcoIdentData[43], 1);
+    }
+}
+
+eReturnValues dco_Set(const tDevice* device, ptrDcoData data)
 {
     eReturnValues ret           = NOT_SUPPORTED;
     bool          dcoDMASupport = false;
@@ -371,12 +570,12 @@ eReturnValues dco_Set(const tDevice* device, const ptrDcoData data)
         DISABLE_NONNULL_COMPARE
         if (data != M_NULLPTR)
         {
-            DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, DCO_DATA_SIZE);
             if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
             {
                 dcoDMASupport = false;
             }
-            ret = ata_DCO_Identify(device, dcoDMASupport, dcoIdentData, 512);
+            ret = ata_DCO_Identify(device, dcoDMASupport, dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData));
             if (ret == ABORTED)
             {
                 // if the command aborted, then device is in the frozen state so return this instead.-TJE
@@ -385,178 +584,19 @@ eReturnValues dco_Set(const tDevice* device, const ptrDcoData data)
             else
             {
                 // go through the user-provided details and make changes to the requested fields
-                // mwdma bits
-                if (!data->mwdma.mwdma2)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[2], 2);
-                }
-                if (!data->mwdma.mwdma1)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[2], 1);
-                }
-                if (!data->mwdma.mwdma0)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[2], 0);
-                }
-                // udma
-                if (!data->udma.udma6)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[4], 6);
-                }
-                if (!data->udma.udma5)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[4], 5);
-                }
-                if (!data->udma.udma4)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[4], 4);
-                }
-                if (!data->udma.udma3)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[4], 3);
-                }
-                if (!data->udma.udma2)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[4], 2);
-                }
-                if (!data->udma.udma1)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[4], 1);
-                }
-                if (!data->udma.udma0)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[4], 0);
-                }
-                // maxLBA
-                dcoIdentData[13] = M_Byte7(data->maxLBA);
-                dcoIdentData[12] = M_Byte6(data->maxLBA);
-                dcoIdentData[11] = M_Byte5(data->maxLBA);
-                dcoIdentData[10] = M_Byte4(data->maxLBA);
-                dcoIdentData[9]  = M_Byte3(data->maxLBA);
-                dcoIdentData[8]  = M_Byte2(data->maxLBA);
-                dcoIdentData[7]  = M_Byte1(data->maxLBA);
-                dcoIdentData[6]  = M_Byte0(data->maxLBA);
-                // features 1
-                if (!data->feat1.writeReadVerify)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[15], 6);
-                }
-                if (!data->feat1.smartConveyanceSelfTest)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[15], 5);
-                }
-                if (!data->feat1.smartSelectiveSelfTest)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[15], 4);
-                }
-                if (!data->feat1.forceUnitAccess)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[15], 3);
-                }
-                if (!data->feat1.timeLimitedCommands)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[15], 2);
-                }
-                if (!data->feat1.streaming)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[15], 1);
-                }
-                if (!data->feat1.fourtyEightBitAddress)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[15], 0);
-                }
-                if (!data->feat1.hostProtectedArea)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 7);
-                }
-                if (!data->feat1.automaticAccousticManagement)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 6);
-                }
-                if (!data->feat1.readWriteDMAQueued)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 5);
-                }
-                if (!data->feat1.powerUpInStandby)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 4);
-                }
-                if (!data->feat1.ATAsecurity)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 3);
-                }
-                if (!data->feat1.smartErrorLog)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 2);
-                }
-                if (!data->feat1.smartSelfTest)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 1);
-                }
-                if (!data->feat1.smartFeature)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[14], 0);
-                }
-                // dcoIdentData[16] = M_Byte0(data->sataFeatures1);
-                // dcoIdentData[17] = M_Byte1(data->sataFeatures1);
-                if (!data->sataFeat.softwareSettingsPreservation)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[16], 4);
-                }
-                if (!data->sataFeat.asynchronousNotification)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[16], 3);
-                }
-                if (!data->sataFeat.interfacePowerManagement)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[16], 2);
-                }
-                if (!data->sataFeat.nonZeroBufferOffsets)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[16], 1);
-                }
-                if (!data->sataFeat.ncqFeature)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[16], 0);
-                }
-                // sata reserved in word 9
+                dco_Set_DMA_Modes(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
+                dco_Set_MaxLBA(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
+                dco_Set_Features1(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
+                dco_Set_Sata_Features(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
                 // words 10-20 reserved
-                // feature set 2
-                if (!data->feat2.nvCache)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[43], 7);
-                }
-                if (!data->feat2.nvCachePowerManagement)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[43], 6);
-                }
-                if (!data->feat2.writeUncorrectable)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[43], 5);
-                }
-                if (!data->feat2.trustedComputing)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[43], 4);
-                }
-                if (!data->feat2.freeFall)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[43], 3);
-                }
-                if (!data->feat2.dataSetManagement)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[43], 2);
-                }
-                if (!data->feat2.extendedPowerConditions)
-                {
-                    M_CLEAR_BIT8(dcoIdentData[43], 1);
-                }
+                dco_Set_Features2(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
                 // dcoIdentData[44] = M_Byte0(data->features3);
                 // dcoIdentData[45] = M_Byte1(data->features3);
                 // words 23-207 reserved
                 // words 208-254 reserved
                 // fields set, setup the checksum
-                set_ATA_Checksum_Into_Data_Buffer(dcoIdentData, 512);
-                ret = ata_DCO_Set(device, dcoDMASupport, dcoIdentData, 512);
+                set_ATA_Checksum_Into_Data_Buffer(dcoIdentData, DCO_DATA_SIZE);
+                ret = ata_DCO_Set(device, dcoDMASupport, dcoIdentData, DCO_DATA_SIZE);
                 // TODO: Need to handle if HPA is set since the DCO set will fail
             }
         }

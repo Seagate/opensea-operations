@@ -51,8 +51,8 @@ extern "C"
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
 
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
-                                                                const char* const        filePath,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(const tDevice*                 device,
+                                                                const char*              filePath,
                                                                 uint32_t                 transferSizeBytes,
                                                                 int                      sataFarmCopyType,
                                                                 eLogFileNamingConvention fileNameType);

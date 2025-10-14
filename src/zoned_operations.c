@@ -268,19 +268,19 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
                             uint32_t              numberOfZoneDescriptors,
                             ptrZoneDescriptor     zoneDescriptors)
 {
-    printf("=======Key======\n");
-    printf("\tZone Type:\n");
-    printf("\t  CONV - Conventional\n");
-    printf("\t  SWP  - Sequential write preferred\n");
-    printf("\t  SWR  - Sequential write required\n");
-    printf("\t  SOBR - Sequential or before required\n");
-    printf("\t  GAP  - Gap\n");
-    printf("\t  RESV - Reserved\n");
-    printf("\tAttributes:\n");
-    printf("\t  R - RESET bit, RWP Recommended\n");
-    printf("\t  N - NON_SEQ bit, Non-Sequential Write Resources Active\n");
-    printf("\t  P - PREDICTED UNRECOVERED ERRORS bit, Predicted Unrecovered Errors Present\n");
-    printf("--------------------------------------------------------------------------------\n");
+    print_str("=======Key======\n");
+    print_str("\tZone Type:\n");
+    print_str("\t  CONV - Conventional\n");
+    print_str("\t  SWP  - Sequential write preferred\n");
+    print_str("\t  SWR  - Sequential write required\n");
+    print_str("\t  SOBR - Sequential or before required\n");
+    print_str("\t  GAP  - Gap\n");
+    print_str("\t  RESV - Reserved\n");
+    print_str("\tAttributes:\n");
+    print_str("\t  R - RESET bit, RWP Recommended\n");
+    print_str("\t  N - NON_SEQ bit, Non-Sequential Write Resources Active\n");
+    print_str("\t  P - PREDICTED UNRECOVERED ERRORS bit, Predicted Unrecovered Errors Present\n");
+    print_str("--------------------------------------------------------------------------------\n");
 #define SHOWING_ZONES_STRING_LENGTH 40
     DECLARE_ZERO_INIT_ARRAY(char, showingZones, SHOWING_ZONES_STRING_LENGTH);
     switch (reportingOptions)

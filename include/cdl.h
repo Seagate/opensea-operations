@@ -95,7 +95,7 @@ extern "C"
                    /*!< CDL Time Field Reserved Unit. */
                    CDL_TIME_FIELD_UNIT_TYPE_RESERVED = 7);
 
-    typedef struct _tCDLDescriptor
+    typedef struct s_tCDLDescriptor
     {
         eCDLTimeFieldUnitType timeFieldUnitType;
         uint8_t               inactiveTimePolicy;
@@ -114,7 +114,7 @@ extern "C"
         };
     } tCDLDescriptor;
 
-    typedef struct _tATACDLSettings
+    typedef struct s_tATACDLSettings
     {
         bool           isCommandDurationGuidelineSupported;
         uint32_t       minimumTimeLimit;
@@ -127,14 +127,14 @@ extern "C"
         tCDLDescriptor cdlWriteDescriptor[MAX_CDL_WRITE_DESCRIPTOR];
     } tATACDLSettings;
 
-    typedef struct _tSCSICDLSettings
+    typedef struct s_tSCSICDLSettings
     {
         uint8_t        performanceVsCommandDurationGuidelines;
         tCDLDescriptor cdlT2ADescriptor[MAX_CDL_T2A_DESCRIPTOR];
         tCDLDescriptor cdlT2BDescriptor[MAX_CDL_T2B_DESCRIPTOR];
     } tSCSICDLSettings;
 
-    typedef struct _tCDLSettings
+    typedef struct s_tCDLSettings
     {
         bool isSupported;
         bool isEnabled;

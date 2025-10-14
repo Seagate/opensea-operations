@@ -27,57 +27,71 @@
 
 #include "buffer_test.h"
 
+static bool ata_Buffer_Commands_Supported(const tDevice* device)
+{
+    bool supported = false;
+    if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT13 &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT12) ||
+        (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT13 &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT12))
+    {
+        // PIO commands
+        supported = true;
+    }
+    if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
+         le16_to_host(device->drive_info.IdentifyData.ata.Word053) & BIT1) /* this is a validity bit for field 69 */
+        && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT11 &&
+            le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT10))
+    {
+        // DMA commands
+        supported = true;
+    }
+    return supported;
+}
+
+static bool scsi_Buffer_Commands_Supported(const tDevice* device)
+{
+    bool supported = false;
+    // SCSI 2 + should support this.
+    // SCSI 1 probably won't...but this is so old it may not be a problem
+    // Only asking about read buffer command, since write buffer will likely be implemented for at least FWDL, so if
+    // this is supported, the equivalent write buffer command should also be supported
+    scsiOperationCodeInfoRequest readBufSupReq;
+    safe_memset(&readBufSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    readBufSupReq.operationCode      = READ_BUFFER_CMD;
+    readBufSupReq.serviceActionValid = false;
+    eSCSICmdSupport readBufSupport   = is_SCSI_Operation_Code_Supported(device, &readBufSupReq);
+    if (readBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+    {
+        supported = true;
+    }
+    else
+    {
+        // this means the command to ask about support didn't work, so we're just going to try asking the size of
+        // the buffer and if that works, it is supported
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCommandData, 4);
+        if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, supportedCommandData))
+        {
+            supported = true;
+        }
+    }
+    return supported;
+}
+
 static bool are_Buffer_Commands_Available(const tDevice* device)
 {
     bool supported = false;
     // Check if read/write buffer commands are supported on SATA and SAS
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
-             le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT13 &&
-             le16_to_host(device->drive_info.IdentifyData.ata.Word082) & BIT12) ||
-            (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
-             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT13 &&
-             le16_to_host(device->drive_info.IdentifyData.ata.Word085) & BIT12))
-        {
-            // PIO commands
-            supported = true;
-        }
-        if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
-             le16_to_host(device->drive_info.IdentifyData.ata.Word053) & BIT1) /* this is a validity bit for field 69 */
-            && (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word069)) &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT11 &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word069) & BIT10))
-        {
-            // DMA commands
-            supported = true;
-        }
+        supported = ata_Buffer_Commands_Supported(device);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        // SCSI 2 + should support this.
-        // SCSI 1 probably won't...but this is so old it may not be a problem
-        // Only asking about read buffer command, since write buffer will likely be implemented for at least FWDL, so if
-        // this is supported, the equivalent write buffer command should also be supported
-        scsiOperationCodeInfoRequest readBufSupReq;
-        safe_memset(&readBufSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
-        readBufSupReq.operationCode      = READ_BUFFER_CMD;
-        readBufSupReq.serviceActionValid = false;
-        eSCSICmdSupport readBufSupport   = is_SCSI_Operation_Code_Supported(device, &readBufSupReq);
-        if (readBufSupport == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
-        {
-            supported = true;
-        }
-        else
-        {
-            // this means the command to ask about support didn't work, so we're just going to try asking the size of
-            // the buffer and if that works, it is supported
-            DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCommandData, 4);
-            if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, supportedCommandData))
-            {
-                supported = true;
-            }
-        }
+        supported = scsi_Buffer_Commands_Supported(device);
     }
     return supported;
 }
@@ -529,13 +543,32 @@ static void perform_Random_Pattern_Test(const tDevice*        device,
     safe_free_aligned(&returnBuffer);
 }
 
+typedef enum eRowBoatPatternEnum
+{
+    ROW_BOAT_55 = 0x55,
+    ROW_BOAT_FF = 0xFF,
+    ROW_BOAT_AA = 0xAA,
+    ROW_BOAT_00 = 0x00
+} eRowBoatPattern;
+
+// row boat test: device, inverting pattern, static pattern, bool startStatic
+// start static to start with the static pattern or the alternating pattern
+
+// row boat:
+// 55->FF->AA->FF
+// 55->00->AA->00
+// FF->55->FF->AA
+// 00->55->00->AA
+
+// mark pattern: 48 F's, 48 0's, so on and so forth
+
 // SATA Phy event counters: CRC = definitely bad
-//                          R_ERR = mulltiple possible causes from bad connection to bad cable. Recommend redoing the
+//                          R_ERR = multiple possible causes from bad connection to bad cable. Recommend redoing the
 //                          connection or replacing cable.
 // SATA Device statistics: CRC = definitely bad
 //                         ASR events = bad cable as well. (asynchronous signal recovery)
 // SAS SPL error counters: Invalid Dword = definitely bad
-//                         Running disparity or loss of sync = mulltiple possible causes from bad connection to bad
+//                         Running disparity or loss of sync = multiple possible causes from bad connection to bad
 //                         cable. Recommend redoing the connection or replacing cable.
 // Slower interface speed = longer test time to get a confident result.
 
@@ -635,12 +668,12 @@ eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults test
 
 void print_Cable_Test_Results(cableTestResults testResults)
 {
-    printf("Test Results:\n");
-    printf("=============\n");
-    printf("Total test time: ");
+    print_str("Test Results:\n");
+    print_str("=============\n");
+    print_str("Total test time: ");
     print_Command_Time(testResults.totalTestTimeNS);
-    printf("\n");
-    printf("00h Test Pattern:\n");
+    print_str("\n");
+    print_str("00h Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_0_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + UINT8_C(1));
@@ -652,11 +685,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.zerosTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.zerosTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.zerosTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("FFh Test Pattern:\n");
+    print_str("FFh Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_F_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -665,11 +698,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of command timeouts: %" PRIu32 "\n", testResults.fTest[count].totalCommandTimeouts);
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.fTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.fTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.fTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("55h Test Pattern:\n");
+    print_str("55h Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_5_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -681,11 +714,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.fivesTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.fivesTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.fivesTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("AAh Test Pattern:\n");
+    print_str("AAh Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ALL_A_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -694,11 +727,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
         printf("        Number of command timeouts: %" PRIu32 "\n", testResults.aTest[count].totalCommandTimeouts);
         printf("        Number of buffer comparisons: %" PRIu32 "\n", testResults.aTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n", testResults.aTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.aTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("00FF55AAh Test Pattern:\n");
+    print_str("00FF55AAh Test Pattern:\n");
     for (uint8_t count = UINT8_C(0); count < ZERO_F_5_A_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -711,11 +744,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.zeroF5ATest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.zeroF5ATest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.zeroF5ATest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("Walking 1's Test:\n");
+    print_str("Walking 1's Test:\n");
     for (uint8_t count = UINT8_C(0); count < WALKING_1_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -728,11 +761,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.walking1sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.walking1sTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.walking1sTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("Walking 0's Test:\n");
+    print_str("Walking 0's Test:\n");
     for (uint8_t count = UINT8_C(0); count < WALKING_0_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -745,11 +778,11 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.walking0sTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.walking0sTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.walking0sTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
-    printf("Random Pattern Test:\n");
+    print_str("Random Pattern Test:\n");
     for (uint8_t count = UINT8_C(0); count < RANDOM_TEST_COUNT; ++count)
     {
         printf("    Run %" PRIu8 ":\n", count + 1);
@@ -761,8 +794,8 @@ void print_Cable_Test_Results(cableTestResults testResults)
                testResults.randomTest[count].totalBufferComparisons);
         printf("        Number of buffer miscompares: %" PRIu32 "\n",
                testResults.randomTest[count].totalBufferMiscompares);
-        printf("        Test time: ");
+        print_str("        Test time: ");
         print_Command_Time(testResults.randomTest[count].totalTimeNS);
-        printf("\n");
+        print_str("\n");
     }
 }

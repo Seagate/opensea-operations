@@ -421,26 +421,26 @@ static void show_Allowed_Commands_Value(eAllowedCommandDetail value)
     switch (value)
     {
     case RES_CMD_ALLOWED_NO_INFO:
-        printf("No Information\n");
+        print_str("No Information\n");
         break;
     case RES_CMD_ALLOWED_WE_AND_EA:
-        printf("Allowed in write exclusive and exclusive access\n");
+        print_str("Allowed in write exclusive and exclusive access\n");
         break;
     case RES_CMD_NOT_ALLOWED_WE:
-        printf("Not allowed in write exclusive\n");
+        print_str("Not allowed in write exclusive\n");
         break;
     case RES_CMD_ALLOWED_WE:
-        printf("Allowed in write exclusive\n");
+        print_str("Allowed in write exclusive\n");
         break;
     case RES_CMD_PERSIST_ALLOWED_WE_AND_EA:
-        printf("Allowed in persistent write exclusive and persistent exclusive\n");
+        print_str("Allowed in persistent write exclusive and persistent exclusive\n");
         break;
     case RES_CMD_PERSIST_ALLOWED_WE:
-        printf("Allowed in persistent write exclusive\n");
+        print_str("Allowed in persistent write exclusive\n");
         break;
     case RES_CMD_UNKNOWN:
     default:
-        printf("Unknown\n");
+        print_str("Unknown\n");
         break;
     }
 }
@@ -453,127 +453,127 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
         if ((prCapabilities->version >= PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 &&
              prCapabilities->size >= sizeof(persistentReservationCapabilitiesV1)))
         {
-            printf("\nPersistent Reservations Capabilities:\n");
-            printf("=====================================\n");
-            printf("\tReplace Lost Reservations Capable: ");
+            print_str("\nPersistent Reservations Capabilities:\n");
+            print_str("=====================================\n");
+            print_str("\tReplace Lost Reservations Capable: ");
             if (prCapabilities->replaceLostReservationCapable)
             {
-                printf("supported\n");
+                print_str("supported\n");
             }
             else
             {
-                printf("not supported\n");
+                print_str("not supported\n");
             }
-            printf("\tCompatible Reservation Handling: ");
+            print_str("\tCompatible Reservation Handling: ");
             if (prCapabilities->compatibleReservationHandling)
             {
-                printf("supported\n");
+                print_str("supported\n");
             }
             else
             {
-                printf("not supported\n");
+                print_str("not supported\n");
             }
-            printf("\tSpecify Initiator Port Capable: ");
+            print_str("\tSpecify Initiator Port Capable: ");
             if (prCapabilities->specifyInitiatorPortCapable)
             {
-                printf("supported\n");
+                print_str("supported\n");
             }
             else
             {
-                printf("not supported\n");
+                print_str("not supported\n");
             }
-            printf("\tAll Target Ports Capable: ");
+            print_str("\tAll Target Ports Capable: ");
             if (prCapabilities->allTargetPortsCapable)
             {
-                printf("supported\n");
+                print_str("supported\n");
             }
             else
             {
-                printf("not supported\n");
+                print_str("not supported\n");
             }
-            printf("\tPersist Through Power Loss Capable: ");
+            print_str("\tPersist Through Power Loss Capable: ");
             if (prCapabilities->persistThroughPowerLossCapable)
             {
-                printf("supported\n");
+                print_str("supported\n");
             }
             else
             {
-                printf("not supported\n");
+                print_str("not supported\n");
             }
-            printf("\tPersist Through Power Loss Activated: ");
+            print_str("\tPersist Through Power Loss Activated: ");
             if (prCapabilities->persistThroughPowerLossActivated)
             {
-                printf("Enabled\n");
+                print_str("Enabled\n");
             }
             else
             {
-                printf("Disabled\n");
+                print_str("Disabled\n");
             }
             if (prCapabilities->reservationTypesSupportedValid)
             {
-                printf("\n\tSupported Reservation Types:\n");
-                printf("\t----------------------------\n");
+                print_str("\n\tSupported Reservation Types:\n");
+                print_str("\t----------------------------\n");
                 if (prCapabilities->reservationsCapabilities.readShared)
                 {
-                    printf("\t\tRead Shared\n");
+                    print_str("\t\tRead Shared\n");
                 }
                 if (prCapabilities->reservationsCapabilities.writeExclusive)
                 {
-                    printf("\t\tWrite Exclusive\n");
+                    print_str("\t\tWrite Exclusive\n");
                 }
                 if (prCapabilities->reservationsCapabilities.readExclusive)
                 {
-                    printf("\t\tRead Exclusive\n");
+                    print_str("\t\tRead Exclusive\n");
                 }
                 if (prCapabilities->reservationsCapabilities.exclusiveAccess)
                 {
-                    printf("\t\tExclusive Access\n");
+                    print_str("\t\tExclusive Access\n");
                 }
                 if (prCapabilities->reservationsCapabilities.sharedAccess)
                 {
-                    printf("\t\tShared Access\n");
+                    print_str("\t\tShared Access\n");
                 }
                 if (prCapabilities->reservationsCapabilities.writeExclusiveRegistrantsOnly)
                 {
-                    printf("\t\tWrite Exclusive - Registrants Only\n");
+                    print_str("\t\tWrite Exclusive - Registrants Only\n");
                 }
                 if (prCapabilities->reservationsCapabilities.exclusiveAccessRegistrantsOnly)
                 {
-                    printf("\t\tExclusive Access - Registrants Only\n");
+                    print_str("\t\tExclusive Access - Registrants Only\n");
                 }
                 if (prCapabilities->reservationsCapabilities.writeExclusiveAllRegistrants)
                 {
-                    printf("\t\tWrite Exclusive - All Registrants\n");
+                    print_str("\t\tWrite Exclusive - All Registrants\n");
                 }
                 if (prCapabilities->reservationsCapabilities.exclusiveAccessAllRegistrants)
                 {
-                    printf("\t\tExclusive Access - All Registrants\n");
+                    print_str("\t\tExclusive Access - All Registrants\n");
                 }
             }
             else
             {
-                printf("\tDevice does not report supported reservation types.\n");
+                print_str("\tDevice does not report supported reservation types.\n");
             }
             if (prCapabilities->allowedCommandsInfo.allowedCommandsRawValue <
                 6) // restricted like this since this is reserved at the time of writing this code - TJE
             {
-                printf("\n\tAllowed Commands Info:\n");
-                printf("\t----------------------\n");
-                printf("\t\tTest Unit Ready: ");
+                print_str("\n\tAllowed Commands Info:\n");
+                print_str("\t----------------------\n");
+                print_str("\t\tTest Unit Ready: ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.testUnitReady);
-                printf("\t\tMode Sense: ");
+                print_str("\t\tMode Sense: ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.modeSense);
-                printf("\t\tRead Attribute: ");
+                print_str("\t\tRead Attribute: ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.readAttribute);
-                printf("\t\tRead Buffer (10): ");
+                print_str("\t\tRead Buffer (10): ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.readBuffer10);
-                printf("\t\tReceive Diagnostic Results: ");
+                print_str("\t\tReceive Diagnostic Results: ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.receiveDiagnosticResults);
-                printf("\t\tReport Supported Operation Codes: ");
+                print_str("\t\tReport Supported Operation Codes: ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.reportSupportedOperationCodes);
-                printf("\t\tReport Supported Task Management Functions: ");
+                print_str("\t\tReport Supported Task Management Functions: ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.reportSupportedTaskManagementFunctions);
-                printf("\t\tRead Defect Data: ");
+                print_str("\t\tRead Defect Data: ");
                 show_Allowed_Commands_Value(prCapabilities->allowedCommandsInfo.readDefectData);
             }
             else
@@ -584,7 +584,7 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
         }
         else
         {
-            printf("Error: Incorrect reservations capabilities structure version or bad structure size.\n");
+            print_str("Error: Incorrect reservations capabilities structure version or bad structure size.\n");
         }
     }
     RESTORE_NONNULL_COMPARE
@@ -719,17 +719,17 @@ void show_Registration_Keys(ptrRegistrationKeysData keys)
     if (keys != M_NULLPTR && keys->version >= REGISTRATION_KEY_DATA_VERSION_V1 &&
         keys->size >= sizeof(registrationKeysDataV1))
     {
-        printf("\nRegistration Keys:\n");
-        printf("==================\n");
+        print_str("\nRegistration Keys:\n");
+        print_str("==================\n");
         printf("Generation: %" PRIu32 "\n", keys->generation);
-        printf("------------------------\n");
+        print_str("------------------------\n");
         for (uint32_t keyIter = UINT32_C(0); keyIter < UINT16_MAX && keyIter < keys->numberOfKeys; ++keyIter)
         {
             printf("%016" PRIX64 "\n", keys->registrationKey[keyIter]);
         }
         if (keys->numberOfKeys == 0)
         {
-            printf("No registration keys to report.\n");
+            print_str("No registration keys to report.\n");
         }
     }
     RESTORE_NONNULL_COMPARE
@@ -981,10 +981,10 @@ void show_Reservations(ptrReservationsData reservations)
 {
     if (reservations->version >= RESERVATION_DATA_VERSION_V1 && reservations->size >= sizeof(reservationsDataV1))
     {
-        printf("Reservations:\n");
-        printf("=============\n");
+        print_str("Reservations:\n");
+        print_str("=============\n");
         printf("Generation: %" PRIu32 "\n", reservations->generation);
-        printf("      Key        | Scope |        Type        \n");
+        print_str("      Key        | Scope |        Type        \n");
         for (uint32_t resIter = UINT32_C(0); resIter < UINT16_MAX && resIter < reservations->numberOfReservations;
              ++resIter)
         {
@@ -1051,7 +1051,7 @@ void show_Reservations(ptrReservationsData reservations)
         }
         if (reservations->numberOfReservations == 0)
         {
-            printf("No active reservations.\n");
+            print_str("No active reservations.\n");
         }
     }
 }
@@ -1467,10 +1467,10 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
     if (fullReservation != M_NULLPTR && fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1 &&
         fullReservation->size >= sizeof(fullReservationInfoV1))
     {
-        printf("Full Reservation Status:\n");
+        print_str("Full Reservation Status:\n");
         printf("\tGeneration: %" PRIX32 "h\n", fullReservation->generation);
 
-        printf("      Key        | ATP | Res Holder | Scope |         Type         |  RTPID  | Transport ID \n");
+        print_str("      Key        | ATP | Res Holder | Scope |         Type         |  RTPID  | Transport ID \n");
         for (uint32_t keyIter = UINT32_C(0); keyIter < UINT16_MAX && keyIter < fullReservation->numberOfKeys; ++keyIter)
         {
             char atp       = 'N';
@@ -1554,24 +1554,24 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
                 }
                 if (fullReservation->reservationKey[keyIter].transportIDLength > 24)
                 {
-                    printf("...");
+                    print_str("...");
                 }
-                printf("h");
+                print_str("h");
             }
             else
             {
-                printf("     N/A");
+                print_str("     N/A");
             }
-            printf("\n");
+            print_str("\n");
         }
         if (fullReservation->numberOfKeys == 0)
         {
-            printf("No reservations or registration keys to report.\n");
+            print_str("No reservations or registration keys to report.\n");
         }
     }
     else
     {
-        printf("ERROR: Invalid full status structure version or size.\n");
+        print_str("ERROR: Invalid full status structure version or size.\n");
     }
     RESTORE_NONNULL_COMPARE
 }

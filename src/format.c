@@ -95,7 +95,8 @@ eReturnValues get_Format_Progress(const tDevice* device, double* percentComplete
             if (asc == 0x04 && ascq == 0x04)
             {
                 // get progress
-                *percentComplete = (M_BytesTo2ByteValue(senseData[16], senseData[17]) * 100.0) / 65536.0;
+                *percentComplete =
+                    get_SCSI_Progress_Indicator_PercentD(M_BytesTo2ByteValue(senseData[16], senseData[17]));
                 return IN_PROGRESS;
             }
             else
@@ -134,18 +135,18 @@ eReturnValues show_Format_Unit_Progress(const tDevice* device)
         if (percentComplete + 0.005 >= 100.0)
         {
             printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
-            printf("\t         that a format is still in progress! Please wait an additional\n");
-            printf("\t         30 seconds and check again to see when the sense data no longer\n");
-            printf("\t         indicates that a format is in progress!\n");
+            print_str("\t         that a format is still in progress! Please wait an additional\n");
+            print_str("\t         30 seconds and check again to see when the sense data no longer\n");
+            print_str("\t         indicates that a format is in progress!\n");
         }
     }
     else if (ret == SUCCESS)
     {
-        printf("\tFormat Unit command is not currently in progress. It is either complete or has not been run.\n");
+        print_str("\tFormat Unit command is not currently in progress. It is either complete or has not been run.\n");
     }
     else
     {
-        printf("\tError occurred while retrieving format unit progress!\n");
+        print_str("\tError occurred while retrieving format unit progress!\n");
     }
     return ret;
 }
@@ -352,9 +353,9 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
             {
                 if (formatParameters.newMaxLBA != results.numberOfLogicalBlocks + UINT64_C(1))
                 {
-                    printf("WARNING: Changing maxlba during format is not supported.\n");
-                    printf("         Please try changing maxLBA once the format is completed\n");
-                    printf("         Format will continue running with all other options.\n");
+                    print_str("WARNING: Changing maxlba during format is not supported.\n");
+                    print_str("         Please try changing maxLBA once the format is completed\n");
+                    print_str("         Format will continue running with all other options.\n");
                     ret = SUCCESS;
                 }
             }
@@ -364,8 +365,8 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
                 printf("The requested block size is not supported: %" PRIu32 "\n", modifications.logicalBlockLength);
                 printf("The device set the block size to %" PRIu32 " during this request.\n",
                        results.logicalBlockLength);
-                printf("Formatting the drive must continue in order to bring it out of the\n");
-                printf("format corrupt state.\n");
+                print_str("Formatting the drive must continue in order to bring it out of the\n");
+                print_str("format corrupt state.\n");
                 if (results.logicalBlockLength % 512)
                 {
                     modifications.logicalBlockLength =
@@ -377,7 +378,7 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
                         modifications.modifyNumBlocks       = true;
                         modifications.numberOfLogicalBlocks = UINT64_MAX;
                     }
-                    printf("Since this new block size is not a multiple of 512 (a common supported sector size),\n");
+                    print_str("Since this new block size is not a multiple of 512 (a common supported sector size),\n");
                     printf("the sector size will be adjusted to %" PRIu32 " for maximum compatibility.\n",
                            modifications.logicalBlockLength);
                     ret = modify_SCSI_Block_Descriptor(device, modifications, &results);
@@ -388,7 +389,7 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
     }
     if (ret == SUCCESS)
     {
-        uint32_t formatCommandTimeout = UINT32_C(15);
+        uint32_t formatCommandTimeout = DEFAULT_COMMAND_TIMEOUT;
         if (formatParameters.disableImmediate)
         {
             if (os_Is_Infinite_Timeout_Supported())
@@ -402,10 +403,10 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
         }
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
-            printf("Performing SCSI drive format.\n");
-            printf("Depending on the format request, this could take minutes to hours or days.\n");
-            printf("Do not remove power or attempt other access as interrupting it may make\n");
-            printf("the drive unusable or require performing this command again!!\n");
+            print_str("Performing SCSI drive format.\n");
+            print_str("Depending on the format request, this could take minutes to hours or days.\n");
+            print_str("Do not remove power or attempt other access as interrupting it may make\n");
+            print_str("the drive unusable or require performing this command again!!\n");
         }
         // send the format command
         if (formatParameters.defaultFormat && formatParameters.disableImmediate)
@@ -446,9 +447,9 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
                 uint8_t minutes = UINT8_C(0);
                 uint8_t hours   = UINT8_C(0);
                 convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-                printf("Progress will be updated every ");
+                print_str("Progress will be updated every ");
                 print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
             }
             bool printedWaitLongerWarning = false;
             while (IN_PROGRESS == get_Format_Progress(device, &progress))
@@ -463,9 +464,9 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
                     if (progress + 0.005 >= 100.0)
                     {
                         printf("\n\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
-                        printf("\t         that a format is still in progress! Please continue waiting\n");
-                        printf("\t         until the sense data no longer indicates that a format is\n");
-                        printf("\t         in progress!\n");
+                        print_str("\t         that a format is still in progress! Please continue waiting\n");
+                        print_str("\t         until the sense data no longer indicates that a format is\n");
+                        print_str("\t         in progress!\n");
                         printedWaitLongerWarning = true;
                     }
                 }
@@ -482,7 +483,7 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
             }
             else if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("\n");
+                print_str("\n");
             }
             if (ret == SUCCESS && formatParameters.formatType == FORMAT_STD_FORMAT)
             {
@@ -686,48 +687,48 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
     DISABLE_NONNULL_COMPARE
     if (formatStatus != M_NULLPTR)
     {
-        printf("Format Status:\n");
+        print_str("Format Status:\n");
         if (!formatStatus->formatParametersAllFs)
         {
             if (formatStatus->lastFormatParametersValid)
             {
-                printf("The last format unit was performed with the following parameters:\n");
+                print_str("The last format unit was performed with the following parameters:\n");
                 printf("\tProtection Field Usage: %" PRIX8 "h\n", formatStatus->lastFormatData.protectionFieldUsage);
                 if (formatStatus->lastFormatData.formatOptionsValid)
                 {
-                    printf("\tFormat Options Valid\n");
+                    print_str("\tFormat Options Valid\n");
                     if (formatStatus->lastFormatData.disablePrimaryList)
                     {
-                        printf("\tPrimary List Disabled\n");
+                        print_str("\tPrimary List Disabled\n");
                     }
                     if (formatStatus->lastFormatData.disableCertify)
                     {
-                        printf("\tCertification Disabled\n");
+                        print_str("\tCertification Disabled\n");
                     }
                     if (formatStatus->lastFormatData.stopFormat)
                     {
-                        printf("\tStop format on list error\n");
+                        print_str("\tStop format on list error\n");
                     }
                     if (formatStatus->lastFormatData.initializationPattern)
                     {
-                        printf("\tInitialization Pattern provided\n");
+                        print_str("\tInitialization Pattern provided\n");
                     }
                 }
                 else
                 {
-                    printf("\tDefault format\n");
+                    print_str("\tDefault format\n");
                 }
                 if (formatStatus->lastFormatData.obsoleteDisableSaveParameters)
                 {
-                    printf("\tObsolete disable save parameters bit set\n");
+                    print_str("\tObsolete disable save parameters bit set\n");
                 }
                 if (formatStatus->lastFormatData.immediateResponse)
                 {
-                    printf("\tImmediate Response Bit set\n");
+                    print_str("\tImmediate Response Bit set\n");
                 }
                 if (formatStatus->lastFormatData.vendorSpecific)
                 {
-                    printf("\tVendor Specific Bit set\n");
+                    print_str("\tVendor Specific Bit set\n");
                 }
                 if (formatStatus->lastFormatData.isLongList)
                 {
@@ -755,7 +756,7 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
             {
                 printf("Power On Minutes Since Last Format: %" PRIu32 "\n", formatStatus->powerOnMinutesSinceFormat);
                 // convert the time to seconds, then print it in a displayable format
-                printf("Power On Time Since Last Format: ");
+                print_str("Power On Time Since Last Format: ");
                 uint16_t days    = UINT16_C(0);
                 uint8_t  years   = UINT8_C(0);
                 uint8_t  hours   = UINT8_C(0);
@@ -765,12 +766,12 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
                                                         UINT64_C(60),
                                                     &years, &days, &hours, &minutes, &seconds);
                 print_Time_To_Screen(&years, &days, &hours, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
             }
         }
         else
         {
-            printf("Format unit currently in progress or the last format command failed!\n");
+            print_str("Format unit currently in progress or the last format command failed!\n");
         }
     }
     RESTORE_NONNULL_COMPARE
@@ -832,56 +833,12 @@ bool is_Set_Sector_Configuration_Supported(const tDevice* device)
     }
     return false;
 }
-#define MAX_NUMBER_SUPPORTED_SECTOR_SIZES UINT32_C(32)
-uint32_t get_Number_Of_Supported_Sector_Sizes(const tDevice* device)
+
+uint32_t get_Number_Of_Supported_Sector_Sizes(M_ATTR_UNUSED const tDevice* device)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
-    {
-        return MAX_NUMBER_SUPPORTED_SECTOR_SIZES; // This should be ok on ATA...we would have to pull the log and count
-                                                  // to know for sure, but this is the max available in the log
-    }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
-    {
-        // pull the VPD page and determine how many are supported based on descriptor length and the VPD page length
-        uint32_t scsiSectorSizesSupported = UINT32_C(0);
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedBlockLengthsData, 4);
-        if (SUCCESS == get_SCSI_VPD(device, SUPPORTED_BLOCK_LENGTHS_AND_PROTECTION_TYPES, M_NULLPTR, M_NULLPTR, true,
-                                    supportedBlockLengthsData, 4, M_NULLPTR))
-        {
-            uint16_t pageLength      = M_BytesTo2ByteValue(supportedBlockLengthsData[2], supportedBlockLengthsData[3]);
-            scsiSectorSizesSupported = pageLength / 8; // each descriptor is 8 bytes in size
-        }
-        else
-        {
-            bool fastFormatSup = false;
-            // This device either doesn't support any other sector sizes, or supports legacy sector sizes...
-            if (is_Format_Unit_Supported(device, &fastFormatSup))
-            {
-                if (fastFormatSup)
-                {
-                    scsiSectorSizesSupported = 6; // guessing
-                }
-                else
-                {
-                    scsiSectorSizesSupported = 3; // guessing
-                }
-            }
-            else
-            {
-                // leave at zero for now
-                scsiSectorSizesSupported = 0;
-            }
-        }
-        return scsiSectorSizesSupported;
-    }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
-    {
-        return NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf);
-    }
-    else
-    {
-        return 0;
-    }
+    // this function is obsolete now that there is a static size in the supported formats structure.
+    // so this just needs to return 1
+    return UINT32_C(1);
 }
 
 static eReturnValues ata_Get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
@@ -895,10 +852,10 @@ static eReturnValues ata_Get_Supported_Formats(const tDevice* device, ptrSupport
         {
             formats->deviceSupportsOtherFormats                              = true;
             formats->protectionInformationSupported.deviceSupportsProtection = false;
-            uint32_t numberOfSizes                                           = formats->numberOfSectorSizes;
             formats->numberOfSectorSizes                                     = UINT32_C(0);
             for (uint32_t iter = UINT32_C(0), sectorSizeCounter = UINT32_C(0);
-                 iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < UINT16_MAX && sectorSizeCounter < numberOfSizes;
+                 iter < LEGACY_DRIVE_SEC_SIZE && sectorSizeCounter < UINT16_MAX &&
+                 sectorSizeCounter < MAX_SECTOR_SIZES_ARRAY;
                  iter += UINT32_C(16), ++sectorSizeCounter)
             {
                 formats->sectorSizes[sectorSizeCounter].logicalBlockLength =
@@ -1036,10 +993,9 @@ static eReturnValues scsi_Get_Supported_Formats(const tDevice* device, ptrSuppor
                                     supportedBlockLengthsData, supportedSectorSizesDataLength, M_NULLPTR))
         {
             dummyUpCommonSizes           = false;
-            uint32_t numberOfSizes       = formats->numberOfSectorSizes;
             formats->numberOfSectorSizes = 0;
             for (uint32_t iter = UINT32_C(4), sectorSizeCounter = UINT32_C(0);
-                 (iter + UINT32_C(8)) < supportedSectorSizesDataLength && sectorSizeCounter < numberOfSizes;
+                 (iter + UINT32_C(8)) < supportedSectorSizesDataLength && sectorSizeCounter < MAX_SECTOR_SIZES_ARRAY;
                  iter += UINT32_C(8), ++sectorSizeCounter, ++formats->numberOfSectorSizes)
             {
                 formats->sectorSizes[sectorSizeCounter].valid = true;
@@ -1127,118 +1083,113 @@ static eReturnValues scsi_Get_Supported_Formats(const tDevice* device, ptrSuppor
             ret                                 = SUCCESS;
             // dummy up the support based on what is known from traditional formatting support - don't include any PI
             // stuff here for now. Need more refactoring
-            if (formats->scsiFastFormatSupported)
+            enum eSCSIEnterpriseSectorSizesOffset
             {
-                formats->numberOfSectorSizes                      = 6;
-                formats->sectorSizes[0].valid                     = true;
-                formats->sectorSizes[0].logicalBlockLength        = 512;
-                formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+                SCSI_ENT_SECT_SIZE_512  = 0,
+                SCSI_ENT_SECT_SIZE_520  = 1,
+                SCSI_ENT_SECT_SIZE_524  = 2,
+                SCSI_ENT_SECT_SIZE_528  = 3,
+                SCSI_ENT_SECT_SIZE_4096 = 4,
+                SCSI_ENT_SECT_SIZE_4160 = 5,
+                SCSI_ENT_SECT_SIZE_4192 = 6,
+                SCSI_ENT_SECT_SIZE_4224 = 7
+            };
+#define MAX_SCSI_ENTERPRISE_SECTOR_SIZES (8)
+            enum eSCSIEnterpriseSectorSizes
+            {
+                SEC_SIZE_512  = 512,
+                SEC_SIZE_520  = 520,
+                SEC_SIZE_524  = 524,
+                SEC_SIZE_528  = 528,
+                SEC_SIZE_4096 = 4096,
+                SEC_SIZE_4160 = 4160,
+                SEC_SIZE_4192 = 4192,
+                SEC_SIZE_4224 = 4224
+            };
+            formats->numberOfSectorSizes                                           = MAX_SCSI_ENTERPRISE_SECTOR_SIZES;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].logicalBlockLength        = SEC_SIZE_512;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[1].valid                     = true;
-                formats->sectorSizes[1].logicalBlockLength        = 520;
-                formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].logicalBlockLength        = SEC_SIZE_520;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[2].valid                     = true;
-                formats->sectorSizes[2].logicalBlockLength        = 528;
-                formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].logicalBlockLength        = SEC_SIZE_524;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[3].valid                     = true;
-                formats->sectorSizes[3].logicalBlockLength        = 4096;
-                formats->sectorSizes[3].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].logicalBlockLength        = SEC_SIZE_528;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[4].valid                     = true;
-                formats->sectorSizes[4].logicalBlockLength        = 4112;
-                formats->sectorSizes[4].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].logicalBlockLength        = SEC_SIZE_4096;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                formats->sectorSizes[5].valid                     = true;
-                formats->sectorSizes[5].logicalBlockLength        = 4160;
-                formats->sectorSizes[5].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].logicalBlockLength        = SEC_SIZE_4160;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
 
-                switch (device->drive_info.deviceBlockSize)
-                {
-                case 512:
-                    formats->sectorSizes[0].currentFormat = true;
-                    break;
-                case 520:
-                    formats->sectorSizes[1].currentFormat = true;
-                    break;
-                case 528:
-                    formats->sectorSizes[2].currentFormat = true;
-                    break;
-                case 4096:
-                    formats->sectorSizes[3].currentFormat = true;
-                    break;
-                case 4112:
-                    formats->sectorSizes[4].currentFormat = true;
-                    break;
-                case 4160:
-                    formats->sectorSizes[5].currentFormat = true;
-                    break;
-                default:
-                    break;
-                }
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].logicalBlockLength        = SEC_SIZE_4192;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].valid                     = true;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].logicalBlockLength        = SEC_SIZE_4224;
+            formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
+
+            switch (device->drive_info.deviceBlockSize)
+            {
+            case SEC_SIZE_512:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_512].currentFormat = true;
+                break;
+            case SEC_SIZE_520:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_520].currentFormat = true;
+                break;
+            case SEC_SIZE_524:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_524].currentFormat = true;
+                break;
+            case SEC_SIZE_528:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_528].currentFormat = true;
+                break;
+            case SEC_SIZE_4096:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096].currentFormat = true;
+                break;
+            case SEC_SIZE_4160:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4160].currentFormat = true;
+                break;
+            case SEC_SIZE_4192:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4192].currentFormat = true;
+                break;
+            case SEC_SIZE_4224:
+                formats->sectorSizes[SCSI_ENT_SECT_SIZE_4224].currentFormat = true;
+                break;
+            default:
+                break;
             }
-            else
+            if (!formats->scsiFastFormatSupported)
             {
-                formats->numberOfSectorSizes = 3;
+                formats->numberOfSectorSizes /=
+                    2; // without fast format support, number of supported sizes is cut in half
                 // dummy up based on current sector size
-                if (device->drive_info.deviceBlockSize < 4096)
+                if (device->drive_info.deviceBlockSize < SEC_SIZE_4096)
                 {
-                    // 512, 520, 528
-                    formats->sectorSizes[0].valid                     = true;
-                    formats->sectorSizes[0].logicalBlockLength        = 512;
-                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[1].valid                     = true;
-                    formats->sectorSizes[1].logicalBlockLength        = 520;
-                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[2].valid                     = true;
-                    formats->sectorSizes[2].logicalBlockLength        = 528;
-                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-                    switch (device->drive_info.deviceBlockSize)
-                    {
-                    case 512:
-                        formats->sectorSizes[0].currentFormat = true;
-                        break;
-                    case 520:
-                        formats->sectorSizes[1].currentFormat = true;
-                        break;
-                    case 528:
-                        formats->sectorSizes[2].currentFormat = true;
-                        break;
-                    default:
-                        break;
-                    }
+                    // memset away the 4k sizes
+                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                sizeof(sectorSize) * formats->numberOfSectorSizes, 0,
+                                sizeof(sectorSize) * formats->numberOfSectorSizes);
                 }
                 else
                 {
-                    // 4096, 4112, 4160
-                    formats->sectorSizes[0].valid                     = true;
-                    formats->sectorSizes[0].logicalBlockLength        = 4096;
-                    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[1].valid                     = true;
-                    formats->sectorSizes[1].logicalBlockLength        = 4112;
-                    formats->sectorSizes[1].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-
-                    formats->sectorSizes[2].valid                     = true;
-                    formats->sectorSizes[2].logicalBlockLength        = 4160;
-                    formats->sectorSizes[2].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_SCSI;
-                    switch (device->drive_info.deviceBlockSize)
-                    {
-                    case 4096:
-                        formats->sectorSizes[0].currentFormat = true;
-                        break;
-                    case 4112:
-                        formats->sectorSizes[1].currentFormat = true;
-                        break;
-                    case 4160:
-                        formats->sectorSizes[2].currentFormat = true;
-                        break;
-                    default:
-                        break;
-                    }
+                    // move 4k sizes to front, removing 5xx sizes
+                    safe_memmove(&formats->sectorSizes[0], sizeof(sectorSize) * formats->numberOfSectorSizes,
+                                 &formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                 sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    // now memset away old stuff so it doesn't look duplicated
+                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                sizeof(sectorSize) * formats->numberOfSectorSizes, 0,
+                                sizeof(sectorSize) * formats->numberOfSectorSizes);
                 }
             }
         }
@@ -1308,7 +1259,8 @@ static eReturnValues nvme_Get_Supported_Formats(const tDevice* device, ptrSuppor
     formats->deviceSupportsOtherFormats = true;
     formats->numberOfSectorSizes        = 0; // clear this out before we set it to something below
     // set metadata and PI location bits first
-    for (uint8_t iter = UINT8_C(0); iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf); ++iter)
+    for (uint8_t iter = UINT8_C(0);
+         iter < NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) && iter < MAX_SECTOR_SIZES_ARRAY; ++iter)
     {
         if (device->drive_info.IdentifyData.nvme.ns.lbaf[iter].lbaDS > 0)
         {
@@ -1354,25 +1306,25 @@ eReturnValues get_Supported_Formats(const tDevice* device, ptrSupportedFormats f
 
 void show_Supported_Formats(ptrSupportedFormats formats)
 {
-    printf("\nSupported Logical Block Sizes and Protection Types:\n");
-    printf("---------------------------------------------------\n");
-    printf("  * - current device format\n");
-    printf("PI Key:\n");
-    printf("  Y - protection type supported at specified block size\n");
-    printf("  N - protection type not supported at specified block size\n");
-    printf("  ? - unable to determine support for protection type at specified block size\n");
-    printf("Relative performance key:\n");
-    printf("  N/A - relative performance not available.\n");
-    printf("  Best    \n");
-    printf("  Better  \n");
-    printf("  Good    \n");
-    printf("  Degraded\n");
+    print_str("\nSupported Logical Block Sizes and Protection Types:\n");
+    print_str("---------------------------------------------------\n");
+    print_str("  * - current device format\n");
+    print_str("PI Key:\n");
+    print_str("  Y - protection type supported at specified block size\n");
+    print_str("  N - protection type not supported at specified block size\n");
+    print_str("  ? - unable to determine support for protection type at specified block size\n");
+    print_str("Relative performance key:\n");
+    print_str("  N/A - relative performance not available.\n");
+    print_str("  Best    \n");
+    print_str("  Better  \n");
+    print_str("  Good    \n");
+    print_str("  Degraded\n");
     // now print out the supported block sizes
-    printf("--------------------------------------------------------------------------------\n");
+    print_str("--------------------------------------------------------------------------------\n");
     printf(" %18s  %4s  %4s  %4s  %4s  %20s  %13s\n", "Logical Block Size", "PI-0", "PI-1", "PI-2", "PI-3",
            "Relative Performance", "Metadata Size");
-    printf("--------------------------------------------------------------------------------\n");
-    for (uint32_t iter = UINT32_C(0); iter < formats->numberOfSectorSizes; ++iter)
+    print_str("--------------------------------------------------------------------------------\n");
+    for (uint32_t iter = UINT32_C(0); iter < formats->numberOfSectorSizes && iter < MAX_SECTOR_SIZES_ARRAY; ++iter)
     {
         if (formats->sectorSizes[iter].valid)
         {
@@ -1505,20 +1457,20 @@ void show_Supported_Formats(ptrSupportedFormats formats)
                    formats->sectorSizes[iter].logicalBlockLength, pi0, pi1, pi2, pi3, perf, metaSize);
         }
     }
-    printf("--------------------------------------------------------------------------------\n");
+    print_str("--------------------------------------------------------------------------------\n");
     if (formats->scsiInformationNotReported)
     {
-        printf("NOTE: Device is not capable of showing all sizes it supports. Only common\n");
-        printf("      sizes are listed. Please consult the product manual for all supported\n");
-        printf("      combinations.\n");
+        print_str("NOTE: Device is not capable of showing all sizes it supports. Only common\n");
+        print_str("      sizes are listed. Please consult the product manual for all supported\n");
+        print_str("      combinations.\n");
     }
     if (formats->protectionInformationSupported.deviceSupportsProtection)
     {
-        printf("NOTE: This device supports protection information (PI) (a.k.a. End to End protection).\n");
-        printf("\tType 0 - No protection beyond transport protocol\n"); // this is always supported
+        print_str("NOTE: This device supports protection information (PI) (a.k.a. End to End protection).\n");
+        print_str("\tType 0 - No protection beyond transport protocol\n"); // this is always supported
         if (formats->protectionInformationSupported.protectionType1Supported)
         {
-            printf("\tType 1 - Logical Block Guard and Logical Block Reference Tag\n");
+            print_str("\tType 1 - Logical Block Guard and Logical Block Reference Tag\n");
         }
         if (formats->protectionInformationSupported.protectionType2Supported)
         {
@@ -1527,25 +1479,28 @@ void show_Supported_Formats(ptrSupportedFormats formats)
         }
         if (formats->protectionInformationSupported.protectionType3Supported)
         {
-            printf("\tType 3 - Logical Block Guard\n");
+            print_str("\tType 3 - Logical Block Guard\n");
         }
 
         if (!formats->protectionInformationSupported.protectionReportedPerSectorSize)
         {
-            printf("      Not all forms of PI are supported on all sector sizes unless otherwise indicated\n");
-            printf("      in the device product manual.\n");
+            print_str("      Not all forms of PI are supported on all sector sizes unless otherwise indicated\n");
+            print_str("      in the device product manual.\n");
         }
     }
     if (formats->scsiFastFormatSupported)
     {
-        printf("NOTE: This device supports Fast Format. Fast format is not instantaneous and is used for\n");
-        printf("      switching between 5xx and 4xxx sector sizes. A fast format may take a few minutes or longer\n");
-        printf(
+        print_str("NOTE: This device supports Fast Format. Fast format is not instantaneous and is used for\n");
+        print_str(
+            "      switching between 5xx and 4xxx sector sizes. A fast format may take a few minutes or longer\n");
+        print_str(
             "      but may take longer depending on the size of the drive. Fast format support does not necessarily\n");
-        printf("      mean switching sector sizes AND changing PI at the same time is supported. In most cases, a\n");
-        printf("      switch of PI type will require a full device format.\n");
-        printf("      Fast format mode 1 is typically used to switch from 512 to 4096 block sizes with the current\n");
-        printf("          PI scheme.\n");
+        print_str(
+            "      mean switching sector sizes AND changing PI at the same time is supported. In most cases, a\n");
+        print_str("      switch of PI type will require a full device format.\n");
+        print_str(
+            "      Fast format mode 1 is typically used to switch from 512 to 4096 block sizes with the current\n");
+        print_str("          PI scheme.\n");
     }
     // TODO: NVMe Metadata and PI location information.
 }
@@ -1570,21 +1525,18 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(const tDevice* device,
     RESTORE_NONNULL_COMPARE
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint32_t numberOfSupportedFormats = get_Number_Of_Supported_Sector_Sizes(device);
-        uint32_t formatsDataSize =
-            C_CAST(uint32_t, sizeof(supportedFormats) + (sizeof(sectorSize) * numberOfSupportedFormats));
-        ptrSupportedFormats formats = M_REINTERPRET_CAST(ptrSupportedFormats, safe_malloc(formatsDataSize));
+        uint32_t            formatsDataSize = C_CAST(uint32_t, sizeof(supportedFormats));
+        ptrSupportedFormats formats         = M_REINTERPRET_CAST(ptrSupportedFormats, safe_malloc(formatsDataSize));
         if (formats == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
         safe_memset(formats, formatsDataSize, 0, formatsDataSize);
-        formats->numberOfSectorSizes = numberOfSupportedFormats;
-        ret                          = get_Supported_Formats(device, formats);
+        ret = get_Supported_Formats(device, formats);
         if (SUCCESS == ret)
         {
             for (uint32_t sectorSizeIter = UINT32_C(0);
-                 sectorSizeIter < formats->numberOfSectorSizes && sectorSizeIter < numberOfSupportedFormats;
+                 sectorSizeIter < formats->numberOfSectorSizes && sectorSizeIter < MAX_SECTOR_SIZES_ARRAY;
                  ++sectorSizeIter)
             {
                 if (!formats->sectorSizes[sectorSizeIter].valid)
@@ -1640,23 +1592,23 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
     {
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
-            printf("Setting the drive sector size quickly.\n");
-            printf("This command may appear to hang the utility. Do NOT interrupt this\n");
-            printf("command for at least 1 hour if it appears hung. The drive is busy\n");
-            printf("performing the sector size change and is not able to indicate its\n");
-            printf("progress during this time.\n");
-            printf("This often only takes a few minutes to complete and return completion\n");
-            printf("of this command to the utility but in some cases it may take this full\n");
-            printf("hour before the drive is ready to use.\n");
-            printf("After this command has completed successfully the drive is ready to\n");
-            printf("read and write data.\n");
-            printf("Be aware that the drive may begin performing vendor unique background\n");
-            printf("activity which may prevent idle and standby timers from taking affect\n");
-            printf("until the background activity has completed.\n");
-            printf("If this command takes an hour or the command reports a failure due to\n");
-            printf("interruption by the system with a reset, recovery will be attempted\n");
-            printf("automatically. You may attempt to run this command again if recovery\n");
-            printf("does not appear successful.\n");
+            print_str("Setting the drive sector size quickly.\n");
+            print_str("This command may appear to hang the utility. Do NOT interrupt this\n");
+            print_str("command for at least 1 hour if it appears hung. The drive is busy\n");
+            print_str("performing the sector size change and is not able to indicate its\n");
+            print_str("progress during this time.\n");
+            print_str("This often only takes a few minutes to complete and return completion\n");
+            print_str("of this command to the utility but in some cases it may take this full\n");
+            print_str("hour before the drive is ready to use.\n");
+            print_str("After this command has completed successfully the drive is ready to\n");
+            print_str("read and write data.\n");
+            print_str("Be aware that the drive may begin performing vendor unique background\n");
+            print_str("activity which may prevent idle and standby timers from taking affect\n");
+            print_str("until the background activity has completed.\n");
+            print_str("If this command takes an hour or the command reports a failure due to\n");
+            print_str("interruption by the system with a reset, recovery will be attempted\n");
+            print_str("automatically. You may attempt to run this command again if recovery\n");
+            print_str("does not appear successfull.\n");
         }
         os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
         os_Lock_Device(device);
@@ -1738,7 +1690,7 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
                     printf(
                         "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
                         "first sector of the device\n");
-                    printf("         and the last sector (max LBA) then try creating new partitions again.\n");
+                    print_str("         and the last sector (max LBA) then try creating new partitions again.\n");
                 }
             }
         }
@@ -1759,19 +1711,19 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT && !setSizeSupported)
                 {
-                    printf("ERROR: The device was reset during sector size change. Device may not be usable!\n");
+                    print_str("ERROR: The device was reset during sector size change. Device may not be usable!\n");
                 }
                 if (is_Seagate_Family(device) == SEAGATE && !is_SSD(device)) // HDDs only
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                     {
-                        printf("Attempting Seagate quick format to recover the device.\n");
+                        print_str("Attempting Seagate quick format to recover the device.\n");
                     }
                     if (SUCCESS != seagate_Quick_Format(device))
                     {
                         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                         {
-                            printf("WARNING: Seagate quick format did not complete successfully!\n");
+                            print_str("WARNING: Seagate quick format did not complete successfully!\n");
                         }
                     }
                     // try refreshing the device one more time incase the status was just not right.
@@ -1781,18 +1733,20 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
                         // nothing else we can do at this point.
                         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                         {
-                            printf("ERROR: Quick format did not recover the device. The device may not be usable!\n");
+                            print_str(
+                                "ERROR: Quick format did not recover the device. The device may not be usable!\n");
                         }
                     }
                     else
                     {
                         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                         {
-                            printf("Seagate quick format successfully recovered the device!\n");
-                            printf("If sector size change is attempted again, format only single disks at a time,\n");
+                            print_str("Seagate quick format successfully recovered the device!\n");
+                            print_str(
+                                "If sector size change is attempted again, format only single disks at a time,\n");
                             printf("disable all background software, disable any management hardware or software, and "
                                    "then\n");
-                            printf("try again if the sector size is not correct.\n");
+                            print_str("try again if the sector size is not correct.\n");
                         }
                     }
                 }
@@ -1885,7 +1839,7 @@ eReturnValues show_NVM_Format_Progress(const tDevice* device)
     }
     else
     {
-        printf("\tError occurred while retrieving format progress!\n");
+        print_str("\tError occurred while retrieving format progress!\n");
     }
     return ret;
 }
@@ -2010,7 +1964,7 @@ eReturnValues run_NVMe_Format(const tDevice* device, runNVMFormatParameters nvmP
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("ERROR: Invalid format requested\n");
+            print_str("ERROR: Invalid format requested\n");
         }
         return NOT_SUPPORTED;
     }
@@ -2019,7 +1973,7 @@ eReturnValues run_NVMe_Format(const tDevice* device, runNVMFormatParameters nvmP
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("ERROR: Crypto Erase not supported by the device\n");
+            print_str("ERROR: Crypto Erase not supported by the device\n");
         }
         return NOT_SUPPORTED;
     }
@@ -2059,9 +2013,9 @@ eReturnValues run_NVMe_Format(const tDevice* device, runNVMFormatParameters nvmP
             uint8_t minutes = UINT8_C(0);
             uint8_t hours   = UINT8_C(0);
             convert_Seconds_To_Displayable_Time(delayTimeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-            printf("Progress will be updated every ");
+            print_str("Progress will be updated every ");
             print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-            printf("\n");
+            print_str("\n");
         }
         while (IN_PROGRESS == (ret = get_NVM_Format_Progress(device, &progress)) && progress < 100.0)
         {
@@ -2074,7 +2028,7 @@ eReturnValues run_NVMe_Format(const tDevice* device, runNVMFormatParameters nvmP
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("\n");
+            print_str("\n");
         }
         if (nvmParams.newSize.currentBlockSize)
         {

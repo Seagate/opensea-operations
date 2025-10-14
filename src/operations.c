@@ -264,11 +264,11 @@ eReturnValues ata_Set_Read_Look_Ahead(const tDevice* device, bool readLookAheadE
     // on ata, we just send a set features command to change this
     if (readLookAheadEnableDisable == true)
     {
-        ret = ata_Set_Features(device, SF_ENABLE_READ_LOOK_AHEAD_FEATURE, 0, 0, 0, 0);
+        ret = ata_SF_Read_Look_Ahead(device, ATA_SF_ENABLE);
     }
     else
     {
-        ret = ata_Set_Features(device, SF_DISABLE_READ_LOOK_AHEAD_FEATURE, 0, 0, 0, 0);
+        ret = ata_SF_Read_Look_Ahead(device, ATA_SF_DISABLE);
     }
     return ret;
 }
@@ -350,11 +350,11 @@ eReturnValues ata_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDi
     // on ata, we just send a set features command to change this
     if (writeCacheEnableDisable == true)
     {
-        ret = ata_Set_Features(device, SF_ENABLE_VOLITILE_WRITE_CACHE, 0, 0, 0, 0);
+        ret = ata_SF_Volatile_Write_Cache(device, ATA_SF_ENABLE);
     }
     else
     {
-        ret = ata_Set_Features(device, SF_DISABLE_VOLITILE_WRITE_CACHE, 0, 0, 0, 0);
+        ret = ata_SF_Volatile_Write_Cache(device, ATA_SF_DISABLE);
     }
     return ret;
 }
@@ -1412,23 +1412,23 @@ void print_Supported_Erase_Methods(const tDevice*    device,
     bool    cryptoSupported             = false;
     bool    sanitizeBlockEraseSupported = false;
     M_USE_UNUSED(device);
-    printf("Data sanitization capabilities:\n");
-    printf("\tRecommendation - Restore the MaxLBA of the device prior to any erase in\n");
-    printf("\t                 order to allow the drive to erase all user addressable\n");
-    printf("\t                 sectors. For ATA devices this means restoring \n");
-    printf("\t                 HPA + DCO / AMAC to restore the maxLBA.\n");
-    printf("\t                 Restoring the MaxLBA also allows full verification of\n");
-    printf("\t                 all user addressable space on the device without a\n");
-    printf("\t                 limitation from a lower maxLBA.\n");
-    printf("\tClear - Logical techniques are applied to all addressable storage\n");
-    printf("\t        locations, protecting against simple, non-invasive data\n");
-    printf("\t        recovery techniques.\n");
-    printf("\tClear, Possible Purge - Cryptographic erase is a purge if the vendor\n");
-    printf("\t        implementation meets the requirements in IEEE 2883-2022.\n");
-    printf("\tPurge - Logical techniques that target user data, overprovisioning,\n");
-    printf("\t        unused space, and bad blocks rendering data recovery infeasible\n");
-    printf("\t        even with state-of-the-art laboratory techniques.\n");
-    printf("\nErase Methods supported by this drive (listed fastest to slowest):\n");
+    print_str("Data sanitization capabilities:\n");
+    print_str("\tRecommendation - Restore the MaxLBA of the device prior to any erase in\n");
+    print_str("\t                 order to allow the drive to erase all user addressable\n");
+    print_str("\t                 sectors. For ATA devices this means restoring \n");
+    print_str("\t                 HPA + DCO / AMAC to restore the maxLBA.\n");
+    print_str("\t                 Restoring the MaxLBA also allows full verification of\n");
+    print_str("\t                 all user addressable space on the device without a\n");
+    print_str("\t                 limitation from a lower maxLBA.\n");
+    print_str("\tClear - Logical techniques are applied to all addressable storage\n");
+    print_str("\t        locations, protecting against simple, non-invasive data\n");
+    print_str("\t        recovery techniques.\n");
+    print_str("\tClear, Possible Purge - Cryptographic erase is a purge if the vendor\n");
+    print_str("\t        implementation meets the requirements in IEEE 2883-2022.\n");
+    print_str("\tPurge - Logical techniques that target user data, overprovisioning,\n");
+    print_str("\t        unused space, and bad blocks rendering data recovery infeasible\n");
+    print_str("\t        even with state-of-the-art laboratory techniques.\n");
+    print_str("\nErase Methods supported by this drive (listed fastest to slowest):\n");
     while (counter < MAX_SUPPORTED_ERASE_METHODS)
     {
 #define ERASE_SANITIZATION_CAPABILITIES_STR_LEN (24)
@@ -1504,19 +1504,19 @@ void print_Supported_Erase_Methods(const tDevice*    device,
         // The minimum time to overwrite erase this drive is approximately x days y hours z minutes.
         // The actual time may take longer. Cryptographic erase completes in seconds. Trim/Unmap & blockerase should
         // also complete in under a minute
-        printf("The minimum time to overwrite erase this drive is approximately:\n\t");
+        print_str("The minimum time to overwrite erase this drive is approximately:\n\t");
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
-        printf("The actual time to erase may take longer.\n");
+        print_str("\n");
+        print_str("The actual time to erase may take longer.\n");
         if (cryptoSupported)
         {
-            printf("Cryptographic erase completes in seconds.\n");
+            print_str("Cryptographic erase completes in seconds.\n");
         }
         if (sanitizeBlockEraseSupported)
         {
-            printf("Blockerase should also complete in under a minute.\n");
+            print_str("Blockerase should also complete in under a minute.\n");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -1660,7 +1660,7 @@ eReturnValues set_Free_Fall_Control_Sensitivity(const tDevice* device, uint8_t s
                     le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
                 le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT5) // supported
             {
-                ret = ata_Set_Features(device, SF_ENABLE_FREE_FALL_CONTROL_FEATURE, sensitivity, 0, 0, 0);
+                ret = ata_SF_Free_Fall_Control(device, ATA_SF_ENABLE, sensitivity);
             }
         }
     }
@@ -1679,7 +1679,7 @@ eReturnValues disable_Free_Fall_Control_Feature(const tDevice* device)
                     le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
                 le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT5) // supported
             {
-                ret = ata_Set_Features(device, SF_DISABLE_FREE_FALL_CONTROL_FEATURE, 0, 0, 0, 0);
+                ret = ata_SF_Free_Fall_Control(device, ATA_SF_DISABLE, RESERVED);
             }
         }
     }
@@ -1693,12 +1693,12 @@ void show_Test_Unit_Ready_Status(const tDevice* device)
     eReturnValues ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {
-        printf("READY\n");
+        print_str("READY\n");
     }
     else
     {
         eVerbosityLevels tempVerbosity = device->deviceVerbosity;
-        printf("NOT READY\n");
+        print_str("NOT READY\n");
         M_CONST_CAST(tDevice*, device)->deviceVerbosity =
             VERBOSITY_COMMAND_NAMES; // the function below will print out a sense data translation, but only it we are
                                      // at this verbosity or higher which is why it's set before this call.
@@ -1727,12 +1727,12 @@ eReturnValues enable_Disable_AAM_Feature(const tDevice* device, bool enable)
                 {
                     enableValue = M_Byte1(device->drive_info.IdentifyData.ata.Word094);
                 }
-                ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, enableValue, 0, 0, 0);
+                ret = ata_SF_AAM(device, ATA_SF_ENABLE, enableValue);
             }
             else
             {
                 // subcommand C2
-                ret = ata_Set_Features(device, SF_DISABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT, 0, 0, 0, 0);
+                ret = ata_SF_AAM(device, ATA_SF_DISABLE, RESERVED);
                 if (ret != SUCCESS)
                 {
                     // the disable AAM feature is not available on all devices according to ATA spec.
@@ -1759,7 +1759,7 @@ eReturnValues set_AAM_Level(const tDevice* device, uint8_t aamLevel)
             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT9)
         {
             // subcommand 42 with the aamLevel in the count field
-            ret = ata_Set_Features(device, SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE, aamLevel, 0, 0, 0);
+            ret = ata_SF_AAM(device, ATA_SF_ENABLE, aamLevel);
         }
     }
     return ret;
@@ -1838,15 +1838,8 @@ eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
             scsi_MP_Reset_To_Defaults_Supported(device))
         {
             // requesting to reset all mode pages. Send the mode select command with the RTD bit set.
-            ret              = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);
-            uint8_t senseKey = UINT8_C(0);
-            uint8_t asc      = UINT8_C(0);
-            uint8_t ascq     = UINT8_C(0);
-            uint8_t fru      = UINT8_C(0);
-            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq,
-                                       &fru);
-            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x20 &&
-                ascq == 0x00) // checking for invalid operation code
+            ret = scsi_Mode_Select_10(device, 0, true, true, true, M_NULLPTR, 0);
+            if (is_Invalid_Opcode(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
             {
                 // retry with 6 byte command since 10 byte op code was not recognizd.
                 ret = scsi_Mode_Select_6(device, 0, true, true, true, M_NULLPTR, 0);
@@ -1964,7 +1957,7 @@ eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
                                 }
                                 else
                                 {
-                                    printf("\n");
+                                    print_str("\n");
                                 }
                             }
                             else
@@ -1985,7 +1978,7 @@ eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
                                 }
                                 else
                                 {
-                                    printf("\n");
+                                    print_str("\n");
                                 }
                             }
                             else
@@ -2731,20 +2724,20 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
         {
             printf(" %s", pageName);
         }
-        printf("\n");
+        print_str("\n");
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            printf(" Current Values");
+            print_str(" Current Values");
             break;
         case MPC_CHANGABLE_VALUES:
-            printf(" Changable Values");
+            print_str(" Changable Values");
             break;
         case MPC_DEFAULT_VALUES:
-            printf(" Default Values");
+            print_str(" Default Values");
             break;
         case MPC_SAVED_VALUES:
-            printf(" Saved Values");
+            print_str(" Saved Values");
             break;
         default: // this shouldn't happen...
             break;
@@ -2764,11 +2757,11 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
                 printf("%02" PRIX8, modeData[iter]);
                 if ((uint32_t)(iter + UINT16_C(1)) < M_Min(pageLength, modeDataLen))
                 {
-                    printf(" ");
+                    print_str(" ");
                 }
             }
         }
-        printf("\n");
+        print_str("\n");
     }
     else if (modeData != M_NULLPTR)
     {
@@ -2811,20 +2804,20 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
         {
             printf(" - %" PRIX8 "h", subpage);
         }
-        printf("\n");
+        print_str("\n");
         switch (mpc)
         {
         case MPC_CURRENT_VALUES:
-            printf(" Current Values");
+            print_str(" Current Values");
             break;
         case MPC_CHANGABLE_VALUES:
-            printf(" Changable Values");
+            print_str(" Changable Values");
             break;
         case MPC_DEFAULT_VALUES:
-            printf(" Default Values");
+            print_str(" Default Values");
             break;
         case MPC_SAVED_VALUES:
-            printf(" Saved Values");
+            print_str(" Saved Values");
             break;
         default: // this shouldn't happen...
             break;
@@ -2832,7 +2825,7 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
         printf("\n%.*s\n", equalsLengthToPrint,
                "=================================================================================="); // 80 characters
                                                                                                       // max...
-        printf("Not Supported.\n");
+        print_str("Not Supported.\n");
     }
 }
 
@@ -2942,7 +2935,7 @@ void show_SCSI_Mode_Page(const tDevice*       device,
                 }
                 else
                 {
-                    printf("No mode page data was returned.\n");
+                    print_str("No mode page data was returned.\n");
                 }
             }
             safe_free_aligned(&modeData);
@@ -3239,8 +3232,8 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     if (ranges != M_NULLPTR && ranges->size >= sizeof(concurrentRangesV1) &&
         ranges->version >= CONCURRENT_RANGES_VERSION_V1)
     {
-        printf("====Concurrent Positioning Ranges====\n");
-        printf("\nRange#\t#Elements\t          Lowest LBA     \t   # of LBAs      \n");
+        print_str("====Concurrent Positioning Ranges====\n");
+        print_str("\nRange#\t#Elements\t          Lowest LBA     \t   # of LBAs      \n");
         for (uint8_t rangeCounter = UINT8_C(0); rangeCounter < ranges->numberOfRanges && rangeCounter < 15;
              ++rangeCounter)
         {
@@ -3260,7 +3253,7 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     }
     else
     {
-        printf("ERROR: Incompatible concurrent ranges data structure. Cannot print the data.\n");
+        print_str("ERROR: Incompatible concurrent ranges data structure. Cannot print the data.\n");
     }
     RESTORE_NONNULL_COMPARE
 }
@@ -3350,7 +3343,7 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
     DISABLE_NONNULL_COMPARE
     if (info != M_NULLPTR)
     {
-        printf("\n=====Write-Read-Verify=====\n");
+        print_str("\n=====Write-Read-Verify=====\n");
         if (info->supported)
         {
             if (info->enabled)
@@ -3360,8 +3353,8 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
                 char*  capUnit = &capUnitarry[0];
                 char*  metUnit = &metUnitarry[0];
                 double capD = C_CAST(double, info->bytesBeingVerified), metD = C_CAST(double, info->bytesBeingVerified);
-                printf("Enabled\n");
-                printf("Mode: ");
+                print_str("Enabled\n");
+                print_str("Mode: ");
                 if (info->bytesBeingVerified > 0 && info->bytesBeingVerified != UINT64_MAX)
                 {
                     capacity_Unit_Convert(&capD, &capUnit);
@@ -3375,10 +3368,10 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
                 switch (info->currentWRVMode)
                 {
                 case ATA_WRV_MODE_ALL:
-                    printf("0\nVerifying: All Sectors\n");
+                    print_str("0\nVerifying: All Sectors\n");
                     break;
                 case ATA_WRV_MODE_65536:
-                    printf("1\nVerifying: First 65536 written sectors.\n");
+                    print_str("1\nVerifying: First 65536 written sectors.\n");
                     printf("Verify Capacity (%s/%s): %0.02f/%0.02f\n", capUnit, metUnit, capD, metD);
                     break;
                 case ATA_WRV_MODE_VENDOR:
@@ -3393,12 +3386,12 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
             }
             else
             {
-                printf("Supported, but not Enabled\n");
+                print_str("Supported, but not Enabled\n");
             }
         }
         else
         {
-            printf("Not Supported\n");
+            print_str("Not Supported\n");
         }
     }
     RESTORE_NONNULL_COMPARE
@@ -3409,7 +3402,7 @@ eReturnValues disable_Write_Read_Verify(const tDevice* device)
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        ret = ata_Set_Features(device, SF_DISABLE_WRITE_READ_VERIFY_FEATURE, 0, 0, 0, 0);
+        ret = ata_SF_Write_Read_Verify(device, ATA_SF_DISABLE, ATA_WRV_MODE_ALL, RESERVED);
     }
     return ret;
 }
@@ -3425,16 +3418,16 @@ eReturnValues set_Write_Read_Verify(const tDevice* device, bool all, bool vendor
         }
         else if (all)
         {
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_ALL, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_ALL, RESERVED);
         }
         else if (vendorSpecific)
         {
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_VENDOR, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_VENDOR, RESERVED);
         }
         else if (wrvSectorCount == 65536) // Detecting this very specific number to make this mode since it is in the
                                           // spec and this is probably what would be wanted in this case.
         {
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, 0, ATA_WRV_MODE_65536, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_65536, RESERVED);
         }
         else
         {
@@ -3450,9 +3443,9 @@ eReturnValues set_Write_Read_Verify(const tDevice* device, bool all, bool vendor
                 // this math is rounding up.
                 // If someone selected a value not evenly divisible by 1024, they likely want at LEAST that many
                 // sectors being verified rather than not enough, so rounding up here makes the most sense -TJE
-                count = C_CAST(uint8_t, ((wrvSectorCount + (WRV_USER_MULTIPLIER - 1)) / WRV_USER_MULTIPLIER));
+                count = C_CAST(uint8_t, uint32_round_up_generic(wrvSectorCount, WRV_USER_MULTIPLIER));
             }
-            ret = ata_Set_Features(device, SF_ENABLE_WRITE_READ_VERIFY_FEATURE, count, ATA_WRV_MODE_USER, 0, 0);
+            ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_USER, count);
         }
     }
     return ret;

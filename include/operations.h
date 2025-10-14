@@ -776,7 +776,7 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(const tDevice*     device,
                                                                        ptrWriteAfterErase writeReq);
 
-    typedef enum _eOSFeatureSupported
+    typedef enum eOSFeatureSupportedEnum
     {
         OS_FEATURE_UNKNOWN,
         OS_FEATURE_SUPPORTED,        // supported and no known blocks
