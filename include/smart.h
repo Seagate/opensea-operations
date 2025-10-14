@@ -64,12 +64,15 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(tDevice* device, smartLogData* smartAttrs);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(const tDevice* device, smartLogData* smartAttrs);
 
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API void get_Attribute_Name(tDevice* device, uint8_t attributeNumber, char** attributeName);
+    OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* device,
+                                                   uint8_t        attributeNumber,
+                                                   char**         attributeName);
 
     typedef enum eSMARTAttrOutModeEnum
     {
@@ -94,17 +97,17 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Attributes(tDevice* device, eSMARTAttrOutMode outputMode);
+    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Attributes(const tDevice* device, eSMARTAttrOutMode outputMode);
 
-#define MAX_SMART_STATUS_STRING_LENGTH          21  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FIELD_NAME_LENGTH               91  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FIELD_SHORT_NAME_LENGTH         41  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_ANALYZED_FIELD_NAME_LENGTH      41  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    129 // This leaves room for a M_NULLPTR terminating character
-#define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91  // This leaves room for a M_NULLPTR terminating character
-#define MAX_HYBRID_RAW_STRING_LENGTH            24  // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        9   // This leaves room for a M_NULLPTR terminating character
-#define MAX_RAW_FEILD_COUNT                     4   // Right now we have identified maximum 4 field for attributes
+#define MAX_SMART_STATUS_STRING_LENGTH          21 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FIELD_NAME_LENGTH               47 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FIELD_SHORT_NAME_LENGTH         41 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_ANALYZED_FIELD_NAME_LENGTH      41 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    86 // This leaves room for a M_NULLPTR terminating character
+#define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91 // This leaves room for a M_NULLPTR terminating character
+#define MAX_HYBRID_RAW_STRING_LENGTH            24 // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FEILD_UNIT_STRING_LENGTH        9  // This leaves room for a M_NULLPTR terminating character
+#define MAX_RAW_FEILD_COUNT                     4  // Right now we have identified maximum 4 field for attributes
 
     M_DECLARE_ENUM(eATAAttributeRawFieldUnitType,
                    /*!< No Unit. */
@@ -138,49 +141,6 @@ extern "C"
                    /*!< Unknown Unit. */
                    RAW_FIELD_UNIT_UNKNOWN = 14);
 
-    typedef struct s_ataAttributeRawFieldData
-    {
-        char                          fieldName[MAX_RAW_FIELD_NAME_LENGTH];
-        char                          fieldShortName[MAX_RAW_FIELD_SHORT_NAME_LENGTH];
-        int64_t                       fieldValue; // making it signed to handle negative values as well
-        eATAAttributeRawFieldUnitType fieldUnit;
-    } ataAttributeRawFieldData;
-
-    typedef struct s_ataAttributeRawData
-    {
-        uint8_t                  rawData[SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT];
-        char                     rawHybridString[MAX_HYBRID_RAW_STRING_LENGTH];
-        uint8_t                  userFieldCount; // maximum allowed MAX_RAW_FEILD_COUNT
-        ataAttributeRawFieldData rawField[MAX_RAW_FEILD_COUNT];
-
-        bool    int64TypeAnalyzedFieldValid; // will be true if raw data has any field representable in int64_t format
-        int64_t int64TypeAnalyzedFieldValue;
-        eATAAttributeRawFieldUnitType int64TypeAnalyzedFieldUnit;
-        char                          int64TypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char                          int64TypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-
-        bool   doubleTypeAnalyzedFieldValid; // will be true if raw data has any field representable in double format
-        double doubleTypeAnalyzedFieldValue;
-        eATAAttributeRawFieldUnitType doubleTypeAnalyzedFieldUnit;
-        char                          doubleTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char                          doubleTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-
-        bool stringTypeAnalyzedFieldValid; // will be true if raw data has any field representable in some string format
-        char stringTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char stringTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
-        char stringTypeAnalyzedFieldValue[MAX_RAW_ANALYZED_STRING_VALUE_LENGTH];
-    } ataAttributeRawData;
-
-    typedef struct s_ataAttributeTypeData
-    {
-        bool preFailAttribute;
-        bool onlineDataCollection;
-        bool performanceIndicator;
-        bool errorRateIndicator;
-        bool eventCounter;
-        bool selfPreserving;
-    } ataAttributeTypeData;
-
     M_DECLARE_ENUM(eATAAttributeThresholdType,
                    /*!< Unknown Threshold. */
                    THRESHOLD_UNKNOWN = 0,
@@ -193,49 +153,84 @@ extern "C"
                    /*!< Threshold set to invalid value. */
                    THRESHOLD_INVALID = 4);
 
-    M_DECLARE_ENUM(
-        eATAAttributeFailStatus,
-        /*!< Attribute Fail Status Not Set. */
-        FAIL_STATUS_NOT_SET = 0,
-        /*!< Attribute Failing now, nominal is less than threshold value(warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_FAILING_NOW = 1,
-        /*!< Attribute is issuing Warning now, nominal is less than threshold value(non-warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_WARNING_NOW = 2,
-        /*!< Attribute Failed in past, worst is less than threshold value(warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_FAILED_IN_PAST = 3,
-        /*!< Attribute has issued Warning in past, worst is less than threshold value(non-warranty attribute). */
-        FAIL_STATUS_ATTRIBUTE_WARNED_IN_PAST = 4);
+    M_DECLARE_ENUM(eATAAttributeFailStatus,
+                   /*!< Attribute Fail Status Not Set. */
+                   FAIL_STATUS_NOT_SET = 0,
+                   /*!< Attribute Failing, nominal is less than threshold value or worst is less than threshold
+                      value(warranty attribute). */
+                   FAIL_STATUS_ATTRIBUTE_FAILING = 1,
+                   /*!< Attribute is issuing Warning now, nominal is less than threshold value or worst is less than
+                      threshold value(non-warranty attribute). */
+                   FAIL_STATUS_ATTRIBUTE_WARNING = 2);
 
-    typedef struct s_ataAttributeThresholdInfo
-    {
-        uint8_t thresholdValue;
-        eATAAttributeThresholdType
-            thresholdType; // Since we have added this enum, no need to add threshold valid boolean flag
-        eATAAttributeFailStatus
-             failStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
-        char failStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
-    } ataAttributeThresholdInfo;
+    // clang-format off
+    M_PACK_ALIGN_STRUCT(ataAttributeRawFieldData, 1,
+                        char                          fieldName[MAX_RAW_FIELD_NAME_LENGTH];
+                        char                          fieldShortName[MAX_RAW_FIELD_SHORT_NAME_LENGTH];
+                        int64_t                       fieldValue; // making it signed to handle negative values as well
+                        eATAAttributeRawFieldUnitType fieldUnit;
+    );
 
-    typedef struct s_ataSMARTAnalyzedAttribute
-    {
-        bool                      isValid;
-        uint8_t                   attributeNumber;
-        char                      attributeName[MAX_ATTRIBUTE_NAME_LENGTH];
-        uint16_t                  status;
-        ataAttributeTypeData      attributeType;
-        ataAttributeThresholdInfo thresholdInfo;
-        uint8_t                   nominal;
-        uint8_t                   worstEver;
-        bool                      seeAnalyzedFlag;
-        ataAttributeRawData       rawData;
-    } ataSMARTAnalyzedAttribute;
+    M_PACK_ALIGN_STRUCT(ataAttributeRawData, 1,
+                        uint8_t                  rawData[SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT];
+                        char                     rawHybridString[MAX_HYBRID_RAW_STRING_LENGTH];
+                        uint8_t                  userFieldCount; // maximum allowed MAX_RAW_FEILD_COUNT
+                        ataAttributeRawFieldData rawField[MAX_RAW_FEILD_COUNT];
 
-    typedef struct s_ataSMARTAnalyzedData
-    {
-        ataSMARTAnalyzedAttribute
-            attributes[ATA_SMART_LOG_MAX_ATTRIBUTES]; // attribute numbers 1 - 255 are valid (check valid bit to make
-                                                      // sure it's a used attribute)
-    } ataSMARTAnalyzedData;
+                        bool    int64TypeAnalyzedFieldValid; // will be true if raw data has any field representable in int64_t format
+                        int64_t int64TypeAnalyzedFieldValue;
+                        eATAAttributeRawFieldUnitType int64TypeAnalyzedFieldUnit;
+                        char                          int64TypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char                          int64TypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+
+                        bool   doubleTypeAnalyzedFieldValid; // will be true if raw data has any field representable in double format
+                        double doubleTypeAnalyzedFieldValue;
+                        eATAAttributeRawFieldUnitType doubleTypeAnalyzedFieldUnit;
+                        char                          doubleTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char                          doubleTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+
+                        bool stringTypeAnalyzedFieldValid; // will be true if raw data has any field representable in some string format
+                        char stringTypeAnalyzedFieldName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char stringTypeAnalyzedFieldShortName[MAX_RAW_ANALYZED_FIELD_NAME_LENGTH];
+                        char stringTypeAnalyzedFieldValue[MAX_RAW_ANALYZED_STRING_VALUE_LENGTH];
+    );
+
+    M_PACK_ALIGN_STRUCT(ataAttributeTypeData, 1, 
+                        bool preFailAttribute; 
+                        bool onlineDataCollection;
+                        bool performanceIndicator;
+                        bool errorRateIndicator;
+                        bool eventCounter;
+                        bool selfPreserving;
+    );
+
+    M_PACK_ALIGN_STRUCT(ataAttributeThresholdInfo, 1,
+                        uint8_t                    thresholdValue;
+                        eATAAttributeThresholdType thresholdType; // Since we have added this enum, no need to add threshold valid boolean flag
+                        eATAAttributeFailStatus    currentFailStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
+                        char                       currentFailStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
+                        eATAAttributeFailStatus    pastFailStatus; // This is for the implementation similar to "WHEN_FAILED" info of smartmontool
+                        char                       pastFailStatusString[MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH];
+    );
+
+    M_PACK_ALIGN_STRUCT(ataSMARTAnalyzedAttribute, 1, 
+                        bool                      isValid; 
+                        uint8_t                   attributeNumber;
+                        char                      attributeName[MAX_ATTRIBUTE_NAME_LENGTH];
+                        uint16_t                  status;
+                        ataAttributeTypeData      attributeType;
+                        ataAttributeThresholdInfo thresholdInfo;
+                        uint8_t                   nominal;
+                        uint8_t                   worstEver;
+                        bool                      seeAnalyzedFlag;
+                        ataAttributeRawData       rawData;
+    );
+
+    M_PACK_ALIGN_STRUCT(ataSMARTAnalyzedData, 1,
+                        ataSMARTAnalyzedAttribute attributes[ATA_SMART_LOG_MAX_ATTRIBUTES]; // attribute numbers 1 - 255 are valid (check
+                                                                      // valid bit to make sure it's a used attribute)
+    );
+    // clang-format on
 
     static M_INLINE void safe_free_ata_smart_analyzed_data(ataSMARTAnalyzedData** smartData)
     {
@@ -243,13 +238,13 @@ extern "C"
     }
 
     M_NONNULL_PARAM_LIST(2)
-    M_PARAM_WO(2)
+    M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitType uintType,
                                                           char**                        unitString,
                                                           bool                          isShortName);
     //-----------------------------------------------------------------------------
     //
-    // get_ATA_Analyzed_SMART_Attributes(tDevice * device, ataSMARTAnalyzedData * ataSMARTAnalyzedData )
+    // get_ATA_Analyzed_SMART_Attributes(const tDevice * device, ataSMARTAnalyzedData * ataSMARTAnalyzedData )
     //
     //! \brief   Gets the SMART attributes
     //!
@@ -264,7 +259,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Analyzed_SMART_Attributes(tDevice*              device,
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Analyzed_SMART_Attributes(const tDevice*        device,
                                                                            ataSMARTAnalyzedData* smartAnylyzedData);
 
     //-----------------------------------------------------------------------------
@@ -281,7 +276,7 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_NVMe_Health(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_NVMe_Health(const tDevice* device);
 
     typedef enum eSMARTTripInfoTypeEnum
     {
@@ -345,7 +340,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues run_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues run_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -383,7 +379,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -403,11 +400,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
-    //  nvme_SMART_Check(tDevice *device, ptrSmartTripInfo tripInfo)
+    //  nvme_SMART_Check(const tDevice *device, ptrSmartTripInfo tripInfo)
     //
     //! \brief   Description:  Function to Perform a SMART check on a NVMe device
     //
@@ -423,11 +421,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(tDevice* device, ptrSmartTripInfo tripInfo);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_SMART_Enabled(tDevice *device)
+    //  is_SMART_Enabled(const tDevice *device)
     //
     //! \brief   Description:  Function to check if SMART is enabled on a device
     //
@@ -438,22 +437,24 @@ extern "C"
     //!   \return true = enabled, false = not enabled (may not be supported or just not enabled)
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Enabled(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Enabled(const tDevice* device);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(tDevice* device);
-
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Pending_List_Count(tDevice* device, uint32_t* pendingCount);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(const tDevice* device);
 
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Grown_List_Count(tDevice* device, uint32_t* grownCount);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Pending_List_Count(const tDevice* device, uint32_t* pendingCount);
+
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Grown_List_Count(const tDevice* device, uint32_t* grownCount);
 
     //-----------------------------------------------------------------------------
     //
-    //  sct_Set_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool
-    //  isVolatile, uint16_t hdaTemperatureIntervalOrState)
+    //  sct_Set_Feature_Control(const tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue,
+    //  bool isVolatile, uint16_t hdaTemperatureIntervalOrState)
     //
     //! \brief   Description:  set a SCT feature to a specific value using SCT (SMART command transport)
     //
@@ -472,17 +473,17 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Feature_Control(tDevice*    device,
-                                                                 eSCTFeature sctFeature,
-                                                                 bool        enableDisable,
-                                                                 bool        defaultValue,
-                                                                 bool        isVolatile,
-                                                                 uint16_t    hdaTemperatureIntervalOrState);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Feature_Control(const tDevice* device,
+                                                                 eSCTFeature    sctFeature,
+                                                                 bool           enableDisable,
+                                                                 bool           defaultValue,
+                                                                 bool           isVolatile,
+                                                                 uint16_t       hdaTemperatureIntervalOrState);
 
     //-----------------------------------------------------------------------------
     //
-    //  sct_Get_Feature_Control(tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue, bool
-    //  isVolatile, uint16_t hdaTemperatureIntervalOrState)
+    //  sct_Get_Feature_Control(const tDevice *device, eSCTFeature sctFeature, bool enableDisable, bool defaultValue,
+    //  bool isVolatile, uint16_t hdaTemperatureIntervalOrState)
     //
     //! \brief   Description:  get a SCT feature's information using SCT (SMART command transport)
     //
@@ -504,12 +505,12 @@ extern "C"
     M_PARAM_WO(4)
     M_PARAM_WO(5)
     M_PARAM_WO(6)
-    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Feature_Control(tDevice*    device,
-                                                                 eSCTFeature sctFeature,
-                                                                 bool*       enableDisable,
-                                                                 bool*       defaultValue,
-                                                                 uint16_t*   hdaTemperatureIntervalOrState,
-                                                                 uint16_t*   featureOptionFlags);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Feature_Control(const tDevice* device,
+                                                                 eSCTFeature    sctFeature,
+                                                                 bool*          enableDisable,
+                                                                 bool*          defaultValue,
+                                                                 uint16_t*      hdaTemperatureIntervalOrState,
+                                                                 uint16_t*      featureOptionFlags);
 
     typedef enum eSCTErrorRecoveryCommandEnum
     {
@@ -519,7 +520,8 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  sct_Set_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds)
+    //  sct_Set_Command_Timer(const tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t
+    //  timerValueMilliseconds)
     //
     //! \brief   Description:  Set the SCT Error recovery command timeout value
     //
@@ -535,14 +537,15 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Command_Timer(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues sct_Set_Command_Timer(const tDevice*           device,
                                                                eSCTErrorRecoveryCommand ercCommand,
                                                                uint32_t                 timerValueMilliseconds,
                                                                bool                     isVolatile);
 
     //-----------------------------------------------------------------------------
     //
-    //  sct_Get_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t timerValueMilliseconds)
+    //  sct_Get_Command_Timer(const tDevice *device, eSCTErrorRecoveryCommand ercCommand, uint32_t
+    //  timerValueMilliseconds)
     //
     //! \brief   Description:  Get the SCT Error recovery command timeout value
     //
@@ -559,14 +562,14 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Command_Timer(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Command_Timer(const tDevice*           device,
                                                                eSCTErrorRecoveryCommand ercCommand,
                                                                uint32_t*                timerValueMilliseconds,
                                                                bool                     isVolatile);
 
     //-----------------------------------------------------------------------------
     //
-    //  sct_Restore_Command_Timer(tDevice *device, eSCTErrorRecoveryCommand ercCommand)
+    //  sct_Restore_Command_Timer(const tDevice *device, eSCTErrorRecoveryCommand ercCommand)
     //
     //! \brief   Description:  Restore the SCT Error recovery command timeout value to default
     //
@@ -580,12 +583,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues sct_Restore_Command_Timer(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues sct_Restore_Command_Timer(const tDevice*           device,
                                                                    eSCTErrorRecoveryCommand ercCommand);
 
     //-----------------------------------------------------------------------------
     //
-    //  sct_Get_Min_Recovery_Time_Limit(tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
+    //  sct_Get_Min_Recovery_Time_Limit(const tDevice *device, uint32_t *minRcvTimeLmtMilliseconds)
     //
     //! \brief   Description:  Get the Minimum supported value for SCT Error recovery command timeout
     //
@@ -600,12 +603,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Min_Recovery_Time_Limit(tDevice*  device,
-                                                                         uint32_t* minRcvTimeLmtMilliseconds);
+    OPENSEA_OPERATIONS_API eReturnValues sct_Get_Min_Recovery_Time_Limit(const tDevice* device,
+                                                                         uint32_t*      minRcvTimeLmtMilliseconds);
 
     //-----------------------------------------------------------------------------
     //
-    //  enable_Disable_SMART_Feature(tDevice *device, bool enable)
+    //  enable_Disable_SMART_Feature(const tDevice *device, bool enable)
     //
     //! \brief   Description:  Enable or disable the SMART feature on a device
     //
@@ -617,11 +620,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Feature(tDevice* device, bool enable);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Feature(const tDevice* device, bool enable);
 
     //-----------------------------------------------------------------------------
     //
-    //  enable_Disable_SMART_Attribute_Autosave(tDevice *device, bool enable)
+    //  enable_Disable_SMART_Attribute_Autosave(const tDevice *device, bool enable)
     //
     //! \brief   Description:  Enable or disable the SMART Attribute Autosave feature on a device
     //
@@ -634,11 +637,11 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Attribute_Autosave(tDevice* device, bool enable);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Attribute_Autosave(const tDevice* device, bool enable);
 
     //-----------------------------------------------------------------------------
     //
-    //  enable_Disable_SMART_Auto_Offline(tDevice *device, bool enable)
+    //  enable_Disable_SMART_Auto_Offline(const tDevice *device, bool enable)
     //
     //! \brief   Description:  Enable or disable the SMART Auto Offline feature on a device
     //
@@ -650,7 +653,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Auto_Offline(tDevice* device, bool enable);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Auto_Offline(const tDevice* device, bool enable);
 
     typedef struct s_smartFeatureInfo
     {
@@ -674,7 +678,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
+    //  get_SMART_Info(const tDevice *device, ptrSmartFeatureInfo smartInfo)
     //
     //! \brief   Description:  Get SMART information from an ATA device (excludes vendor unique data and attributes)
     //
@@ -688,11 +692,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartInfo);
 
     //-----------------------------------------------------------------------------
     //
-    //  print_SMART_Info(tDevice *device, ptrSmartFeatureInfo smartInfo)
+    //  print_SMART_Info(const tDevice *device, ptrSmartFeatureInfo smartInfo)
     //
     //! \brief   Description:  Print SMART information from an ATA device (excludes vendor unique data and attributes)
     //
@@ -706,13 +711,14 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues print_SMART_Info(tDevice* device, ptrSmartFeatureInfo smartInfo);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartInfo);
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(const tDevice* device);
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_PCI_Statistics(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_PCI_Statistics(const tDevice* device);
 
     typedef struct s_informationalExceptionsControl
     {
@@ -744,7 +750,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc,
+    //  get_SCSI_Informational_Exceptions_Info(const tDevice *device, eScsiModePageControl mpc,
     //  ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData)
     //
     //! \brief   Description:  Get SCSI Informational Exceptions information (SMART)
@@ -764,14 +770,14 @@ extern "C"
     M_PARAM_WO(3)
     M_PARAM_WO(4)
     OPENSEA_OPERATIONS_API eReturnValues
-    get_SCSI_Informational_Exceptions_Info(tDevice*                          device,
+    get_SCSI_Informational_Exceptions_Info(const tDevice*                    device,
                                            eScsiModePageControl              mpc,
                                            ptrInformationalExceptionsControl controlData,
                                            ptrInformationalExceptionsLog     logData);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_SCSI_Informational_Exceptions_Info(tDevice *device, eScsiModePageControl mpc,
+    //  get_SCSI_Informational_Exceptions_Info(const tDevice *device, eScsiModePageControl mpc,
     //  ptrInformationalExceptionsControl controlData, ptrInformationalExceptionsLog logData)
     //
     //! \brief   Description:  Set SCSI Informational Exceptions information (SMART). This should be called AFTER the
@@ -790,11 +796,13 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RO(3)
     OPENSEA_OPERATIONS_API eReturnValues
-    set_SCSI_Informational_Exceptions_Info(tDevice* device, bool save, ptrInformationalExceptionsControl controlData);
+    set_SCSI_Informational_Exceptions_Info(const tDevice*                    device,
+                                           bool                              save,
+                                           ptrInformationalExceptionsControl controlData);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_MRIE_Mode(tDevice *device, uint8_t mrieMode, bool driveDefault)
+    //  set_MRIE_Mode(const tDevice *device, uint8_t mrieMode, bool driveDefault)
     //
     //! \brief   Description:  Set SCSI Informational Exceptions MRIE (Method of reporting informational exceptions)
     //! (SMART Check) (Changes when the condition is reported and the sense code used)
@@ -810,7 +818,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(tDevice* device, uint8_t mrieMode, bool driveDefault);
+    OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(const tDevice* device, uint8_t mrieMode, bool driveDefault);
 
 #define SMART_ERROR_STATE_MASK                                                                                         \
     0x0F // highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below
@@ -956,7 +964,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_ATA_Summary_SMART_Error_Log(tDevice * device, ptrSummarySMARTErrorLog smartErrorLog)
+    //  get_ATA_Summary_SMART_Error_Log(const tDevice * device, ptrSummarySMARTErrorLog smartErrorLog)
     //
     //! \brief   Description:  Get the ATA Summary SMART Error Log (will be ordered from most recent to oldest according
     //! to ATA spec) (only holds 28bit commands accurately)
@@ -972,7 +980,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Summary_SMART_Error_Log(tDevice*                device,
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Summary_SMART_Error_Log(const tDevice*          device,
                                                                          ptrSummarySMARTErrorLog smartErrorLog);
 
     //-----------------------------------------------------------------------------
@@ -996,7 +1004,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_ATA_Comprehensive_SMART_Error_Log(tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool
+    //  get_ATA_Comprehensive_SMART_Error_Log(const tDevice * device, ptrComprehensiveSMARTErrorLog smartErrorLog, bool
     //  forceSMARTLog)
     //
     //! \brief   Description:  Get the ATA (ext) Comprehensive SMART Error Log (will be ordered from most recent to
@@ -1018,7 +1026,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API eReturnValues
-    get_ATA_Comprehensive_SMART_Error_Log(tDevice*                      device,
+    get_ATA_Comprehensive_SMART_Error_Log(const tDevice*                device,
                                           ptrComprehensiveSMARTErrorLog smartErrorLog,
                                           bool                          forceSMARTLog);
 
@@ -1041,10 +1049,11 @@ extern "C"
     OPENSEA_OPERATIONS_API
     void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Error_Logging_Supported(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Error_Logging_Supported(const tDevice* device);
 
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Command_Transport_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Command_Transport_Supported(const tDevice* device);
 
 #if defined(__cplusplus)
 }

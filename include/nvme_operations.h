@@ -37,7 +37,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrint);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_ERROR_Log_Page(const tDevice* device, uint64_t numOfErrToPrint);
 
     //-----------------------------------------------------------------------------
     //
@@ -53,7 +53,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -69,7 +69,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_CmdSptEfft_Log_Page(const tDevice* device);
 
     OPENSEA_OPERATIONS_API void show_effects_log_human(uint32_t effect);
 
@@ -87,7 +87,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_DevSelfTest_Log_Page(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -119,7 +119,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tDevice*           device,
                                                                             eNvmeFeaturesSelectValue selectType,
                                                                             bool listOnlySupportedFeatures);
 
@@ -140,15 +140,16 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Feature_Details(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Feature_Details(const tDevice*           device,
                                                                     uint8_t                  featureID,
                                                                     eNvmeFeaturesSelectValue selectType);
 
-    // \fn print_Nvme_Ctrl_Regs(tDevice * device)
+    // \fn print_Nvme_Ctrl_Regs(const tDevice * device)
     // \brief Prints the controller registers.
     // \param[in] device struture
     // \return SUCCESS - pass, !SUCCESS fail or something went wrong
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Nvme_Ctrl_Regs(tDevice* device);
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Nvme_Ctrl_Regs(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -169,7 +170,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* logSize);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_Log_Size(const tDevice* device, uint8_t logPageId, uint64_t* logSize);
 
 #if defined(__cplusplus)
 }

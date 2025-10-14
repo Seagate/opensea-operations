@@ -33,6 +33,7 @@
 #include "operations_Common.h"
 #include "platform_helper.h"
 #include "power_control.h"
+#include "scsi_helper_func.h"
 
 // In order to be able to validate the data on any CPU, we don't want to hardcode any lengths in case things get packed
 // or aligned differently. So define each struct version here internally so we can do sizeof(v1), etc to check it. Each
@@ -122,7 +123,7 @@ typedef struct s_firmwareUpdateDataV3
     bool    disableResetAfterCommit; // NVMe only
 } firmwareUpdateDataV3;
 
-static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice* device)
+static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, const tDevice* device)
 {
 #if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
     // Check if the device needs a power cycle to complete the update...This has been necessary in Windows with the
@@ -174,7 +175,7 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, tDevice* 
 #endif //_WIN32 and WINVER >= WIN10
 }
 
-static uint16_t get_fwdl_segment_size(tDevice* device, uint16_t requestedSize, supportedDLModes fwdlSupport)
+static uint16_t get_fwdl_segment_size(const tDevice* device, uint16_t requestedSize, supportedDLModes fwdlSupport)
 {
     uint16_t updateLen = requestedSize;
     // Always allow overriding this automatic mode with the user's requested size!
@@ -225,7 +226,7 @@ static uint16_t get_fwdl_segment_size(tDevice* device, uint16_t requestedSize, s
     return updateLen;
 }
 
-eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
+eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* options)
 {
     eReturnValues ret = SUCCESS;
 #ifdef _DEBUG
@@ -271,9 +272,9 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 options->dlMode = FWDL_UPDATE_MODE_DEFERRED_SELECT_ACTIVATE;
                 break;
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__clang__)
-            // visual studio complains about this NOT being here and GCC does the opposite...so only add this case for
-            // visual studio.
-            case FWDL_UPDATE_MODE_AUTOMATIC:
+                // visual studio complains about this NOT being here and GCC does the opposite...so only add this case
+                // for visual studio.
+                // case FWDL_UPDATE_MODE_AUTOMATIC:
 #endif                          //_MSC_VER
             case DL_FW_UNKNOWN: // no direct translation, but call it automatic mode
                 options->dlMode = FWDL_UPDATE_MODE_AUTOMATIC;
@@ -348,12 +349,12 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 // This is not preferred at all. We want to use the Win10 API whenever possible so the system is ready
                 // for the changes to the bus and drive information so that it is less likely to BSOD like we used to
                 // see in older versions of Windows.
-                device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+                M_CONST_CAST(tDevice*, device)->os_info.fwdlIOsupport.fwdlIOSupported = false;
                 ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem,
                                                 options->firmwareSlot, options->existingFirmwareImage, false, false, 60,
                                                 nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
                 options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-                device->os_info.fwdlIOsupport.fwdlIOSupported       = true;
+                M_CONST_CAST(tDevice*, device)->os_info.fwdlIOsupport.fwdlIOSupported = true;
             }
 #endif //_WIN32 and WINVER >= WIN10
             os_Unlock_Device(device);
@@ -364,7 +365,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("Error: empty file\n");
+                print_str("Error: empty file\n");
             }
             return FAILURE;
         }
@@ -418,7 +419,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                     {
                         printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
                                "deferred download.\n");
-                        printf("         If the firmware update fails, try using segmented download instead.\n\n");
+                        print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
                 }
                 break;
@@ -430,7 +431,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                     {
                         printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
                                "deferred download.\n");
-                        printf("         If the firmware update fails, try using segmented download instead.\n\n");
+                        print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
                 }
                 break;
@@ -453,7 +454,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 {
                     // turn off use of the windows API since this file cannot meet the alignment requirements for the
                     // whole download
-                    device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+                    M_CONST_CAST(tDevice*, device)->os_info.fwdlIOsupport.fwdlIOSupported = false;
                 }
                 // check if transfer size requirements will be met
                 else if (downloadSize > device->os_info.fwdlIOsupport.maxXferSize ||
@@ -461,7 +462,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 {
                     // transfer size for download or remainder are greater than the API can handle, so just turn it
                     // off... (Unlikely to happen)
-                    device->os_info.fwdlIOsupport.fwdlIOSupported = false;
+                    M_CONST_CAST(tDevice*, device)->os_info.fwdlIOsupport.fwdlIOSupported = false;
                 }
             }
 #    endif // WINVER >= WIN10
@@ -493,7 +494,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf(".");
+                        print_str(".");
                         flush_stdout();
                     }
                 }
@@ -521,21 +522,15 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                             {
                                 printf("\nAutomatic deferred download failed. Either the drive does not support this "
                                        "mode\n");
-                                printf("or this is an invalid firmware image for this device.\n");
-                                printf("Retrying the download with segmented download mode to verify.\n");
+                                print_str("or this is an invalid firmware image for this device.\n");
+                                print_str("Retrying the download with segmented download mode to verify.\n");
                                 flush_stdout();
                             }
                             continue;
                         }
                         else if (device->drive_info.drive_type == SCSI_DRIVE)
                         {
-                            uint8_t senseKey = UINT8_C(0);
-                            uint8_t asc      = UINT8_C(0);
-                            uint8_t ascq     = UINT8_C(0);
-                            uint8_t fru      = UINT8_C(0);
-                            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN,
-                                                       &senseKey, &asc, &ascq, &fru);
-                            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
+                            if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
                             {
                                 options->dlMode = FWDL_UPDATE_MODE_SEGMENTED;
                                 downloadMode    = DL_FW_SEGMENTED;
@@ -543,8 +538,8 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                                 {
                                     printf("\nAutomatic deferred download failed. Either the drive does not support "
                                            "this mode\n");
-                                    printf("or this is an invalid firmware image for this device.\n");
-                                    printf("Retrying the download with segmented download mode to verify.\n");
+                                    print_str("or this is an invalid firmware image for this device.\n");
+                                    print_str("Retrying the download with segmented download mode to verify.\n");
                                     flush_stdout();
                                 }
                                 continue;
@@ -592,13 +587,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                     if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 &&
                         device->drive_info.lastCommandRTFRs.error == 0)
                     {
-                        uint8_t senseKey = UINT8_C(0);
-                        uint8_t asc      = UINT8_C(0);
-                        uint8_t ascq     = UINT8_C(0);
-                        uint8_t fru      = UINT8_C(0);
-                        get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey,
-                                                   &asc, &ascq, &fru);
-                        if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04) // Check fru?
+                        if (is_Unaligned_Write(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN)) // Check fru?
                         {
                             ret = SUCCESS;
                         }
@@ -670,7 +659,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
 #endif
                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                 {
-                    printf(".");
+                    print_str(".");
                     flush_stdout();
                 }
                 if (!fwdlSupport.seagateDeferredPowerCycleActivate && options->ignoreStatusOfFinalSegment &&
@@ -686,13 +675,7 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
                             device->drive_info.lastCommandRTFRs.status == 0 &&
                             device->drive_info.lastCommandRTFRs.error == 0)
                         {
-                            uint8_t senseKey = UINT8_C(0);
-                            uint8_t asc      = UINT8_C(0);
-                            uint8_t ascq     = UINT8_C(0);
-                            uint8_t fru      = UINT8_C(0);
-                            get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN,
-                                                       &senseKey, &asc, &ascq, &fru);
-                            if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x21 && ascq == 0x04) // Check fru?
+                            if (is_Unaligned_Write(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
                             {
                                 ret = SUCCESS;
                             }
@@ -716,13 +699,13 @@ eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options)
             os_Unlock_Device(device);
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
-                printf("\n");
+                print_str("\n");
             }
             options->avgSegmentDlTime /= C_CAST(uint64_t, currentDownloadBlock) + UINT64_C(1);
 #if defined(_WIN32) && defined(WINVER)
 #    if WINVER >= SEA_WIN32_WINNT_WIN10
             // restore this value back to what it was (if it was ever even changed)
-            device->os_info.fwdlIOsupport.fwdlIOSupported = deviceSupportsWinAPI;
+            M_CONST_CAST(tDevice*, device)->os_info.fwdlIOsupport.fwdlIOSupported = deviceSupportsWinAPI;
 
             if (downloadMode == DL_FW_SEGMENTED && fwdlSupport.seagateDeferredPowerCycleActivate && ret == SUCCESS)
             {
@@ -805,7 +788,7 @@ typedef struct s_supportedDLModesV2
                                        // or SCSI at this time - TJE
 } supportedDLModesV2, *ptrSupportedDLModesV2;
 
-static void get_ATA_Identify_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static void get_ATA_Identify_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     // first check the bits in the identify data
     if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
@@ -865,7 +848,7 @@ static void get_ATA_Identify_Supported_FWDL_Modes(tDevice* device, ptrSupportedD
     }
 }
 
-static void get_ATA_ID_Data_Log_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static void get_ATA_ID_Data_Log_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     // now try reading the supportd capabilities page of the identify device data log for the remaining info
     // (deferred download)
@@ -930,7 +913,7 @@ static void get_ATA_ID_Data_Log_Supported_FWDL_Modes(tDevice* device, ptrSupport
     }
 }
 
-static eReturnValues get_ATA_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static eReturnValues get_ATA_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
     get_ATA_Identify_Supported_FWDL_Modes(device, supportedModes);
@@ -938,7 +921,7 @@ static eReturnValues get_ATA_Supported_FWDL_Modes(tDevice* device, ptrSupportedD
     return ret;
 }
 
-static eReturnValues get_NVMe_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static eReturnValues get_NVMe_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
     if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT2)
@@ -998,7 +981,9 @@ static eReturnValues get_NVMe_Supported_FWDL_Modes(tDevice* device, ptrSupported
         {
             // maximum segment size reported in same format as granularity in VS byte 3082
             supportedModes->maxSegmentSize =
-                (M_STATIC_CAST(uint32_t, device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 10]) * UINT32_C(4096)) / UINT32_C(512);
+                (M_STATIC_CAST(uint32_t, device->drive_info.IdentifyData.nvme.ctrl.vs[VS_OFF_3072 + 10]) *
+                 UINT32_C(4096)) /
+                UINT32_C(512);
             // note division by 512 to match current use of this structure member
         }
 #if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
@@ -1059,7 +1044,7 @@ static eReturnValues get_NVMe_Supported_FWDL_Modes(tDevice* device, ptrSupported
     return ret;
 }
 
-static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret         = SUCCESS;
     uint8_t*      extendedInq = M_REINTERPRET_CAST(
@@ -1112,7 +1097,7 @@ static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(tDevice* device, ptrS
     return ret;
 }
 
-static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(tDevice*            device,
+static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDevice*      device,
                                                                        ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
@@ -1257,7 +1242,8 @@ static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(tDevice* 
     return ret;
 }
 
-static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(const tDevice*      device,
+                                                                   ptrSupportedDLModes supportedModes)
 {
     eReturnValues                ret = SUCCESS;
     scsiOperationCodeInfoRequest writeBufSupReq;
@@ -1399,7 +1385,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(tDevice* devi
     return ret;
 }
 
-static void get_SCSI_ReadBuffer_FWDL_Boundary(tDevice* device, ptrSupportedDLModes supportedModes)
+static void get_SCSI_ReadBuffer_FWDL_Boundary(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, offsetReq, 4);
     if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
@@ -1436,7 +1422,7 @@ static void get_SCSI_ReadBuffer_FWDL_Boundary(tDevice* device, ptrSupportedDLMod
     }
 }
 
-static void get_Seagate_SCSI_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static void get_Seagate_SCSI_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     // The code below is Seagate specific...should this be in Seagate Operations? - TJE
     eSeagateFamily family = is_Seagate_Family(device);
@@ -1473,7 +1459,7 @@ static void get_Seagate_SCSI_Supported_FWDL_Modes(tDevice* device, ptrSupportedD
     }
 }
 
-static eReturnValues get_SCSI_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+static eReturnValues get_SCSI_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
     // before trying all the code below, look at the extended inquiry data page so see if the download modes are
@@ -1496,7 +1482,7 @@ static eReturnValues get_SCSI_Supported_FWDL_Modes(tDevice* device, ptrSupported
     return ret;
 }
 
-static eReturnValues set_Recommended_FWDL_Mode(tDevice* device, ptrSupportedDLModes supportedModes)
+static eReturnValues set_Recommended_FWDL_Mode(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
     // set the recommended download mode
@@ -1506,15 +1492,15 @@ static eReturnValues set_Recommended_FWDL_Mode(tDevice* device, ptrSupportedDLMo
         if (supportedModes->version < SUPPORTED_FWDL_MODES_VERSION_V2)
         {
             // start low and work up to most recommended
-            supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_FULL);
+            supportedModes->recommendedDownloadMode = C_CAST(eFirmwareUpdateMode, DL_FW_FULL);
             if (supportedModes->segmented)
             {
-                supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_SEGMENTED);
+                supportedModes->recommendedDownloadMode = C_CAST(eFirmwareUpdateMode, DL_FW_SEGMENTED);
             }
             if (supportedModes->deferred &&
                 !device->drive_info.passThroughHacks.scsiHacks.writeBufferNoDeferredDownload)
             {
-                supportedModes->recommendedDownloadMode = C_CAST(int, DL_FW_DEFERRED);
+                supportedModes->recommendedDownloadMode = C_CAST(eFirmwareUpdateMode, DL_FW_DEFERRED);
             }
         }
         else
@@ -1541,7 +1527,7 @@ static eReturnValues set_Recommended_FWDL_Mode(tDevice* device, ptrSupportedDLMo
     return ret;
 }
 
-eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+eReturnValues get_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
     DISABLE_NONNULL_COMPARE
@@ -1573,14 +1559,14 @@ eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supp
     return ret;
 }
 
-void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes)
+void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     DISABLE_NONNULL_COMPARE
     if (supportedModes != M_NULLPTR && device != M_NULLPTR &&
         supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
         supportedModes->size >= sizeof(supportedDLModesV1))
     {
-        printf("===Download Support information===\n");
+        print_str("===Download Support information===\n");
         if (device->drive_info.interface_type == USB_INTERFACE ||
             device->drive_info.interface_type == IEEE_1394_INTERFACE)
         {
@@ -1594,58 +1580,58 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
             printf("Model Number: %s\n", device->drive_info.product_identification);
             printf("Firmware Revision: %s\n", device->drive_info.product_revision);
         }
-        printf("Modes Supported:\n");
+        print_str("Modes Supported:\n");
         if (supportedModes->downloadMicrocodeSupported)
         {
             if (supportedModes->fullBuffer)
             {
-                printf("\tFull\n");
+                print_str("\tFull\n");
             }
             if (supportedModes->segmented)
             {
-                printf("\tSegmented");
+                print_str("\tSegmented");
                 if (supportedModes->seagateDeferredPowerCycleActivate)
                 {
-                    printf(" (requires power cycle to activate code)");
+                    print_str(" (requires power cycle to activate code)");
                 }
-                printf("\n");
+                print_str("\n");
             }
             if (supportedModes->deferred)
             {
                 if (device->drive_info.drive_type == NVME_DRIVE)
                 {
-                    printf("\tDeferred (Requires activation command to activate)\n");
+                    print_str("\tDeferred (Requires activation command to activate)\n");
                 }
                 else
                 {
-                    printf("\tDeferred (Requires power cycle or activation command to activate)\n");
+                    print_str("\tDeferred (Requires power cycle or activation command to activate)\n");
                 }
             }
             if (supportedModes->deferredSelectActivation) // SAS Only
             {
-                printf("\tDeferred - Select activation events\n");
+                print_str("\tDeferred - Select activation events\n");
                 if (supportedModes->deferredPowerCycleActivationSupported ||
                     supportedModes->deferredHardResetActivationSupported ||
                     supportedModes->deferredVendorSpecificActivationSupported)
                 {
-                    printf("\t    Supported Activation events:\n");
+                    print_str("\t    Supported Activation events:\n");
                     if (supportedModes->deferredPowerCycleActivationSupported)
                     {
-                        printf("\t\tPower Cycle\n");
+                        print_str("\t\tPower Cycle\n");
                     }
                     if (supportedModes->deferredHardResetActivationSupported)
                     {
-                        printf("\t\tHard Reset\n");
+                        print_str("\t\tHard Reset\n");
                     }
                     if (supportedModes->deferredVendorSpecificActivationSupported)
                     {
-                        printf("\t\tVendor Specific\n");
+                        print_str("\t\tVendor Specific\n");
                     }
                 }
             }
             if (supportedModes->maxSegmentSize == UINT32_MAX)
             {
-                printf("Maximum Segment Size (512B Blocks): No maximum\n");
+                print_str("Maximum Segment Size (512B Blocks): No maximum\n");
             }
             else
             {
@@ -1653,7 +1639,7 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
             }
             if (supportedModes->minSegmentSize == 0)
             {
-                printf("Minimum Segment Size (512B Blocks): No minimum\n");
+                print_str("Minimum Segment Size (512B Blocks): No minimum\n");
             }
             else
             {
@@ -1665,38 +1651,39 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
             switch (supportedModes->codeActivation)
             {
             case SCSI_MICROCODE_ACTIVATE_BEFORE_COMMAND_COMPLETION:
-                printf("Microcode Activation: Activated before completion of final command in write buffer sequence\n");
+                print_str(
+                    "Microcode Activation: Activated before completion of final command in write buffer sequence\n");
                 break;
             case SCSI_MICROCODE_ACTIVATE_AFTER_EVENT:
-                printf("Microcode Activation: Activated after vendor specific event, power cycle, or hard reset\n");
+                print_str("Microcode Activation: Activated after vendor specific event, power cycle, or hard reset\n");
                 break;
             case SCSI_MICROCODE_ACTIVATE_RESERVED:
-                printf("Microcode Activation: Reserved\n");
+                print_str("Microcode Activation: Reserved\n");
                 break;
             case SCSI_MICROCODE_ACTIVATE_NOT_INDICATED:
             default:
                 // don't print anything...
                 break;
             }
-            /*printf("Affect on multiple logical units/namespaces: ");
+            /*print_str("Affect on multiple logical units/namespaces: ");
             switch (supportedModes->multipleLogicalUnitsAffected)
             {
             case MLU_NOT_REPORTED:
-                printf("Not reported. Device may not support multiple logical units.\n");
+                print_str("Not reported. Device may not support multiple logical units.\n");
                 break;
             case MLU_AFFECTS_ONLY_THIS_UNIT:
-                printf("FW Updates affect only this unit.\n");
+                print_str("FW Updates affect only this unit.\n");
                 break;
             case MLU_AFFECTS_MULTIPLE_LU:
-                printf("FW Updates affect multiple logical units.\n");
+                print_str("FW Updates affect multiple logical units.\n");
                 break;
             case MLU_AFFECTS_ALL_LU:
-                printf("FW Updates affect all logical units.\n");
+                print_str("FW Updates affect all logical units.\n");
                 break;
             }*/
             if (supportedModes->firmwareSlotInfo.firmwareSlotInfoValid)
             {
-                printf("Firmware Slot Info:\n");
+                print_str("Firmware Slot Info:\n");
                 for (uint8_t counter = UINT8_C(0); counter < supportedModes->firmwareSlotInfo.numberOfSlots; ++counter)
                 {
                     // slot number, read only?, active slot?, next active slot?, firmware revision in that slot
@@ -1704,16 +1691,16 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
                     printf("\tSlot %" PRIu8, counter + 1);
                     if ((counter + 1) == 1 && supportedModes->firmwareSlotInfo.slot1ReadOnly)
                     {
-                        printf(" (Read Only)");
+                        print_str(" (Read Only)");
                     }
                     if ((counter + 1) == supportedModes->firmwareSlotInfo.activeSlot)
                     {
-                        printf(" (Active)");
+                        print_str(" (Active)");
                     }
                     if (supportedModes->firmwareSlotInfo.nextSlotToBeActivated != 0 &&
                         (counter + 1) == supportedModes->firmwareSlotInfo.nextSlotToBeActivated)
                     {
-                        printf(" (Next Active)");
+                        print_str(" (Next Active)");
                     }
                     if (safe_strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
                     {
@@ -1730,13 +1717,13 @@ void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedMod
         }
         if (supportedModes->scsiInfoPossiblyIncomplete)
         {
-            printf("\nWARNING: FWDL Support information may be incomplete.\n");
-            printf("This can happen on old SCSI drives that don't allow\n");
-            printf("write buffer \"service actions\" to be reported in the\n");
-            printf("\"report supported op codes\" command.\n");
-            printf("Refer to the product documentation for support information.\n\n");
+            print_str("\nWARNING: FWDL Support information may be incomplete.\n");
+            print_str("This can happen on old SCSI drives that don't allow\n");
+            print_str("write buffer \"service actions\" to be reported in the\n");
+            print_str("\"report supported op codes\" command.\n");
+            print_str("Refer to the product documentation for support information.\n\n");
         }
-        printf("\n");
+        print_str("\n");
     }
     RESTORE_NONNULL_COMPARE
 }

@@ -110,7 +110,8 @@ static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters c
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters /* optional */)
+eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          device,
+                                                   ptrSATAPhyEventCounters counters /* optional */)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -140,7 +141,7 @@ eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEv
     return ret;
 }
 
-eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
+eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEventCounters counters)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -174,14 +175,14 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
     DISABLE_NONNULL_COMPARE
     if (counters != M_NULLPTR && counters->valid)
     {
-        printf("\n====SATA Phy Event Counters====\n");
-        printf("V = Vendor Unique event tracker\n");
-        printf("M = Counter maximum value reached\n");
-        printf("D2H = Device to Host\n");
-        printf("H2D = Host to Device\n");
+        print_str("\n====SATA Phy Event Counters====\n");
+        print_str("V = Vendor Unique event tracker\n");
+        print_str("M = Counter maximum value reached\n");
+        print_str("D2H = Device to Host\n");
+        print_str("H2D = Host to Device\n");
         // Figure out how to keep names of each event short before printing them out. -TJE
 
-        printf("    ID                Value Description\n");
+        print_str("    ID                Value Description\n");
         for (uint16_t iter = UINT16_C(0); iter < counters->numberOfCounters; ++iter)
         {
             char vendorEvent = ' ';
@@ -286,7 +287,7 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
         }
         if (!counters->validChecksumReceived)
         {
-            printf("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
+            print_str("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
         }
     }
     RESTORE_NONNULL_COMPARE

@@ -44,10 +44,10 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(4)
-    OPENSEA_OPERATIONS_API bool is_Write_Same_Supported(tDevice*  device,
-                                                        uint64_t  startingLBA,
-                                                        uint64_t  requesedNumberOfLogicalBlocks,
-                                                        uint64_t* maxNumberOfLogicalBlocksPerCommand);
+    OPENSEA_OPERATIONS_API bool is_Write_Same_Supported(const tDevice* device,
+                                                        uint64_t       startingLBA,
+                                                        uint64_t       requesedNumberOfLogicalBlocks,
+                                                        uint64_t*      maxNumberOfLogicalBlocksPerCommand);
 
     //-----------------------------------------------------------------------------
     //
@@ -71,11 +71,11 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_Writesame_Progress(tDevice* device,
-                                                                double*  progress,
-                                                                bool*    writeSameInProgress,
-                                                                uint64_t startingLBA,
-                                                                uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues get_Writesame_Progress(const tDevice* device,
+                                                                double*        progress,
+                                                                bool*          writeSameInProgress,
+                                                                uint64_t       startingLBA,
+                                                                uint64_t       range);
 
     //-----------------------------------------------------------------------------
     //
@@ -99,12 +99,12 @@ extern "C"
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(5, 6)
     M_PARAM_RO_SIZE(5, 6)
-    OPENSEA_OPERATIONS_API eReturnValues writesame(tDevice* device,
-                                                   uint64_t startingLba,
-                                                   uint64_t numberOfLogicalBlocks,
-                                                   bool     pollForProgress,
-                                                   uint8_t* pattern,
-                                                   uint32_t patternLength);
+    OPENSEA_OPERATIONS_API eReturnValues writesame(const tDevice* device,
+                                                   uint64_t       startingLba,
+                                                   uint64_t       numberOfLogicalBlocks,
+                                                   bool           pollForProgress,
+                                                   uint8_t*       pattern,
+                                                   uint32_t       patternLength);
 
     //-----------------------------------------------------------------------------
     //
@@ -121,7 +121,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Write_Same_Current_LBA(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Write_Same_Current_LBA(const tDevice* device);
 
 #if defined(__cplusplus)
 }

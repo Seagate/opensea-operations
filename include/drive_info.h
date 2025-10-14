@@ -411,7 +411,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_ATA_Drive_Information(tDevice *device, ptrDriveInformation driveInfo)
+    //  get_ATA_Drive_Information(const tDevice *device, ptrDriveInformation driveInfo)
     //
     //! \brief   Description:  This function fills in all the driveInformation into a driveInformation structure
     //
@@ -426,12 +426,12 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(tDevice*                    device,
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice*              device,
                                                                    ptrDriveInformationSAS_SATA driveInfo);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_SCSI_Drive_Information(tDevice *device, ptrDriveInformation driveInfo)
+    //  get_SCSI_Drive_Information(const tDevice *device, ptrDriveInformation driveInfo)
     //
     //! \brief   Description:  This function fills in all the driveInformation into a driveInformation structure
     //
@@ -446,13 +446,14 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(tDevice*                    device,
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice*              device,
                                                                     ptrDriveInformationSAS_SATA driveInfo);
 
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(tDevice* device, ptrDriveInformationNVMe driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(const tDevice*          device,
+                                                                    ptrDriveInformationNVMe driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -560,9 +561,9 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(tDevice* device, bool showChildInformation);
+    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(const tDevice* device, bool showChildInformation);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) const char* print_drive_type(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) const char* print_drive_type(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
@@ -577,7 +578,7 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) eReturnValues print_Nvme_Ctrl_Information(tDevice* device);
+    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) eReturnValues print_Nvme_Ctrl_Information(const tDevice* device);
 
 #if defined(__cplusplus)
 }
