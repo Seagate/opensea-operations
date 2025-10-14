@@ -24,7 +24,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Format_Unit_Supported(tDevice *device, bool *fastFormatSupported)
+    //  is_Format_Unit_Supported(const tDevice *device, bool *fastFormatSupported)
     //
     //! \brief   Description:  Checks if format unit is supported and optionally if fast format is supported. (No
     //! guarantee on fast format check accuracy at this time)
@@ -40,11 +40,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API bool is_Format_Unit_Supported(tDevice* device, bool* fastFormatSupported);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API bool is_Format_Unit_Supported(const tDevice* device, bool* fastFormatSupported);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Format_Progress(tDevice *device, double *percentComplete)
+    //  get_Format_Progress(const tDevice *device, double *percentComplete)
     //
     //! \brief   Description:  Gets the current progress of a format unit operation
     //
@@ -59,7 +60,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Format_Progress(tDevice* device, double* percentComplete);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Format_Progress(const tDevice* device, double* percentComplete);
 
     typedef enum eFormatTypeEnum
     {
@@ -112,7 +114,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  eReturnValues run_Format_Unit(tDevice *device, eFormatType formatType, bool currentBlockSize, uint16_t
+    //  eReturnValues run_Format_Unit(const tDevice *device, eFormatType formatType, bool currentBlockSize, uint16_t
     //  newBlockSize, uint8_t *gList, uint32_t glistSize, bool completeList, bool disablePrimaryList, bool
     //  disableCertification, uint8_t *pattern, uint32_t patternLength, bool securityInitialize, bool pollForProgress)
     //
@@ -143,13 +145,13 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Format_Unit(tDevice*                device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Format_Unit(const tDevice*          device,
                                                          runFormatUnitParameters formatParameters,
                                                          bool                    pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
-    //  eReturnValues show_Format_Unit_Progress(tDevice *device)
+    //  eReturnValues show_Format_Unit_Progress(const tDevice *device)
     //
     //! \brief   Description:  shows the current progress of a format unit operation if one is in progress. - SCSI
     //! Format unit
@@ -163,7 +165,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Format_Unit_Progress(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Format_Unit_Progress(const tDevice* device);
 
     typedef struct s_formatStatus
     {
@@ -199,7 +201,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Format_Status(tDevice *device, ptrFormatStatus formatStatus)
+    //  get_Format_Status(const tDevice *device, ptrFormatStatus formatStatus)
     //
     //! \brief   Description:  Gets a SCSI device's format status log information.
     //
@@ -213,7 +215,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Format_Status(tDevice* device, ptrFormatStatus formatStatus);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Format_Status(const tDevice* device, ptrFormatStatus formatStatus);
 
     //-----------------------------------------------------------------------------
     //
@@ -232,7 +235,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Set_Sector_Configuration_Supported(tDevice *device)
+    //  is_Set_Sector_Configuration_Supported(const tDevice *device)
     //
     //! \brief   Description:  Checks if the device supports changing the sector size. On ATA, this checks if the set
     //! configuration ext command is supported. On SCSI, this checks for fast format support.
@@ -245,11 +248,11 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Set_Sector_Configuration_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Set_Sector_Configuration_Supported(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Sector_Configuration(tDevice *device, uint32_t sectorSize)
+    //  set_Sector_Configuration(const tDevice *device, uint32_t sectorSize)
     //
     //! \brief   Description: Sends the command to quickly change the sector size. On ATA this is the set sector
     //! configuration command, on SAS, this is a fast format.
@@ -265,13 +268,14 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration(tDevice* device, uint32_t sectorSize);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration(const tDevice* device, uint32_t sectorSize);
 
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration_With_Force(tDevice* device,
-                                                                             uint32_t sectorSize,
-                                                                             bool     force);
+    OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration_With_Force(const tDevice* device,
+                                                                             uint32_t       sectorSize,
+                                                                             bool           force);
 
     typedef struct protectionSupport
     {
@@ -352,8 +356,8 @@ extern "C"
         } nvmeMetadataSupport;
         uint32_t numberOfSectorSizes; // used to know the length of the structure below, set before calling in. On
                                       // output, this may change if unable to read the same number of sector sizes
-        sectorSize sectorSizes[1]; // ANYSIZE ARRAY. This means that you should over-allocate this function based on the
-                                   // number of supported sector sizes from the drive.
+#define MAX_SECTOR_SIZES_ARRAY (64)   // Based on max from NVMe
+        sectorSize sectorSizes[MAX_SECTOR_SIZES_ARRAY];
     } supportedFormats, *ptrSupportedFormats;
 
     static M_INLINE void safe_free_supported_formats(supportedFormats** formats)
@@ -361,28 +365,16 @@ extern "C"
         safe_free_core(M_REINTERPRET_CAST(void**, formats));
     }
 
-    //-----------------------------------------------------------------------------
-    //
-    //  get_Number_Of_Supported_Sector_Sizes(tDevice *device)
-    //
-    //! \brief   Description: Gets the number of supported sector sizes on a device. Needed to help allocate memory to
-    //! read the supported formats.
-    //  Entry:
-    //!   \param[in] device = file descriptor
-    //!   \param[out] formats = pointer to a list of sectorSize structs to fill and some other protection/formatting
-    //!   information
-    //!
-    //  Exit:
-    //!   \return uint32_t count of the number of supported sector sizes. If 0, then the device doesn't report any way
-    //!   to change sector size or an error occured while trying to determine supported sizes.
-    //
-    //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint32_t get_Number_Of_Supported_Sector_Sizes(tDevice* device);
+    //! \fn get_Number_Of_Supported_Sector_Sizes(tDevice *device)
+    //! \brief Returns a value of 1 for backwards compatible use when allocating the supportedFormats structure above.
+    //! \param device pointer to a valid tdevice structure to assess
+    //! \returns 1
+    M_DEPRECATED M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint32_t
+        get_Number_Of_Supported_Sector_Sizes(const tDevice* device);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Supported_Formats(tDevice *device, ptrSupportedFormats formats)
+    //  get_Supported_Formats(const tDevice *device, ptrSupportedFormats formats)
     //
     //! \brief   Description: Gets the devices supported sector sizes and supported protection types that can it can be
     //! formatted with.
@@ -401,7 +393,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Formats(tDevice* device, ptrSupportedFormats formats);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats);
 
     //-----------------------------------------------------------------------------
     //
@@ -420,7 +412,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Map_Sector_Size_To_Descriptor_Check(tDevice *device, uint32_t logicalBlockLength, uint16_t
+    //  ata_Map_Sector_Size_To_Descriptor_Check(const tDevice *device, uint32_t logicalBlockLength, uint16_t
     //  *descriptorCheckCode, uint8_t *descriptorIndex)
     //
     //! \brief   Description: Takes a sector size that is requested and maps it to a descriptor in the sector size log
@@ -442,10 +434,10 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(3)
     M_PARAM_WO(4)
-    OPENSEA_OPERATIONS_API eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(tDevice*  device,
-                                                                                 uint32_t  logicalBlockLength,
-                                                                                 uint16_t* descriptorCheckCode,
-                                                                                 uint8_t*  descriptorIndex);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(const tDevice* device,
+                                                                                 uint32_t       logicalBlockLength,
+                                                                                 uint16_t*      descriptorCheckCode,
+                                                                                 uint8_t*       descriptorIndex);
 
     typedef struct s_nvmeFormatSupport
     {
@@ -458,7 +450,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport)
+    //  get_NVMe_Format_Support(const tDevice * device, ptrNvmeFormatSupport formatSupport)
     //
     //! \brief   Description:  Returns information about whether an NVMe device supports the format command and other
     //! format related options/capabilities
@@ -474,7 +466,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Format_Support(tDevice* device, ptrNvmeFormatSupport formatSupport);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Format_Support(const tDevice*       device,
+                                                                 ptrNvmeFormatSupport formatSupport);
 
     typedef enum nvmFmtSecureEraseEnum
     {
@@ -529,7 +522,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  run_NVMe_Format(tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
+    //  run_NVMe_Format(const tDevice * device, runNVMFormatParameters nvmParams, bool pollForProgress)
     //
     //! \brief   Description:  Function to help send NVMe Format command.
     //
@@ -545,13 +538,13 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_NVMe_Format(tDevice*               device,
+    OPENSEA_OPERATIONS_API eReturnValues run_NVMe_Format(const tDevice*         device,
                                                          runNVMFormatParameters nvmParams,
                                                          bool                   pollForProgress);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_NVM_Format_Progress(tDevice *device, double *percentComplete)
+    //  get_NVM_Format_Progress(const tDevice *device, double *percentComplete)
     //
     //! \brief   Description: Gets the percent complete of a NVM Format operation
     //
@@ -566,11 +559,11 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_NVM_Format_Progress(tDevice* device, uint8_t* percentComplete);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVM_Format_Progress(const tDevice* device, uint8_t* percentComplete);
 
     //-----------------------------------------------------------------------------
     //
-    //  show_NVM_Format_Progress(tDevice *device)
+    //  show_NVM_Format_Progress(const tDevice *device)
     //
     //! \brief   Description:  Gets and shows the progress of an NVM format to the screen
     //
@@ -582,7 +575,7 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_NVM_Format_Progress(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_NVM_Format_Progress(const tDevice* device);
 
 #if defined(__cplusplus)
 }

@@ -32,7 +32,7 @@
 #include "operations.h"
 #include "sector_repair.h"
 
-eReturnValues read_Write_Seek_Command(tDevice*        device,
+eReturnValues read_Write_Seek_Command(const tDevice*  device,
                                       eRWVCommandType rwvCommand,
                                       uint64_t        lba,
                                       uint8_t*        ptrData,
@@ -50,7 +50,7 @@ eReturnValues read_Write_Seek_Command(tDevice*        device,
     }
 }
 
-eReturnValues sequential_RWV(tDevice*                    device,
+eReturnValues sequential_RWV(const tDevice*              device,
                              eRWVCommandType             rwvCommand,
                              uint64_t                    startingLBA,
                              uint64_t                    range,
@@ -205,70 +205,70 @@ eReturnValues sequential_RWV(tDevice*                    device,
     return ret;
 }
 
-eReturnValues sequential_Read(tDevice*      device,
-                              uint64_t      startingLBA,
-                              uint64_t      range,
-                              uint64_t      sectorCount,
-                              uint64_t*     failingLBA,
-                              custom_Update updateFunction,
-                              void*         updateData,
-                              bool          hideLBACounter)
+eReturnValues sequential_Read(const tDevice* device,
+                              uint64_t       startingLBA,
+                              uint64_t       range,
+                              uint64_t       sectorCount,
+                              uint64_t*      failingLBA,
+                              custom_Update  updateFunction,
+                              void*          updateData,
+                              bool           hideLBACounter)
 {
     return sequential_RWV(device, RWV_COMMAND_READ, startingLBA, range, sectorCount, failingLBA, updateFunction,
                           updateData, hideLBACounter);
 }
 
-eReturnValues sequential_Write(tDevice*      device,
-                               uint64_t      startingLBA,
-                               uint64_t      range,
-                               uint64_t      sectorCount,
-                               uint64_t*     failingLBA,
-                               custom_Update updateFunction,
-                               void*         updateData,
-                               bool          hideLBACounter)
+eReturnValues sequential_Write(const tDevice* device,
+                               uint64_t       startingLBA,
+                               uint64_t       range,
+                               uint64_t       sectorCount,
+                               uint64_t*      failingLBA,
+                               custom_Update  updateFunction,
+                               void*          updateData,
+                               bool           hideLBACounter)
 {
     return sequential_RWV(device, RWV_COMMAND_WRITE, startingLBA, range, sectorCount, failingLBA, updateFunction,
                           updateData, hideLBACounter);
 }
 
-eReturnValues sequential_Verify(tDevice*      device,
-                                uint64_t      startingLBA,
-                                uint64_t      range,
-                                uint64_t      sectorCount,
-                                uint64_t*     failingLBA,
-                                custom_Update updateFunction,
-                                void*         updateData,
-                                bool          hideLBACounter)
+eReturnValues sequential_Verify(const tDevice* device,
+                                uint64_t       startingLBA,
+                                uint64_t       range,
+                                uint64_t       sectorCount,
+                                uint64_t*      failingLBA,
+                                custom_Update  updateFunction,
+                                void*          updateData,
+                                bool           hideLBACounter)
 {
     return sequential_RWV(device, RWV_COMMAND_VERIFY, startingLBA, range, sectorCount, failingLBA, updateFunction,
                           updateData, hideLBACounter);
 }
 
-eReturnValues short_Generic_Read_Test(tDevice*      device,
-                                      custom_Update updateFunction,
-                                      void*         updateData,
-                                      bool          hideLBACounter)
+eReturnValues short_Generic_Read_Test(const tDevice* device,
+                                      custom_Update  updateFunction,
+                                      void*          updateData,
+                                      bool           hideLBACounter)
 {
     return short_Generic_Test(device, RWV_COMMAND_READ, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues short_Generic_Verify_Test(tDevice*      device,
-                                        custom_Update updateFunction,
-                                        void*         updateData,
-                                        bool          hideLBACounter)
+eReturnValues short_Generic_Verify_Test(const tDevice* device,
+                                        custom_Update  updateFunction,
+                                        void*          updateData,
+                                        bool           hideLBACounter)
 {
     return short_Generic_Test(device, RWV_COMMAND_VERIFY, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues short_Generic_Write_Test(tDevice*      device,
-                                       custom_Update updateFunction,
-                                       void*         updateData,
-                                       bool          hideLBACounter)
+eReturnValues short_Generic_Write_Test(const tDevice* device,
+                                       custom_Update  updateFunction,
+                                       void*          updateData,
+                                       bool           hideLBACounter)
 {
     return short_Generic_Test(device, RWV_COMMAND_WRITE, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues short_Generic_Test(tDevice*                    device,
+eReturnValues short_Generic_Test(const tDevice*              device,
                                  eRWVCommandType             rwvCommand,
                                  M_ATTR_UNUSED custom_Update updateFunction,
                                  M_ATTR_UNUSED void*         updateData,
@@ -345,7 +345,7 @@ eReturnValues short_Generic_Test(tDevice*                    device,
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // read 1% at the ID
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -395,7 +395,7 @@ eReturnValues short_Generic_Test(tDevice*                    device,
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // randomly read 50 LBAs
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -482,33 +482,33 @@ eReturnValues short_Generic_Test(tDevice*                    device,
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free(&dataBuf);
     safe_free(&randomLBAList);
     return ret;
 }
 
-eReturnValues two_Minute_Generic_Read_Test(tDevice*      device,
-                                           custom_Update updateFunction,
-                                           void*         updateData,
-                                           bool          hideLBACounter)
+eReturnValues two_Minute_Generic_Read_Test(const tDevice* device,
+                                           custom_Update  updateFunction,
+                                           void*          updateData,
+                                           bool           hideLBACounter)
 {
     return two_Minute_Generic_Test(device, RWV_COMMAND_READ, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues two_Minute_Generic_Write_Test(tDevice*      device,
-                                            custom_Update updateFunction,
-                                            void*         updateData,
-                                            bool          hideLBACounter)
+eReturnValues two_Minute_Generic_Write_Test(const tDevice* device,
+                                            custom_Update  updateFunction,
+                                            void*          updateData,
+                                            bool           hideLBACounter)
 {
     return two_Minute_Generic_Test(device, RWV_COMMAND_WRITE, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues two_Minute_Generic_Verify_Test(tDevice*      device,
-                                             custom_Update updateFunction,
-                                             void*         updateData,
-                                             bool          hideLBACounter)
+eReturnValues two_Minute_Generic_Verify_Test(const tDevice* device,
+                                             custom_Update  updateFunction,
+                                             void*          updateData,
+                                             bool           hideLBACounter)
 {
     return two_Minute_Generic_Test(device, RWV_COMMAND_VERIFY, updateFunction, updateData, hideLBACounter);
 }
@@ -527,7 +527,7 @@ typedef struct s_performanceNumbers
     uint16_t sectorCount;
 } performanceNumbers;
 
-eReturnValues two_Minute_Generic_Test(tDevice*                    device,
+eReturnValues two_Minute_Generic_Test(const tDevice*              device,
                                       eRWVCommandType             rwvCommand,
                                       M_ATTR_UNUSED custom_Update updateFunction,
                                       M_ATTR_UNUSED void*         updateData,
@@ -569,20 +569,20 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            printf("Sequential Read Test at OD for ~");
+            print_str("Sequential Read Test at OD for ~");
             break;
         case RWV_COMMAND_VERIFY:
-            printf("Sequential Verify Test at OD for ~");
+            print_str("Sequential Verify Test at OD for ~");
             break;
         case RWV_COMMAND_WRITE:
-            printf("Sequential Write Test at OD for ~");
+            print_str("Sequential Write Test at OD for ~");
             break;
         default:
-            printf("Sequential Unknown Test at OD for ~");
+            print_str("Sequential Unknown Test at OD for ~");
             break;
         }
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &IDODTimeSeconds);
-        printf("\n");
+        print_str("\n");
     }
     odTest.asyncCommandsUsed    = false;
     odTest.fastestCommandTimeNS = UINT64_MAX; // set this to a max so that it gets readjusted later...-TJE
@@ -628,16 +628,16 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
                 switch (rwvCommand)
                 {
                 case RWV_COMMAND_READ:
-                    printf("\nRead failed within OD sequential read\n");
+                    print_str("\nRead failed within OD sequential read\n");
                     break;
                 case RWV_COMMAND_VERIFY:
-                    printf("\nVerify failed within OD sequential read\n");
+                    print_str("\nVerify failed within OD sequential read\n");
                     break;
                 case RWV_COMMAND_WRITE:
-                    printf("\nWrite failed within OD sequential read\n");
+                    print_str("\nWrite failed within OD sequential read\n");
                     break;
                 default:
-                    printf("\nUnknown OP failed within OD sequential read\n");
+                    print_str("\nUnknown OP failed within OD sequential read\n");
                     break;
                 }
             }
@@ -663,7 +663,7 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         C_CAST(uint64_t, C_CAST(double, odTest.numberOfCommandsIssued) / (C_CAST(double, odTest.totalTimeNS) * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // read at ID for about 2 minutes (or exactly)
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -671,20 +671,20 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            printf("Sequential Read Test at ID for ~");
+            print_str("Sequential Read Test at ID for ~");
             break;
         case RWV_COMMAND_VERIFY:
-            printf("Sequential Verify Test at ID for ~");
+            print_str("Sequential Verify Test at ID for ~");
             break;
         case RWV_COMMAND_WRITE:
-            printf("Sequential Write Test at ID for ~");
+            print_str("Sequential Write Test at ID for ~");
             break;
         default:
-            printf("Sequential Unknown Test at ID for ~");
+            print_str("Sequential Unknown Test at ID for ~");
             break;
         }
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &IDODTimeSeconds);
-        printf("\n");
+        print_str("\n");
     }
     IDStartLBA                  = device->drive_info.deviceMaxLba - ODEndingLBA;
     idTest.asyncCommandsUsed    = false;
@@ -729,16 +729,16 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
                 switch (rwvCommand)
                 {
                 case RWV_COMMAND_READ:
-                    printf("\nRead failed within ID sequential read\n");
+                    print_str("\nRead failed within ID sequential read\n");
                     break;
                 case RWV_COMMAND_VERIFY:
-                    printf("\nVerify failed within ID sequential read\n");
+                    print_str("\nVerify failed within ID sequential read\n");
                     break;
                 case RWV_COMMAND_WRITE:
-                    printf("\nWrite failed within ID sequential read\n");
+                    print_str("\nWrite failed within ID sequential read\n");
                     break;
                 default:
-                    printf("\nUnknown OP failed within ID sequential read\n");
+                    print_str("\nUnknown OP failed within ID sequential read\n");
                     break;
                 }
             }
@@ -764,7 +764,7 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         C_CAST(uint64_t, C_CAST(double, idTest.numberOfCommandsIssued) / (C_CAST(double, idTest.totalTimeNS) * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // now random reads for 30 seconds
     // start random number generator
@@ -774,20 +774,20 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            printf("Random Read Test for ~");
+            print_str("Random Read Test for ~");
             break;
         case RWV_COMMAND_VERIFY:
-            printf("Random Verify Test for ~");
+            print_str("Random Verify Test for ~");
             break;
         case RWV_COMMAND_WRITE:
-            printf("Random Write Test for ~");
+            print_str("Random Write Test for ~");
             break;
         default:
-            printf("Random Unknown Test for ~");
+            print_str("Random Unknown Test for ~");
             break;
         }
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &randomTimeSeconds);
-        printf("\n");
+        print_str("\n");
     }
     randomTest.asyncCommandsUsed    = false;
     randomTest.fastestCommandTimeNS = UINT64_MAX; // set this to a max so that it gets readjusted later...-TJE
@@ -829,16 +829,16 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
                 switch (rwvCommand)
                 {
                 case RWV_COMMAND_READ:
-                    printf("\nRandom Read failed\n");
+                    print_str("\nRandom Read failed\n");
                     break;
                 case RWV_COMMAND_VERIFY:
-                    printf("\nRandom Verify failed\n");
+                    print_str("\nRandom Verify failed\n");
                     break;
                 case RWV_COMMAND_WRITE:
-                    printf("\nRandom Write failed\n");
+                    print_str("\nRandom Write failed\n");
                     break;
                 default:
-                    printf("\nRandom Unknown OP failed\n");
+                    print_str("\nRandom Unknown OP failed\n");
                     break;
                 }
             }
@@ -859,7 +859,7 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
     stop_Timer(&randomTestTimer);
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     randomTest.averageCommandTimeNS /= randomTest.numberOfCommandsIssued;
     randomTest.totalTimeNS = get_Nano_Seconds(randomTestTimer);
@@ -867,41 +867,41 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
                                                   (C_CAST(double, randomTest.totalTimeNS) * 1e-9));
     if (device->deviceVerbosity > VERBOSITY_QUIET && showPerformanceNumbers)
     {
-        printf("\n");
-        printf("===Drive Performance Characteristics===\n");
-        printf("\tNOT AN OFFICIAL BENCHMARK\n\n");
-        printf("Read-Look-Ahead: ");
+        print_str("\n");
+        print_str("===Drive Performance Characteristics===\n");
+        print_str("\tNOT AN OFFICIAL BENCHMARK\n\n");
+        print_str("Read-Look-Ahead: ");
         if (is_Read_Look_Ahead_Enabled(device))
         {
-            printf("Enabled\n");
+            print_str("Enabled\n");
         }
         else
         {
-            printf("Disabled\n");
+            print_str("Disabled\n");
         }
-        printf("Write Cache: ");
+        print_str("Write Cache: ");
         if (is_Write_Cache_Enabled(device))
         {
-            printf("Enabled\n");
+            print_str("Enabled\n");
         }
         else
         {
-            printf("Disabled\n");
+            print_str("Disabled\n");
         }
-        printf("OD Test:\n");
+        print_str("OD Test:\n");
         if (odTest.asyncCommandsUsed)
         {
-            printf("\tUsed asynchronous commands\n");
+            print_str("\tUsed asynchronous commands\n");
         }
         else
         {
-            printf("\tUsed synchronous commands\n");
+            print_str("\tUsed synchronous commands\n");
         }
-        printf("\tAverage Command time: ");
+        print_str("\tAverage Command time: ");
         print_Time(odTest.averageCommandTimeNS);
-        printf("\tFastest Command time: ");
+        print_str("\tFastest Command time: ");
         print_Time(odTest.fastestCommandTimeNS);
-        printf("\tSlowest Command time: ");
+        print_str("\tSlowest Command time: ");
         print_Time(odTest.slowestCommandTimeNS);
         printf("\tIOPS: %" PRIu64 "\n", odTest.iops);
         // calculate MB(/GB)/s performance
@@ -917,20 +917,20 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         printf("\tLBAs accessed per command: %" PRIu16 "\n", odTest.sectorCount);
         printf("\tTotal LBAs accessed: %" PRIu64 "\n", odTest.numberOfCommandsIssued * odTest.sectorCount);
 
-        printf("ID Test:\n");
+        print_str("ID Test:\n");
         if (idTest.asyncCommandsUsed)
         {
-            printf("\tUsed asynchronous commands\n");
+            print_str("\tUsed asynchronous commands\n");
         }
         else
         {
-            printf("\tUsed synchronous commands\n");
+            print_str("\tUsed synchronous commands\n");
         }
-        printf("\tAverage Command time: ");
+        print_str("\tAverage Command time: ");
         print_Time(idTest.averageCommandTimeNS);
-        printf("\tFastest Command time: ");
+        print_str("\tFastest Command time: ");
         print_Time(idTest.fastestCommandTimeNS);
-        printf("\tSlowest Command time: ");
+        print_str("\tSlowest Command time: ");
         print_Time(idTest.slowestCommandTimeNS);
         printf("\tIOPS: %" PRIu64 "\n", idTest.iops);
         // calculate MB(/GB)/s performance
@@ -946,20 +946,20 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
         printf("\tLBAs accessed per command: %" PRIu16 "\n", idTest.sectorCount);
         printf("\tTotal LBAs accessed: %" PRIu64 "\n", idTest.numberOfCommandsIssued * idTest.sectorCount);
 
-        printf("Random Test:\n");
+        print_str("Random Test:\n");
         if (randomTest.asyncCommandsUsed)
         {
-            printf("\tUsed asynchronous commands\n");
+            print_str("\tUsed asynchronous commands\n");
         }
         else
         {
-            printf("\tUsed synchronous commands\n");
+            print_str("\tUsed synchronous commands\n");
         }
-        printf("\tAverage Command time: ");
+        print_str("\tAverage Command time: ");
         print_Time(randomTest.averageCommandTimeNS);
-        printf("\tFastest Command time: ");
+        print_str("\tFastest Command time: ");
         print_Time(randomTest.fastestCommandTimeNS);
-        printf("\tSlowest Command time: ");
+        print_str("\tSlowest Command time: ");
         print_Time(randomTest.slowestCommandTimeNS);
         printf("\tIOPS: %" PRIu64 "\n", randomTest.iops);
         // calculate MB(/GB)/s performance
@@ -979,46 +979,46 @@ eReturnValues two_Minute_Generic_Test(tDevice*                    device,
     return ret;
 }
 
-eReturnValues long_Generic_Read_Test(tDevice*      device,
-                                     uint16_t      errorLimit,
-                                     bool          stopOnError,
-                                     bool          repairOnTheFly,
-                                     bool          repairAtEnd,
-                                     custom_Update updateFunction,
-                                     void*         updateData,
-                                     bool          hideLBACounter)
+eReturnValues long_Generic_Read_Test(const tDevice* device,
+                                     uint16_t       errorLimit,
+                                     bool           stopOnError,
+                                     bool           repairOnTheFly,
+                                     bool           repairAtEnd,
+                                     custom_Update  updateFunction,
+                                     void*          updateData,
+                                     bool           hideLBACounter)
 {
     return user_Sequential_Read_Test(device, 0, device->drive_info.deviceMaxLba, errorLimit, stopOnError,
                                      repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues long_Generic_Write_Test(tDevice*      device,
-                                      uint16_t      errorLimit,
-                                      bool          stopOnError,
-                                      bool          repairOnTheFly,
-                                      bool          repairAtEnd,
-                                      custom_Update updateFunction,
-                                      void*         updateData,
-                                      bool          hideLBACounter)
+eReturnValues long_Generic_Write_Test(const tDevice* device,
+                                      uint16_t       errorLimit,
+                                      bool           stopOnError,
+                                      bool           repairOnTheFly,
+                                      bool           repairAtEnd,
+                                      custom_Update  updateFunction,
+                                      void*          updateData,
+                                      bool           hideLBACounter)
 {
     return user_Sequential_Write_Test(device, 0, device->drive_info.deviceMaxLba, errorLimit, stopOnError,
                                       repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues long_Generic_Verify_Test(tDevice*      device,
-                                       uint16_t      errorLimit,
-                                       bool          stopOnError,
-                                       bool          repairOnTheFly,
-                                       bool          repairAtEnd,
-                                       custom_Update updateFunction,
-                                       void*         updateData,
-                                       bool          hideLBACounter)
+eReturnValues long_Generic_Verify_Test(const tDevice* device,
+                                       uint16_t       errorLimit,
+                                       bool           stopOnError,
+                                       bool           repairOnTheFly,
+                                       bool           repairAtEnd,
+                                       custom_Update  updateFunction,
+                                       void*          updateData,
+                                       bool           hideLBACounter)
 {
     return user_Sequential_Verify_Test(device, 0, device->drive_info.deviceMaxLba, errorLimit, stopOnError,
                                        repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues long_Generic_Test(tDevice*        device,
+eReturnValues long_Generic_Test(const tDevice*  device,
                                 eRWVCommandType rwvCommand,
                                 uint16_t        errorLimit,
                                 bool            stopOnError,
@@ -1032,52 +1032,52 @@ eReturnValues long_Generic_Test(tDevice*        device,
                                 repairOnTheFly, repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues user_Sequential_Read_Test(tDevice*      device,
-                                        uint64_t      startingLBA,
-                                        uint64_t      range,
-                                        uint16_t      errorLimit,
-                                        bool          stopOnError,
-                                        bool          repairOnTheFly,
-                                        bool          repairAtEnd,
-                                        custom_Update updateFunction,
-                                        void*         updateData,
-                                        bool          hideLBACounter)
+eReturnValues user_Sequential_Read_Test(const tDevice* device,
+                                        uint64_t       startingLBA,
+                                        uint64_t       range,
+                                        uint16_t       errorLimit,
+                                        bool           stopOnError,
+                                        bool           repairOnTheFly,
+                                        bool           repairAtEnd,
+                                        custom_Update  updateFunction,
+                                        void*          updateData,
+                                        bool           hideLBACounter)
 {
     return user_Sequential_Test(device, RWV_COMMAND_READ, startingLBA, range, errorLimit, stopOnError, repairOnTheFly,
                                 repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues user_Sequential_Write_Test(tDevice*      device,
-                                         uint64_t      startingLBA,
-                                         uint64_t      range,
-                                         uint16_t      errorLimit,
-                                         bool          stopOnError,
-                                         bool          repairOnTheFly,
-                                         bool          repairAtEnd,
-                                         custom_Update updateFunction,
-                                         void*         updateData,
-                                         bool          hideLBACounter)
+eReturnValues user_Sequential_Write_Test(const tDevice* device,
+                                         uint64_t       startingLBA,
+                                         uint64_t       range,
+                                         uint16_t       errorLimit,
+                                         bool           stopOnError,
+                                         bool           repairOnTheFly,
+                                         bool           repairAtEnd,
+                                         custom_Update  updateFunction,
+                                         void*          updateData,
+                                         bool           hideLBACounter)
 {
     return user_Sequential_Test(device, RWV_COMMAND_WRITE, startingLBA, range, errorLimit, stopOnError, repairOnTheFly,
                                 repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues user_Sequential_Verify_Test(tDevice*      device,
-                                          uint64_t      startingLBA,
-                                          uint64_t      range,
-                                          uint16_t      errorLimit,
-                                          bool          stopOnError,
-                                          bool          repairOnTheFly,
-                                          bool          repairAtEnd,
-                                          custom_Update updateFunction,
-                                          void*         updateData,
-                                          bool          hideLBACounter)
+eReturnValues user_Sequential_Verify_Test(const tDevice* device,
+                                          uint64_t       startingLBA,
+                                          uint64_t       range,
+                                          uint16_t       errorLimit,
+                                          bool           stopOnError,
+                                          bool           repairOnTheFly,
+                                          bool           repairAtEnd,
+                                          custom_Update  updateFunction,
+                                          void*          updateData,
+                                          bool           hideLBACounter)
 {
     return user_Sequential_Test(device, RWV_COMMAND_VERIFY, startingLBA, range, errorLimit, stopOnError, repairOnTheFly,
                                 repairAtEnd, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues user_Sequential_Test(tDevice*                    device,
+eReturnValues user_Sequential_Test(const tDevice*              device,
                                    eRWVCommandType             rwvCommand,
                                    uint64_t                    startingLBA,
                                    uint64_t                    range,
@@ -1137,7 +1137,7 @@ eReturnValues user_Sequential_Test(tDevice*                    device,
             {
                 printf("\nError Found at LBA %" PRIu64 "", errorList[errorIndex].errorAddress);
                 if (errorLimit != 0)
-                    printf("\n");
+                    print_str("\n");
             }
             // set a new start for next time through the loop to 1 lba past the last error LBA
             startingLBA = errorList[errorIndex].errorAddress + 1;
@@ -1162,7 +1162,7 @@ eReturnValues user_Sequential_Test(tDevice*                    device,
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     if (repairAtEnd)
     {
@@ -1209,13 +1209,13 @@ eReturnValues user_Sequential_Test(tDevice*                    device,
                 }
                 else
                 {
-                    printf("One or more bad LBAs detected during read scan of device.\n");
+                    print_str("One or more bad LBAs detected during read scan of device.\n");
                     ret = FAILURE;
                 }
             }
             else
             {
-                printf("No bad LBAs detected during read scan of device.\n");
+                print_str("No bad LBAs detected during read scan of device.\n");
             }
         }
     }
@@ -1223,7 +1223,7 @@ eReturnValues user_Sequential_Test(tDevice*                    device,
     return ret;
 }
 
-eReturnValues user_Timed_Test(tDevice*                    device,
+eReturnValues user_Timed_Test(const tDevice*              device,
                               eRWVCommandType             rwvCommand,
                               uint64_t                    startingLBA,
                               uint64_t                    timeInSeconds,
@@ -1396,13 +1396,13 @@ eReturnValues user_Timed_Test(tDevice*                    device,
                    startingLBA); // 20 wide is the max width for a unsigned 64bit number
             break;
         }
-        printf("\n");
+        print_str("\n");
         flush_stdout();
     }
     safe_free_aligned(&dataBuf);
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     if (repairAtEnd)
     {
@@ -1447,7 +1447,7 @@ eReturnValues user_Timed_Test(tDevice*                    device,
             }
             else
             {
-                printf("No bad LBAs detected during read scan of device.\n");
+                print_str("No bad LBAs detected during read scan of device.\n");
             }
         }
     }
@@ -1455,34 +1455,34 @@ eReturnValues user_Timed_Test(tDevice*                    device,
     return ret;
 }
 
-eReturnValues butterfly_Read_Test(tDevice*      device,
-                                  uint64_t      timeLimitSeconds,
-                                  custom_Update updateFunction,
-                                  void*         updateData,
-                                  bool          hideLBACounter)
+eReturnValues butterfly_Read_Test(const tDevice* device,
+                                  uint64_t       timeLimitSeconds,
+                                  custom_Update  updateFunction,
+                                  void*          updateData,
+                                  bool           hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_READ, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues butterfly_Write_Test(tDevice*      device,
-                                   uint64_t      timeLimitSeconds,
-                                   custom_Update updateFunction,
-                                   void*         updateData,
-                                   bool          hideLBACounter)
+eReturnValues butterfly_Write_Test(const tDevice* device,
+                                   uint64_t       timeLimitSeconds,
+                                   custom_Update  updateFunction,
+                                   void*          updateData,
+                                   bool           hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_WRITE, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues butterfly_Verify_Test(tDevice*      device,
-                                    uint64_t      timeLimitSeconds,
-                                    custom_Update updateFunction,
-                                    void*         updateData,
-                                    bool          hideLBACounter)
+eReturnValues butterfly_Verify_Test(const tDevice* device,
+                                    uint64_t       timeLimitSeconds,
+                                    custom_Update  updateFunction,
+                                    void*          updateData,
+                                    bool           hideLBACounter)
 {
     return butterfly_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues butterfly_Test(tDevice*                    device,
+eReturnValues butterfly_Test(const tDevice*              device,
                              eRWVCommandType             rwvcommand,
                              uint64_t                    timeLimitSeconds,
                              M_ATTR_UNUSED custom_Update updateFunction,
@@ -1598,39 +1598,39 @@ eReturnValues butterfly_Test(tDevice*                    device,
     safe_free(&dataBuf);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     return ret;
 }
 
-eReturnValues random_Read_Test(tDevice*      device,
-                               uint64_t      timeLimitSeconds,
-                               custom_Update updateFunction,
-                               void*         updateData,
-                               bool          hideLBACounter)
+eReturnValues random_Read_Test(const tDevice* device,
+                               uint64_t       timeLimitSeconds,
+                               custom_Update  updateFunction,
+                               void*          updateData,
+                               bool           hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_READ, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues random_Write_Test(tDevice*      device,
-                                uint64_t      timeLimitSeconds,
-                                custom_Update updateFunction,
-                                void*         updateData,
-                                bool          hideLBACounter)
+eReturnValues random_Write_Test(const tDevice* device,
+                                uint64_t       timeLimitSeconds,
+                                custom_Update  updateFunction,
+                                void*          updateData,
+                                bool           hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_WRITE, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues random_Verify_Test(tDevice*      device,
-                                 uint64_t      timeLimitSeconds,
-                                 custom_Update updateFunction,
-                                 void*         updateData,
-                                 bool          hideLBACounter)
+eReturnValues random_Verify_Test(const tDevice* device,
+                                 uint64_t       timeLimitSeconds,
+                                 custom_Update  updateFunction,
+                                 void*          updateData,
+                                 bool           hideLBACounter)
 {
     return random_Test(device, RWV_COMMAND_VERIFY, timeLimitSeconds, updateFunction, updateData, hideLBACounter);
 }
 
-eReturnValues random_Test(tDevice*                    device,
+eReturnValues random_Test(const tDevice*              device,
                           eRWVCommandType             rwvcommand,
                           uint64_t                    timeLimitSeconds,
                           M_ATTR_UNUSED custom_Update updateFunction,
@@ -1685,13 +1685,13 @@ eReturnValues random_Test(tDevice*                    device,
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free(&dataBuf);
     return ret;
 }
 
-eReturnValues sweep_Test(tDevice* device, eRWVCommandType rwvcommand, uint32_t sweepCount)
+eReturnValues sweep_Test(const tDevice* device, eRWVCommandType rwvcommand, uint32_t sweepCount)
 {
     eReturnValues ret         = SUCCESS;
     uint32_t      sectorCount = UINT32_C(1);
@@ -1734,13 +1734,13 @@ eReturnValues sweep_Test(tDevice* device, eRWVCommandType rwvcommand, uint32_t s
 
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
 
     return ret;
 }
 
-eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device,
+eReturnValues read_Write_Or_Verify_Timed_Test(const tDevice*              device,
                                               eRWVCommandType             testMode,
                                               uint32_t                    timePerTestSeconds,
                                               uint16_t*                   numberOfCommandTimeouts,
@@ -1760,7 +1760,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
     uint32_t currentSectorCount = sectorCount;
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // OD
     if (testMode == RWV_COMMAND_READ || testMode == RWV_COMMAND_WRITE)
@@ -1787,19 +1787,19 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
         switch (testMode)
         {
         case RWV_COMMAND_READ:
-            printf("Sequential Read Test at OD for ~");
+            print_str("Sequential Read Test at OD for ~");
             break;
         case RWV_COMMAND_WRITE:
-            printf("Sequential Write Test at OD for ~");
+            print_str("Sequential Write Test at OD for ~");
             break;
         case RWV_COMMAND_VERIFY:
         default:
-            printf("Sequential Verify Test at OD for ~");
+            print_str("Sequential Verify Test at OD for ~");
             break;
         }
         convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     startTime = time(M_NULLPTR);
     while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds && ODEndingLBA < device->drive_info.deviceMaxLba)
@@ -1840,7 +1840,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // ID
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1852,19 +1852,19 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
         switch (testMode)
         {
         case RWV_COMMAND_READ:
-            printf("Sequential Read Test at ID for ~");
+            print_str("Sequential Read Test at ID for ~");
             break;
         case RWV_COMMAND_WRITE:
-            printf("Sequential Write Test at ID for ~");
+            print_str("Sequential Write Test at ID for ~");
             break;
         case RWV_COMMAND_VERIFY:
         default:
-            printf("Sequential Verify Test at ID for ~");
+            print_str("Sequential Verify Test at ID for ~");
             break;
         }
         convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     IDStartLBA = device->drive_info.deviceMaxLba - ODEndingLBA;
     startTime  = time(M_NULLPTR);
@@ -1906,7 +1906,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // Random
     seed_64(C_CAST(uint64_t, time(M_NULLPTR))); // start random number generator
@@ -1919,19 +1919,19 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
         switch (testMode)
         {
         case RWV_COMMAND_READ:
-            printf("Random Read Test for ~");
+            print_str("Random Read Test for ~");
             break;
         case RWV_COMMAND_WRITE:
-            printf("Random Write Test for ~");
+            print_str("Random Write Test for ~");
             break;
         case RWV_COMMAND_VERIFY:
         default:
-            printf("Random Verify Test for ~");
+            print_str("Random Verify Test for ~");
             break;
         }
         convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     startTime = time(M_NULLPTR);
     while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds)
@@ -1972,7 +1972,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     // Butterfly
     // outerLBA = ODEndingLBA;
@@ -1986,19 +1986,19 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
         switch (testMode)
         {
         case RWV_COMMAND_READ:
-            printf("Butterfly Read Test for ~");
+            print_str("Butterfly Read Test for ~");
             break;
         case RWV_COMMAND_WRITE:
-            printf("Butterfly Write Test for ~");
+            print_str("Butterfly Write Test for ~");
             break;
         case RWV_COMMAND_VERIFY:
         default:
-            printf("Butterfly Verify Test for ~");
+            print_str("Butterfly Verify Test for ~");
             break;
         }
         convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     currentSectorCount = sectorCount = get_Sector_Count_For_Read_Write(device);
     startTime                        = time(M_NULLPTR);
@@ -2099,7 +2099,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free(&dataBuf);
     return SUCCESS;
@@ -2108,7 +2108,7 @@ eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*                    device
 // This function is very similar to the "user_Sequential_Test" call, but the error list is allocated outside of this
 // function instead of having it self containted. Rather than change the user_Sequential_Test and make it potentially
 // break others or complicated its already long list of parameters, I wrote this function instead.
-static eReturnValues diamter_Test_RWV_Range(tDevice*        device,
+static eReturnValues diamter_Test_RWV_Range(const tDevice*  device,
                                             eRWVCommandType rwvCommand,
                                             uint64_t        startingLBA,
                                             uint64_t        range,
@@ -2188,14 +2188,14 @@ static eReturnValues diamter_Test_RWV_Range(tDevice*        device,
     }
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
-        printf("\n");
+        print_str("\n");
     }
 
     return ret;
 }
 
 // tests at OD, MD, and/or ID depending on what the caller requests.
-eReturnValues diameter_Test_Range(tDevice*        device,
+eReturnValues diameter_Test_Range(const tDevice*  device,
                                   eRWVCommandType testMode,
                                   bool            outer,
                                   bool            middle,
@@ -2217,8 +2217,8 @@ eReturnValues diameter_Test_Range(tDevice*        device,
     {
         return BAD_PARAMETER;
     }
-    // eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t
-    // range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update
+    // eReturnValues user_Sequential_Test(const tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA,
+    // uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update
     // updateFunction, void *updateData)
     errorLBA* errorList   = M_REINTERPRET_CAST(errorLBA*, safe_calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t  errorOffset = UINT16_C(0);
@@ -2228,13 +2228,13 @@ eReturnValues diameter_Test_Range(tDevice*        device,
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Outer Diameter Test\n");
+            print_str("Outer Diameter Test\n");
         }
         outerRet = diamter_Test_RWV_Range(device, testMode, 0, numberOfLBAs, errorLimit, errorList, &errorOffset,
                                           stopOnError, repairOnTheFly, updateFunction, updateData, hideLBACounter);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\n");
+            print_str("\n");
         }
     }
     if (outerRet != SUCCESS && ret == SUCCESS)
@@ -2246,14 +2246,14 @@ eReturnValues diameter_Test_Range(tDevice*        device,
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Middle Diameter Test\n");
+            print_str("Middle Diameter Test\n");
         }
         middleRet = diamter_Test_RWV_Range(device, testMode, device->drive_info.deviceMaxLba / 2, numberOfLBAs,
                                            errorLimit, errorList, &errorOffset, stopOnError, repairOnTheFly,
                                            updateFunction, updateData, hideLBACounter);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\n");
+            print_str("\n");
         }
     }
     if (middleRet != SUCCESS && ret == SUCCESS)
@@ -2265,14 +2265,14 @@ eReturnValues diameter_Test_Range(tDevice*        device,
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Inner Diameter Test\n");
+            print_str("Inner Diameter Test\n");
         }
         innerRet = diamter_Test_RWV_Range(device, testMode, device->drive_info.deviceMaxLba - numberOfLBAs + 1,
                                           numberOfLBAs, errorLimit, errorList, &errorOffset, stopOnError,
                                           repairOnTheFly, updateFunction, updateData, hideLBACounter);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\n");
+            print_str("\n");
         }
     }
     if (innerRet != SUCCESS && ret == SUCCESS)
@@ -2330,7 +2330,7 @@ eReturnValues diameter_Test_Range(tDevice*        device,
             }
             else
             {
-                printf("No bad LBAs detected during read scan of device.\n");
+                print_str("No bad LBAs detected during read scan of device.\n");
             }
         }
     }
@@ -2339,7 +2339,7 @@ eReturnValues diameter_Test_Range(tDevice*        device,
 }
 
 // this function is similar to the range function, but looks for a time limit to run for instead.
-static eReturnValues diamter_Test_RWV_Time(tDevice*        device,
+static eReturnValues diamter_Test_RWV_Time(const tDevice*  device,
                                            eRWVCommandType rwvCommand,
                                            uint64_t        startingLBA,
                                            uint64_t        timeInSeconds,
@@ -2502,7 +2502,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice*        device,
                    startingLBA); // 20 wide is the max width for a unsigned 64bit number
             break;
         }
-        printf("\n");
+        print_str("\n");
         flush_stdout();
     }
     if (numberOfLbasAccessed != M_NULLPTR)
@@ -2515,7 +2515,7 @@ static eReturnValues diamter_Test_RWV_Time(tDevice*        device,
     return ret;
 }
 
-eReturnValues diameter_Test_Time(tDevice*        device,
+eReturnValues diameter_Test_Time(const tDevice*  device,
                                  eRWVCommandType testMode,
                                  bool            outer,
                                  bool            middle,
@@ -2535,8 +2535,8 @@ eReturnValues diameter_Test_Time(tDevice*        device,
     {
         return BAD_PARAMETER;
     }
-    // eReturnValues user_Sequential_Test(tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA, uint64_t
-    // range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update
+    // eReturnValues user_Sequential_Test(const tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA,
+    // uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update
     // updateFunction, void *updateData)
     errorLBA* errorList   = M_REINTERPRET_CAST(errorLBA*, safe_calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t  errorOffset = UINT16_C(0);
@@ -2552,16 +2552,16 @@ eReturnValues diameter_Test_Time(tDevice*        device,
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Outer Diameter Test for");
+            print_str("Outer Diameter Test for");
             print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-            printf("\n");
+            print_str("\n");
         }
         outerRet =
             diamter_Test_RWV_Time(device, testMode, 0, timeInSecondsPerDiameter, errorLimit, errorList, &errorOffset,
                                   stopOnError, repairOnTheFly, &odOrMdLBAsAccessed, hideLBACounter);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\n");
+            print_str("\n");
         }
     }
     if (outerRet != SUCCESS && ret == SUCCESS)
@@ -2575,9 +2575,9 @@ eReturnValues diameter_Test_Time(tDevice*        device,
         uint64_t* countPointer   = &mdLBAsAccessed;
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Middle Diameter Test for");
+            print_str("Middle Diameter Test for");
             print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-            printf("\n");
+            print_str("\n");
         }
         if (odOrMdLBAsAccessed == 0)
         {
@@ -2588,7 +2588,7 @@ eReturnValues diameter_Test_Time(tDevice*        device,
                                           repairOnTheFly, countPointer, hideLBACounter);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\n");
+            print_str("\n");
         }
         odOrMdLBAsAccessed = (odOrMdLBAsAccessed > mdLBAsAccessed)
                                  ? odOrMdLBAsAccessed
@@ -2616,16 +2616,16 @@ eReturnValues diameter_Test_Time(tDevice*        device,
         }
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("Inner Diameter Test for");
+            print_str("Inner Diameter Test for");
             print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-            printf("\n");
+            print_str("\n");
         }
         innerRet =
             diamter_Test_RWV_Time(device, testMode, idStartingLBA, timeInSecondsPerDiameter, errorLimit, errorList,
                                   &errorOffset, stopOnError, repairOnTheFly, M_NULLPTR, hideLBACounter);
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\n");
+            print_str("\n");
         }
     }
     if (innerRet != SUCCESS && ret == SUCCESS)
@@ -2688,7 +2688,7 @@ eReturnValues diameter_Test_Time(tDevice*        device,
             }
             else
             {
-                printf("No bad LBAs detected during read scan of device.\n");
+                print_str("No bad LBAs detected during read scan of device.\n");
             }
         }
     }
@@ -2696,7 +2696,7 @@ eReturnValues diameter_Test_Time(tDevice*        device,
     return ret;
 }
 
-eReturnValues zero_Verify_Test(tDevice* device, eZeroVerifyTestType zeroVerifyTestType, bool hideLBACounter)
+eReturnValues zero_Verify_Test(const tDevice* device, eZeroVerifyTestType zeroVerifyTestType, bool hideLBACounter)
 {
     if (zeroVerifyTestType == ZERO_VERIFY_TYPE_FULL)
         return full_Zero_Verify_Test(device, hideLBACounter);
@@ -2706,7 +2706,7 @@ eReturnValues zero_Verify_Test(tDevice* device, eZeroVerifyTestType zeroVerifyTe
         return BAD_PARAMETER;
 }
 
-eReturnValues full_Zero_Verify_Test(tDevice* device, bool hideLBACounter)
+eReturnValues full_Zero_Verify_Test(const tDevice* device, bool hideLBACounter)
 {
     uint32_t sectorCount = get_Sector_Count_For_Read_Write(device);
 
@@ -2769,14 +2769,14 @@ eReturnValues full_Zero_Verify_Test(tDevice* device, bool hideLBACounter)
         safe_free_aligned(&dataBuffer);
     }
 
-    printf("\n");
+    print_str("\n");
     return SUCCESS;
 }
 
 #define DRIVE_CAPACITY_PERCENTAGE (0.1) // 0.1 percentage
 #define DRIVE_SECTIONS            (10000) // divide drive into these many sections and then pick 2 random LBA from each section
 
-eReturnValues quick_Zero_Verify_Test(tDevice* device, bool hideLBACounter)
+eReturnValues quick_Zero_Verify_Test(const tDevice* device, bool hideLBACounter)
 {
     uint32_t sectorCount    = get_Sector_Count_For_Read_Write(device);
     uint64_t totalLBAToRead = C_CAST(
@@ -3042,6 +3042,6 @@ eReturnValues quick_Zero_Verify_Test(tDevice* device, bool hideLBACounter)
         }
     }
 
-    printf("\n");
+    print_str("\n");
     return SUCCESS;
 }

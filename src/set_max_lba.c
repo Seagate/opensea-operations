@@ -32,7 +32,7 @@
 #include "scsi_helper_func.h"
 #include "set_max_lba.h"
 
-eReturnValues ata_Get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA)
+eReturnValues ata_Get_Native_Max_LBA(const tDevice* device, uint64_t* nativeMaxLBA)
 {
     eReturnValues ret = SUCCESS;
     if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
@@ -57,7 +57,7 @@ eReturnValues ata_Get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA)
     return ret;
 }
 
-eReturnValues get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA)
+eReturnValues get_Native_Max_LBA(const tDevice* device, uint64_t* nativeMaxLBA)
 {
     eReturnValues ret = UNKNOWN;
     *nativeMaxLBA = UINT64_MAX; // this is invalid, but useful for scsi since reseting to native max means using this
@@ -73,12 +73,12 @@ eReturnValues get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA)
     return ret;
 }
 
-eReturnValues scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset)
+eReturnValues scsi_Set_Max_LBA(const tDevice* device, uint64_t newMaxLBA, bool reset)
 {
     return scsi_Set_Max_LBA_2(device, newMaxLBA, reset, false);
 }
 
-eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
+eReturnValues scsi_Set_Max_LBA_2(const tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
     eReturnValues           ret = UNKNOWN;
     modifyScsiBlkDescFields blkdescMods;
@@ -106,35 +106,36 @@ eReturnValues scsi_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset
         safe_memset(&readCapData, sizeof(readCapacityData), 0, sizeof(readCapacityData));
         if (SUCCESS == scsi_Read_Capacity_Cmd_Helper(device, &readCapData))
         {
-            device->drive_info.deviceMaxLba    = readCapData.returnedLBA;
-            device->drive_info.deviceBlockSize = readCapData.logicalBlockLength;
+            M_CONST_CAST(tDevice*, device)->drive_info.deviceMaxLba    = readCapData.returnedLBA;
+            M_CONST_CAST(tDevice*, device)->drive_info.deviceBlockSize = readCapData.logicalBlockLength;
             if (readCapData.readCap16)
             {
-                device->drive_info.devicePhyBlockSize =
+                M_CONST_CAST(tDevice*, device)->drive_info.devicePhyBlockSize =
                     readCapData.logicalBlockLength *
                     M_STATIC_CAST(uint32_t, power_Of_Two(readCapData.logicalBlocksPerPhysicalBlockExponent));
-                device->drive_info.sectorAlignment = readCapData.lowestAlignedLogicalBlock;
+                M_CONST_CAST(tDevice*, device)->drive_info.sectorAlignment = readCapData.lowestAlignedLogicalBlock;
             }
             else
             {
-                device->drive_info.devicePhyBlockSize = readCapData.logicalBlockLength;
-                device->drive_info.sectorAlignment    = 0;
+                M_CONST_CAST(tDevice*, device)->drive_info.devicePhyBlockSize = readCapData.logicalBlockLength;
+                M_CONST_CAST(tDevice*, device)->drive_info.sectorAlignment    = 0;
             }
             if (device->drive_info.devicePhyBlockSize == 0)
             {
-                device->drive_info.devicePhyBlockSize = 1; // avoid possibly divide by zero issues
+                M_CONST_CAST(tDevice*, device)->drive_info.devicePhyBlockSize =
+                    1; // avoid possibly divide by zero issues
             }
         }
     }
     return ret;
 }
 
-eReturnValues ata_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset)
+eReturnValues ata_Set_Max_LBA(const tDevice* device, uint64_t newMaxLBA, bool reset)
 {
     return ata_Set_Max_LBA_2(device, newMaxLBA, reset, false);
 }
 
-eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
+eReturnValues ata_Set_Max_LBA_2(const tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
     eReturnValues ret = NOT_SUPPORTED;
     // first do an identify to figure out which method we can use to set the maxLBA (legacy, or new Max addressable
@@ -173,7 +174,7 @@ eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset,
             {
                 if (changeId)
                 {
-                    printf("Change model number is not supported on this device\n");
+                    print_str("Change model number is not supported on this device\n");
                     ret = NOT_SUPPORTED;
                 }
                 else
@@ -200,7 +201,7 @@ eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Setting max LBA is not supported on this device\n");
+                    print_str("Setting max LBA is not supported on this device\n");
                 }
                 ret = NOT_SUPPORTED;
             }
@@ -208,17 +209,18 @@ eReturnValues ata_Set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset,
     }
     if (ret == SUCCESS)
     {
-        device->drive_info.deviceMaxLba = newMaxLBA; // successfully changed so update the device structure
+        M_CONST_CAST(tDevice*, device)->drive_info.deviceMaxLba =
+            newMaxLBA; // successfully changed so update the device structure
     }
     return ret;
 }
 
-eReturnValues set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset)
+eReturnValues set_Max_LBA(const tDevice* device, uint64_t newMaxLBA, bool reset)
 {
     return set_Max_LBA_2(device, newMaxLBA, reset, false);
 }
 
-eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
+eReturnValues set_Max_LBA_2(const tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -233,7 +235,7 @@ eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, boo
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("Setting the max LBA is not supported on this device type at this time\n");
+            print_str("Setting the max LBA is not supported on this device type at this time\n");
         }
         ret = NOT_SUPPORTED;
     }
@@ -244,7 +246,7 @@ eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, boo
 // possible or to allow validation of an erase as much as possible. Because of this, it handles all the ATA checks to
 // make sure all features are restored or a proper error code for frozen or access denied is returned (HPA/AMAC/DCO and
 // HPA security are all handled)
-eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
+eReturnValues restore_Max_LBA_For_Erase(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -363,7 +365,7 @@ eReturnValues restore_Max_LBA_For_Erase(tDevice* device)
     return ret;
 }
 
-static uint64_t get_ATA_MaxLBA(tDevice* device)
+static uint64_t get_ATA_MaxLBA(const tDevice* device)
 {
     uint64_t maxLBA = UINT64_C(0);
     // read the max LBA from idenfity data.
@@ -406,7 +408,7 @@ static uint64_t get_ATA_MaxLBA(tDevice* device)
     return maxLBA;
 }
 
-static uint64_t get_SCSI_MaxLBA(tDevice* device)
+static uint64_t get_SCSI_MaxLBA(const tDevice* device)
 {
     uint64_t         maxLBA = UINT64_C(0);
     readCapacityData readCapData;
@@ -418,7 +420,7 @@ static uint64_t get_SCSI_MaxLBA(tDevice* device)
     return maxLBA;
 }
 
-bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
+bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(const tDevice* device, bool issueReset)
 {
     bool inSync = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -502,7 +504,7 @@ bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset)
     return inSync;
 }
 
-bool is_Change_Identify_String_Supported(tDevice* device)
+bool is_Change_Identify_String_Supported(const tDevice* device)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -541,7 +543,7 @@ bool is_Change_Identify_String_Supported(tDevice* device)
     return false;
 }
 
-ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device)
+ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(const tDevice* device)
 {
     ptrcapacityModelNumberMapping capModelMapping = M_NULLPTR;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -680,8 +682,8 @@ void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelM
     DISABLE_NONNULL_COMPARE
     if (capModelMapping != M_NULLPTR)
     {
-        printf("---Capacity model number mapping---\n");
-        printf("              MaxLBA Model number\n");
+        print_str("---Capacity model number mapping---\n");
+        print_str("              MaxLBA Model number\n");
         for (uint32_t descriptorCounter = UINT32_C(0); descriptorCounter < capModelMapping->numberOfDescriptors;
              descriptorCounter++)
         {

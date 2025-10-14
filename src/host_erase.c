@@ -32,12 +32,12 @@
 #include "operations_Common.h"
 #include "platform_helper.h"
 
-eReturnValues erase_Range(tDevice* device,
-                          uint64_t eraseRangeStart,
-                          uint64_t eraseRangeEnd,
-                          uint8_t* pattern,
-                          uint32_t patternLength,
-                          bool     hideLBACounter)
+eReturnValues erase_Range(const tDevice* device,
+                          uint64_t       eraseRangeStart,
+                          uint64_t       eraseRangeEnd,
+                          uint8_t*       pattern,
+                          uint32_t       patternLength,
+                          bool           hideLBACounter)
 {
     eReturnValues ret         = SUCCESS;
     uint32_t      sectors     = get_Sector_Count_For_Read_Write(device);
@@ -53,7 +53,7 @@ eReturnValues erase_Range(tDevice* device,
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     os_Lock_Device(device);
     if (eraseRangeStart == UINT64_C(0))
@@ -181,7 +181,7 @@ eReturnValues erase_Range(tDevice* device,
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
@@ -189,12 +189,12 @@ eReturnValues erase_Range(tDevice* device,
     return ret;
 }
 
-eReturnValues erase_Time(tDevice* device,
-                         uint64_t eraseStartLBA,
-                         uint64_t eraseTime,
-                         uint8_t* pattern,
-                         uint32_t patternLength,
-                         bool     hideLBACounter)
+eReturnValues erase_Time(const tDevice* device,
+                         uint64_t       eraseStartLBA,
+                         uint64_t       eraseTime,
+                         uint8_t*       pattern,
+                         uint32_t       patternLength,
+                         bool           hideLBACounter)
 {
     eReturnValues ret         = UNKNOWN;
     time_t        currentTime = 0;
@@ -218,7 +218,7 @@ eReturnValues erase_Time(tDevice* device,
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     currentTime = time(M_NULLPTR); // get the current time before starting the loop
     startTime   = currentTime;
@@ -304,7 +304,7 @@ eReturnValues erase_Time(tDevice* device,
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);
@@ -313,7 +313,7 @@ eReturnValues erase_Time(tDevice* device,
 }
 
 // This erases the first 32KiB and last 32 KiB of the drive.
-eReturnValues erase_Boot_Sectors(tDevice* device)
+eReturnValues erase_Boot_Sectors(const tDevice* device)
 {
     eReturnValues ret         = SUCCESS;
     uint32_t      sectors     = get_Sector_Count_For_Read_Write(device);
@@ -328,7 +328,7 @@ eReturnValues erase_Boot_Sectors(tDevice* device)
     }
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
@@ -357,7 +357,7 @@ eReturnValues erase_Boot_Sectors(tDevice* device)
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)
     {
-        printf("\n");
+        print_str("\n");
     }
     safe_free_aligned(&writeBuffer);
     os_Unlock_Device(device);

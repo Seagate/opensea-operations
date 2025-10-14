@@ -29,7 +29,7 @@
 #include "platform_helper.h"
 #include "writesame.h"
 
-bool is_Write_Same_Supported(tDevice*               device,
+bool is_Write_Same_Supported(const tDevice*         device,
                              M_ATTR_UNUSED uint64_t startingLBA,
                              uint64_t               requesedNumberOfLogicalBlocks,
                              uint64_t*              maxNumberOfLogicalBlocksPerCommand)
@@ -176,11 +176,11 @@ bool is_Write_Same_Supported(tDevice*               device,
 }
 
 // we need to know where we started at and the range in order to properly calculate progress
-eReturnValues get_Writesame_Progress(tDevice* device,
-                                     double*  progress,
-                                     bool*    writeSameInProgress,
-                                     uint64_t startingLBA,
-                                     uint64_t range)
+eReturnValues get_Writesame_Progress(const tDevice* device,
+                                     double*        progress,
+                                     bool*          writeSameInProgress,
+                                     uint64_t       startingLBA,
+                                     uint64_t       range)
 {
     eReturnValues ret    = SUCCESS;
     *writeSameInProgress = false;
@@ -258,7 +258,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
     this easier to parse the progress from. get_Sense_Key_ASC_ASCQ_FRU(&senseData[0], SPC3_SENSE_LEN, &senseKey, &asc,
     &ascq, &fru); if (VERBOSITY_BUFFERS <= device->deviceVerbosity)
         {
-            printf("\n\tSense Data:\n");
+            print_str("\n\tSense Data:\n");
             print_Data_Buffer(&senseData[0], SPC3_SENSE_LEN, false);
         }
         if (ret == SUCCESS || ret == IN_PROGRESS)
@@ -272,8 +272,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
             {
                 *writeSameInProgress = true;
             }
-            *progress *= 100.0;
-            *progress /= 65536.0;
+            *progress = get_SCSI_Progress_Indicator_PercentD(*progress);
         }
         safe_free_aligned(&senseData);
     }
@@ -285,7 +284,7 @@ eReturnValues get_Writesame_Progress(tDevice* device,
     return ret;
 }
 
-eReturnValues show_Write_Same_Current_LBA(tDevice* device)
+eReturnValues show_Write_Same_Current_LBA(const tDevice* device)
 {
     eReturnValues ret        = SUCCESS;
     uint64_t      currentLBA = UINT64_C(0);
@@ -342,49 +341,49 @@ eReturnValues show_Write_Same_Current_LBA(tDevice* device)
     {
     case SUCCESS:
         // not in progress or completed successfully
-        printf("\tA Write same is not currently in progress or has completed successfully\n");
+        print_str("\tA Write same is not currently in progress or has completed successfully\n");
         break;
     case IN_PROGRESS:
         // currently running. Current LBA = %llu, calculate progress with this formula:
         printf("\tA Write same is currently processing LBA %" PRIu64 "\n", currentLBA);
-        printf("\tTo calculate write same progress, use the following formula:\n");
+        print_str("\tTo calculate write same progress, use the following formula:\n");
         printf("\t\t( %" PRIu64 " - startLBA ) / range\n", currentLBA);
         break;
     case ABORTED:
         // Write same was aborted by host or due to ata security being locked
-        printf("\tA write same was aborted due to ");
+        print_str("\tA write same was aborted due to ");
         if (sctStatus == SCT_EXT_STATUS_OPERATION_WAS_TERMINATED_DUE_TO_DEVICE_SECURITY_BEING_LOCKED)
         {
-            printf("device being security locked\n");
+            print_str("device being security locked\n");
         }
         else if (sctStatus ==
                  SCT_EXT_STATUS_BACKGROUND_SCT_OPERATION_WAS_TERMINATED_BECAUSE_OF_AN_INTERRUPTING_HOST_COMMAND)
         {
-            printf("interupting host command\n");
+            print_str("interupting host command\n");
         }
         else
         {
-            printf("unknown reason\n");
+            print_str("unknown reason\n");
         }
         break;
     case NOT_SUPPORTED:
         // getting progress is not supported
-        printf("\tWrite same progress not available on this device\n");
+        print_str("\tWrite same progress not available on this device\n");
         break;
     default:
         // failed to get progress
-        printf("\tAn error occured while trying to retrieve write same progress\n");
+        print_str("\tAn error occured while trying to retrieve write same progress\n");
         break;
     }
     return ret;
 }
 
-eReturnValues writesame(tDevice* device,
-                        uint64_t startingLba,
-                        uint64_t numberOfLogicalBlocks,
-                        bool     pollForProgress,
-                        uint8_t* pattern,
-                        uint32_t patternLength)
+eReturnValues writesame(const tDevice* device,
+                        uint64_t       startingLba,
+                        uint64_t       numberOfLogicalBlocks,
+                        bool           pollForProgress,
+                        uint8_t*       pattern,
+                        uint32_t       patternLength)
 {
     eReturnValues ret               = UNKNOWN;
     uint64_t      maxWriteSameRange = UINT64_C(0);
@@ -422,7 +421,7 @@ eReturnValues writesame(tDevice* device,
         // start the write same for the requested range
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
-            os_Get_Exclusive(device);
+            os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
         }
         os_Lock_Device(device);
         if (pattern && patternLength == device->drive_info.deviceBlockSize)
@@ -461,10 +460,10 @@ eReturnValues writesame(tDevice* device,
             {
                 uint8_t minutes = UINT8_C(0);
                 uint8_t seconds = UINT8_C(0);
-                printf("Write same progress will be updated every");
+                print_str("Write same progress will be updated every");
                 convert_Seconds_To_Displayable_Time(delayTime, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
                 print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
-                printf("\n");
+                print_str("\n");
             }
             delay_Seconds(1); // delay one second before we start polling to let the drive get started
             while (writeSameInProgress)

@@ -56,7 +56,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
+    //  perform_Cable_Test(const tDevice *device, ptrCableTestResults testResults)
     //
     //! \brief   Description: Perform a cable/buffer test using read/write buffer commands to check for mismatches and
     //! other bus errors
@@ -70,7 +70,8 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResults);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2) eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults testResults);
 
     //-----------------------------------------------------------------------------
     //

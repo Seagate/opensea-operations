@@ -30,7 +30,7 @@
 #include "platform_helper.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
 
-bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTime)
+bool is_Depopulation_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -101,16 +101,23 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
             getElementStatusSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
             supported = true;
-            if (depopulationTime != M_NULLPTR)
+        }
+        if (depopulationTime != M_NULLPTR)
+        {
+            *depopulationTime = UINT64_MAX;
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
+            if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
+                                        BLOCK_DEVICE_CHARACTERISTICS, true, false))
             {
-                *depopulationTime = UINT64_MAX;
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
-                if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
-                                            BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                *depopulationTime = M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
+                                                        blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+                // Work around for SATLs
+                // Some do not support report supported operation codes, so this relies on this field being non-zero.
+                // Only flip this if the commands above are reporting "unknown" which means the lookup returned
+                // something like invalid command operation code, or something like that.
+                if (!supported && *depopulationTime > 0 && getElementStatusSupported == SCSI_CMD_SUPPORT_UNKNOWN)
                 {
-                    *depopulationTime =
-                        M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
-                                            blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+                    supported = true;
                 }
             }
         }
@@ -118,7 +125,7 @@ bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTi
     return supported;
 }
 
-eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors)
+eReturnValues get_Number_Of_Descriptors(const tDevice* device, uint32_t* numberOfDescriptors)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -150,7 +157,7 @@ eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescr
     return ret;
 }
 
-eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
+eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
                                                  uint32_t           numberOfElementsExpected,
                                                  uint32_t*          depopElementID,
                                                  uint16_t*          maximumDepopulatedElements,
@@ -186,6 +193,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 // Fill in the struct here since ATA is little endian
                 numberOfDescriptorsReturned = M_BytesTo4ByteValue(getPhysicalElements[7], getPhysicalElements[6],
                                                                   getPhysicalElements[5], getPhysicalElements[4]);
+                DISABLE_NONNULL_COMPARE
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[11], getPhysicalElements[10],
@@ -199,6 +207,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 {
                     *currentDepopulatedElements = M_BytesTo2ByteValue(getPhysicalElements[15], getPhysicalElements[14]);
                 }
+                RESTORE_NONNULL_COMPARE
                 if (numberOfElementsExpected != numberOfDescriptorsReturned)
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -218,6 +227,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 // Fill in the struct here since SCSI is big endian
                 numberOfDescriptorsReturned = M_BytesTo4ByteValue(getPhysicalElements[4], getPhysicalElements[5],
                                                                   getPhysicalElements[6], getPhysicalElements[7]);
+                DISABLE_NONNULL_COMPARE
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[8], getPhysicalElements[9],
@@ -231,6 +241,7 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
                 {
                     *currentDepopulatedElements = M_BytesTo2ByteValue(getPhysicalElements[14], getPhysicalElements[15]);
                 }
+                RESTORE_NONNULL_COMPARE
                 if (numberOfElementsExpected != numberOfDescriptorsReturned)
                 {
                     printf("WARNING: Drive returned %" PRIu32 " elements, but %" PRIu32 " were expected\n",
@@ -276,12 +287,15 @@ eReturnValues get_Physical_Element_Descriptors_2(tDevice*           device,
     return ret;
 }
 
-eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
+eReturnValues get_Physical_Element_Descriptors(const tDevice*     device,
                                                uint32_t           numberOfElementsExpected,
                                                ptrPhysicalElement elementList)
 {
-    return get_Physical_Element_Descriptors_2(device, numberOfElementsExpected, M_NULLPTR, M_NULLPTR, M_NULLPTR,
-                                              elementList);
+    uint32_t depopElementID = UINT32_C(0);
+    uint16_t maxDepop       = UINT16_C(0);
+    uint16_t currentDepop   = UINT16_C(0);
+    return get_Physical_Element_Descriptors_2(device, numberOfElementsExpected, &depopElementID, &maxDepop,
+                                              &currentDepop, elementList);
 }
 
 void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
@@ -292,11 +306,11 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
                                          uint16_t           currentDepopulatedElements)
 {
     // print out the list of descriptors
-    printf("\nElement Types:\n");
-    printf("\t P - physical element\n");
-    printf("\t S - storage element\n");
+    print_str("\nElement Types:\n");
+    print_str("\t P - physical element\n");
+    print_str("\t S - storage element\n");
 
-    printf("\nApproximate time to depopulate: ");
+    print_str("\nApproximate time to depopulate: ");
     if (depopulateTime > UINT64_C(0) && depopulateTime < UINT64_MAX)
     {
         uint16_t days    = UINT16_C(0);
@@ -305,11 +319,11 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
         uint8_t  seconds = UINT8_C(0);
         convert_Seconds_To_Displayable_Time(depopulateTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        printf("\n");
+        print_str("\n");
     }
     else
     {
-        printf("Not reported.\n");
+        print_str("Not reported.\n");
     }
     if (depopElementID > 0)
     {
@@ -323,8 +337,8 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
     {
         printf("Current Depopulated Elements: %" PRIu16 "\n", currentDepopulatedElements);
     }
-    printf("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\tRebuild Allowed\n");
-    printf("----------------------------------------------------------------------------------\n");
+    print_str("\nElement #\tType\tHealth\tStatus\t\tAssociated MaxLBA\tRebuild Allowed\n");
+    print_str("----------------------------------------------------------------------------------\n");
     for (uint32_t elementIter = UINT32_C(0); elementIter < numberOfElements; ++elementIter)
     {
 #define PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH 23
@@ -399,7 +413,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
         printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%-17s\t%s\n", elementList[elementIter].elementIdentifier,
                elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);
     }
-    printf("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
+    print_str("\nNOTE: At least one element must be able to be rebuilt to repopulate and rebuild.\n");
 }
 
 void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
@@ -410,10 +424,10 @@ void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
 }
 
 // NOTE: This definition belongs in opensea-transport cmds.h/.c
-eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
+eReturnValues depopulate_Physical_Element(const tDevice* device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -428,10 +442,210 @@ eReturnValues depopulate_Physical_Element(tDevice* device, uint32_t elementDescr
     return ret;
 }
 
+static eReturnValues ata_get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
+{
+    eReturnValues ret                       = NOT_SUPPORTED;
+    bool          workaroundIncompleteSense = false;
+    uint8_t       senseKey                  = UINT8_C(0);
+    uint8_t       asc                       = UINT8_C(0);
+    uint8_t       ascq                      = UINT8_C(0);
+    if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
+    {
+        ret = SUCCESS;
+        if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x24) // depop in progress
+        {
+
+            *depopStatus = DEPOP_IN_PROGRESS;
+        }
+        else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x25) // repop in progress
+        {
+            *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+        }
+        else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
+        {
+            *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
+        }
+        else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00) // invalid field in CDB
+        {
+            *depopStatus = DEPOP_INVALID_FIELD;
+        }
+        else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x04) // depop failed
+        {
+            *depopStatus = DEPOP_FAILED;
+        }
+        else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x05) // repop failed
+        {
+            *depopStatus = DEPOP_REPOP_FAILED;
+        }
+        else
+        {
+            workaroundIncompleteSense = true;
+            ret                       = NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        workaroundIncompleteSense = true;
+        ret                       = NOT_SUPPORTED;
+    }
+    if (workaroundIncompleteSense)
+    {
+        // Send the get physical element status command and check if any say depopulation/repopulation in progress
+        // or had an error. read physical element status to see if any of the specified element number matches any
+        // that were found
+        uint32_t      numberOfDescriptors = UINT32_C(0);
+        eReturnValues getDescirptors      = get_Number_Of_Descriptors(device, &numberOfDescriptors);
+        if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
+        {
+            ptrPhysicalElement elementList =
+                M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
+            if (elementList != M_NULLPTR)
+            {
+                safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
+                            numberOfDescriptors * sizeof(physicalElement));
+                if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
+                {
+                    // loop through and check associatedCapacity and elementIdentifiers
+                    bool foundStatus = false;
+                    ret              = SUCCESS;
+                    for (uint32_t elementID = UINT32_C(0); !foundStatus && elementID < numberOfDescriptors; ++elementID)
+                    {
+                        switch (elementList[elementID].elementHealth)
+                        {
+                        case 0xFB: // repop error
+                            *depopStatus = DEPOP_REPOP_FAILED;
+                            foundStatus  = true;
+                            break;
+                        case 0xFC: // repop in progress
+                            *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+                            foundStatus  = true;
+                            break;
+                        case 0xFD: // depop error
+                            *depopStatus = DEPOP_FAILED;
+                            foundStatus  = true;
+                            break;
+                        case 0xFE: // depop in progress
+                            *depopStatus = DEPOP_IN_PROGRESS;
+                            foundStatus  = true;
+                            break;
+                        case 0xFF: // depop completed successfully
+                        default:
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    ret = NOT_SUPPORTED;
+                }
+                safe_free_physical_element(&elementList);
+            }
+        }
+        else
+        {
+            ret = getDescirptors;
+        }
+    }
+    DISABLE_NONNULL_COMPARE
+    if (progress != M_NULLPTR)
+    {
+        if (*depopStatus == DEPOP_REPOP_IN_PROGRESS)
+        {
+            *progress = 255.0;
+        }
+        else
+        {
+            *progress = 0.0;
+        }
+    }
+    RESTORE_NONNULL_COMPARE
+    return ret;
+}
+
+static eReturnValues scsi_get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
+    senseDataFields senseFields;
+    safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+    if (SUCCESS == scsi_Request_Sense_Cmd(device, true, senseData, SPC3_SENSE_LEN))
+    {
+        ret = SUCCESS;
+        get_Sense_Data_Fields(senseData, SPC3_SENSE_LEN, &senseFields);
+        // now that we've read all the fields, check for known sense data and fill in progress if any.
+        if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY && senseFields.scsiStatusCodes.asc == 0x04 &&
+            senseFields.scsiStatusCodes.ascq == 0x24) // depop in progress
+        {
+            *depopStatus = DEPOP_IN_PROGRESS;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
+                 senseFields.scsiStatusCodes.asc == 0x04 &&
+                 senseFields.scsiStatusCodes.ascq == 0x25) // repop in progress
+        {
+            *depopStatus = DEPOP_REPOP_IN_PROGRESS;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
+                 senseFields.scsiStatusCodes.asc == 0x04 &&
+                 senseFields.scsiStatusCodes.ascq == 0x1E) // microcode activation required
+        {
+            *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
+                 senseFields.scsiStatusCodes.asc == 0x24 &&
+                 senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
+        {
+            *depopStatus = DEPOP_INVALID_FIELD;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
+                 senseFields.scsiStatusCodes.asc == 0x31 && senseFields.scsiStatusCodes.ascq == 0x04) // depop failed
+        {
+            *depopStatus = DEPOP_FAILED;
+        }
+        else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
+                 senseFields.scsiStatusCodes.asc == 0x31 && senseFields.scsiStatusCodes.ascq == 0x05) // repop failed
+        {
+            *depopStatus = DEPOP_REPOP_FAILED;
+        }
+        else
+        {
+            // nothing to report.
+            ret = NOT_SUPPORTED;
+        }
+    }
+    else
+    {
+        // If this failed, there is likely a bigger problem! But we can try getting physical element status
+        ret = FAILURE;
+    }
+    DISABLE_NONNULL_COMPARE
+    if (progress != M_NULLPTR)
+    {
+        if (*depopStatus == DEPOP_REPOP_IN_PROGRESS)
+        {
+            if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
+                senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
+            {
+                *progress = get_SCSI_Progress_Indicator_PercentD(
+                    senseFields.senseKeySpecificInformation.progress.progressIndication);
+            }
+            else if (progress != M_NULLPTR)
+            {
+                *progress = 255.0;
+            }
+        }
+        else
+        {
+            *progress = 0.0;
+        }
+    }
+    RESTORE_NONNULL_COMPARE
+    return ret;
+}
+
 // NOTE: This may NOT give percentage. This will happen on ATA drives, but you can check that it is still running or
 // not. - TJE On ATA drives, if in progress, the progress variable will get set to 255 since it is not possible to
 // determine actual progress
-eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus, double* progress)
+eReturnValues get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret = NOT_SUPPORTED;
     DISABLE_NONNULL_COMPARE
@@ -443,280 +657,16 @@ eReturnValues get_Depopulate_Progress(tDevice* device, eDepopStatus* depopStatus
     *depopStatus = DEPOP_NOT_IN_PROGRESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        bool    workaroundIncompleteSense = false;
-        uint8_t senseKey                  = UINT8_C(0);
-        uint8_t asc                       = UINT8_C(0);
-        uint8_t ascq                      = UINT8_C(0);
-        if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
-        {
-            if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x24) // depop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_IN_PROGRESS;
-            }
-            else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x25) // repop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-            }
-            else if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
-            }
-            else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00) // invalid field in CDB
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_INVALID_FIELD;
-            }
-            else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x04) // depop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_FAILED;
-            }
-            else if (senseKey == SENSE_KEY_MEDIUM_ERROR && asc == 0x31 && ascq == 0x05) // repop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_FAILED;
-            }
-            else
-            {
-                workaroundIncompleteSense = true;
-            }
-        }
-        else
-        {
-            workaroundIncompleteSense = true;
-        }
-        if (workaroundIncompleteSense)
-        {
-            // Send the get physical element status command and check if any say depopulation/repopulation in progress
-            // or had an error. read physical element status to see if any of the specified element number matches any
-            // that were found
-            uint32_t      numberOfDescriptors = UINT32_C(0);
-            eReturnValues getDescirptors      = get_Number_Of_Descriptors(device, &numberOfDescriptors);
-            if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
-            {
-                ptrPhysicalElement elementList =
-                    M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
-                if (elementList != M_NULLPTR)
-                {
-                    safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
-                                numberOfDescriptors * sizeof(physicalElement));
-                    if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
-                    {
-                        // loop through and check associatedCapacity and elementIdentifiers
-                        bool foundStatus = false;
-                        ret              = SUCCESS;
-                        for (uint32_t elementID = UINT32_C(0); !foundStatus && elementID < numberOfDescriptors;
-                             ++elementID)
-                        {
-                            switch (elementList[elementID].elementHealth)
-                            {
-                            case 0xFB: // repop error
-                                *depopStatus = DEPOP_REPOP_FAILED;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 0.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFC: // repop in progress
-                                *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 255.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFD: // depop error
-                                *depopStatus = DEPOP_FAILED;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 0.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFE: // depop in progress
-                                *depopStatus = DEPOP_IN_PROGRESS;
-                                DISABLE_NONNULL_COMPARE
-                                if (progress != M_NULLPTR)
-                                {
-                                    *progress = 255.0;
-                                }
-                                RESTORE_NONNULL_COMPARE
-                                foundStatus = true;
-                                break;
-                            case 0xFF: // depop completed successfully
-                            default:
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        ret = NOT_SUPPORTED;
-                    }
-                    safe_free_physical_element(&elementList);
-                }
-            }
-            else
-            {
-                ret = getDescirptors;
-            }
-        }
+        ret = ata_get_Depopulate_Progress(device, depopStatus, progress);
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
-        if (SUCCESS == scsi_Request_Sense_Cmd(device, true, senseData, SPC3_SENSE_LEN))
-        {
-            senseDataFields senseFields;
-            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-            ret = SUCCESS;
-            get_Sense_Data_Fields(senseData, SPC3_SENSE_LEN, &senseFields);
-            // now that we've read all the fields, check for known sense data and fill in progress if any.
-            if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
-                senseFields.scsiStatusCodes.asc == 0x04 &&
-                senseFields.scsiStatusCodes.ascq == 0x24) // depop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
-                    senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
-                {
-                    *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
-                }
-                else if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_IN_PROGRESS;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
-                     senseFields.scsiStatusCodes.asc == 0x04 &&
-                     senseFields.scsiStatusCodes.ascq == 0x25) // repop in progress
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR && senseFields.senseKeySpecificInformation.senseKeySpecificValid &&
-                    senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_PROGRESS_INDICATION)
-                {
-                    *progress = (senseFields.senseKeySpecificInformation.progress.progressIndication * 100.0) / 65536.0;
-                }
-                else if (progress != M_NULLPTR)
-                {
-                    *progress = 255.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_IN_PROGRESS;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_NOT_READY &&
-                     senseFields.scsiStatusCodes.asc == 0x04 &&
-                     senseFields.scsiStatusCodes.ascq == 0x1E) // microcode activation required
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_MICROCODE_NEEDS_ACTIVATION;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_ILLEGAL_REQUEST &&
-                     senseFields.scsiStatusCodes.asc == 0x24 &&
-                     senseFields.scsiStatusCodes.ascq == 0x00) // invalid field in CDB
-            {
-                ret = SUCCESS;
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_INVALID_FIELD;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
-                     senseFields.scsiStatusCodes.asc == 0x31 &&
-                     senseFields.scsiStatusCodes.ascq == 0x04) // depop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_FAILED;
-            }
-            else if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR &&
-                     senseFields.scsiStatusCodes.asc == 0x31 &&
-                     senseFields.scsiStatusCodes.ascq == 0x05) // repop failed
-            {
-                DISABLE_NONNULL_COMPARE
-                if (progress != M_NULLPTR)
-                {
-                    *progress = 0.0;
-                }
-                RESTORE_NONNULL_COMPARE
-                *depopStatus = DEPOP_REPOP_FAILED;
-            }
-            else
-            {
-                // nothing to report.
-            }
-        }
-        else
-        {
-            // If this failed, there is likely a bigger problem! But we can try getting physical element status
-            ret = FAILURE;
-        }
+        ret = scsi_get_Depopulate_Progress(device, depopStatus, progress);
     }
     return ret;
 }
 
-eReturnValues show_Depop_Repop_Progress(tDevice* device)
+eReturnValues show_Depop_Repop_Progress(const tDevice* device)
 {
     eReturnValues ret         = NOT_SUPPORTED;
     eDepopStatus  depopStatus = DEPOP_NOT_IN_PROGRESS;
@@ -727,13 +677,13 @@ eReturnValues show_Depop_Repop_Progress(tDevice* device)
         switch (depopStatus)
         {
         case DEPOP_NOT_IN_PROGRESS:
-            printf("Depopulation/repopulation is not in progress.\n");
+            print_str("Depopulation/repopulation is not in progress.\n");
             break;
         case DEPOP_IN_PROGRESS:
-            printf("Depopulation in progress: ");
+            print_str("Depopulation in progress: ");
             if (progress > 100)
             {
-                printf("Progress indication not available.\n");
+                print_str("Progress indication not available.\n");
             }
             else
             {
@@ -742,10 +692,10 @@ eReturnValues show_Depop_Repop_Progress(tDevice* device)
             ret = IN_PROGRESS;
             break;
         case DEPOP_REPOP_IN_PROGRESS:
-            printf("Repopulation in progress: ");
+            print_str("Repopulation in progress: ");
             if (progress > 100)
             {
-                printf("Progress indication not available.\n");
+                print_str("Progress indication not available.\n");
             }
             else
             {
@@ -754,40 +704,341 @@ eReturnValues show_Depop_Repop_Progress(tDevice* device)
             ret = IN_PROGRESS;
             break;
         case DEPOP_FAILED:
-            printf("Depopulation failed.\n");
+            print_str("Depopulation failed.\n");
             break;
         case DEPOP_REPOP_FAILED:
-            printf("Repopulation failed.\n");
+            print_str("Repopulation failed.\n");
             break;
         case DEPOP_MICROCODE_NEEDS_ACTIVATION:
-            printf("Depopulation/repopulation requires microcode activation before it can be run.\n");
+            print_str("Depopulation/repopulation requires microcode activation before it can be run.\n");
             break;
         default:
-            printf("Unknown depopulation/repopulation status. The feature may not be supported, or is not running.\n");
+            print_str(
+                "Unknown depopulation/repopulation status. The feature may not be supported, or is not running.\n");
             break;
         }
     }
     else
     {
         ret = FAILURE;
-        printf("A failure was encountered when checking for progress on depopulation/repopulation.\n");
+        print_str("A failure was encountered when checking for progress on depopulation/repopulation.\n");
     }
     return ret;
 }
 
-eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
-                                                  uint32_t elementDescriptorID,
-                                                  uint64_t requestedMaxLBA,
-                                                  bool     pollForProgress)
+#define DEPOP_OPERATION_STRING "Depopulation"
+#define REPOP_OPERATION_STRING "Repopulation"
+
+static M_INLINE void print_Depop_Start(uint64_t depopTime, const char* operation)
+{
+    if (depopTime == UINT64_MAX || depopTime == 0)
+    {
+        printf("Starting %s. Approximate time until completion is not available.\n", operation);
+    }
+    else
+    {
+        uint16_t days    = UINT16_C(0);
+        uint8_t  hours   = UINT8_C(0);
+        uint8_t  minutes = UINT8_C(0);
+        uint8_t  seconds = UINT8_C(0);
+        convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
+        printf("Starting %s. Approximate time until completion: ", operation);
+        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+        print_str("\n");
+    }
+    print_str("Do not remove power or attempt other access as interrupting it may make\n");
+    print_str("the drive unusable or require performing this command again!!\n");
+}
+
+M_NONNULL_PARAM_LIST(1)
+M_NULL_TERM_STRING(3)
+M_PARAM_RO(3)
+static eReturnValues determine_Depop_Failure_Reason(const tDevice*      device,
+                                                    eReturnValues ret,
+                                                    const char*   operation,
+                                                    uint32_t      elementDescriptorID,
+                                                    uint64_t      requestedMaxLBA)
+{
+    bool invalidElement             = false;
+    bool invalidMaxLBA              = false;
+    bool repopulatableElementsError = false;
+
+    ret = FAILURE;
+    // read physical element status to see if any of the specified element number matches any that were
+    // found
+    uint32_t repopulatableElements        = UINT32_C(0);
+    uint32_t currentlyDepopulatedElements = UINT32_C(0);
+    uint32_t numberOfDescriptors          = UINT32_C(0);
+    get_Number_Of_Descriptors(device, &numberOfDescriptors);
+    if (numberOfDescriptors > 0)
+    {
+        ptrPhysicalElement elementList =
+            M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
+        if (elementList != M_NULLPTR)
+        {
+            safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
+                        numberOfDescriptors * sizeof(physicalElement));
+            if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
+            {
+                // loop through and check associatedCapacity and elementIdentifiers
+                bool foundDescriptor = false;
+                for (uint32_t elementID = UINT32_C(0); elementID < numberOfDescriptors; ++elementID)
+                {
+                    if (elementList[elementID].elementIdentifier == elementDescriptorID)
+                    {
+                        // found the descriptor, so it's not a issue of not finding it
+                        foundDescriptor = true;
+                        // check associated maxLBA
+                        if (elementList[elementID].associatedCapacity != UINT64_MAX && requestedMaxLBA != 0 &&
+                            requestedMaxLBA > elementList[elementID].associatedCapacity)
+                        {
+                            // tried requesting a new capacity greater than what the device can support...so
+                            // this will trigger an error
+                            invalidMaxLBA = true;
+                        }
+                    }
+                    if (elementList[elementID].elementHealth == 0xFF) // depopulated successfully
+                    {
+                        ++currentlyDepopulatedElements;
+                        if (elementList[elementID].restorationAllowed)
+                        {
+                            ++repopulatableElements;
+                        }
+                    }
+                }
+                if (!foundDescriptor)
+                {
+                    invalidElement = true;
+                }
+            }
+            safe_free_physical_element(&elementList);
+        }
+    }
+    if (currentlyDepopulatedElements > 0)
+    {
+        if (repopulatableElements > 0)
+        {
+            repopulatableElementsError = true;
+        }
+    }
+    if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+    {
+        if (strcmp(operation, REPOP_OPERATION_STRING) == 0)
+        {
+            if (repopulatableElementsError)
+            {
+                print_str("Unknown error when trying to repopulate elements.\n");
+            }
+            else
+            {
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                {
+                    print_str("Repopulation of elements is not supported as currently depopulated "
+                              "elements do not support being repopulated.\n");
+                }
+            }
+        }
+        if (invalidElement)
+        {
+            printf("%s failed due to invalid element specified\n", operation);
+        }
+        else if (invalidMaxLBA)
+        {
+            printf("%s failed due to invalid new max LBA specified\n", operation);
+        }
+        else
+        {
+            printf("%s failed with invalid field. Invalid element specified, or invalid new max "
+                   "LBA or some other error\n",
+                   operation);
+        }
+    }
+    return ret;
+}
+
+M_NONNULL_PARAM_LIST(1)
+M_NULL_TERM_STRING(3)
+M_PARAM_RO(3)
+static eReturnValues check_Depop_Command_Result_SCSI(const tDevice*      device,
+                                                     eReturnValues ret,
+                                                     const char*   operation,
+                                                     uint32_t      elementDescriptorID,
+                                                     uint64_t      requestedMaxLBA)
+{
+    // On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers
+    // do this for us and make this impossible to retrieve...so we need to work around this
+    if (is_Microcode_Activation_Required(device->drive_info.lastCommandSenseData,
+                                         SPC3_SENSE_LEN)) // microcode activation required
+    {
+        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+        {
+            printf("%s cannot be started. Microcode must be activated first.\n", operation);
+        }
+        ret = FAILURE;
+    }
+    else if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
+    {
+        ret = FAILURE;
+        ret = determine_Depop_Failure_Reason(device, ret, operation, elementDescriptorID, requestedMaxLBA);
+    }
+    else if (is_Command_Sequence_Error(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
+    {
+        // command sequence error means all depopulated elements do not allow restoration
+        // (at least one needs to support this)
+        {
+            ret = FAILURE;
+        }
+    }
+    return ret;
+}
+
+M_NONNULL_PARAM_LIST(1, 3)
+M_NULL_TERM_STRING(3)
+M_PARAM_RO(3)
+static eReturnValues check_Depop_Command_Result_ATA(const tDevice*      device,
+                                                    eReturnValues ret,
+                                                    const char*   operation,
+                                                    uint32_t      elementDescriptorID,
+                                                    uint64_t      requestedMaxLBA)
+{
+    bool    workaroundIncompleteSense = false;
+    uint8_t senseKey                  = UINT8_C(0);
+    uint8_t asc                       = UINT8_C(0);
+    uint8_t ascq                      = UINT8_C(0);
+    if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
+    {
+        if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
+        {
+            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+            {
+                print_str("Depopulation cannot be started. Microcode must be activated first.\n");
+            }
+            ret = FAILURE;
+        }
+        else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
+        {
+            ret = FAILURE;
+            ret = determine_Depop_Failure_Reason(device, ret, operation, elementDescriptorID, requestedMaxLBA);
+        }
+        else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x2C && ascq == 0x00)
+        {
+            ret = FAILURE;
+        }
+        else
+        {
+            workaroundIncompleteSense = true;
+        }
+    }
+    else
+    {
+        workaroundIncompleteSense = true;
+    }
+    if (workaroundIncompleteSense)
+    {
+        bool reasonFound = false;
+        // This means that something about the command was not liked...first check if microcode needs
+        // activation
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, currentSettings, LEGACY_DRIVE_SEC_SIZE);
+        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, ATA_ID_DATA_LOG_CURRENT_SETTINGS,
+                                                 currentSettings, LEGACY_DRIVE_SEC_SIZE, 0))
+        {
+            uint64_t currentSettingsHeader =
+                M_BytesTo8ByteValue(currentSettings[7], currentSettings[6], currentSettings[5], currentSettings[4],
+                                    currentSettings[3], currentSettings[2], currentSettings[1], currentSettings[0]);
+            if (currentSettingsHeader & BIT63 && M_Byte2(currentSettingsHeader) == ATA_ID_DATA_LOG_CURRENT_SETTINGS &&
+                M_Word0(currentSettingsHeader) >= 0x0001)
+            {
+                // valid data
+                uint64_t currentSettingsQWord = M_BytesTo8ByteValue(
+                    currentSettings[15], currentSettings[14], currentSettings[13], currentSettings[12],
+                    currentSettings[11], currentSettings[10], currentSettings[9], currentSettings[8]);
+                if (currentSettingsQWord & BIT63 && currentSettingsQWord & BIT19)
+                {
+                    if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                    {
+                        printf("%s cannot be started. Microcode must be activated first.\n", operation);
+                    }
+                    ret         = FAILURE;
+                    reasonFound = true;
+                }
+            }
+        }
+        if (!reasonFound)
+        {
+            ret = determine_Depop_Failure_Reason(device, ret, operation, elementDescriptorID, requestedMaxLBA);
+        }
+    }
+    return ret;
+}
+
+M_NONNULL_PARAM_LIST(1, 2)
+M_NULL_TERM_STRING(2) M_PARAM_RO(2) static eReturnValues poll_Depop_Progress(const tDevice* device, const char* operation)
+{
+    eReturnValues ret = SUCCESS;
+    // SCSI and ATA will be handled differently.
+    // SCSI can report progress percentage in sense data. ATA does not do this.
+    // Furthermore, request sense data from ATA may or may not work or get the information we want
+    eDepopStatus  depopStatus   = DEPOP_NOT_IN_PROGRESS; // start with this until we start polling
+    double        progress      = 0.0;
+    uint16_t      delayTime     = UINT16_C(15);
+    eReturnValues progressCheck = SUCCESS;
+    if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+    {
+        print_str("\n");
+    }
+    do
+    {
+        delay_Seconds(delayTime);
+        progressCheck = get_Depopulate_Progress(device, &depopStatus, &progress);
+        if (depopStatus == DEPOP_IN_PROGRESS)
+        {
+            if (progress > 100.0)
+            {
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                {
+                    printf("\r%s is progress, but progress indication is not available.", operation);
+                }
+            }
+            else
+            {
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                {
+                    printf("\r%s progress: %0.02f%%", operation, progress);
+                }
+            }
+        }
+    } while (depopStatus == DEPOP_IN_PROGRESS && progressCheck == SUCCESS);
+    switch (depopStatus)
+    {
+    case DEPOP_NOT_IN_PROGRESS:
+        ret = SUCCESS;
+        break;
+    case DEPOP_FAILED:
+    case DEPOP_REPOP_FAILED:
+        ret = FAILURE;
+        break;
+    case DEPOP_INVALID_FIELD:
+    case DEPOP_MICROCODE_NEEDS_ACTIVATION:
+    default:
+        ret = UNKNOWN;
+        break;
+    }
+    return ret;
+}
+
+eReturnValues perform_Depopulate_Physical_Element(const tDevice* device,
+                                                  uint32_t       elementDescriptorID,
+                                                  uint64_t       requestedMaxLBA,
+                                                  bool           pollForProgress)
 {
     return perform_Depopulate_Physical_Element2(device, elementDescriptorID, requestedMaxLBA, pollForProgress, false);
 }
 
-eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
-                                                   uint32_t elementDescriptorID,
-                                                   uint64_t requestedMaxLBA,
-                                                   bool     pollForProgress,
-                                                   bool     modifyZones)
+eReturnValues perform_Depopulate_Physical_Element2(const tDevice* device,
+                                                   uint32_t       elementDescriptorID,
+                                                   uint64_t       requestedMaxLBA,
+                                                   bool           pollForProgress,
+                                                   bool           modifyZones)
 {
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);
@@ -795,23 +1046,7 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
     {
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
-            if (depopTime == UINT64_MAX || depopTime == 0)
-            {
-                printf("Starting depopulation. Approximate time until completion is not available.\n");
-            }
-            else
-            {
-                uint16_t days    = UINT16_C(0);
-                uint8_t  hours   = UINT8_C(0);
-                uint8_t  minutes = UINT8_C(0);
-                uint8_t  seconds = UINT8_C(0);
-                convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("Starting depopulation. Approximate time until completion: ");
-                print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("\n");
-            }
-            printf("Do not remove power or attempt other access as interrupting it may make\n");
-            printf("the drive unusable or require performing this command again!!\n");
+            print_Depop_Start(depopTime, DEPOP_OPERATION_STRING);
         }
         if (modifyZones)
         {
@@ -823,274 +1058,37 @@ eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
         }
         if (ret != SUCCESS)
         {
-            bool determineInvalidElementOrMaxLBA = false;
             if (device->drive_info.drive_type == SCSI_DRIVE)
             {
-                // On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers
-                // do this for us and make this impossible to retrieve...so we need to work around this
-                uint8_t senseKey = UINT8_C(0);
-                uint8_t asc      = UINT8_C(0);
-                uint8_t ascq     = UINT8_C(0);
-                uint8_t fru      = UINT8_C(0);
-                // First check what sense data we already have...
-                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                           &ascq, &fru);
-                // if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext
-                // command.
-                if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
-                {
-                    if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                    {
-                        printf("Depopulation cannot be started. Microcode must be activated first.\n");
-                    }
-                    ret = FAILURE;
-                }
-                else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
-                {
-                    ret                             = FAILURE;
-                    determineInvalidElementOrMaxLBA = true;
-                }
+                ret = check_Depop_Command_Result_SCSI(device, ret, DEPOP_OPERATION_STRING, elementDescriptorID,
+                                                      requestedMaxLBA);
             }
             else if (device->drive_info.drive_type == ATA_DRIVE)
             {
-                bool    workaroundIncompleteSense = false;
-                uint8_t senseKey                  = UINT8_C(0);
-                uint8_t asc                       = UINT8_C(0);
-                uint8_t ascq                      = UINT8_C(0);
-                if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
-                {
-                    if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
-                    {
-                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                        {
-                            printf("Depopulation cannot be started. Microcode must be activated first.\n");
-                        }
-                        ret = FAILURE;
-                    }
-                    else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x24 && ascq == 0x00)
-                    {
-                        ret                             = FAILURE;
-                        determineInvalidElementOrMaxLBA = true;
-                    }
-                    else
-                    {
-                        workaroundIncompleteSense = true;
-                    }
-                }
-                else
-                {
-                    workaroundIncompleteSense = true;
-                }
-                if (workaroundIncompleteSense)
-                {
-                    bool reasonFound = false;
-                    // This means that something about the command was not liked...first check if microcode needs
-                    // activation
-                    DECLARE_ZERO_INIT_ARRAY(uint8_t, currentSettings, LEGACY_DRIVE_SEC_SIZE);
-                    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                             ATA_ID_DATA_LOG_CURRENT_SETTINGS, currentSettings,
-                                                             LEGACY_DRIVE_SEC_SIZE, 0))
-                    {
-                        uint64_t currentSettingsHeader = M_BytesTo8ByteValue(
-                            currentSettings[7], currentSettings[6], currentSettings[5], currentSettings[4],
-                            currentSettings[3], currentSettings[2], currentSettings[1], currentSettings[0]);
-                        if (currentSettingsHeader & BIT63 &&
-                            M_Byte2(currentSettingsHeader) == ATA_ID_DATA_LOG_CURRENT_SETTINGS &&
-                            M_Word0(currentSettingsHeader) >= 0x0001)
-                        {
-                            // valid data
-                            uint64_t currentSettingsQWord = M_BytesTo8ByteValue(
-                                currentSettings[15], currentSettings[14], currentSettings[13], currentSettings[12],
-                                currentSettings[11], currentSettings[10], currentSettings[9], currentSettings[8]);
-                            if (currentSettingsQWord & BIT63 && currentSettingsQWord & BIT19)
-                            {
-                                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                                {
-                                    printf("Depopulation cannot be started. Microcode must be activated first.\n");
-                                }
-                                ret         = FAILURE;
-                                reasonFound = true;
-                            }
-                        }
-                    }
-                    if (!reasonFound)
-                    {
-                        determineInvalidElementOrMaxLBA = true;
-                    }
-                }
-            }
-            if (determineInvalidElementOrMaxLBA)
-            {
-                bool invalidElement = false;
-                bool invalidMaxLBA  = false;
-                ret                 = FAILURE;
-                // read physical element status to see if any of the specified element number matches any that were
-                // found
-                uint32_t numberOfDescriptors = UINT32_C(0);
-                get_Number_Of_Descriptors(device, &numberOfDescriptors);
-                if (numberOfDescriptors > 0)
-                {
-                    ptrPhysicalElement elementList = M_REINTERPRET_CAST(
-                        ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
-                    if (elementList != M_NULLPTR)
-                    {
-                        safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
-                                    numberOfDescriptors * sizeof(physicalElement));
-                        if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
-                        {
-                            // loop through and check associatedCapacity and elementIdentifiers
-                            bool foundDescriptor = false;
-                            for (uint32_t elementID = UINT32_C(0); elementID < numberOfDescriptors; ++elementID)
-                            {
-                                if (elementList[elementID].elementIdentifier == elementDescriptorID)
-                                {
-                                    // found the descriptor, so it's not a issue of not finding it
-                                    foundDescriptor = true;
-                                    // check associated maxLBA
-                                    if (elementList[elementID].associatedCapacity != UINT64_MAX &&
-                                        requestedMaxLBA != 0 &&
-                                        requestedMaxLBA > elementList[elementID].associatedCapacity)
-                                    {
-                                        // tried requesting a new capacity greater than what the device can support...so
-                                        // this will trigger an error
-                                        invalidMaxLBA = true;
-                                    }
-                                }
-                            }
-                            if (!foundDescriptor)
-                            {
-                                invalidElement = true;
-                            }
-                        }
-                        safe_free_physical_element(&elementList);
-                    }
-                }
-                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                {
-                    if (invalidElement)
-                    {
-                        printf("Depopulation failed due to invalid element specified\n");
-                    }
-                    else if (invalidMaxLBA)
-                    {
-                        printf("Depopulation failed due to invalid new max LBA specified\n");
-                    }
-                    else
-                    {
-                        printf("Depopulation failed with invalid field. Invalid element specified, or invalid new max "
-                               "LBA or some other error\n");
-                    }
-                }
-            }
-            else
-            {
-                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                {
-                    printf("An unknown error was encountered when attempting to depopulate elements.\n");
-                }
-                ret = FAILURE;
+                ret = check_Depop_Command_Result_ATA(device, ret, DEPOP_OPERATION_STRING, elementDescriptorID,
+                                                     requestedMaxLBA);
             }
         }
         else
         {
             if (pollForProgress)
             {
-                // SCSI and ATA will be handled differently.
-                // SCSI can report progress percentage in sense data. ATA does not do this.
-                // Furthermore, request sense data from ATA may or may not work or get the information we want
-                eDepopStatus  depopStatus   = DEPOP_NOT_IN_PROGRESS; // start with this until we start polling
-                double        progress      = 0.0;
-                uint16_t      delayTime     = UINT16_C(15);
-                eReturnValues progressCheck = SUCCESS;
-                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                {
-                    printf("\n");
-                }
-                do
-                {
-                    delay_Seconds(delayTime);
-                    progressCheck = get_Depopulate_Progress(device, &depopStatus, &progress);
-                    if (depopStatus == DEPOP_IN_PROGRESS)
-                    {
-                        if (progress > 100.0)
-                        {
-                            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                            {
-                                printf("\rDepopulation is progress, but progress indication is not available.");
-                            }
-                        }
-                        else
-                        {
-                            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                            {
-                                printf("\rDepopulation progress: %0.02f%%", progress);
-                            }
-                        }
-                    }
-                } while (depopStatus == DEPOP_IN_PROGRESS && progressCheck == SUCCESS);
-                switch (depopStatus)
-                {
-                case DEPOP_NOT_IN_PROGRESS:
-                    ret = SUCCESS;
-                    break;
-                case DEPOP_FAILED:
-                case DEPOP_REPOP_FAILED:
-                    ret = FAILURE;
-                    break;
-                case DEPOP_INVALID_FIELD:
-                case DEPOP_MICROCODE_NEEDS_ACTIVATION:
-                default:
-                    ret = UNKNOWN;
-                    break;
-                }
+                ret = poll_Depop_Progress(device, DEPOP_OPERATION_STRING);
             }
         }
     }
     return ret;
 }
 
-bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime)
+static bool is_Depopulate_And_Modify_Zones_Supported_ATA(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    // support is listed in the ID Data log, supported capabilities page
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
+    if (depopulationTime != M_NULLPTR)
     {
-        // support is listed in the ID Data log, supported capabilities page
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
-        if (depopulationTime != M_NULLPTR)
-        {
-            if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                     ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities,
-                                                     LEGACY_DRIVE_SEC_SIZE, 0))
-            {
-                uint64_t supportedCapabilitiesQWord0 =
-                    M_BytesTo8ByteValue(supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5],
-                                        supportedCapabilities[4], supportedCapabilities[3], supportedCapabilities[2],
-                                        supportedCapabilities[1], supportedCapabilities[0]);
-                if (supportedCapabilitiesQWord0 & BIT63 &&
-                    get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
-                        ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES) // make sure required bits/fields are there...checking
-                                                                // for bit63 to be 1 and page number to be 3
-                {
-                    // get depopulation execution time
-                    uint64_t supportedCapabilitiesQWord19 = M_BytesTo8ByteValue(
-                        supportedCapabilities[167], supportedCapabilities[166], supportedCapabilities[165],
-                        supportedCapabilities[164], supportedCapabilities[163], supportedCapabilities[162],
-                        supportedCapabilities[161], supportedCapabilities[160]);
-                    if (supportedCapabilitiesQWord19 & BIT63) // check for validity
-                    {
-                        *depopulationTime = supportedCapabilitiesQWord19 & UINT64_C(0x7FFFFFFFFFFFFFFF);
-                    }
-                    else
-                    {
-                        *depopulationTime =
-                            UINT64_MAX; // so we can set the timeout on the command or say "time not reported"
-                    }
-                }
-            }
-            safe_memset(supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
-        }
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                 ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION, supportedCapabilities,
+                                                 ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities,
                                                  LEGACY_DRIVE_SEC_SIZE, 0))
         {
             uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(
@@ -1098,46 +1096,48 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
                 supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
             if (supportedCapabilitiesQWord0 & BIT63 &&
                 get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
-                    ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION) // make sure required bits/fields are there...checking for
-                                                              // bit63 to be 1 and page number to be 9
+                    ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES) // make sure required bits/fields are there...checking
+                                                            // for bit63 to be 1 and page number to be 3
             {
-                uint64_t supportedCapabilitiesQWord1 =
-                    M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13],
-                                        supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10],
-                                        supportedCapabilities[9], supportedCapabilities[8]);
-                if (supportedCapabilitiesQWord1 & BIT63) // making sure this is set for "validity"
+                // get depopulation execution time
+                uint64_t supportedCapabilitiesQWord19 = M_BytesTo8ByteValue(
+                    supportedCapabilities[167], supportedCapabilities[166], supportedCapabilities[165],
+                    supportedCapabilities[164], supportedCapabilities[163], supportedCapabilities[162],
+                    supportedCapabilities[161], supportedCapabilities[160]);
+                if (supportedCapabilitiesQWord19 & BIT63) // check for validity
                 {
-                    if (supportedCapabilitiesQWord1 & BIT1)
-                    {
-                        supported = true;
-                    }
+                    *depopulationTime = supportedCapabilitiesQWord19 & UINT64_C(0x7FFFFFFFFFFFFFFF);
+                }
+                else
+                {
+                    *depopulationTime =
+                        UINT64_MAX; // so we can set the timeout on the command or say "time not reported"
                 }
             }
         }
+        safe_memset(supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
+                                             ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION, supportedCapabilities,
+                                             LEGACY_DRIVE_SEC_SIZE, 0))
     {
-        // send some report supported operation code commands to figure it out
-        scsiOperationCodeInfoRequest removeAndTruncateSup;
-        safe_memset(&removeAndTruncateSup, sizeof(scsiOperationCodeInfoRequest), 0,
-                    sizeof(scsiOperationCodeInfoRequest));
-        removeAndTruncateSup.operationCode         = 0x9E;
-        removeAndTruncateSup.serviceActionValid    = true;
-        removeAndTruncateSup.serviceAction         = 0x1A;
-        eSCSICmdSupport removeAndTruncateSupported = is_SCSI_Operation_Code_Supported(device, &removeAndTruncateSup);
-        if (removeAndTruncateSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+        uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(
+            supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4],
+            supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
+        if (supportedCapabilitiesQWord0 & BIT63 &&
+            get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
+                ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION) // make sure required bits/fields are there...checking for
+                                                          // bit63 to be 1 and page number to be 9
         {
-            supported = true;
-            if (depopulationTime != M_NULLPTR)
+            uint64_t supportedCapabilitiesQWord1 =
+                M_BytesTo8ByteValue(supportedCapabilities[15], supportedCapabilities[14], supportedCapabilities[13],
+                                    supportedCapabilities[12], supportedCapabilities[11], supportedCapabilities[10],
+                                    supportedCapabilities[9], supportedCapabilities[8]);
+            if (supportedCapabilitiesQWord1 & BIT63) // making sure this is set for "validity"
             {
-                *depopulationTime = UINT64_MAX;
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
-                if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
-                                            BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                if (supportedCapabilitiesQWord1 & BIT1)
                 {
-                    *depopulationTime =
-                        M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
-                                            blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+                    supported = true;
                 }
             }
         }
@@ -1145,11 +1145,53 @@ bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopul
     return supported;
 }
 
+static bool is_Depopulate_And_Modify_Zones_Supported_SCSI(const tDevice* device, uint64_t* depopulationTime)
+{
+    bool supported = false;
+    // send some report supported operation code commands to figure it out
+    scsiOperationCodeInfoRequest removeAndTruncateSup;
+    safe_memset(&removeAndTruncateSup, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    removeAndTruncateSup.operationCode         = 0x9E;
+    removeAndTruncateSup.serviceActionValid    = true;
+    removeAndTruncateSup.serviceAction         = 0x1A;
+    eSCSICmdSupport removeAndTruncateSupported = is_SCSI_Operation_Code_Supported(device, &removeAndTruncateSup);
+    if (removeAndTruncateSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+    {
+        supported = true;
+        if (depopulationTime != M_NULLPTR)
+        {
+            *depopulationTime = UINT64_MAX;
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
+            if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
+                                        BLOCK_DEVICE_CHARACTERISTICS, true, false))
+            {
+                *depopulationTime = M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
+                                                        blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+            }
+        }
+    }
+    return supported;
+}
+
+bool is_Depopulate_And_Modify_Zones_Supported(const tDevice* device, uint64_t* depopulationTime)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        supported = is_Depopulate_And_Modify_Zones_Supported_ATA(device, depopulationTime);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        supported = is_Depopulate_And_Modify_Zones_Supported_SCSI(device, depopulationTime);
+    }
+    return supported;
+}
+
 // NOTE: This definition belongs in opensea-transport cmds.h/.c
-eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint32_t elementDescriptorID)
+eReturnValues depopulate_Physical_Element_And_Modify_Zones(const tDevice* device, uint32_t elementDescriptorID)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1164,77 +1206,48 @@ eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device, uint
     return ret;
 }
 
-bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime)
+static bool is_Repopulate_Feature_Supported_ATA(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    // support is listed in the ID Data log, supported capabilities page
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
+    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
+                                             ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities,
+                                             LEGACY_DRIVE_SEC_SIZE, 0))
     {
-        // support is listed in the ID Data log, supported capabilities page
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
-        if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                 ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, supportedCapabilities,
-                                                 LEGACY_DRIVE_SEC_SIZE, 0))
+        uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(
+            supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4],
+            supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
+        if (supportedCapabilitiesQWord0 & BIT63 && get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
+                                                       0x03) // make sure required bits/fields are there...checking
+                                                             // for bit63 to be 1 and page number to be 3
         {
-            uint64_t supportedCapabilitiesQWord0 = M_BytesTo8ByteValue(
-                supportedCapabilities[7], supportedCapabilities[6], supportedCapabilities[5], supportedCapabilities[4],
-                supportedCapabilities[3], supportedCapabilities[2], supportedCapabilities[1], supportedCapabilities[0]);
-            if (supportedCapabilitiesQWord0 & BIT63 && get_8bit_range_uint64(supportedCapabilitiesQWord0, 23, 16) ==
-                                                           0x03) // make sure required bits/fields are there...checking
-                                                                 // for bit63 to be 1 and page number to be 3
+            uint64_t supportedCapabilitiesQWord18 =
+                M_BytesTo8ByteValue(supportedCapabilities[159], supportedCapabilities[158], supportedCapabilities[157],
+                                    supportedCapabilities[156], supportedCapabilities[155], supportedCapabilities[154],
+                                    supportedCapabilities[153], supportedCapabilities[152]);
+            if (supportedCapabilitiesQWord18 & BIT63) // making sure this is set for "validity"
             {
-                uint64_t supportedCapabilitiesQWord18 = M_BytesTo8ByteValue(
-                    supportedCapabilities[159], supportedCapabilities[158], supportedCapabilities[157],
-                    supportedCapabilities[156], supportedCapabilities[155], supportedCapabilities[154],
-                    supportedCapabilities[153], supportedCapabilities[152]);
-                if (supportedCapabilitiesQWord18 & BIT63) // making sure this is set for "validity"
+                if (supportedCapabilitiesQWord18 & BIT2)
                 {
-                    if (supportedCapabilitiesQWord18 & BIT2)
-                    {
-                        supported = true;
-                    }
-                }
-                // get depopulation execution time
-                if (depopulationTime != M_NULLPTR)
-                {
-                    uint64_t supportedCapabilitiesQWord19 = M_BytesTo8ByteValue(
-                        supportedCapabilities[167], supportedCapabilities[166], supportedCapabilities[165],
-                        supportedCapabilities[164], supportedCapabilities[163], supportedCapabilities[162],
-                        supportedCapabilities[161], supportedCapabilities[160]);
-                    if (supportedCapabilitiesQWord19 & BIT63) // check for validity
-                    {
-                        *depopulationTime = supportedCapabilitiesQWord19 & UINT64_C(0x7FFFFFFFFFFFFFFF);
-                    }
-                    else
-                    {
-                        *depopulationTime =
-                            UINT64_MAX; // so we can set the timeout on the command or say "time not reported"
-                    }
+                    supported = true;
                 }
             }
-        }
-    }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
-    {
-        // send some report supported operation code commands to figure it out
-        scsiOperationCodeInfoRequest repopulateSup;
-        safe_memset(&repopulateSup, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
-        repopulateSup.operationCode         = 0x9E;
-        repopulateSup.serviceActionValid    = true;
-        repopulateSup.serviceAction         = 0x19;
-        eSCSICmdSupport repopulateSupported = is_SCSI_Operation_Code_Supported(device, &repopulateSup);
-        if (repopulateSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
-        {
-            supported = true;
+            // get depopulation execution time
             if (depopulationTime != M_NULLPTR)
             {
-                *depopulationTime = UINT64_MAX;
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
-                if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
-                                            BLOCK_DEVICE_CHARACTERISTICS, true, false))
+                uint64_t supportedCapabilitiesQWord19 = M_BytesTo8ByteValue(
+                    supportedCapabilities[167], supportedCapabilities[166], supportedCapabilities[165],
+                    supportedCapabilities[164], supportedCapabilities[163], supportedCapabilities[162],
+                    supportedCapabilities[161], supportedCapabilities[160]);
+                if (supportedCapabilitiesQWord19 & BIT63) // check for validity
+                {
+                    *depopulationTime = supportedCapabilitiesQWord19 & UINT64_C(0x7FFFFFFFFFFFFFFF);
+                }
+                else
                 {
                     *depopulationTime =
-                        M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
-                                            blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+                        UINT64_MAX; // so we can set the timeout on the command or say "time not reported"
                 }
             }
         }
@@ -1242,10 +1255,52 @@ bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime
     return supported;
 }
 
-eReturnValues repopulate_Elements(tDevice* device)
+static bool is_Repopulate_Feature_Supported_SCSI(const tDevice* device, uint64_t* depopulationTime)
+{
+    bool supported = false;
+    // send some report supported operation code commands to figure it out
+    scsiOperationCodeInfoRequest repopulateSup;
+    safe_memset(&repopulateSup, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    repopulateSup.operationCode         = 0x9E;
+    repopulateSup.serviceActionValid    = true;
+    repopulateSup.serviceAction         = 0x19;
+    eSCSICmdSupport repopulateSupported = is_SCSI_Operation_Code_Supported(device, &repopulateSup);
+    if (repopulateSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
+    {
+        supported = true;
+        if (depopulationTime != M_NULLPTR)
+        {
+            *depopulationTime = UINT64_MAX;
+            DECLARE_ZERO_INIT_ARRAY(uint8_t, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN);
+            if (SUCCESS == scsi_Inquiry(device, blockDeviceCharacteristics, VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN,
+                                        BLOCK_DEVICE_CHARACTERISTICS, true, false))
+            {
+                *depopulationTime = M_BytesTo4ByteValue(blockDeviceCharacteristics[12], blockDeviceCharacteristics[13],
+                                                        blockDeviceCharacteristics[14], blockDeviceCharacteristics[15]);
+            }
+        }
+    }
+    return supported;
+}
+
+bool is_Repopulate_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
+{
+    bool supported = false;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        supported = is_Repopulate_Feature_Supported_ATA(device, depopulationTime);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        supported = is_Repopulate_Feature_Supported_SCSI(device, depopulationTime);
+    }
+    return supported;
+}
+
+eReturnValues repopulate_Elements(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    os_Get_Exclusive(device);
+    os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
     os_Lock_Device(device);
     os_Unmount_File_Systems_On_Device(device);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1260,7 +1315,7 @@ eReturnValues repopulate_Elements(tDevice* device)
     return ret;
 }
 
-eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForProgress)
+eReturnValues perform_Repopulate_Physical_Element(const tDevice* device, bool pollForProgress)
 {
     eReturnValues ret       = NOT_SUPPORTED;
     uint64_t      depopTime = UINT64_C(0);
@@ -1268,237 +1323,25 @@ eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForP
     {
         if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
         {
-            if (depopTime == UINT64_MAX || depopTime == 0)
-            {
-                printf("Starting repopulation. Approximate time until completion is not available.\n");
-            }
-            else
-            {
-                uint16_t days    = UINT16_C(0);
-                uint8_t  hours   = UINT8_C(0);
-                uint8_t  minutes = UINT8_C(0);
-                uint8_t  seconds = UINT8_C(0);
-                convert_Seconds_To_Displayable_Time(depopTime, M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("Starting repopulation. Approximate time until completion: ");
-                print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-                printf("\n");
-            }
-            printf("Do not remove power or attempt other access as interrupting it may make\n");
-            printf("the drive unusable or require performing this command again!!\n");
+            print_Depop_Start(depopTime, REPOP_OPERATION_STRING);
         }
         ret = repopulate_Elements(device);
         if (ret != SUCCESS)
         {
             if (device->drive_info.drive_type == SCSI_DRIVE)
             {
-                // On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers
-                // do this for us and make this impossible to retrieve...so we need to work around this
-                uint8_t senseKey = UINT8_C(0);
-                uint8_t asc      = UINT8_C(0);
-                uint8_t ascq     = UINT8_C(0);
-                uint8_t fru      = UINT8_C(0);
-                // First check what sense data we already have...
-                get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc,
-                                           &ascq, &fru);
-                // if this matches known cases, we're good to go...otherwise if ATA try requesting sense data ext
-                // command.
-                if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
-                {
-                    if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                    {
-                        printf("Repopulation cannot be started. Microcode must be activated first.\n");
-                    }
-                    ret = FAILURE;
-                }
-                else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x2C &&
-                         ascq == 0x00) // command sequence error means all depopulated elements do not allow restoration
-                                       // (at least one needs to support this)
-                {
-                    ret = FAILURE;
-                }
+                ret = check_Depop_Command_Result_SCSI(device, ret, REPOP_OPERATION_STRING, UINT32_MAX, 0);
             }
             else if (device->drive_info.drive_type == ATA_DRIVE)
             {
-                bool    workaroundIncompleteSense = false;
-                uint8_t senseKey                  = UINT8_C(0);
-                uint8_t asc                       = UINT8_C(0);
-                uint8_t ascq                      = UINT8_C(0);
-                if (SUCCESS == ata_Request_Sense_Data(device, &senseKey, &asc, &ascq))
-                {
-                    if (senseKey == SENSE_KEY_NOT_READY && asc == 0x04 && ascq == 0x1E) // microcode activation required
-                    {
-                        if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                        {
-                            printf("Repopulation cannot be started. Microcode must be activated first.\n");
-                        }
-                        ret = FAILURE;
-                    }
-                    else if (senseKey == SENSE_KEY_ILLEGAL_REQUEST && asc == 0x2C && ascq == 0x00)
-                    {
-                        ret = FAILURE;
-                    }
-                    else
-                    {
-                        workaroundIncompleteSense = true;
-                    }
-                }
-                else
-                {
-                    workaroundIncompleteSense = true;
-                }
-                if (workaroundIncompleteSense)
-                {
-                    bool reasonFound = false;
-                    // This means that something about the command was not liked...first check if microcode needs
-                    // activation
-                    DECLARE_ZERO_INIT_ARRAY(uint8_t, currentSettings, LEGACY_DRIVE_SEC_SIZE);
-                    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                             ATA_ID_DATA_LOG_CURRENT_SETTINGS, currentSettings,
-                                                             LEGACY_DRIVE_SEC_SIZE, 0))
-                    {
-                        uint64_t currentSettingsHeader = M_BytesTo8ByteValue(
-                            currentSettings[7], currentSettings[6], currentSettings[5], currentSettings[4],
-                            currentSettings[3], currentSettings[2], currentSettings[1], currentSettings[0]);
-                        if (currentSettingsHeader & BIT63 &&
-                            M_Byte2(currentSettingsHeader) == ATA_ID_DATA_LOG_CURRENT_SETTINGS &&
-                            M_Word0(currentSettingsHeader) >= 0x0001)
-                        {
-                            // valid data
-                            uint64_t currentSettingsQWord = M_BytesTo8ByteValue(
-                                currentSettings[15], currentSettings[14], currentSettings[13], currentSettings[12],
-                                currentSettings[11], currentSettings[10], currentSettings[9], currentSettings[8]);
-                            if (currentSettingsQWord & BIT63 && currentSettingsQWord & BIT19)
-                            {
-                                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                                {
-                                    printf("Depopulation cannot be started. Microcode must be activated first.\n");
-                                }
-                                ret         = FAILURE;
-                                reasonFound = true;
-                            }
-                        }
-                    }
-                    if (!reasonFound)
-                    {
-                        // read physical element status to see if any of the specified element number matches any that
-                        // were found
-                        uint32_t repopulatableElements        = UINT32_C(0);
-                        uint32_t currentlyDepopulatedElements = UINT32_C(0);
-                        uint32_t numberOfDescriptors          = UINT32_C(0);
-                        get_Number_Of_Descriptors(device, &numberOfDescriptors);
-                        if (numberOfDescriptors > 0)
-                        {
-                            ptrPhysicalElement elementList = M_REINTERPRET_CAST(
-                                ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
-                            if (elementList != M_NULLPTR)
-                            {
-                                safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
-                                            numberOfDescriptors * sizeof(physicalElement));
-                                if (SUCCESS ==
-                                    get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
-                                {
-                                    // figure out if any depopulated elements support being repopulated
-
-                                    for (uint32_t elementID = UINT32_C(0); elementID < numberOfDescriptors; ++elementID)
-                                    {
-                                        if (elementList[elementID].elementHealth == 0xFF) // depopulated successfully
-                                        {
-                                            ++currentlyDepopulatedElements;
-                                            if (elementList[elementID].restorationAllowed)
-                                            {
-                                                ++repopulatableElements;
-                                            }
-                                        }
-                                    }
-                                }
-                                safe_free_physical_element(&elementList);
-                            }
-                        }
-                        if (currentlyDepopulatedElements > 0)
-                        {
-                            if (repopulatableElements > 0)
-                            {
-                                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                                {
-                                    printf("Unknown error when trying to repopulate elements.\n");
-                                }
-                                ret = FAILURE;
-                            }
-                            else
-                            {
-                                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                                {
-                                    printf("Repopulation of elements is not supported as currently depopulated "
-                                           "elements do not\n");
-                                    printf("support being repopulated.\n");
-                                }
-                                ret = FAILURE;
-                            }
-                        }
-                        else
-                        {
-                            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                            {
-                                printf("Unknown error when trying to repopulate elements.\n");
-                            }
-                            ret = FAILURE;
-                        }
-                    }
-                }
+                ret = check_Depop_Command_Result_ATA(device, ret, REPOP_OPERATION_STRING, UINT32_MAX, 0);
             }
         }
         else
         {
             if (pollForProgress)
             {
-                // SCSI and ATA will be handled differently.
-                // SCSI can report progress percentage in sense data. ATA does not do this.
-                // Furthermore, request sense data from ATA may or may not work or get the information we want
-                eDepopStatus  depopStatus   = DEPOP_NOT_IN_PROGRESS; // start with this until we start polling
-                double        progress      = 0.0;
-                uint16_t      delayTime     = UINT16_C(15);
-                eReturnValues progressCheck = SUCCESS;
-                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                {
-                    printf("\n");
-                }
-                do
-                {
-                    delay_Seconds(delayTime);
-                    progressCheck = get_Depopulate_Progress(device, &depopStatus, &progress);
-                    if (depopStatus == DEPOP_REPOP_IN_PROGRESS)
-                    {
-                        if (progress > 100.0)
-                        {
-                            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                            {
-                                printf("\rRepopulation is progress, but progress indication is not available.");
-                            }
-                        }
-                        else
-                        {
-                            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                            {
-                                printf("\rRepopulation progress: %0.02f%%", progress);
-                            }
-                        }
-                    }
-                } while (depopStatus == DEPOP_REPOP_IN_PROGRESS && progressCheck == SUCCESS);
-                switch (depopStatus)
-                {
-                case DEPOP_NOT_IN_PROGRESS:
-                    ret = SUCCESS;
-                    break;
-                case DEPOP_FAILED:
-                case DEPOP_REPOP_FAILED:
-                    ret = FAILURE;
-                    break;
-                case DEPOP_INVALID_FIELD:
-                case DEPOP_MICROCODE_NEEDS_ACTIVATION:
-                default:
-                    ret = UNKNOWN;
-                    break;
-                }
+                ret = poll_Depop_Progress(device, REPOP_OPERATION_STRING);
             }
         }
     }
