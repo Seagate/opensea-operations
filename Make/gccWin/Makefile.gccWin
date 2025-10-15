@@ -60,6 +60,7 @@ endif
 LIB_SRC_FILES = \
 	$(SRC_DIR)ata_Security.c \
 	$(SRC_DIR)buffer_test.c\
+	$(SRC_DIR)cdl.c\
 	$(SRC_DIR)defect.c\
 	$(SRC_DIR)depopulate.c\
 	$(SRC_DIR)device_statistics.c\
