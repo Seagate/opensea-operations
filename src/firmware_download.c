@@ -58,7 +58,7 @@ typedef struct s_firmwareUpdateDataV1
         uint8_t firmwareSlot; // NVMe
         uint8_t bufferID;     // SCSI
     };
-    bool existingFirmwareImage;      // set to true means you are activiting an existing firmware image in the specified
+    bool existingFirmwareImage;      // set to true means you are activating an existing firmware image in the specified
                                      // slot. - NVMe only
     bool ignoreStatusOfFinalSegment; // This is a legacy compatibility option. Some old drives do not return status on
                                      // the last segment, but the download is successful and this ignores the failing
@@ -84,7 +84,7 @@ typedef struct s_firmwareUpdateDataV2
         uint8_t firmwareSlot; // NVMe
         uint8_t bufferID;     // SCSI
     };
-    bool existingFirmwareImage;      // set to true means you are activiting an existing firmware image in the specified
+    bool existingFirmwareImage;      // set to true means you are activating an existing firmware image in the specified
                                      // slot. - NVMe only
     bool ignoreStatusOfFinalSegment; // This is a legacy compatibility option. Some old drives do not return status on
                                      // the last segment, but the download is successful and this ignores the failing
@@ -113,7 +113,7 @@ typedef struct s_firmwareUpdateDataV3
         uint8_t firmwareSlot; // NVMe
         uint8_t bufferID;     // SCSI
     };
-    bool existingFirmwareImage;      // set to true means you are activiting an existing firmware image in the specified
+    bool existingFirmwareImage;      // set to true means you are activating an existing firmware image in the specified
                                      // slot. - NVMe only
     bool ignoreStatusOfFinalSegment; // This is a legacy compatibility option. Some old drives do not return status on
                                      // the last segment, but the download is successful and this ignores the failing

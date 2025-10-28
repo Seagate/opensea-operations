@@ -304,7 +304,7 @@ eReturnValues get_ATA_Sanitize_Device_Features(const tDevice* device, sanitizeFe
             if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_OVERWRITE_SUPPORTED)
             {
                 sanitizeOptions->overwrite              = true;
-                sanitizeOptions->maximumOverwritePasses = 16;
+                sanitizeOptions->maximumOverwritePasses = ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES;
             }
             if (le16_to_host(device->drive_info.IdentifyData.ata.Word059) & ATA_IDENTIFY_BLOCK_ERASE_SUPPORTED)
             {
@@ -360,11 +360,11 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(const tDevice* device, saniti
             {
                 // Assuming that only a compliant translator will support this, so screening for ATA and NVMe which
                 // are limited to 16 passes
-                sanitizeOptions->maximumOverwritePasses = 16;
+                sanitizeOptions->maximumOverwritePasses = ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES;
             }
             else
             {
-                sanitizeOptions->maximumOverwritePasses = 31;
+                sanitizeOptions->maximumOverwritePasses = SCSI_MAX_SANITIZE_OVERWRITE_PASSES;
             }
             ret = SUCCESS;
         }
@@ -391,6 +391,10 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(const tDevice* device, saniti
             sanitizeOptions->sanitizeCmdEnabled = true;
             sanitizeOptions->exitFailMode       = true;
             ret                                 = SUCCESS;
+        }
+        else
+        {
+            sanitizeOptions->exitFailMode = false;
         }
         writeAfterErase writeAfterEraseRequirements;
         safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
@@ -434,6 +438,7 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(const tDevice* device, saniti
         {
             sanitizeOptions->overwrite               = true;
             sanitizeOptions->definitiveEndingPattern = true;
+            sanitizeOptions->maximumOverwritePasses  = ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES;
         }
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) & BIT29)
         {
@@ -785,11 +790,12 @@ eReturnValues run_Sanitize_Operation2(const tDevice* device, sanitizeOperationOp
             {
                 return BAD_PARAMETER;
             }
-            if (sanitizeOptions.overwriteOptions.numberOfPasses >= 16) // 16 is max number of passes for NVMe/SATA
+            if (sanitizeOptions.overwriteOptions.numberOfPasses >=
+                ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES) // 16 is max number of passes for NVMe/SATA
             {
                 if (device->drive_info.drive_type != SCSI_DRIVE)
                 {
-                    if (sanitizeOptions.overwriteOptions.numberOfPasses > 16)
+                    if (sanitizeOptions.overwriteOptions.numberOfPasses > ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES)
                     {
                         return BAD_PARAMETER;
                     }
@@ -801,7 +807,8 @@ eReturnValues run_Sanitize_Operation2(const tDevice* device, sanitizeOperationOp
                 }
                 else
                 {
-                    if (sanitizeOptions.overwriteOptions.numberOfPasses > 31) // 31 passes is the maximum in SCSI
+                    if (sanitizeOptions.overwriteOptions.numberOfPasses >
+                        SCSI_MAX_SANITIZE_OVERWRITE_PASSES) // 31 passes is the maximum in SCSI
                     {
                         return BAD_PARAMETER;
                     }
