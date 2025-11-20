@@ -203,6 +203,27 @@ extern "C"
     M_PARAM_RO(2)
     OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_fwdl_segment_size()
+    //
+    //! \brief   Description:  This function takes a device handle, requestedSize, and fwdlSupport, and finds the
+    //! firmware download segment size
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] requestedSize = request size
+    //!   \param[in] supportedModes = supported DL modes structure that will be filled in with valid
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice*   device,
+                                                          uint16_t         requestedSize,
+                                                          supportedDLModes fwdlSupport);
 #if defined(__cplusplus)
 }
 #endif
