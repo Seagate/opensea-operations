@@ -3685,6 +3685,7 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo
             driveInfo->copyrightValid = true;
             safe_memcpy(&driveInfo->copyrightInfo[0], 50, &inquiryData[97], 48);
             driveInfo->copyrightInfo[49] = '\0';
+            remove_Leading_And_Trailing_Control_Char_Len(driveInfo->copyrightInfo, 50);
         }
     }
     return ret;
@@ -5309,7 +5310,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         awreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
-                                                                       awreStringLength * sizeof(char)));
+                                                                 awreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
@@ -5336,7 +5337,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         arreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
-                                                                       arreStringLength * sizeof(char)));
+                                                                 arreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
@@ -5392,7 +5393,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         awreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
-                                                                       awreStringLength * sizeof(char)));
+                                                                 awreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
@@ -5419,7 +5420,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         arreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
-                                                                       arreStringLength * sizeof(char)));
+                                                                 arreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
@@ -6756,7 +6757,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
                                         char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
-                                                                    bmsPSStringLength * sizeof(char)));
+                                                             bmsPSStringLength * sizeof(char)));
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
@@ -6834,7 +6835,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
                                         char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
-                                                                    bmsPSStringLength * sizeof(char)));
+                                                             bmsPSStringLength * sizeof(char)));
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
@@ -8258,7 +8259,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         char*  mUtilizationUnit = &mUtilizationUnits[0];
         char*  utilizationUnit  = &utilizationUnits[0];
         double nvmMUtilization  = C_CAST(double, driveInfo->namespaceData.namespaceUtilization *
-                                                     driveInfo->namespaceData.formattedLBASizeBytes);
+                                                    driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmUtilization   = nvmMUtilization;
         metric_Unit_Convert(&nvmMUtilization, &mUtilizationUnit);
         capacity_Unit_Convert(&nvmUtilization, &utilizationUnit);
@@ -9501,20 +9502,24 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues print_Drive_Information(const tDevice* device, bool showChildInformation)
+eReturnValues get_Drive_Information(const tDevice*          device,
+                                    bool                    showChildInformation,
+                                    ptrDriveInformation*    ataDriveInfo,
+                                    ptrDriveInformation*    scsiDriveInfo,
+                                    ptrDriveInformation*    nvmeDriveInfo,
+                                    ptrDriveInformation*    usbDriveInfo,
+                                    eDriveTypeForPrintInfo* driveType)
 {
-    eReturnValues       ret           = SUCCESS;
-    ptrDriveInformation ataDriveInfo  = M_NULLPTR;
-    ptrDriveInformation scsiDriveInfo = M_NULLPTR;
-    ptrDriveInformation usbDriveInfo  = M_NULLPTR;
-    ptrDriveInformation nvmeDriveInfo = M_NULLPTR;
+    eReturnValues ret = SUCCESS;
+
 #if defined(DEBUG_DRIVE_INFO_TIME)
     DECLARE_SEATIMER(ataTime);
     DECLARE_SEATIMER(scsiTime);
     DECLARE_SEATIMER(nvmeTime);
 #endif // DEBUG_DRIVE_INFO_TIME
+
     // Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
-    scsiDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+    *scsiDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
     if (device->drive_info.drive_type == ATA_DRIVE ||
         (device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe &&
          device->drive_info.drive_type != NVME_DRIVE))
@@ -9522,12 +9527,12 @@ eReturnValues print_Drive_Information(const tDevice* device, bool showChildInfor
 #if defined(DEBUG_DRIVE_INFO_TIME)
         start_Timer(&ataTime);
 #endif // DEBUG_DRIVE_INFO_TIME
-       // allocate ataDriveInfo since this is an ATA drive
-        ataDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-        if (ataDriveInfo != M_NULLPTR)
+       // allocate *ataDriveInfo since this is an ATA drive
+        *ataDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+        if (*ataDriveInfo != M_NULLPTR)
         {
-            ataDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-            ret                    = get_ATA_Drive_Information(device, &ataDriveInfo->sasSata);
+            (*ataDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+            ret                       = get_ATA_Drive_Information(device, &(*ataDriveInfo)->sasSata);
         }
 #if defined(DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&ataTime);
@@ -9539,28 +9544,31 @@ eReturnValues print_Drive_Information(const tDevice* device, bool showChildInfor
         start_Timer(&nvmeTime);
 #endif // DEBUG_DRIVE_INFO_TIME
        // allocate nvmeDriveInfo since this is an NVMe drive
-        nvmeDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-        if (nvmeDriveInfo != M_NULLPTR)
+        *nvmeDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+        if (*nvmeDriveInfo != M_NULLPTR)
         {
-            nvmeDriveInfo->infoType = DRIVE_INFO_NVME;
-            ret                     = get_NVMe_Drive_Information(device, &nvmeDriveInfo->nvme);
+            (*nvmeDriveInfo)->infoType = DRIVE_INFO_NVME;
+            ret                        = get_NVMe_Drive_Information(device, &(*nvmeDriveInfo)->nvme);
         }
 #if defined(DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&nvmeTime);
 #endif // DEBUG_DRIVE_INFO_TIME
     }
-    if (scsiDriveInfo != M_NULLPTR)
+
+    if (*scsiDriveInfo != M_NULLPTR)
     {
 #if defined(DEBUG_DRIVE_INFO_TIME)
         start_Timer(&scsiTime);
 #endif // DEBUG_DRIVE_INFO_TIME
-       // now that we have software translation always get the scsi data.
-        scsiDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-        ret                     = get_SCSI_Drive_Information(device, &scsiDriveInfo->sasSata);
+       // Now that we have software translation, always get the SCSI data
+        (*scsiDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+        ret                        = get_SCSI_Drive_Information(device, &(*scsiDriveInfo)->sasSata);
+
 #if defined(DEBUG_DRIVE_INFO_TIME)
         stop_Timer(&scsiTime);
 #endif // DEBUG_DRIVE_INFO_TIME
     }
+
 #if defined(DEBUG_DRIVE_INFO_TIME)
     print_str("Discovery Times:\n");
     uint8_t  hours       = UINT8_C(0);
@@ -9597,39 +9605,37 @@ eReturnValues print_Drive_Information(const tDevice* device, bool showChildInfor
     print_str("\n");
 #endif // DEBUG_DRIVE_INFO_TIME
 
-    if (ret == SUCCESS && (ataDriveInfo || scsiDriveInfo || usbDriveInfo || nvmeDriveInfo))
+    if (ret == SUCCESS && (*ataDriveInfo || *scsiDriveInfo || *usbDriveInfo || *nvmeDriveInfo))
     {
-        // call the print functions appropriately
         if (showChildInformation &&
             (device->drive_info.drive_type != SCSI_DRIVE ||
              device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
-            scsiDriveInfo && (ataDriveInfo || nvmeDriveInfo))
+            *scsiDriveInfo && (*ataDriveInfo || *nvmeDriveInfo))
         {
             if ((device->drive_info.drive_type == ATA_DRIVE ||
                  device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
-                ataDriveInfo)
+                *ataDriveInfo)
             {
-                print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
+                *driveType = PRINT_INFO_FOR_ATA_SCSI_DRIVE;
             }
-            else if (device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo)
+            else if (device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo)
             {
-                print_Parent_And_Child_Information(scsiDriveInfo, nvmeDriveInfo);
+                *driveType = PRINT_INFO_FOR_NVME_SCSI_DRIVE;
             }
         }
         else
         {
-            // ONLY call the external function when we are able to get some passthrough information back as well
             if ((device->drive_info.interface_type == USB_INTERFACE ||
                  device->drive_info.interface_type == IEEE_1394_INTERFACE) &&
-                ataDriveInfo && scsiDriveInfo && device->drive_info.drive_type == ATA_DRIVE)
+                *ataDriveInfo && *scsiDriveInfo && device->drive_info.drive_type == ATA_DRIVE)
             {
-                usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-                if (usbDriveInfo != M_NULLPTR)
+                *usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+                if (*usbDriveInfo != M_NULLPTR)
                 {
-                    usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-                    generate_External_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata,
-                                                        &ataDriveInfo->sasSata);
-                    print_Device_Information(usbDriveInfo);
+                    (*usbDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+                    generate_External_Drive_Information(&(*usbDriveInfo)->sasSata, &(*scsiDriveInfo)->sasSata,
+                                                        &(*ataDriveInfo)->sasSata);
+                    *driveType = PRINT_INFO_FOR_USB_DRIVE;
                 }
                 else
                 {
@@ -9638,15 +9644,15 @@ eReturnValues print_Drive_Information(const tDevice* device, bool showChildInfor
                 }
             }
             else if (device->drive_info.interface_type == USB_INTERFACE &&
-                     device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo && scsiDriveInfo)
+                     device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo && *scsiDriveInfo)
             {
-                usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-                if (usbDriveInfo != M_NULLPTR)
+                *usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
+                if (*usbDriveInfo != M_NULLPTR)
                 {
-                    usbDriveInfo->infoType = DRIVE_INFO_SAS_SATA;
-                    generate_External_NVMe_Drive_Information(&usbDriveInfo->sasSata, &scsiDriveInfo->sasSata,
-                                                             &nvmeDriveInfo->nvme);
-                    print_Device_Information(usbDriveInfo);
+                    (*usbDriveInfo)->infoType = DRIVE_INFO_SAS_SATA;
+                    generate_External_NVMe_Drive_Information(&(*usbDriveInfo)->sasSata, &(*scsiDriveInfo)->sasSata,
+                                                             &(*nvmeDriveInfo)->nvme);
+                    *driveType = PRINT_INFO_FOR_USB_DRIVE;
                 }
                 else
                 {
@@ -9654,32 +9660,77 @@ eReturnValues print_Drive_Information(const tDevice* device, bool showChildInfor
                     print_str("Error allocating memory for USB - NVMe drive info\n");
                 }
             }
-            else // ata or scsi
+            else
             {
-                if (device->drive_info.drive_type == ATA_DRIVE && ataDriveInfo)
+                if (device->drive_info.drive_type == ATA_DRIVE && *ataDriveInfo)
                 {
-                    print_Device_Information(ataDriveInfo);
+                    *driveType = PRINT_INFO_FOR_ATA_DRIVE;
                 }
-                else if (device->drive_info.drive_type == NVME_DRIVE && nvmeDriveInfo)
+                else if (device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo)
                 {
-                    print_Device_Information(nvmeDriveInfo);
-                    // print_Nvme_Ctrl_Information(device);
+                    *driveType = PRINT_INFO_FOR_NVME_DRIVE;
                 }
-                else if (scsiDriveInfo != M_NULLPTR)
+                else if (*scsiDriveInfo != M_NULLPTR)
                 {
-                    print_Device_Information(scsiDriveInfo);
+                    *driveType = PRINT_INFO_FOR_SCSI_DRIVE;
                 }
                 else
                 {
+                    ret = MEMORY_FAILURE;
                     print_str("Error allocating memory to get device information.\n");
                 }
             }
         }
     }
+
+    return ret;
+}
+
+eReturnValues print_Drive_Information(const tDevice* device, bool showChildInformation)
+{
+    eReturnValues          ret           = SUCCESS;
+    ptrDriveInformation    ataDriveInfo  = M_NULLPTR;
+    ptrDriveInformation    scsiDriveInfo = M_NULLPTR;
+    ptrDriveInformation    nvmeDriveInfo = M_NULLPTR;
+    ptrDriveInformation    usbDriveInfo  = M_NULLPTR;
+    eDriveTypeForPrintInfo driveType     = PRINT_INFO_FOR_UNKNOWN_DRIVE;
+    ret = get_Drive_Information(device, showChildInformation, &ataDriveInfo, &scsiDriveInfo, &nvmeDriveInfo,
+                                &usbDriveInfo, &driveType);
+
+    if (ret == SUCCESS)
+    {
+        switch (driveType)
+        {
+        case PRINT_INFO_FOR_ATA_DRIVE:
+            print_Device_Information(ataDriveInfo);
+            break;
+        case PRINT_INFO_FOR_NVME_DRIVE:
+            print_Device_Information(nvmeDriveInfo);
+            break;
+        case PRINT_INFO_FOR_SCSI_DRIVE:
+            print_Device_Information(scsiDriveInfo);
+            break;
+        case PRINT_INFO_FOR_USB_DRIVE:
+            print_Device_Information(usbDriveInfo);
+            break;
+        case PRINT_INFO_FOR_ATA_SCSI_DRIVE:
+            print_Parent_And_Child_Information(scsiDriveInfo, ataDriveInfo);
+            break;
+        case PRINT_INFO_FOR_NVME_SCSI_DRIVE:
+            print_Parent_And_Child_Information(scsiDriveInfo, nvmeDriveInfo);
+            break;
+            // should not reach here
+        case PRINT_INFO_FOR_UNKNOWN_DRIVE:
+        default:
+            break;
+        }
+    }
+
     safe_free_drive_info(&ataDriveInfo);
     safe_free_drive_info(&scsiDriveInfo);
-    safe_free_drive_info(&usbDriveInfo);
     safe_free_drive_info(&nvmeDriveInfo);
+    safe_free_drive_info(&usbDriveInfo);
+
     return ret;
 }
 
