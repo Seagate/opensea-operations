@@ -58,7 +58,7 @@ typedef struct s_firmwareUpdateDataV1
         uint8_t firmwareSlot; // NVMe
         uint8_t bufferID;     // SCSI
     };
-    bool existingFirmwareImage;      // set to true means you are activiting an existing firmware image in the specified
+    bool existingFirmwareImage;      // set to true means you are activating an existing firmware image in the specified
                                      // slot. - NVMe only
     bool ignoreStatusOfFinalSegment; // This is a legacy compatibility option. Some old drives do not return status on
                                      // the last segment, but the download is successful and this ignores the failing
@@ -84,7 +84,7 @@ typedef struct s_firmwareUpdateDataV2
         uint8_t firmwareSlot; // NVMe
         uint8_t bufferID;     // SCSI
     };
-    bool existingFirmwareImage;      // set to true means you are activiting an existing firmware image in the specified
+    bool existingFirmwareImage;      // set to true means you are activating an existing firmware image in the specified
                                      // slot. - NVMe only
     bool ignoreStatusOfFinalSegment; // This is a legacy compatibility option. Some old drives do not return status on
                                      // the last segment, but the download is successful and this ignores the failing
@@ -113,7 +113,7 @@ typedef struct s_firmwareUpdateDataV3
         uint8_t firmwareSlot; // NVMe
         uint8_t bufferID;     // SCSI
     };
-    bool existingFirmwareImage;      // set to true means you are activiting an existing firmware image in the specified
+    bool existingFirmwareImage;      // set to true means you are activating an existing firmware image in the specified
                                      // slot. - NVMe only
     bool ignoreStatusOfFinalSegment; // This is a legacy compatibility option. Some old drives do not return status on
                                      // the last segment, but the download is successful and this ignores the failing
@@ -173,57 +173,6 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, const tDe
     M_USE_UNUSED(device);
     return ret;
 #endif //_WIN32 and WINVER >= WIN10
-}
-
-static uint16_t get_fwdl_segment_size(const tDevice* device, uint16_t requestedSize, supportedDLModes fwdlSupport)
-{
-    uint16_t updateLen = requestedSize;
-    // Always allow overriding this automatic mode with the user's requested size!
-    if (requestedSize == FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO)
-    {
-        if (fwdlSupport.minSegmentSize == 0 && fwdlSupport.maxSegmentSize == UINT32_MAX)
-        {
-            // No minimum or maximum required. Use default we've always used.
-            updateLen = DEFAULT_FWDL_SEGMENT_SIZE;
-        }
-        else
-        {
-            // First evaluate min/max requirements (if they exist)
-            if (fwdlSupport.minSegmentSize > DEFAULT_FWDL_SEGMENT_SIZE)
-            {
-                updateLen = fwdlSupport.minSegmentSize;
-            }
-            else
-            {
-                updateLen = M_Min(fwdlSupport.maxSegmentSize, DEFAULT_FWDL_SEGMENT_SIZE);
-            }
-        }
-
-        // Now, in Windows make further adjustments to work with Windows properly.
-#if defined(_WIN32) && defined(WINVER)
-        if (device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
-        {
-#    if WINVER >= SEA_WIN32_WINNT_WIN10
-            if (!device->os_info.fwdlIOsupport.fwdlIOSupported)
-            {
-                // changing the transfer size to single blocks as a workaround for old drivers. This is more
-                // generic than I would like, but do not currently have a better solution for this old issue.
-                // This issue goes back to Windows XP ATA passthrough days and only single sector transfers work
-                // properly on these old, strange drivers. Ideally this check is more enhanced for specific
-                // drivers that are known to have this issue, but there is not currently enough information to
-                // setup this more complicated check. -TJE
-                updateLen = 1;
-            }
-#    else  // winver >=win10
-           // not enough information, so assume old XP workaround listed above. - TJE
-            updateLen = 1;
-#    endif // winver >= win10
-        }
-#else
-        M_USE_UNUSED(device);
-#endif
-    }
-    return updateLen;
 }
 
 eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* options)
@@ -1726,4 +1675,55 @@ void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes suppor
         print_str("\n");
     }
     RESTORE_NONNULL_COMPARE
+}
+
+uint16_t get_fwdl_segment_size(const tDevice* device, uint16_t requestedSize, supportedDLModes fwdlSupport)
+{
+    uint16_t updateLen = requestedSize;
+    // Always allow overriding this automatic mode with the user's requested size!
+    if (requestedSize == FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO)
+    {
+        if (fwdlSupport.minSegmentSize == 0 && fwdlSupport.maxSegmentSize == UINT32_MAX)
+        {
+            // No minimum or maximum required. Use default we've always used.
+            updateLen = DEFAULT_FWDL_SEGMENT_SIZE;
+        }
+        else
+        {
+            // First evaluate min/max requirements (if they exist)
+            if (fwdlSupport.minSegmentSize > DEFAULT_FWDL_SEGMENT_SIZE)
+            {
+                updateLen = fwdlSupport.minSegmentSize;
+            }
+            else
+            {
+                updateLen = M_Min(fwdlSupport.maxSegmentSize, DEFAULT_FWDL_SEGMENT_SIZE);
+            }
+        }
+
+        // Now, in Windows make further adjustments to work with Windows properly.
+#if defined(_WIN32) && defined(WINVER)
+        if (device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
+        {
+#    if WINVER >= SEA_WIN32_WINNT_WIN10
+            if (!device->os_info.fwdlIOsupport.fwdlIOSupported)
+            {
+                // changing the transfer size to single blocks as a workaround for old drivers. This is more
+                // generic than I would like, but do not currently have a better solution for this old issue.
+                // This issue goes back to Windows XP ATA passthrough days and only single sector transfers work
+                // properly on these old, strange drivers. Ideally this check is more enhanced for specific
+                // drivers that are known to have this issue, but there is not currently enough information to
+                // setup this more complicated check. -TJE
+                updateLen = 1;
+            }
+#    else  // winver >=win10
+           // not enough information, so assume old XP workaround listed above. - TJE
+            updateLen = 1;
+#    endif // winver >= win10
+        }
+#else
+        M_USE_UNUSED(device);
+#endif
+    }
+    return updateLen;
 }

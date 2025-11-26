@@ -2533,7 +2533,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                        M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             snprintf_err_handle(
                                 smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Early Bad Block %" PRId16 ", Late Bad Block %" PRId16 "",
+                                MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
                             break;
@@ -2547,7 +2547,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 RAW_FIELD_UNIT_UNKNOWN);
                             snprintf_err_handle(
                                 smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Average %" PRId16 " Least %" PRId16 "",
+                                MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 " Min %" PRId16 "",
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
@@ -2730,7 +2730,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             snprintf_err_handle(
                                 smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Early Bad Block %" PRId16 ", Late Bad Block %" PRId16 "",
+                                MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
                             break;
@@ -2882,7 +2882,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             snprintf_err_handle(
                                 smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Early Bad Block %" PRId16 ", Late Bad Block %" PRId16 "",
+                                MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
                             break;
@@ -2896,7 +2896,7 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                        START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             snprintf_err_handle(
                                 smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Average %" PRId16 " Least %" PRId16 "",
+                                MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 " Min %" PRId16 "",
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
                                 C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
@@ -5167,7 +5167,7 @@ static void print_ATA_SMART_Attribute_Hybrid(ataSMARTAnalyzedAttribute smartAnal
         safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
     }
 
-    printf("%-3s%3" PRIu8 " %-35s %-8s %-3s %-3s %-3s %-16.16s\n", otherFlags, smartAnalyzedAttribute.attributeNumber,
+    printf("%-3s%3" PRIu8 " %-35s %-8s %-3s %-3s %-3s %-50.50s\n", otherFlags, smartAnalyzedAttribute.attributeNumber,
            smartAnalyzedAttribute.attributeName, attributeFlags, nominalValue, worstValue, thresholdValue,
            smartAnalyzedAttribute.rawData.rawHybridString);
 }
@@ -5212,19 +5212,19 @@ static void print_Hybrid_ATA_Attributes(const tDevice* device, smartLogData* sma
             print_str("\t  ! - attribute is currently failing\n");
             print_str("\t  ^ - attribute has previously failed\n");
             printf("\t  %% - attribute is currently issuing a warning\n");
-            print_str("\t  ~ - attribute has previously warned about its condition\n");
-            print_str("\tTemperature: (Celsius unless specified)\n");
-            print_str("\t  m = minimum\n");
-            print_str("\t  M = maximum\n");
-            print_str("\tColumns:\n");
-            print_str("\t  CV - current value (Also called nominal value in specifications)\n");
-            print_str("\t  WV - worst ever value\n");
-            print_str("\t  TV - threshold value (requires support of thresholds data)\n");
-            print_str("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
-            print_str("--------------------------------------------------------------------------------\n");
+            printf("\t  ~ - attribute has previously warned about its condition\n");
+            printf("\tTemperature: (Celsius unless specified)\n");
+            printf("\t  m = minimum\n");
+            printf("\t  M = maximum\n");
+            printf("\tColumns:\n");
+            printf("\t  CV - current value (Also called nominal value in specifications)\n");
+            printf("\t  WV - worst ever value\n");
+            printf("\t  TV - threshold value (requires support of thresholds data)\n");
+            printf("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
+            printf("-------------------------------------------------------------------------------------------\n");
             printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
-            print_str("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
-            print_str("--------------------------------------------------------------------------------\n");
+            printf("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
+            printf("-------------------------------------------------------------------------------------------\n");
 
             // Now print this on console
             for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)

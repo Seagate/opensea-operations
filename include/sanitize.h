@@ -24,6 +24,12 @@ extern "C"
 {
 #endif
 
+    enum eMaxSanitizePasses
+    {
+        ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES = 16,
+        SCSI_MAX_SANITIZE_OVERWRITE_PASSES     = 31
+    };
+
     // NVMe only for now-TJE
     typedef enum noDeallocateModifiesAfterSanitizeEnum
     {
@@ -38,7 +44,7 @@ extern "C"
         NO_DEALLOC_RESPONSE_INV = 0, // invalid value, not specified by the device.
         NO_DEALLOC_RESPONSE_WARNING, // a warning is generated and sanitize commands are still processed when no
                                      // deallocate is set in the command
-        NO_DEALLOC_RESPONSE_ERROR // a error is generated and santize commands are aborted when no deallocate is set in
+        NO_DEALLOC_RESPONSE_ERROR // a error is generated and sanitize commands are aborted when no deallocate is set in
                                   // the command
     } noDeallocateResponseMode;
 

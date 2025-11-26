@@ -105,7 +105,7 @@ extern "C"
 #define MAX_RAW_ANALYZED_FIELD_NAME_LENGTH      41 // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_ANALYZED_STRING_VALUE_LENGTH    86 // This leaves room for a M_NULLPTR terminating character
 #define MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH 91 // This leaves room for a M_NULLPTR terminating character
-#define MAX_HYBRID_RAW_STRING_LENGTH            24 // This leaves room for a M_NULLPTR terminating character
+#define MAX_HYBRID_RAW_STRING_LENGTH            51 // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_FEILD_UNIT_STRING_LENGTH        9  // This leaves room for a M_NULLPTR terminating character
 #define MAX_RAW_FEILD_COUNT                     4  // Right now we have identified maximum 4 field for attributes
 
