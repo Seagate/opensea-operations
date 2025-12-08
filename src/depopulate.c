@@ -1396,12 +1396,13 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
         return BAD_PARAMETER;
     }
     RESTORE_NONNULL_COMPARE
-    // This should be a number of 512B blocks based on how many descriptors are supported by the drive.
-    // NOTE: If this ever starts requesting a LOT of data, then this may need to be broken into multiple commands. - TJE
-    uint64_t getLbaStatusDataSize =
-        (numberOfDescriptorsExpected * 16 /*bytes per descriptor*/) + 16 /*bytes for data header*/;
-    // now round that to the nearest 512B sector
-    getLbaStatusDataSize  = uint64_round_up_power2(getLbaStatusDataSize, LEGACY_DRIVE_SEC_SIZE);
+    // 31 descriptors fit in a 512B sector
+    uint64_t getLbaStatusDataSize = numberOfDescriptorsExpected / 31 * LEGACY_DRIVE_SEC_SIZE;
+    // need an extra sector for the remaining descriptors
+    if (numberOfDescriptorsExpected % 31 != 0)
+    {
+        getLbaStatusDataSize += LEGACY_DRIVE_SEC_SIZE;
+    }
     if (getLbaStatusDataSize > LEGACY_DRIVE_SEC_SIZE * UINT16_MAX)
     {
         printf("WARNING: Drive expected %" PRIu64 " elements which exceed max page count.\n",
@@ -1491,7 +1492,7 @@ void show_LBA_Status_Descriptors(uint64_t numberOfDescriptors,
             break;
         case LBA_ACCESSIBILITY_UNACCESSIBLE:
             snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
-                                "Not able to be read or written");
+                                "Unable to be read or written");
             break;
         case LBA_ACCESSIBILITY_READ_ONLY:
             snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
