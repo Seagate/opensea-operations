@@ -337,6 +337,46 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element_And_Modify_Zones(const tDevice* device,
                                                                                       uint32_t elementDescriptorID);
 
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_LBA_Status_Descriptors(const tDevice* device,
+                                                                              uint64_t*      numberOfDescriptors);
+
+    typedef enum eLbaAccessibilityEnum
+    {
+        LBA_ACCESSIBILITY_NOT_REPORTED = 0,
+        LBA_ACCESSIBILITY_UNACCESSIBLE = 1,
+        LBA_ACCESSIBILITY_READ_ONLY    = 2,
+        LBA_ACCESSIBILITY_WITH_RISK    = 3,
+        LBA_ACCESSIBILITY_READ_ONLY_WITH_RISK = 4,
+    } eLbaAccessibility;
+
+    typedef struct s_lbaStatusDescriptor
+    {
+        uint64_t             startLba;
+        uint32_t             numberOfLbas;
+        eLbaAccessibility    lbaAccessibility;
+        bool                 trimStatus;
+    } lbaStatusDescriptor, *ptrLbaStatusDescriptor;
+
+    static M_INLINE void safe_free_lba_status(lbaStatusDescriptor** ls)
+    {
+        safe_free_core(M_REINTERPRET_CAST(void**, ls));
+    }
+
+    M_NONNULL_PARAM_LIST(1, 3)
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
+                                                                    uint64_t       numberOfDescriptorsExpected,
+                                                                    ptrLbaStatusDescriptor descriptorList);
+
+    M_NONNULL_PARAM_LIST(2)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API void show_LBA_Status_Descriptors(uint64_t numberOfDescriptors,
+                                                            ptrLbaStatusDescriptor elementList);
+
 #if defined(__cplusplus)
 }
 #endif
