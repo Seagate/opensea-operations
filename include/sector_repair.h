@@ -122,6 +122,12 @@ extern "C"
                                                            uint32_t    numberOfLBAsInTheList,
                                                            uint64_t    lba); // returns UINT32_MAX if not found
 
+    M_NONNULL_PARAM_LIST(1, 2)
+    M_PARAM_RO(1)
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API
+    eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32_t lbaListLength);
+
 #if defined(__cplusplus)
 }
 #endif

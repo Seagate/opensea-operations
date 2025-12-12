@@ -77,7 +77,7 @@ M_PARAM_RW(2) static eReturnValues get_SCSI_Defect_Data(scsiDefectDataIn paramsI
     if (paramsIn.device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && paramsOut->tenByte == false)
     {
         ret = scsi_Read_Defect_Data_12(paramsIn.device, paramsIn.primaryList, paramsIn.grownList,
-                                       C_CAST(uint8_t, paramsIn.defectListFormat), 0, paramsIn.dataLength,
+                                       C_CAST(uint8_t, paramsIn.defectListFormat), paramsIn.index, paramsIn.dataLength,
                                        paramsIn.defectData);
         if (ret == SUCCESS)
         {
@@ -283,7 +283,7 @@ static M_INLINE void fill_physical_address(physicalSectorAddress*  address,
 static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
                                       scsiDefectDataIn  defectRequest,
                                       scsiDefectDataOut defectResult,
-                                      uint32_t          elementID,
+                                      uint32_t          *elementID,
                                       uint32_t          headerLength,
                                       uint32_t          increment)
 {
@@ -291,29 +291,33 @@ static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
     if (ptrDefects != M_NULLPTR)
     {
         uint32_t offset = headerLength;
-        for (uint32_t elementNumber = elementID; ret == SUCCESS && elementNumber < ptrDefects->numberOfElements &&
-                                                 offset < (defectResult.defectListLength + headerLength);
-             ++elementNumber, offset += increment)
+        if (defectResult.defectListLength == 0)
+        {
+            return BAD_PARAMETER;
+        }
+        for (; ret == SUCCESS && *elementID < ptrDefects->numberOfElements &&
+                                                 offset < (defectRequest.dataLength) && offset < (defectResult.defectListLength + headerLength);
+             ++(*elementID), offset += increment)
         {
             switch (defectResult.returnedDefectListFormat)
             {
             case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
-                fill_block_address(&ptrDefects->block[elementNumber], defectResult.returnedDefectListFormat,
+                fill_block_address(&ptrDefects->block[*elementID], defectResult.returnedDefectListFormat,
                                    &defectRequest.defectData[offset],
-                                   (defectResult.defectListLength + headerLength) - offset);
+                                   (defectRequest.dataLength) - offset);
                 break;
             case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
-                fill_bfi_address(&ptrDefects->bfi[elementNumber], defectResult.returnedDefectListFormat,
+                fill_bfi_address(&ptrDefects->bfi[*elementID], defectResult.returnedDefectListFormat,
                                  &defectRequest.defectData[offset],
-                                 (defectResult.defectListLength + headerLength) - offset);
+                                 (defectRequest.dataLength) - offset);
                 break;
             case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
-                fill_physical_address(&ptrDefects->physical[elementNumber], defectResult.returnedDefectListFormat,
+                fill_physical_address(&ptrDefects->physical[*elementID], defectResult.returnedDefectListFormat,
                                       &defectRequest.defectData[offset],
-                                      (defectResult.defectListLength + headerLength) - offset);
+                                      (defectRequest.dataLength) - offset);
                 break;
             case AD_VENDOR_SPECIFIC:
             case AD_RESERVED:
@@ -363,6 +367,7 @@ static eReturnValues get_SCSI_Defects_Single_Command(scsiDefectDataIn   defectRe
             *defects                   = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_malloc(defectListAllocSize));
             if (*defects != M_NULLPTR)
             {
+                uint32_t elementID = UINT32_C(0);
                 ptrSCSIDefectList ptrDefects = *defects;
                 safe_memset(ptrDefects, defectListAllocSize, 0, defectListAllocSize);
                 ptrDefects->numberOfElements              = sizeInfo.numberOfElements;
@@ -370,7 +375,7 @@ static eReturnValues get_SCSI_Defects_Single_Command(scsiDefectDataIn   defectRe
                 ptrDefects->containsPrimaryList           = defectResult.listHasPrimaryDescriptors;
                 ptrDefects->format                        = defectResult.returnedDefectListFormat;
                 ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(defectRequest.device->drive_info.numberOfLUs);
-                ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, UINT32_C(0), headerLength,
+                ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, &elementID, headerLength,
                                        sizeInfo.increment);
             }
             else
@@ -439,10 +444,10 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
             safe_memset(ptrDefects, defectListAllocSize, 0, defectListAllocSize);
             ptrDefects->numberOfElements              = sizeInfo.numberOfElements;
             ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(defectRequest.device->drive_info.numberOfLUs);
-            while (elementNumber < sizeInfo.numberOfElements && sizeInfo.increment > 0)
+            while (elementNumber < sizeInfo.numberOfElements && sizeInfo.increment > 0 && ret == SUCCESS)
             {
                 safe_memset(defectData, defectRequest.dataLength, 0, defectRequest.dataLength);
-                defectRequest.index = elementNumber * sizeInfo.increment;
+                defectRequest.index = elementNumber;
                 ret                 = get_SCSI_Defect_Data(defectRequest, &defectResult);
                 if (SUCCESS == ret)
                 {
@@ -456,7 +461,7 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
                     }
                     if (sizeInfo.increment > 0)
                     {
-                        ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, elementNumber,
+                        ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, &elementNumber,
                                                SCSI_DEFECT_DATA_12_HEADER_LEN, sizeInfo.increment);
                     }
                     else
@@ -464,6 +469,11 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
                         break;
                     }
                 }
+            }
+            if (ret == BAD_PARAMETER)
+            {
+                // Most likely we somehow requested a defect list that is empty, so change to success and return that
+                ret = SUCCESS;
             }
         }
         else
