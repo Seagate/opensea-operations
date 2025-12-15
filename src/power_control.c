@@ -2275,9 +2275,9 @@ eReturnValues get_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings
     }
 }
 
-static void print_Power_Condition(ptrPowerConditionInfo condition, const char* conditionName)
+static void print_Power_Condition(ptrPowerConditionInfo condition, const char* conditionName, bool showMinTimer)
 {
-    printf("%-10s ", conditionName);
+    printf("%-9s ", conditionName);
     if (condition->currentTimerEnabled)
     {
         print_str("*");
@@ -2304,8 +2304,19 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char* c
     {
         print_str(" ");
     }
-    printf("%-12" PRIu32 " ", condition->savedTimerSetting);
-    printf("%-12" PRIu32 " ", condition->nominalRecoveryTimeToActiveState);
+    printf("%-10" PRIu32 " ", condition->savedTimerSetting);
+    printf("%-13" PRIu32 " ", condition->nominalRecoveryTimeToActiveState);
+    if (showMinTimer)
+    {
+        if (condition->minimumTimerSetting == UINT32_C(0))
+        {
+            print_str("N/A      ");
+        }
+        else
+        {
+            printf("%-8" PRIu32 " ", condition->minimumTimerSetting);
+        }
+    }
     if (condition->powerConditionChangeable)
     {
         print_str(" Y");
@@ -2339,27 +2350,35 @@ void print_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
     print_str("\tC column = Changeable\n");
     print_str("\tS column = Savable\n");
     print_str("\tAll times are in 100 milliseconds\n\n");
-    printf("%-10s %-13s %-13s %-13s %-12s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer",
-           "Recovery Time");
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        printf("%-9s %-13s %-13s %-11s %-13s %-9s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer",
+            "Recovery Time", "Min Timer");
+    }
+    else
+    {
+        printf("%-9s %-13s %-13s %-11s %-13s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer",
+            "Recovery Time");
+    }
     if (epcSettings->idle_a.powerConditionSupported)
     {
-        print_Power_Condition(&epcSettings->idle_a, "Idle A");
+        print_Power_Condition(&epcSettings->idle_a, "Idle A", device->drive_info.drive_type == ATA_DRIVE);
     }
     if (epcSettings->idle_b.powerConditionSupported)
     {
-        print_Power_Condition(&epcSettings->idle_b, "Idle B");
+        print_Power_Condition(&epcSettings->idle_b, "Idle B", device->drive_info.drive_type == ATA_DRIVE);
     }
     if (epcSettings->idle_c.powerConditionSupported)
     {
-        print_Power_Condition(&epcSettings->idle_c, "Idle C");
+        print_Power_Condition(&epcSettings->idle_c, "Idle C", device->drive_info.drive_type == ATA_DRIVE);
     }
     if (epcSettings->standby_y.powerConditionSupported)
     {
-        print_Power_Condition(&epcSettings->standby_y, "Standby Y");
+        print_Power_Condition(&epcSettings->standby_y, "Standby Y", device->drive_info.drive_type == ATA_DRIVE);
     }
     if (epcSettings->standby_z.powerConditionSupported)
     {
-        print_Power_Condition(&epcSettings->standby_z, "Standby Z");
+        print_Power_Condition(&epcSettings->standby_z, "Standby Z", device->drive_info.drive_type == ATA_DRIVE);
     }
     /*if (epcSettings->settingsAffectMultipleLogicalUnits)
     {
