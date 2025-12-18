@@ -1439,8 +1439,10 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
                                 descriptorBuffer[bufferOffset + 11], descriptorBuffer[bufferOffset + 10],
                                 descriptorBuffer[bufferOffset + 9], descriptorBuffer[bufferOffset + 8]);
                             descriptorList[numberOfDescriptorsReturned].lbaAccessibility =
-                                C_CAST(eLbaAccessibility, 
-                                    M_BytesTo2ByteValue(descriptorBuffer[bufferOffset + 13], descriptorBuffer[bufferOffset + 12]) >> 1 & 0x7);
+                                C_CAST(eLbaAccessibility,
+                                       get_8bit_range_uint16(M_BytesTo2ByteValue(descriptorBuffer[bufferOffset + 13],
+                                                                                 descriptorBuffer[bufferOffset + 12]),
+                                                             4, 1));
                             descriptorList[numberOfDescriptorsReturned].trimStatus =
                                 M_ToBool(M_BytesTo2ByteValue(descriptorBuffer[bufferOffset + 13], descriptorBuffer[bufferOffset + 12]) & BIT0);
                             if (descriptorList[numberOfDescriptorsReturned].numberOfLbas == 0)
