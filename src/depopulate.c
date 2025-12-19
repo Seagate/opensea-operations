@@ -27,6 +27,7 @@
 #include "type_conversion.h"
 
 #include "depopulate.h"
+#include "logs.h" // To use get_ATA_Log etc.
 #include "platform_helper.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
 
@@ -1346,4 +1347,178 @@ eReturnValues perform_Repopulate_Physical_Element(const tDevice* device, bool po
         }
     }
     return ret;
+}
+
+eReturnValues get_Number_Of_LBA_Status_Descriptors(const tDevice* device, uint64_t* numberOfDescriptors)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
+    if (numberOfDescriptors == M_NULLPTR)
+    {
+        return BAD_PARAMETER;
+    }
+    RESTORE_NONNULL_COMPARE
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, sectorBuffer, LEGACY_DRIVE_SEC_SIZE);
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        uint32_t      logSize = UINT32_C(0);
+        ret = get_ATA_Log_Size(device, ATA_LOG_LBA_STATUS, &logSize, true, false);
+        if (ret == SUCCESS)
+        {
+            ret = get_ATA_Log(device, ATA_LOG_LBA_STATUS, M_NULLPTR, M_NULLPTR, true, false, true,
+                              sectorBuffer, LEGACY_DRIVE_SEC_SIZE, M_NULLPTR, 0, 0);
+            *numberOfDescriptors = M_BytesTo8ByteValue(sectorBuffer[7], sectorBuffer[6],
+                                                       sectorBuffer[5], sectorBuffer[4],
+                                                       sectorBuffer[3], sectorBuffer[2],
+                                                       sectorBuffer[1], sectorBuffer[0]);
+        }
+        else
+        {
+            *numberOfDescriptors = 0;
+        }
+    }
+    else //if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        *numberOfDescriptors = 0;
+        ret                  = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
+                                         uint64_t       numberOfDescriptorsExpected,
+                                         ptrLbaStatusDescriptor descriptorList)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    DISABLE_NONNULL_COMPARE
+    if (descriptorList == M_NULLPTR)
+    {
+        return BAD_PARAMETER;
+    }
+    RESTORE_NONNULL_COMPARE
+    // 31 descriptors fit in a 512B sector
+    uint64_t getLbaStatusDataSize = numberOfDescriptorsExpected / 31 * LEGACY_DRIVE_SEC_SIZE;
+    // need an extra sector for the remaining descriptors
+    if (numberOfDescriptorsExpected % 31 != 0)
+    {
+        getLbaStatusDataSize += LEGACY_DRIVE_SEC_SIZE;
+    }
+    if (getLbaStatusDataSize > LEGACY_DRIVE_SEC_SIZE * UINT16_MAX)
+    {
+        printf("WARNING: Drive expected %" PRIu64 " elements which exceed max page count.\n",
+            numberOfDescriptorsExpected);
+        getLbaStatusDataSize = LEGACY_DRIVE_SEC_SIZE * UINT16_MAX;
+    }
+    // Note we read not only descriptors but also page 0 which is header
+    uint8_t* descriptorBuffer = C_CAST(
+        uint8_t*, safe_calloc_aligned(getLbaStatusDataSize + LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    if (descriptorBuffer != M_NULLPTR)
+    {
+        uint64_t numberOfDescriptorsReturned = UINT64_C(0);
+        if (device->drive_info.drive_type == ATA_DRIVE)
+        {
+            ret = get_ATA_Log(device, ATA_LOG_LBA_STATUS, M_NULLPTR, M_NULLPTR, true, false, true,
+                              descriptorBuffer, getLbaStatusDataSize + LEGACY_DRIVE_SEC_SIZE, M_NULLPTR, 0, 0);
+            if (ret == SUCCESS)
+            {
+                // parse out the descriptors
+                for (uint16_t page = 1; page < 1 + (getLbaStatusDataSize / LEGACY_DRIVE_SEC_SIZE); ++page)
+                {
+                    for (uint16_t pageOffset = 16; pageOffset < LEGACY_DRIVE_SEC_SIZE;
+                         pageOffset += 16 /*bytes per descriptor*/)
+                    {
+                        uint64_t bufferOffset = (((uint64_t) page * LEGACY_DRIVE_SEC_SIZE) + pageOffset);
+                        if (numberOfDescriptorsReturned < numberOfDescriptorsExpected)
+                        {
+                            descriptorList[numberOfDescriptorsReturned].startLba = M_BytesTo8ByteValue(
+                                descriptorBuffer[bufferOffset + 7], descriptorBuffer[bufferOffset + 6],
+                                descriptorBuffer[bufferOffset + 5], descriptorBuffer[bufferOffset + 4],
+                                descriptorBuffer[bufferOffset + 3], descriptorBuffer[bufferOffset + 2],
+                                descriptorBuffer[bufferOffset + 1], descriptorBuffer[bufferOffset + 0]);
+                            descriptorList[numberOfDescriptorsReturned].numberOfLbas = M_BytesTo4ByteValue(
+                                descriptorBuffer[bufferOffset + 11], descriptorBuffer[bufferOffset + 10],
+                                descriptorBuffer[bufferOffset + 9], descriptorBuffer[bufferOffset + 8]);
+                            descriptorList[numberOfDescriptorsReturned].lbaAccessibility =
+                                C_CAST(eLbaAccessibility,
+                                       get_8bit_range_uint16(M_BytesTo2ByteValue(descriptorBuffer[bufferOffset + 13],
+                                                                                 descriptorBuffer[bufferOffset + 12]),
+                                                             4, 1));
+                            descriptorList[numberOfDescriptorsReturned].trimStatus =
+                                M_ToBool(M_BytesTo2ByteValue(descriptorBuffer[bufferOffset + 13], descriptorBuffer[bufferOffset + 12]) & BIT0);
+                            if (descriptorList[numberOfDescriptorsReturned].numberOfLbas == 0)
+                            {
+                                printf("WARNING: Drive expected %" PRIu64 " elements, but empty descriptor was returned\n",
+                                    numberOfDescriptorsExpected);
+                                break;
+                            }
+                            ++numberOfDescriptorsReturned;
+                        }
+                        else
+                        {
+                            printf("WARNING: Drive expected %" PRIu64 " elements, but extra were returned\n",
+                                numberOfDescriptorsExpected);
+                            break;
+                        }
+                    }
+                }
+                ret = SUCCESS;
+            }
+        }
+        else //if (device->drive_info.drive_type == SCSI_DRIVE)
+        {
+            ret = NOT_SUPPORTED;
+        }
+        safe_free_aligned(&descriptorBuffer);
+    }
+    else
+    {
+        ret = MEMORY_FAILURE;
+    }
+    return ret;
+}
+
+void show_LBA_Status_Descriptors(uint64_t numberOfDescriptors,
+                                 ptrLbaStatusDescriptor elementList)
+{
+    print_str("\nStart LBA\tNo. of LBA\tLBA Accessibility             \tTrim Status\n");
+    print_str("---------------------------------------------------------------------------\n");
+    for (uint64_t descriptorIter = UINT64_C(0); descriptorIter < numberOfDescriptors; ++descriptorIter)
+    {
+#define LBA_ACCESSIBILITY_STRING_MAX_LEN 30
+        DECLARE_ZERO_INIT_ARRAY(char, lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN);
+        switch (elementList[descriptorIter].lbaAccessibility)
+        {
+        case LBA_ACCESSIBILITY_NOT_REPORTED:
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
+                                "Not implemented or reported");
+            break;
+        case LBA_ACCESSIBILITY_UNACCESSIBLE:
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
+                                "Unable to be read or written");
+            break;
+        case LBA_ACCESSIBILITY_READ_ONLY:
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
+                                "Read-only");
+            break;
+        case LBA_ACCESSIBILITY_WITH_RISK:
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
+                                "At risk of inaccessible");
+            break;
+        case LBA_ACCESSIBILITY_READ_ONLY_WITH_RISK:
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
+                                "Read-Only With Risk");
+            break;
+        default:
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
+                                "Unknown (%u)", elementList[descriptorIter].lbaAccessibility);
+            break;
+        }
+        char trimStatusChar = elementList[descriptorIter].trimStatus ? 'Y' : 'N';
+        printf("%12" PRIu64 "\t%10" PRIu32 " \t%-30s\t%c\n",
+               elementList[descriptorIter].startLba,
+               elementList[descriptorIter].numberOfLbas,
+               lbaAccessibilityString,
+               trimStatusChar
+            );
+    }
 }
