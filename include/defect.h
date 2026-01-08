@@ -174,6 +174,43 @@ extern "C"
                                                               bool                    primaryList,
                                                               scsiDefectList**        defects);
 
+//! \def SCSI_DEFECT_LIST_2_VERSION
+//! \brief Version number for the \a scsiDefectList2Params structure
+#define SCSI_DEFECT_LIST_2_VERSION 1
+
+    //! \struct scsiDefectList2Params
+    //! \brief Parameter structure for \a get_SCSI_Defect_List_2()
+    typedef struct
+    {
+        size_t         sizeOfStruct; //!< size of this structure. Set to sizeof(scsiDefectList2Params)
+        int            version;      //!< version of this structure. Set to \a SCSI_DEFECT_LIST_2_VERSION
+        const tDevice* device;       //!< pointer to the device structure with the device to read the defect list from
+        eSCSIAddressDescriptors
+                         defectListFormat; //!< requested format of the defect list. See \a eSCSIAddressDescriptors
+        bool             grownList;        //!< set to true to include the grown defect list in the output
+        bool             primaryList;      //!< set to true to include the primary defect list in the output
+        scsiDefectList** defects; //!< pointer for the defect list. The list will be allocated for you if this is a
+                                  //!< non-null pointer. If you do not want the list allocated, set this to M_NULLPTR
+        bool saveToFile; //!< set to true to save the defect list to a file
+        bool fileOpened; //!< recommend setting to false before calling unless you want a specific name for the file
+        const char*
+            filePath; //!< path to the file where the defect list will be saved. Use M_NULLPTR for current directory
+        secureFileInfo* defectListFile; //!< secure file info structure for the defect list file if saveToFile is true
+    } scsiDefectList2Params;
+
+    //! \fn eReturnValues get_SCSI_Defect_List_2(scsiDefectList2Params * params)
+    //! \brief Read a defect list from a SCSI device. Specify the requested format type and if the list
+    //! should include the primary (factory) defect list and/or the grown (reallocated) defect list
+    //! \note This function will allocate the defect list for you. Free it with \a free_Defect_List()
+    //! \note Not all devices support all defect formats.
+    //! \param[inout] params pointer to the parameter structure
+    //! \return SUCCESS = successfully read the requested defect list. Other values may indicate an unsupported
+    //! list or list format or that the device does not support returning the defect list. May fail if
+    //! a failure occurs while trying to read the defect list
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RW(1)
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List_2(scsiDefectList2Params* params);
+
     //! \fn void free_Defect_List(scsiDefectList** defects)
     //! \brief frees the SCSI defect list allocated by \a get_SCSI_Defect_List()
     //! \param[inout] defects double pointer to the defect list. Once free'd, this will be set to a NULL pointer
@@ -252,11 +289,11 @@ extern "C"
     //! \return SUCCESS if defects successfully created otherwise an error code for the failure.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues flag_Uncorrectables(const tDevice*      device,
-                                                             uint64_t      startingLBA,
-                                                             uint64_t      range,
-                                                             custom_Update updateFunction,
-                                                             void*         updateData);
+    OPENSEA_OPERATIONS_API eReturnValues flag_Uncorrectables(const tDevice* device,
+                                                             uint64_t       startingLBA,
+                                                             uint64_t       range,
+                                                             custom_Update  updateFunction,
+                                                             void*          updateData);
 
     //! \fn bool is_Read_Long_Write_Long_Supported(tDevice* device)
     //! \brief Checks if the legacy read long/write long commands are supported for creating errors
@@ -284,8 +321,8 @@ extern "C"
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues corrupt_LBA_Read_Write_Long(const tDevice* device,
-                                                                     uint64_t corruptLBA,
-                                                                     uint16_t numberOfBytesToCorrupt);
+                                                                     uint64_t       corruptLBA,
+                                                                     uint16_t       numberOfBytesToCorrupt);
 
     //! \fn eReturnValues corrupt_LBAs(tDevice* device,
     //!                                uint64_t      startingLBA,
@@ -310,13 +347,13 @@ extern "C"
     //! any other error for a failure may be returned.
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBAs(const tDevice*      device,
-                                                      uint64_t      startingLBA,
-                                                      uint64_t      range,
-                                                      bool          readCorruptedLBAs,
-                                                      uint16_t      numberOfBytesToCorrupt,
-                                                      custom_Update updateFunction,
-                                                      void*         updateData);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBAs(const tDevice* device,
+                                                      uint64_t       startingLBA,
+                                                      uint64_t       range,
+                                                      bool           readCorruptedLBAs,
+                                                      uint16_t       numberOfBytesToCorrupt,
+                                                      custom_Update  updateFunction,
+                                                      void*          updateData);
 
     //! \fn eReturnValues corrupt_Random_LBAs(tDevice* device,
     //!                                       uint16_t      numberOfRandomLBAs,

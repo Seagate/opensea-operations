@@ -32,7 +32,7 @@
 
 typedef struct s_scsiDefectDataIn
 {
-    const tDevice*                device;
+    const tDevice*          device;
     bool                    primaryList;
     bool                    grownList;
     eSCSIAddressDescriptors defectListFormat;
@@ -283,7 +283,7 @@ static M_INLINE void fill_physical_address(physicalSectorAddress*  address,
 static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
                                       scsiDefectDataIn  defectRequest,
                                       scsiDefectDataOut defectResult,
-                                      uint32_t          *elementID,
+                                      uint32_t*         elementID,
                                       uint32_t          headerLength,
                                       uint32_t          increment)
 {
@@ -295,8 +295,8 @@ static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
         {
             return BAD_PARAMETER;
         }
-        for (; ret == SUCCESS && *elementID < ptrDefects->numberOfElements &&
-                                                 offset < (defectRequest.dataLength) && offset < (defectResult.defectListLength + headerLength);
+        for (; ret == SUCCESS && *elementID < ptrDefects->numberOfElements && offset < (defectRequest.dataLength) &&
+               offset < (defectResult.defectListLength + headerLength);
              ++(*elementID), offset += increment)
         {
             switch (defectResult.returnedDefectListFormat)
@@ -304,20 +304,17 @@ static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
             case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
                 fill_block_address(&ptrDefects->block[*elementID], defectResult.returnedDefectListFormat,
-                                   &defectRequest.defectData[offset],
-                                   (defectRequest.dataLength) - offset);
+                                   &defectRequest.defectData[offset], (defectRequest.dataLength) - offset);
                 break;
             case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
                 fill_bfi_address(&ptrDefects->bfi[*elementID], defectResult.returnedDefectListFormat,
-                                 &defectRequest.defectData[offset],
-                                 (defectRequest.dataLength) - offset);
+                                 &defectRequest.defectData[offset], (defectRequest.dataLength) - offset);
                 break;
             case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
                 fill_physical_address(&ptrDefects->physical[*elementID], defectResult.returnedDefectListFormat,
-                                      &defectRequest.defectData[offset],
-                                      (defectRequest.dataLength) - offset);
+                                      &defectRequest.defectData[offset], (defectRequest.dataLength) - offset);
                 break;
             case AD_VENDOR_SPECIFIC:
             case AD_RESERVED:
@@ -333,7 +330,9 @@ static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
 static eReturnValues get_SCSI_Defects_Single_Command(scsiDefectDataIn   defectRequest,
                                                      scsiDefectDataOut  defectResult,
                                                      defectListSizeInfo sizeInfo,
-                                                     scsiDefectList**   defects)
+                                                     scsiDefectList**   defects,
+                                                     bool               saveToFile,
+                                                     secureFileInfo*    defectListFile)
 {
     eReturnValues ret = SUCCESS;
     // single command
@@ -364,23 +363,38 @@ static eReturnValues get_SCSI_Defects_Single_Command(scsiDefectDataIn   defectRe
         {
             // now allocate our list to return to the caller!
             size_t defectListAllocSize = sizeof(scsiDefectList) + uint32_to_sizet(sizeInfo.defectAlloc);
-            *defects                   = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_malloc(defectListAllocSize));
-            if (*defects != M_NULLPTR)
+            if (defects != M_NULLPTR)
             {
-                uint32_t elementID = UINT32_C(0);
-                ptrSCSIDefectList ptrDefects = *defects;
-                safe_memset(ptrDefects, defectListAllocSize, 0, defectListAllocSize);
-                ptrDefects->numberOfElements              = sizeInfo.numberOfElements;
-                ptrDefects->containsGrownList             = defectResult.listHasGrownDescriptors;
-                ptrDefects->containsPrimaryList           = defectResult.listHasPrimaryDescriptors;
-                ptrDefects->format                        = defectResult.returnedDefectListFormat;
-                ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(defectRequest.device->drive_info.numberOfLUs);
-                ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, &elementID, headerLength,
-                                       sizeInfo.increment);
+                *defects = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_malloc(defectListAllocSize));
+                if (*defects != M_NULLPTR)
+                {
+                    uint32_t          elementID  = UINT32_C(0);
+                    ptrSCSIDefectList ptrDefects = *defects;
+                    safe_memset(ptrDefects, defectListAllocSize, 0, defectListAllocSize);
+                    ptrDefects->numberOfElements              = sizeInfo.numberOfElements;
+                    ptrDefects->containsGrownList             = defectResult.listHasGrownDescriptors;
+                    ptrDefects->containsPrimaryList           = defectResult.listHasPrimaryDescriptors;
+                    ptrDefects->format                        = defectResult.returnedDefectListFormat;
+                    ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(defectRequest.device->drive_info.numberOfLUs);
+                    ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, &elementID, headerLength,
+                                           sizeInfo.increment);
+                }
+                else
+                {
+                    ret = MEMORY_FAILURE;
+                }
             }
-            else
+            if (saveToFile && defectListFile != M_NULLPTR && defectListFile->isValid)
             {
-                ret = MEMORY_FAILURE;
+                if (SEC_FILE_SUCCESS != secure_Write_File(defectListFile, defectData, defectRequest.dataLength,
+                                                          sizeof(uint8_t), defectRequest.dataLength, M_NULLPTR))
+                {
+                    if (VERBOSITY_QUIET < defectRequest.device->deviceVerbosity)
+                    {
+                        perror("Error writing the defect data to a file!\n");
+                    }
+                    ret = ERROR_WRITING_FILE;
+                }
             }
         }
         safe_free_aligned(&defectData);
@@ -423,7 +437,9 @@ static bool is_SCSI_Defect_List_With_Offsets_Supported(const tDevice* device)
 static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequest,
                                                    scsiDefectDataOut  defectResult,
                                                    defectListSizeInfo sizeInfo,
-                                                   scsiDefectList**   defects)
+                                                   scsiDefectList**   defects,
+                                                   bool               saveToFile,
+                                                   secureFileInfo*    defectListFile)
 {
     eReturnValues ret = SUCCESS;
     // read the list in multiple commands! Do this in 64k chunks.
@@ -433,17 +449,29 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
                                                          defectRequest.device->os_info.minimumAlignment));
     if (defectData != M_NULLPTR)
     {
-        size_t defectListAllocSize = sizeof(scsiDefectList) + uint32_to_sizet(sizeInfo.defectAlloc);
-        defectRequest.defectData   = defectData;
-        *defects                   = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_malloc(defectListAllocSize));
-        if (*defects != M_NULLPTR)
+        ptrSCSIDefectList ptrDefects          = M_NULLPTR;
+        size_t            defectListAllocSize = sizeof(scsiDefectList) + uint32_to_sizet(sizeInfo.defectAlloc);
+        defectRequest.defectData              = defectData;
+        if (defects != M_NULLPTR)
         {
-            uint32_t          elementNumber    = UINT32_C(0);
-            ptrSCSIDefectList ptrDefects       = *defects;
-            bool              filledInListInfo = false;
-            safe_memset(ptrDefects, defectListAllocSize, 0, defectListAllocSize);
-            ptrDefects->numberOfElements              = sizeInfo.numberOfElements;
-            ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(defectRequest.device->drive_info.numberOfLUs);
+            *defects = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_malloc(defectListAllocSize));
+            if (*defects != M_NULLPTR)
+            {
+                ptrDefects = *defects;
+                safe_memset(ptrDefects, defectListAllocSize, 0, defectListAllocSize);
+                ptrDefects->numberOfElements              = sizeInfo.numberOfElements;
+                ptrDefects->deviceHasMultipleLogicalUnits = M_ToBool(defectRequest.device->drive_info.numberOfLUs);
+            }
+            else
+            {
+                ret = MEMORY_FAILURE;
+            }
+        }
+        if (ret == SUCCESS)
+        {
+            uint32_t elementNumber    = UINT32_C(0);
+            bool     filledInListInfo = false;
+            bool     wroteWithHeader  = false;
             while (elementNumber < sizeInfo.numberOfElements && sizeInfo.increment > 0 && ret == SUCCESS)
             {
                 safe_memset(defectData, defectRequest.dataLength, 0, defectRequest.dataLength);
@@ -451,7 +479,7 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
                 ret                 = get_SCSI_Defect_Data(defectRequest, &defectResult);
                 if (SUCCESS == ret)
                 {
-                    if (!filledInListInfo)
+                    if (ptrDefects != M_NULLPTR && !filledInListInfo)
                     {
                         ptrDefects->containsGrownList   = defectResult.listHasGrownDescriptors;
                         ptrDefects->containsPrimaryList = defectResult.listHasPrimaryDescriptors;
@@ -461,8 +489,40 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
                     }
                     if (sizeInfo.increment > 0)
                     {
-                        ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, &elementNumber,
-                                               SCSI_DEFECT_DATA_12_HEADER_LEN, sizeInfo.increment);
+                        if (ptrDefects != M_NULLPTR)
+                        {
+                            ret = fill_Defect_List(ptrDefects, defectRequest, defectResult, &elementNumber,
+                                                   SCSI_DEFECT_DATA_12_HEADER_LEN, sizeInfo.increment);
+                        }
+                        if (saveToFile && defectListFile != M_NULLPTR && defectListFile->isValid)
+                        {
+                            uint32_t writeOffet = SCSI_DEFECT_DATA_12_HEADER_LEN;
+                            if (!wroteWithHeader)
+                            {
+                                // need to write the header first time through, then skip it on subsequent writes
+                                writeOffet      = 0;
+                                wroteWithHeader = true;
+                            }
+                            if (SEC_FILE_SUCCESS != secure_Write_File(defectListFile, &defectData[writeOffet],
+                                                                      defectRequest.dataLength - writeOffet,
+                                                                      sizeof(uint8_t),
+                                                                      defectRequest.dataLength - writeOffet, M_NULLPTR))
+                            {
+                                if (VERBOSITY_QUIET < defectRequest.device->deviceVerbosity)
+                                {
+                                    perror("Error writing the defect data to a file!\n");
+                                }
+                                ret = ERROR_WRITING_FILE;
+                            }
+                            // adjust the element number based on what we wrote to the file
+                            if (ptrDefects == M_NULLPTR)
+                            {
+                                // adjust element number only if we are not filling in the defect list structure
+                                // If we filled in that structure, then this is already updated.
+                                elementNumber +=
+                                    (defectRequest.dataLength - SCSI_DEFECT_DATA_12_HEADER_LEN) / sizeInfo.increment;
+                            }
+                        }
                     }
                     else
                     {
@@ -476,10 +536,6 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
                 ret = SUCCESS;
             }
         }
-        else
-        {
-            ret = MEMORY_FAILURE;
-        }
         safe_free_aligned(&defectData);
     }
     else
@@ -489,66 +545,121 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
     return ret;
 }
 
-eReturnValues get_SCSI_Defect_List(const tDevice*                device,
-                                   eSCSIAddressDescriptors defectListFormat,
-                                   bool                    grownList,
-                                   bool                    primaryList,
-                                   scsiDefectList**        defects)
+eReturnValues get_SCSI_Defect_List_2(scsiDefectList2Params* params)
 {
-    eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
-    if (defects != M_NULLPTR)
+    eReturnValues  ret        = SUCCESS;
+    const uint32_t dataLength = UINT32_C(8);
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, defectHeader, UINT32_C(8));
+    scsiDefectDataIn  defectRequest = {.device           = params->device,
+                                       .grownList        = params->grownList,
+                                       .primaryList      = params->primaryList,
+                                       .defectListFormat = params->defectListFormat,
+                                       .index            = UINT32_C(0),
+                                       .defectData       = defectHeader,
+                                       .dataLength       = dataLength};
+    scsiDefectDataOut defectResult;
+    safe_memset(&defectResult, sizeof(scsiDefectDataOut), 0, sizeof(scsiDefectDataOut));
+
+    bool fileOpenedBeforeCall = params->fileOpened;
+
+    ret = get_SCSI_Defect_Data(defectRequest, &defectResult);
+    defectRequest.defectData =
+        M_NULLPTR; // set to NULL as we will need new memory when reading in the following functions
+    defectRequest.dataLength = UINT32_C(0);
+
+    if (defectResult.gotDefectData)
     {
-        const uint32_t dataLength = UINT32_C(8);
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, defectHeader, UINT32_C(8));
-        scsiDefectDataIn  defectRequest = {.device           = device,
-                                           .grownList        = grownList,
-                                           .primaryList      = primaryList,
-                                           .defectListFormat = defectListFormat,
-                                           .index            = UINT32_C(0),
-                                           .defectData       = defectHeader,
-                                           .dataLength       = dataLength};
-        scsiDefectDataOut defectResult;
-        safe_memset(&defectResult, sizeof(scsiDefectDataOut), 0, sizeof(scsiDefectDataOut));
-
-        ret = get_SCSI_Defect_Data(defectRequest, &defectResult);
-        defectRequest.defectData =
-            M_NULLPTR; // set to NULL as we will need new memory when reading in the following functions
-        defectRequest.dataLength = UINT32_C(0);
-
-        if (defectResult.gotDefectData)
+        if (params->saveToFile && !params->fileOpened)
         {
-            if (defectResult.defectListLength > 0)
+            const char* defectListName = M_NULLPTR;
+            const char* cmdBytes       = M_NULLPTR;
+            char*       defectFileName = M_NULLPTR;
+            if (params->grownList && params->primaryList)
             {
-                defectListSizeInfo sizeInfo;
-                safe_memset(&sizeInfo, sizeof(defectListSizeInfo), 0, sizeof(defectListSizeInfo));
-                ret = get_Defect_List_Size_Info(defectResult, &sizeInfo);
-                if (ret == SUCCESS)
-                {
-                    if (!defectResult.tenByte && is_SCSI_Defect_List_With_Offsets_Supported(device))
-                    {
-                        ret = get_SCSI_Defects_With_Offsets(defectRequest, defectResult, sizeInfo, defects);
-                    }
-                    else
-                    {
-                        ret = get_SCSI_Defects_Single_Command(defectRequest, defectResult, sizeInfo, defects);
-                    }
-                }
+                defectListName = "PGList";
+            }
+            else if (params->grownList)
+            {
+                defectListName = "GList";
+            }
+            else if (params->primaryList)
+            {
+                defectListName = "PList";
             }
             else
             {
+                defectListName = "DefectList";
+            }
+            if (defectResult.tenByte)
+            {
+                cmdBytes = "10";
+            }
+            else
+            {
+                cmdBytes = "12";
+            }
+            if (asprintf(&defectFileName, "%s_%s", defectListName, cmdBytes) < 0)
+            {
+                ret = MEMORY_FAILURE;
+            }
+            // setup the name and open the file to write and open the secure file.
+            // If the file fails to open, need to return an error.
+            if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(params->device, &params->defectListFile,
+                                                                  NAMING_SERIAL_NUMBER_DATE_TIME, params->filePath,
+                                                                  defectFileName, "RDEF"))
+            {
+                params->fileOpened = true;
+            }
+            else
+            {
+                if (params->defectListFile->error == SEC_FILE_INSECURE_PATH)
+                {
+                    ret = INSECURE_PATH;
+                }
+                else
+                {
+                    ret = FILE_OPEN_ERROR;
+                }
+                free_Secure_File_Info(&params->defectListFile);
+                params->fileOpened = false;
+            }
+            safe_free(&defectFileName);
+        }
+        if (defectResult.defectListLength > 0)
+        {
+            defectListSizeInfo sizeInfo;
+            safe_memset(&sizeInfo, sizeof(defectListSizeInfo), 0, sizeof(defectListSizeInfo));
+            ret = get_Defect_List_Size_Info(defectResult, &sizeInfo);
+            if (ret == SUCCESS)
+            {
+                if (!defectResult.tenByte && is_SCSI_Defect_List_With_Offsets_Supported(params->device))
+                {
+                    ret = get_SCSI_Defects_With_Offsets(defectRequest, defectResult, sizeInfo, params->defects,
+                                                        params->saveToFile, params->defectListFile);
+                }
+                else
+                {
+                    ret = get_SCSI_Defects_Single_Command(defectRequest, defectResult, sizeInfo, params->defects,
+                                                          params->saveToFile, params->defectListFile);
+                }
+            }
+        }
+        else
+        {
+            if (params->defects != M_NULLPTR)
+            {
                 // defect list length is zero, so we don't have anything else to do but allocate the struct and populate
                 // the data, then return it
-                *defects = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_calloc(1, sizeof(scsiDefectList)));
-                if (*defects)
+                *params->defects = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_calloc(1, sizeof(scsiDefectList)));
+                if (*params->defects)
                 {
-                    ptrSCSIDefectList temp              = *defects;
+                    ptrSCSIDefectList temp              = *params->defects;
                     temp->numberOfElements              = UINT32_C(0);
                     temp->containsGrownList             = defectResult.listHasGrownDescriptors;
                     temp->containsPrimaryList           = defectResult.listHasPrimaryDescriptors;
                     temp->generation                    = defectResult.generationCode;
                     temp->format                        = defectResult.returnedDefectListFormat;
-                    temp->deviceHasMultipleLogicalUnits = M_ToBool(device->drive_info.numberOfLUs);
+                    temp->deviceHasMultipleLogicalUnits = M_ToBool(params->device->drive_info.numberOfLUs);
                     ret                                 = SUCCESS;
                 }
                 else
@@ -556,18 +667,75 @@ eReturnValues get_SCSI_Defect_List(const tDevice*                device,
                     ret = MEMORY_FAILURE;
                 }
             }
+            if (params->saveToFile &&
+                params->fileOpened) // the file should ALWAYS be opened here if there were no errors
+            {
+                // write out the list even though it is empty since this is what was requested
+                // write out to a file
+                if (SEC_FILE_SUCCESS != secure_Write_File(params->defectListFile, defectHeader, dataLength,
+                                                          sizeof(uint8_t), dataLength, M_NULLPTR))
+                {
+                    if (VERBOSITY_QUIET < params->device->deviceVerbosity)
+                    {
+                        perror("Error writing the defect data to a file!\n");
+                    }
+                    if (SEC_FILE_SUCCESS != secure_Close_File(params->defectListFile))
+                    {
+                        print_str("Error closing file!\n");
+                    }
+                    else
+                    {
+                        params->fileOpened = false;
+                    }
+                    free_Secure_File_Info(&params->defectListFile);
+                    ret = ERROR_WRITING_FILE;
+                }
+            }
         }
-        else
+        if (params->saveToFile && params->fileOpened && !fileOpenedBeforeCall)
         {
-            ret = NOT_SUPPORTED;
+            if (SEC_FILE_SUCCESS != secure_Close_File(params->defectListFile))
+            {
+                print_str("Error closing file!\n");
+            }
+            else
+            {
+                params->fileOpened = false;
+            }
+            free_Secure_File_Info(&params->defectListFile);
         }
     }
     else
     {
-        ret = BAD_PARAMETER;
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+eReturnValues get_SCSI_Defect_List(const tDevice*          device,
+                                   eSCSIAddressDescriptors defectListFormat,
+                                   bool                    grownList,
+                                   bool                    primaryList,
+                                   scsiDefectList**        defects)
+{
+    scsiDefectList2Params params;
+    safe_memset(&params, sizeof(scsiDefectList2Params), 0, sizeof(scsiDefectList2Params));
+    params.sizeOfStruct     = sizeof(scsiDefectList2Params);
+    params.version          = SCSI_DEFECT_LIST_2_VERSION;
+    params.device           = device;
+    params.defectListFormat = defectListFormat;
+    params.grownList        = grownList;
+    params.primaryList      = primaryList;
+    params.defects          = defects;
+    params.saveToFile       = false;
+    params.filePath         = M_NULLPTR;
+    DISABLE_NONNULL_COMPARE
+    if (defects == M_NULLPTR)
+    {
+        return BAD_PARAMETER;
     }
     RESTORE_NONNULL_COMPARE
-    return ret;
+    return get_SCSI_Defect_List_2(&params);
 }
 
 void free_Defect_List(scsiDefectList** defects)
@@ -1008,8 +1176,8 @@ bool is_Read_Long_Write_Long_Supported(const tDevice* device)
 }
 
 static eReturnValues ata_Legacy_corrupt_LBA_Read_Write_Long(const tDevice* device,
-                                                            uint64_t corruptLBA,
-                                                            uint16_t numberOfBytesToCorrupt)
+                                                            uint64_t       corruptLBA,
+                                                            uint16_t       numberOfBytesToCorrupt)
 {
     eReturnValues ret                         = SUCCESS;
     bool          setFeaturesToChangeECCBytes = false;
@@ -1087,8 +1255,8 @@ static eReturnValues ata_Legacy_corrupt_LBA_Read_Write_Long(const tDevice* devic
 }
 
 static eReturnValues ata_SCT_corrupt_LBA_Read_Write_Long(const tDevice* device,
-                                                         uint64_t corruptLBA,
-                                                         uint16_t numberOfBytesToCorrupt)
+                                                         uint64_t       corruptLBA,
+                                                         uint16_t       numberOfBytesToCorrupt)
 {
     eReturnValues ret = SUCCESS;
     // use SCT read & write long commands
@@ -1128,8 +1296,8 @@ static eReturnValues ata_SCT_corrupt_LBA_Read_Write_Long(const tDevice* device,
 }
 
 static eReturnValues ata_corrupt_LBA_Read_Write_Long(const tDevice* device,
-                                                     uint64_t corruptLBA,
-                                                     uint16_t numberOfBytesToCorrupt)
+                                                     uint64_t       corruptLBA,
+                                                     uint16_t       numberOfBytesToCorrupt)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
@@ -1147,8 +1315,8 @@ static eReturnValues ata_corrupt_LBA_Read_Write_Long(const tDevice* device,
 }
 
 static eReturnValues scsi_corrupt_LBA_Read_Write_Long(const tDevice* device,
-                                                      uint64_t corruptLBA,
-                                                      uint16_t numberOfBytesToCorrupt)
+                                                      uint64_t       corruptLBA,
+                                                      uint16_t       numberOfBytesToCorrupt)
 {
     eReturnValues ret                        = NOT_SUPPORTED;
     bool          multipleLogicalPerPhysical = false; // used to set the physical block bit when applicable

@@ -24,6 +24,7 @@
 #include "type_conversion.h"
 
 #include "ata_helper_func.h"
+#include "defect.h"
 #include "dst.h"
 #include "logs.h"
 #include "nvme_helper.h"
@@ -1581,111 +1582,30 @@ eReturnValues get_EPC_log(const tDevice* device, const char* filePath)
 
 eReturnValues pull_SCSI_G_List(const tDevice* device, const char* filePath)
 {
-    eReturnValues ret                    = UNKNOWN;
-    uint32_t      addressDescriptorIndex = UINT32_C(0);
-    uint32_t      defectDataSize =
-        8; // set to size of defect data without any address descriptors so we know how much we will be pulling
-    uint8_t* defectData = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(defectDataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
-    if (defectData == M_NULLPTR)
-    {
-        return MEMORY_FAILURE;
-    }
-    ret = scsi_Read_Defect_Data_12(device, false, true, AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR, addressDescriptorIndex,
-                                   defectDataSize, defectData);
-    if (ret == SUCCESS)
-    {
-        secureFileInfo* gListData  = M_NULLPTR;
-        bool            fileOpened = false;
-        uint32_t defectListLength  = M_BytesTo4ByteValue(defectData[4], defectData[5], defectData[6], defectData[7]);
-        // each address descriptor is 8 bytes in size
-        defectDataSize = 4096; // pull 4096 at a time
-        uint8_t* temp =
-            C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &defectData), 0, defectDataSize * sizeof(uint8_t),
-                                                   device->os_info.minimumAlignment));
-        if (temp == M_NULLPTR)
-        {
-            return MEMORY_FAILURE;
-        }
-        defectData = temp;
-        safe_memset(defectData, defectDataSize, 0, defectDataSize);
-        // now loop to get all the data
-        for (addressDescriptorIndex = 0; ((addressDescriptorIndex + 511) * 8) < defectListLength;
-             addressDescriptorIndex += 511)
-        {
-            ret = scsi_Read_Defect_Data_12(device, false, true, AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR,
-                                           addressDescriptorIndex, defectDataSize, defectData);
-            if (ret == SUCCESS)
-            {
-                // open file and save the data
-                if (!fileOpened)
-                {
-                    if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(
-                                       device, &gListData, NAMING_SERIAL_NUMBER_DATE_TIME, filePath, "GLIST", "bin"))
-                    {
-                        fileOpened = true;
-                    }
-                    else
-                    {
-                        if (gListData->error == SEC_FILE_INSECURE_PATH)
-                        {
-                            ret = INSECURE_PATH;
-                        }
-                        else
-                        {
-                            ret = FILE_OPEN_ERROR;
-                        }
-                        safe_free_aligned(&defectData);
-                        free_Secure_File_Info(&gListData);
-                    }
-                }
-                if (fileOpened)
-                {
-                    // write out to a file
-                    if (SEC_FILE_SUCCESS != secure_Write_File(gListData, defectData, defectDataSize, sizeof(uint8_t),
-                                                              defectDataSize, M_NULLPTR))
-                    {
-                        if (VERBOSITY_QUIET < device->deviceVerbosity)
-                        {
-                            perror("Error writing the defect data to a file!\n");
-                        }
-                        if (SEC_FILE_SUCCESS != secure_Close_File(gListData))
-                        {
-                            print_str("Error closing file!\n");
-                        }
-                        fileOpened = false;
-                        safe_free_aligned(&defectData);
-                        free_Secure_File_Info(&gListData);
-                        return ERROR_WRITING_FILE;
-                    }
-                }
-                if (fileOpened)
-                {
-                    if (SEC_FILE_SUCCESS != secure_Flush_File(gListData))
-                    {
-                        if (VERBOSITY_QUIET < device->deviceVerbosity)
-                        {
-                            perror("Error flushing data!\n");
-                        }
-                        if (SEC_FILE_SUCCESS != secure_Close_File(gListData))
-                        {
-                            print_str("Error closing file!\n");
-                        }
-                        fileOpened = false;
-                        safe_free_aligned(&defectData);
-                        free_Secure_File_Info(&gListData);
-                        return ERROR_WRITING_FILE;
-                    }
-                    if (SEC_FILE_SUCCESS != secure_Close_File(gListData))
-                    {
-                        print_str("Error closing file!\n");
-                    }
-                }
-            }
-        }
-        free_Secure_File_Info(&gListData);
-    }
-    safe_free_aligned(&defectData);
+    return pull_SCSI_Defect_List(device, AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR, true, false, filePath);
+}
+
+eReturnValues pull_SCSI_Defect_List(const tDevice*          device,
+                                    eSCSIAddressDescriptors format,
+                                    bool                    primaryList,
+                                    bool                    grownList,
+                                    const char*             filePath)
+{
+    eReturnValues         ret = SUCCESS;
+    scsiDefectList2Params defectList2Params;
+    safe_memset(&defectList2Params, sizeof(scsiDefectList2Params), 0, sizeof(scsiDefectList2Params));
+    defectList2Params.sizeOfStruct     = sizeof(scsiDefectList2Params);
+    defectList2Params.version          = SCSI_DEFECT_LIST_2_VERSION;
+    defectList2Params.device           = device;
+    defectList2Params.defectListFormat = format;
+    defectList2Params.grownList        = grownList;
+    defectList2Params.primaryList      = primaryList;
+    defectList2Params.defects          = M_NULLPTR;
+    defectList2Params.saveToFile       = true;
+    defectList2Params.fileOpened       = false;
+    defectList2Params.filePath         = filePath;
+    defectList2Params.defectListFile   = M_NULLPTR;
+    ret                                = get_SCSI_Defect_List_2(&defectList2Params);
     return ret;
 }
 

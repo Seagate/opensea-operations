@@ -494,10 +494,22 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
+    M_DEPRECATED_REASON("Use pull_SCSI_Defect_List() instead to handle both Grown and Primary defect lists and select "
+                        "a different address descriptor type")
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(const tDevice* device, const char* filePath);
+
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    M_NULL_TERM_STRING(5)
+    M_PARAM_RO(5)
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Defect_List(const tDevice*          device,
+                                                               eSCSIAddressDescriptors format,
+                                                               bool                    primaryList,
+                                                               bool                    grownList,
+                                                               const char*             filePath);
 
     //-----------------------------------------------------------------------------
     //
