@@ -2277,7 +2277,7 @@ eReturnValues get_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings
 
 static void print_Power_Condition(ptrPowerConditionInfo condition, const char* conditionName)
 {
-    printf("%-10s ", conditionName);
+    printf("%-9s ", conditionName);
     if (condition->currentTimerEnabled)
     {
         print_str("*");
@@ -2304,8 +2304,10 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char* c
     {
         print_str(" ");
     }
-    printf("%-12" PRIu32 " ", condition->savedTimerSetting);
-    printf("%-12" PRIu32 " ", condition->nominalRecoveryTimeToActiveState);
+    printf("%-10" PRIu32 " ", condition->savedTimerSetting);
+    printf("%-13" PRIu32 " ", condition->nominalRecoveryTimeToActiveState);
+    printf("%-11" PRIu32 " ", condition->minimumTimerSetting);
+    printf("%-10" PRIu32 " ", condition->maximumTimerSetting);
     if (condition->powerConditionChangeable)
     {
         print_str(" Y");
@@ -2339,8 +2341,8 @@ void print_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
     print_str("\tC column = Changeable\n");
     print_str("\tS column = Savable\n");
     print_str("\tAll times are in 100 milliseconds\n\n");
-    printf("%-10s %-13s %-13s %-13s %-12s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer",
-           "Recovery Time");
+    printf("%-9s %-13s %-13s %-11s %-13s %-11s %-11s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer",
+        "Recovery Time", "Min Timer", "Max Timer");
     if (epcSettings->idle_a.powerConditionSupported)
     {
         print_Power_Condition(&epcSettings->idle_a, "Idle A");
