@@ -129,6 +129,65 @@ typedef struct s_idDataCapabilitiesForDriveInfo
     bool processedStdIDData; // set when the function that reviews the standard ID data (ECh) has already been called.
 } idDataCapabilitiesForDriveInfo, *ptrIdDataCapabilitiesForDriveInfo;
 
+static void add_Sanitize_Feature_To_Drive_Info(char        featuresSupported[MAX_FEATURES][MAX_FEATURE_LENGTH],
+                                          uint8_t*    numberOfFeaturesSupported, bool overwrite, bool block, bool crypto, bool antifreeze, bool acs2)
+{
+    #define SANITIZE_CMDS_FEATURES_LEN 34
+    DECLARE_ZERO_INIT_ARRAY(char, sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN);
+    const char *sanitizeCmdsStr = "Sanitize";
+    if (acs2)
+    {
+        sanitizeCmdsStr = "Sanitize (ACS-2)";
+    }
+    if (block)
+    {
+        // block
+        safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Block");
+    }
+    if (overwrite)
+    {
+        // overwrite
+        if (safe_strnlen(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN) > 0)
+        {
+            safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", ");
+        }
+        safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Overwrite");
+    }
+    if (crypto)
+    {
+        // crypto
+        if (safe_strnlen(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN) > 0)
+        {
+            safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", ");
+        }
+        safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Crypto");
+    }
+    // Note: Turning this off for now since it is only for ATA drives.
+    // if (antifreeze)
+    // {
+    //     // antifreeze
+    //     if (safe_strnlen(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN) > 0)
+    //     {
+    //         safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", ");
+    //     }
+    //     safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Antifreeze");
+    // }
+    M_USE_UNUSED(antifreeze);
+    char *sanitizeFeatureString = M_NULLPTR;
+    if (asprintf(&sanitizeFeatureString, "%s [%s]", sanitizeCmdsStr, sanitizeFeatures) != -1 &&
+        sanitizeFeatureString != M_NULLPTR)
+    {
+        add_Feature_To_Supported_List(featuresSupported,    numberOfFeaturesSupported,
+                                    sanitizeFeatureString);
+    }
+    else
+    {
+        add_Feature_To_Supported_List(featuresSupported,    numberOfFeaturesSupported,
+                                      "Sanitize");
+    }
+    safe_free(&sanitizeFeatureString);
+}
+
 static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SATA       driveInfo,
                                                       ptrIdDataCapabilitiesForDriveInfo ataCapabilities,
                                                       uint8_t*                          identify,
@@ -384,8 +443,13 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         if (le16_to_host(wordPtr[59]) & BIT12)
         {
-            add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
-                                          "Sanitize");
+            add_Sanitize_Feature_To_Drive_Info( driveInfo->featuresSupported,
+                                              &driveInfo->numberOfFeaturesSupported,
+                                              (le16_to_host(wordPtr[59]) & BIT14) != 0,
+                                              (le16_to_host(wordPtr[59]) & BIT15) != 0,
+                                              (le16_to_host(wordPtr[59]) & BIT13) != 0,
+                                              (le16_to_host(wordPtr[59]) & BIT10) != 0,
+                                              (le16_to_host(wordPtr[59]) & BIT11) == 0);
         }
     }
 
@@ -7082,8 +7146,13 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice*              d
                     sanitizeBlockSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD ||
                     sanitizeCryptoSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
                 {
-                    add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
-                                                  "Sanitize");
+                    add_Sanitize_Feature_To_Drive_Info( driveInfo->featuresSupported,
+                                                     &driveInfo->numberOfFeaturesSupported,
+                                                     sanitizeOverwriteSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
+                                                     sanitizeBlockSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
+                                                     sanitizeCryptoSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
+                                                     false,
+                                                     false);
                 }
 
                 safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
@@ -7560,8 +7629,11 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice*          d
     // Sanitize
     if (nvmeIdentifyData[328] & BIT0) // Sanitize supported
     {
-        add_Feature_To_Supported_List(driveInfo->controllerData.controllerFeaturesSupported,
-                                      &driveInfo->controllerData.numberOfControllerFeatures, "Sanitize");
+        add_Sanitize_Feature_To_Drive_Info(driveInfo->controllerData.controllerFeaturesSupported,
+                                      &driveInfo->controllerData.numberOfControllerFeatures,
+                                      (nvmeIdentifyData[328] & BIT2) != 0,
+                                      (nvmeIdentifyData[328] & BIT1) != 0,
+                                      (nvmeIdentifyData[328] & BIT0) != 0, false, false);
     }
     // max namespaces
     driveInfo->controllerData.maxNumberOfNamespaces =
