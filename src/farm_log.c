@@ -182,7 +182,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    print_str("Error pulling Farm Current log\n");
+                    print_str("Unable to pull Farm Current log\n");
                 }
             }
 
@@ -218,7 +218,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    print_str("Error pulling Farm Factory log\n");
+                    print_str("Unable to pull Farm Factory log\n");
                 }
             }
 
@@ -254,7 +254,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    print_str("Error pulling Farm Saved log\n");
+                    print_str("Unable to pull Farm Saved log\n");
                 }
             }
         }
@@ -349,7 +349,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    print_str("Error pulling Farm Time series log\n");
+                    print_str("Unable to pull Farm Time series log\n");
                 }
             }
             safe_free_aligned(&farmTimeSeriesFramesLog);
@@ -394,7 +394,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    print_str("Error pulling Farm workload trace log\n");
+                    print_str("Unable to pull Farm workload trace log\n");
                 }
             }
             safe_free_aligned(&farmWorkloadTraceFramesLog);
@@ -571,7 +571,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    print_str("Error pulling Farm Time series log\n");
+                    print_str("Unable to pull Farm Time series log\n");
                 }
             }
             safe_free_aligned(&farmTimeSeriesFramesLog);
@@ -616,7 +616,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    print_str("Error pulling Farm workload trace log\n");
+                    print_str("Unable to pull Farm workload trace log\n");
                 }
             }
             safe_free_aligned(&farmWorkloadTraceFramesLog);
@@ -760,7 +760,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
             // print error
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                print_str("Error pulling Farm Current log\n");
+                print_str("Unable to pull Farm Current log\n");
             }
         }
         else
@@ -799,7 +799,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
             // print error
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                print_str("Error pulling Farm Factory log\n");
+                print_str("Unable to pull Farm Factory log\n");
             }
         }
         else
@@ -843,7 +843,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
                 // print error
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm TimeSeries log Subpage %d\n", i);
+                    printf("Unable to pull Farm TimeSeries log Subpage %d\n", i);
                 }
             }
             else
@@ -894,7 +894,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Error pulling Farm Saved log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD1);
+                printf("Unable to pull Farm Saved log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD1);
             }
         }
         else
@@ -912,7 +912,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Error pulling Farm Long Saved log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD2);
+                printf("Unable to pull Farm Long Saved log Subpage %d\n", SEAGATE_FARM_SP_TIME_SERIES_ADD2);
             }
         }
         else
@@ -963,7 +963,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
                 // print error
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Error pulling Farm Sticky log Subpage %d\n", i);
+                    printf("Unable to pull Farm Sticky log Subpage %d\n", i);
                 }
             }
             else
@@ -3532,13 +3532,13 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
             print_Stat_If_Supported_And_Valid_int64("Average Short Term Temperature (C)", env->avgShortTermTemp);
             print_Stat_If_Supported_And_Valid_int64("Average Long Term Temperature (C)", env->avgLongTermTemp);
             print_Stat_If_Supported_And_Valid_int64("Highest Average Short Term Temperature (C)",
-                                                     env->highestAvgShortTermTemp);
+                                                    env->highestAvgShortTermTemp);
             print_Stat_If_Supported_And_Valid_int64("Lowest Average Short Term Temperature (C)",
-                                                     env->lowestAvgShortTermTemp);
+                                                    env->lowestAvgShortTermTemp);
             print_Stat_If_Supported_And_Valid_int64("Highest Average Long Term Temperature (C)",
-                                                     env->highestAvgLongTermTemp);
+                                                    env->highestAvgLongTermTemp);
             print_Stat_If_Supported_And_Valid_int64("Lowest Average Long Term Temperature (C)",
-                                                     env->lowestAvgLongTermTemp);
+                                                    env->lowestAvgLongTermTemp);
             print_Stat_If_Supported_And_Valid_Time("Time in Over Temperature (Hours)", env->timeOverTemp,
                                                    MICRO_SECONDS_PER_MINUTE);
             print_Stat_If_Supported_And_Valid_Time("Time in Under Temperature (Hours)", env->timeUnderTemp,
