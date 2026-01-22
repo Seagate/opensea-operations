@@ -1402,6 +1402,7 @@ static eReturnValues ata_Get_Power_Consumption_Identifiers(const tDevice*       
         return BAD_PARAMETER;
     }
     RESTORE_NONNULL_COMPARE
+    bool     featureSupported        = false;
     uint32_t powerConsumptionLogSize = LEGACY_DRIVE_SEC_SIZE; // from ATA Spec
     uint8_t* powerConsumptionLog =
         C_CAST(uint8_t*, safe_calloc_aligned(powerConsumptionLogSize * sizeof(uint8_t), sizeof(uint8_t),
@@ -1411,31 +1412,30 @@ static eReturnValues ata_Get_Power_Consumption_Identifiers(const tDevice*       
         return MEMORY_FAILURE;
     }
 
-    // read 59h for Power Consumption Control log
-    ret = get_ATA_Log(device, ATA_LOG_POWER_CONSUMPTION_CONTROL_LOG, M_NULLPTR, M_NULLPTR, true, false, true,
-                      powerConsumptionLog, powerConsumptionLogSize, M_NULLPTR, powerConsumptionLogSize, 0);
+    // read 30h for IDENTIFY DEVICE data log with page 03h for support capabilities
+    ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 0x03, powerConsumptionLog,
+                                    LEGACY_DRIVE_SEC_SIZE, 0);
     if (SUCCESS == ret)
     {
-        identifiers->numberOfPCIdentifiers =
-            C_CAST(uint8_t, M_BytesTo8ByteValue(powerConsumptionLog[7], powerConsumptionLog[6], powerConsumptionLog[5],
-                                                powerConsumptionLog[4], powerConsumptionLog[3], powerConsumptionLog[2],
-                                                powerConsumptionLog[1], powerConsumptionLog[0]));
-        uint32_t pcIter  = UINT32_C(8);
-        uint32_t counter = UINT32_C(0);
-
-        for (; pcIter < powerConsumptionLogSize && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 8);
-             pcIter += 8, counter++)
+        uint64_t qword1 = M_BytesTo8ByteValue(powerConsumptionLog[15], powerConsumptionLog[14], powerConsumptionLog[13],
+                                              powerConsumptionLog[12], powerConsumptionLog[11], powerConsumptionLog[10],
+                                              powerConsumptionLog[9], powerConsumptionLog[8]);
+        if ((qword1 & ATA_ID_DATA_QWORD_VALID_BIT) && (qword1 & BIT59))
         {
-            identifiers->identifiers[counter].value =
-                M_BytesTo2ByteValue(powerConsumptionLog[pcIter], powerConsumptionLog[pcIter + 1]);
-            identifiers->identifiers[counter].units           = powerConsumptionLog[pcIter + 2] & 0x07;
-            identifiers->identifiers[counter].identifierValue = powerConsumptionLog[pcIter + 3];
+            featureSupported = true;
         }
     }
     else
     {
         safe_free_aligned(&powerConsumptionLog);
         return ret;
+    }
+
+    if (!featureSupported)
+    {
+        // no need to read other pages, return from here
+        safe_free_aligned(&powerConsumptionLog);
+        return NOT_SUPPORTED;
     }
 
     // read 30h for IDENTIFY DEVICE data log with page 04h for current settings
@@ -1465,6 +1465,34 @@ static eReturnValues ata_Get_Power_Consumption_Identifiers(const tDevice*       
                 identifiers->currentControlField.controlIdentifier = get_8bit_range_uint16(currentSetting, 7, 0);
                 identifiers->currentControlField.activeLevel       = get_8bit_range_uint16(currentSetting, 9, 8);
             }
+        }
+    }
+    else
+    {
+        safe_free_aligned(&powerConsumptionLog);
+        return ret;
+    }
+
+    // read 59h for Power Consumption Control log
+    memset(powerConsumptionLog, 0, LEGACY_DRIVE_SEC_SIZE);
+    ret = get_ATA_Log(device, ATA_LOG_POWER_CONSUMPTION_CONTROL_LOG, M_NULLPTR, M_NULLPTR, true, false, true,
+                      powerConsumptionLog, powerConsumptionLogSize, M_NULLPTR, powerConsumptionLogSize, 0);
+    if (SUCCESS == ret)
+    {
+        identifiers->numberOfPCIdentifiers =
+            C_CAST(uint8_t, M_BytesTo8ByteValue(powerConsumptionLog[7], powerConsumptionLog[6], powerConsumptionLog[5],
+                                                powerConsumptionLog[4], powerConsumptionLog[3], powerConsumptionLog[2],
+                                                powerConsumptionLog[1], powerConsumptionLog[0]));
+        uint32_t pcIter  = UINT32_C(8);
+        uint32_t counter = UINT32_C(0);
+
+        for (; pcIter < powerConsumptionLogSize && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 8);
+             pcIter += 8, counter++)
+        {
+            identifiers->identifiers[counter].value =
+                M_BytesTo2ByteValue(powerConsumptionLog[pcIter], powerConsumptionLog[pcIter + 1]);
+            identifiers->identifiers[counter].units           = powerConsumptionLog[pcIter + 2] & 0x07;
+            identifiers->identifiers[counter].identifierValue = powerConsumptionLog[pcIter + 3];
         }
     }
     else
@@ -1657,7 +1685,7 @@ static void ata_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifie
                 // this has been observed on STX drive - Nidhi
                 else
                 {
-                    print_str("Drive is currently configured with unknown settings!");
+                    print_str("Drive is currently configured with unknown settings!\n");
                 }
             }
             else
@@ -1988,6 +2016,7 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
     *powerConsumptionIdentifier = 0xFF; // invalid
 
     ret = get_Power_Consumption_Identifiers(device, &identifiers);
+
     /*
     This is a dummied up test to make sure this code REALLY REALLY works by putting these in a random order (since
     order is not specified in the SPC specification)
@@ -2007,8 +2036,12 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
     identifiers.identifiers[3].units = 3;//watts
     identifiers.identifiers[3].value = 2;
     */
+
     if (ret == SUCCESS)
     {
+        if (identifiers.numberOfPCIdentifiers == 0) //to handle case when no descriptors are available
+            return BAD_PARAMETER;
+
         // ctc one line code change follows
         uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
 
@@ -2022,7 +2055,7 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
         uint64_t watts1 = UINT64_C(0);
         uint64_t watts2 = UINT64_C(0);
 
-        ret = NOT_SUPPORTED;
+        ret = BAD_PARAMETER;
         // ctc changed to nested for loops here... not sure it's needed, but it's clearer
         //         for (; iter1 < identifiers.numberOfpowerConsumptionIdentifiers /* && iter2 >= 0*/; iter1++,
         //         iter2--)
