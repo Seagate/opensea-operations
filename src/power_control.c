@@ -2009,141 +2009,131 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
     */
     if (ret == SUCCESS)
     {
-        if (device->drive_info.drive_type == ATA_DRIVE)
-        {
-            if (C_CAST(uint8_t, watts) > identifiers.numberOfPCIdentifiers)
-                ret = NOT_SUPPORTED;
-            else
-                *powerConsumptionIdentifier = C_CAST(uint8_t, watts);
-        }
-        else if (device->drive_info.drive_type == SCSI_DRIVE)
-        {
-            // ctc one line code change follows
-            uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
+        // ctc one line code change follows
+        uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
 
-            bool exactMatchFound = false;
-            // now map the watt value to a power consumption identifier
-            // ctc had to change variable initialization of iter1 and inter2 to match now-nested for loops
-            uint8_t  iter1  = UINT8_C(0);
-            uint8_t  iter2  = UINT8_C(0);
-            uint8_t  pcId1  = UINT8_C(0xFF);
-            uint8_t  pcId2  = UINT8_C(0xFF);
-            uint64_t watts1 = UINT64_C(0);
-            uint64_t watts2 = UINT64_C(0);
+        bool exactMatchFound = false;
+        // now map the watt value to a power consumption identifier
+        // ctc had to change variable initialization of iter1 and inter2 to match now-nested for loops
+        uint8_t  iter1  = UINT8_C(0);
+        uint8_t  iter2  = UINT8_C(0);
+        uint8_t  pcId1  = UINT8_C(0xFF);
+        uint8_t  pcId2  = UINT8_C(0xFF);
+        uint64_t watts1 = UINT64_C(0);
+        uint64_t watts2 = UINT64_C(0);
 
-            ret = NOT_SUPPORTED;
-            // ctc changed to nested for loops here... not sure it's needed, but it's clearer
-            //         for (; iter1 < identifiers.numberOfpowerConsumptionIdentifiers /* && iter2 >= 0*/; iter1++,
-            //         iter2--)
-            for (; iter1 < identifiers.numberOfPCIdentifiers; iter1++)
+        ret = NOT_SUPPORTED;
+        // ctc changed to nested for loops here... not sure it's needed, but it's clearer
+        //         for (; iter1 < identifiers.numberOfpowerConsumptionIdentifiers /* && iter2 >= 0*/; iter1++,
+        //         iter2--)
+        for (; iter1 < identifiers.numberOfPCIdentifiers; iter1++)
+        {
+            // ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code
+            // doesn't follow convention ctc and use for(initializer, condition, increment), but whatever.
+            // Nonstandard and goofy coding sytle, I guess
+            iter2 = 0;
+            for (; iter2 < identifiers.numberOfPCIdentifiers; iter2++)
             {
-                // ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code
-                // doesn't follow convention ctc and use for(initializer, condition, increment), but whatever.
-                // Nonstandard and goofy coding sytle, I guess
-                iter2 = 0;
-                for (; iter2 < identifiers.numberOfPCIdentifiers; iter2++)
+                uint64_t pcWatts1 = identifiers.identifiers[iter1].value;
+                uint64_t pcWatts2 = identifiers.identifiers[iter2].value;
+                // convert based on the units!
+                switch (identifiers.identifiers[iter1].units)
                 {
-                    uint64_t pcWatts1 = identifiers.identifiers[iter1].value;
-                    uint64_t pcWatts2 = identifiers.identifiers[iter2].value;
-                    // convert based on the units!
-                    switch (identifiers.identifiers[iter1].units)
+                case 0: // gigawatts
+                    pcWatts1 *= UINT64_C(1000000000);
+                    break;
+                case 1: // megawatts
+                    pcWatts1 *= UINT64_C(1000000);
+                    break;
+                case 2: // kilowatts
+                    pcWatts1 *= UINT64_C(1000);
+                    break;
+                case 3: // watts
+                    break;
+                case 4: // milliwatts
+                    // ctc properly round milliwatts values
+                    pcWatts1 = (pcWatts1 + UINT64_C(500)) / UINT64_C(1000);
+                    break;
+                case 5: // microwatts
+                    // ctc properly round microwatts values
+                    pcWatts1 = (pcWatts1 + UINT64_C(500000)) / UINT64_C(1000000);
+                    break;
+                default:
+                    ret = NOT_SUPPORTED;
+                    break;
+                }
+                // ctc change code line below to switch on [iter2] instead of [iter1]
+                switch (identifiers.identifiers[iter2].units)
+                {
+                case 0: // gigawatts
+                    pcWatts2 *= UINT64_C(1000000000);
+                    break;
+                case 1: // megawatts
+                    pcWatts2 *= UINT64_C(1000000);
+                    break;
+                case 2: // kilowatts
+                    pcWatts2 *= UINT64_C(1000);
+                    break;
+                case 3: // watts
+                    break;
+                case 4: // milliwatts
+                    // ctc properly round milliwatts values
+                    pcWatts2 = (pcWatts2 + UINT64_C(500)) / UINT64_C(1000);
+                    break;
+                case 5: // microwatts
+                    // ctc properly round microwatts values
+                    pcWatts2 = (pcWatts2 + UINT64_C(500000)) / UINT64_C(1000000);
+                    break;
+                default:
+                    ret = NOT_SUPPORTED;
+                    break;
+                }
+                if (pcWatts1 <= roundedWatts)
+                {
+                    if (watts - C_CAST(double, watts1) > watts - C_CAST(double, pcWatts1))
                     {
-                    case 0: // gigawatts
-                        pcWatts1 *= UINT64_C(1000000000);
-                        break;
-                    case 1: // megawatts
-                        pcWatts1 *= UINT64_C(1000000);
-                        break;
-                    case 2: // kilowatts
-                        pcWatts1 *= UINT64_C(1000);
-                        break;
-                    case 3: // watts
-                        break;
-                    case 4: // milliwatts
-                        // ctc properly round milliwatts values
-                        pcWatts1 = (pcWatts1 + UINT64_C(500)) / UINT64_C(1000);
-                        break;
-                    case 5: // microwatts
-                        // ctc properly round microwatts values
-                        pcWatts1 = (pcWatts1 + UINT64_C(500000)) / UINT64_C(1000000);
-                        break;
-                    default:
-                        ret = NOT_SUPPORTED;
-                        break;
-                    }
-                    // ctc change code line below to switch on [iter2] instead of [iter1]
-                    switch (identifiers.identifiers[iter2].units)
-                    {
-                    case 0: // gigawatts
-                        pcWatts2 *= UINT64_C(1000000000);
-                        break;
-                    case 1: // megawatts
-                        pcWatts2 *= UINT64_C(1000000);
-                        break;
-                    case 2: // kilowatts
-                        pcWatts2 *= UINT64_C(1000);
-                        break;
-                    case 3: // watts
-                        break;
-                    case 4: // milliwatts
-                        // ctc properly round milliwatts values
-                        pcWatts2 = (pcWatts2 + UINT64_C(500)) / UINT64_C(1000);
-                        break;
-                    case 5: // microwatts
-                        // ctc properly round microwatts values
-                        pcWatts2 = (pcWatts2 + UINT64_C(500000)) / UINT64_C(1000000);
-                        break;
-                    default:
-                        ret = NOT_SUPPORTED;
-                        break;
-                    }
-                    if (pcWatts1 <= roundedWatts)
-                    {
-                        if (watts - C_CAST(double, watts1) > watts - C_CAST(double, pcWatts1))
+                        pcId1  = identifiers.identifiers[iter1].identifierValue;
+                        watts1 = pcWatts1;
+                        if (pcWatts1 == roundedWatts)
                         {
-                            pcId1  = identifiers.identifiers[iter1].identifierValue;
-                            watts1 = pcWatts1;
-                            if (pcWatts1 == roundedWatts)
-                            {
-                                ret                         = SUCCESS;
-                                exactMatchFound             = true;
-                                *powerConsumptionIdentifier = identifiers.identifiers[iter1].identifierValue;
-                                break;
-                            }
+                            ret                         = SUCCESS;
+                            exactMatchFound             = true;
+                            *powerConsumptionIdentifier = identifiers.identifiers[iter1].identifierValue;
+                            break;
                         }
                     }
-                    if (pcWatts2 <= roundedWatts)
+                }
+                if (pcWatts2 <= roundedWatts)
+                {
+                    if (watts - C_CAST(double, watts2) > watts - C_CAST(double, pcWatts2))
                     {
-                        if (watts - C_CAST(double, watts2) > watts - C_CAST(double, pcWatts2))
+                        pcId2  = identifiers.identifiers[iter2].identifierValue;
+                        watts2 = pcWatts2;
+                        if (pcWatts2 == roundedWatts)
                         {
-                            pcId2  = identifiers.identifiers[iter2].identifierValue;
-                            watts2 = pcWatts2;
-                            if (pcWatts2 == roundedWatts)
-                            {
-                                ret                         = SUCCESS;
-                                exactMatchFound             = true;
-                                *powerConsumptionIdentifier = identifiers.identifiers[iter2].identifierValue;
-                                break;
-                            }
+                            ret                         = SUCCESS;
+                            exactMatchFound             = true;
+                            *powerConsumptionIdentifier = identifiers.identifiers[iter2].identifierValue;
+                            break;
                         }
                     }
                 }
             }
-            if (!exactMatchFound)
-            {
-                // now compare the best results between the two iterators to see which is closer to the best match, or
-                // is the best match need to check which one is closer and select it
+        }
 
-                if (watts - C_CAST(double, watts1) >= watts - C_CAST(double, watts2))
-                {
-                    ret                         = SUCCESS;
-                    *powerConsumptionIdentifier = pcId2;
-                }
-                else if (watts - C_CAST(double, watts1) <= watts - C_CAST(double, watts2))
-                {
-                    ret                         = SUCCESS;
-                    *powerConsumptionIdentifier = pcId1;
-                }
+        if (!exactMatchFound)
+        {
+            // now compare the best results between the two iterators to see which is closer to the best match, or
+            // is the best match need to check which one is closer and select it
+            if (watts - C_CAST(double, watts1) >= watts - C_CAST(double, watts2))
+            {
+                ret                         = SUCCESS;
+                *powerConsumptionIdentifier = pcId2;
+            }
+            else if (watts - C_CAST(double, watts1) <= watts - C_CAST(double, watts2))
+            {
+                ret                         = SUCCESS;
+                *powerConsumptionIdentifier = pcId1;
             }
         }
     }
