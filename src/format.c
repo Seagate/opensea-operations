@@ -855,10 +855,48 @@ static bool is_ATA_At_Least_ACS_4(const tDevice* device)
     }
 }
 
+// this is a weird case where the drive may be in a corrupt state and cannot reliably report the supported
+// sector sizes. We know that when this happens, we can still issue the command with a valid descriptor check
+// value. These descriptor check values are unique to each vendor and the vendor can decide to change these at
+// any point. They could change during firmware updates, or for different models, etc. At this time Seagate has
+// these hard coded values so we will use these so that the command can be retired and potentially recover a
+// drive that was interrupted while it was previously running a format operation.
+static void set_Seagate_ATA_Format_Descriptors(ptrSupportedFormats formats)
+{
+    formats->sectorSizes[0].valid                     = true;
+    formats->sectorSizes[0].currentFormat             = false;
+    formats->sectorSizes[0].logicalBlockLength        = 512;
+    formats->sectorSizes[0].additionalInformationType = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
+    formats->sectorSizes[0].ataSetSectorFields.descriptorCheck =
+        0xF293; // hard coded value from Seagate for 512 byte sector size
+    formats->sectorSizes[0].ataSetSectorFields.descriptorIndex = 0;
+    formats->sectorSizes[1].valid                              = true;
+    formats->sectorSizes[1].currentFormat                      = false;
+    formats->sectorSizes[1].logicalBlockLength                 = 4096;
+    formats->sectorSizes[1].additionalInformationType          = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
+    formats->sectorSizes[1].ataSetSectorFields.descriptorCheck =
+        0xC8D7; // hard coded value from Seagate for 4096 byte sector size
+    formats->sectorSizes[1].ataSetSectorFields.descriptorIndex = 1;
+}
+
+// Default case for drives that do not support changing sector size. Just reports back the current size.
+static void set_Current_ATA_Format_Descriptor(ptrSupportedFormats formats, uint32_t currentBlockSize)
+{
+    formats->deviceSupportsOtherFormats                              = false;
+    formats->numberOfSectorSizes                                     = 1;
+    formats->protectionInformationSupported.deviceSupportsProtection = false;
+    formats->sectorSizes[0].valid                                    = true;
+    formats->sectorSizes[0].currentFormat                            = true;
+    formats->sectorSizes[0].logicalBlockLength                       = currentBlockSize;
+    formats->sectorSizes[0].additionalInformationType                = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
+}
+
 static eReturnValues ata_Get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
 {
-    eReturnValues ret = NOT_SUPPORTED;
-    if (is_Set_Sector_Configuration_Supported(device))
+    eReturnValues ret      = NOT_SUPPORTED;
+    uint32_t      log2fLen = UINT32_C(0);
+    if (is_Set_Sector_Configuration_Supported(device) ||
+        (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SECTOR_CONFIGURATION_LOG, &log2fLen, true, false) && log2fLen > 0))
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, sectorConfigurationLog, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_SECTOR_CONFIGURATION_LOG, 0, sectorConfigurationLog,
@@ -905,42 +943,19 @@ static eReturnValues ata_Get_Supported_Formats(const tDevice* device, ptrSupport
             ret = FAILURE;
         }
     }
-    else if (SEAGATE == is_Seagate_Family(device) && is_SSD(device) == false && is_ATA_At_Least_ACS_4(device))
+    if (ret != SUCCESS)
     {
-        // this is a weird case where the drive may be in a corrupt state and cannot reliably report the supported
-        // sector sizes. We know that when this happens, we can still issue the command with a valid descriptor check value.
-        // These descriptor check values are unique to each vendor and the vendor can decide to change these
-        // at any point. They could change during firmware updates, or for different models, etc.
-        // At this time Seagate has these hard coded values so we will use these so that the command can be retired
-        // and potentially recover a drive that was interrupted while it was previously running a format operation.
-        formats->deviceSupportsOtherFormats                              = true;
-        formats->numberOfSectorSizes                                     = 2;
-        formats->protectionInformationSupported.deviceSupportsProtection = false;
-        formats->sectorSizes[0].valid                                    = true;
-        formats->sectorSizes[0].currentFormat                            = false;
-        formats->sectorSizes[0].logicalBlockLength                       = 512;
-        formats->sectorSizes[0].additionalInformationType                = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
-        formats->sectorSizes[0].ataSetSectorFields.descriptorCheck       = 0xF293;
-        formats->sectorSizes[0].ataSetSectorFields.descriptorIndex       = 0;
-        formats->sectorSizes[1].valid                                    = true;
-        formats->sectorSizes[1].currentFormat                            = false;
-        formats->sectorSizes[1].logicalBlockLength                       = 4096;
-        formats->sectorSizes[1].additionalInformationType                = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
-        formats->sectorSizes[1].ataSetSectorFields.descriptorCheck       = 0xC8D7;
-        formats->sectorSizes[1].ataSetSectorFields.descriptorIndex       = 1;
-        ret = SUCCESS;
-    }
-    else
-    {
-        // Default case for drives that do not support changing sector size. Just reports back the current size.
-        formats->deviceSupportsOtherFormats                              = false;
-        formats->numberOfSectorSizes                                     = 1;
-        formats->protectionInformationSupported.deviceSupportsProtection = false;
-        formats->sectorSizes[0].valid                                    = true;
-        formats->sectorSizes[0].currentFormat                            = true;
-        formats->sectorSizes[0].logicalBlockLength                       = device->drive_info.deviceBlockSize;
-        formats->sectorSizes[0].additionalInformationType                = SECTOR_SIZE_ADDITIONAL_INFO_NONE;
-        ret                                                              = SUCCESS;
+        if (SEAGATE == is_Seagate_Family(device) && is_SSD(device) == false && is_ATA_At_Least_ACS_4(device))
+        {
+            set_Seagate_ATA_Format_Descriptors(formats);
+            ret = SUCCESS;
+        }
+        else
+        {
+            // Default case for drives that do not support changing sector size. Just reports back the current size.
+            set_Current_ATA_Format_Descriptor(formats, device->drive_info.deviceBlockSize);
+            ret = SUCCESS;
+        }
     }
     return ret;
 }
@@ -1633,8 +1648,8 @@ eReturnValues set_Sector_Configuration(const tDevice* device, uint32_t sectorSiz
 // This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
 static eReturnValues passthrough_Erase_MBR(const tDevice* device)
 {
-    eReturnValues ret = SUCCESS;
-    bool mbrEraseWarning = false;
+    eReturnValues ret             = SUCCESS;
+    bool          mbrEraseWarning = false;
     if (device->drive_info.deviceBlockSize > 0)
     {
         uint8_t* eraseMBR = M_NULLPTR;
@@ -1647,9 +1662,9 @@ static eReturnValues passthrough_Erase_MBR(const tDevice* device)
             device->drive_info.bridge_info.childDeviceBlockSize > 0)
         {
             // use a passthrough write instead
-            eraseMBR = M_REINTERPRET_CAST(uint8_t*,
-                                            safe_calloc_aligned(device->drive_info.bridge_info.childDeviceBlockSize,
-                                                                sizeof(uint8_t), device->os_info.minimumAlignment));
+            eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.bridge_info.childDeviceBlockSize,
+                                                                 sizeof(uint8_t), device->os_info.minimumAlignment));
             if (eraseMBR != M_NULLPTR)
             {
                 if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1657,15 +1672,15 @@ static eReturnValues passthrough_Erase_MBR(const tDevice* device)
                     writeMBR =
                         ata_Write(device, 0, false, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
                     writeBackupMBR = ata_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, false,
-                                                eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
+                                               eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
                 }
                 else if (device->drive_info.drive_type == NVME_DRIVE)
                 {
-                    writeMBR       = nvme_Write(device, 0, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
-                                                device->drive_info.bridge_info.childDeviceBlockSize);
-                    writeBackupMBR = nvme_Write(device, device->drive_info.bridge_info.childDeviceMaxLba,
-                                                NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
-                                                device->drive_info.bridge_info.childDeviceBlockSize);
+                    writeMBR = nvme_Write(device, 0, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
+                                          device->drive_info.bridge_info.childDeviceBlockSize);
+                    writeBackupMBR =
+                        nvme_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, NVME_0_BASED_ADJUST(1),
+                                   false, false, 0, 0, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
                 }
                 else
                 {
@@ -1679,14 +1694,14 @@ static eReturnValues passthrough_Erase_MBR(const tDevice* device)
         }
         else
         {
-            eraseMBR = M_REINTERPRET_CAST(uint8_t*,
-                                            safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                                device->os_info.minimumAlignment));
+            eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
+                                                                 device->os_info.minimumAlignment));
             if (eraseMBR != M_NULLPTR)
             {
                 writeMBR       = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
                 writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
-                                            device->drive_info.deviceBlockSize);
+                                           device->drive_info.deviceBlockSize);
             }
             else
             {
