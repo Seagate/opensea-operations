@@ -841,6 +841,20 @@ uint32_t get_Number_Of_Supported_Sector_Sizes(M_ATTR_UNUSED const tDevice* devic
     return UINT32_C(1);
 }
 
+static bool is_ATA_At_Least_ACS_4(const tDevice* device)
+{
+    if (is_ATA_Identify_Word_Valid(device->drive_info.IdentifyData.ata.Word080))
+    {
+        // If bits 11 or higher are set to 1, then at least ACS-4 is supported which is when the
+        // set sector configuration command was introduced.
+        return M_ToBool(device->drive_info.IdentifyData.ata.Word080 & 0xF800);
+    }
+    else
+    {
+        return false;
+    }
+}
+
 static eReturnValues ata_Get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -891,8 +905,34 @@ static eReturnValues ata_Get_Supported_Formats(const tDevice* device, ptrSupport
             ret = FAILURE;
         }
     }
+    else if (SEAGATE == is_Seagate_Family(device) && is_SSD(device) == false && is_ATA_At_Least_ACS_4(device))
+    {
+        // this is a weird case where the drive may be in a corrupt state and cannot reliably report the supported
+        // sector sizes. We know that when this happens, we can still issue the command with a valid descriptor check value.
+        // These descriptor check values are unique to each vendor and the vendor can decide to change these
+        // at any point. They could change during firmware updates, or for different models, etc.
+        // At this time Seagate has these hard coded values so we will use these so that the command can be retired
+        // and potentially recover a drive that was interrupted while it was previously running a format operation.
+        formats->deviceSupportsOtherFormats                              = true;
+        formats->numberOfSectorSizes                                     = 2;
+        formats->protectionInformationSupported.deviceSupportsProtection = false;
+        formats->sectorSizes[0].valid                                    = true;
+        formats->sectorSizes[0].currentFormat                            = false;
+        formats->sectorSizes[0].logicalBlockLength                       = 512;
+        formats->sectorSizes[0].additionalInformationType                = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
+        formats->sectorSizes[0].ataSetSectorFields.descriptorCheck       = 0xF293;
+        formats->sectorSizes[0].ataSetSectorFields.descriptorIndex       = 0;
+        formats->sectorSizes[1].valid                                    = true;
+        formats->sectorSizes[1].currentFormat                            = false;
+        formats->sectorSizes[1].logicalBlockLength                       = 4096;
+        formats->sectorSizes[1].additionalInformationType                = SECTOR_SIZE_ADDITIONAL_INFO_ATA;
+        formats->sectorSizes[1].ataSetSectorFields.descriptorCheck       = 0xC8D7;
+        formats->sectorSizes[1].ataSetSectorFields.descriptorIndex       = 1;
+        ret = SUCCESS;
+    }
     else
     {
+        // Default case for drives that do not support changing sector size. Just reports back the current size.
         formats->deviceSupportsOtherFormats                              = false;
         formats->numberOfSectorSizes                                     = 1;
         formats->protectionInformationSupported.deviceSupportsProtection = false;
@@ -1585,6 +1625,93 @@ eReturnValues set_Sector_Configuration(const tDevice* device, uint32_t sectorSiz
     return set_Sector_Configuration_With_Force(device, sectorSize, false);
 }
 
+// a weird case was found when changing the sector size on a drive with an existing partition on it.
+// Since the MBR was a "dummy" for GPT, it is setup to look like the entire disk has a partition to stop an
+// old OS from overwriting partitions setup with GPT.
+// So Windows blocks the ability to change the partition.
+// The solution is simple: erase the MBR before the format.
+// This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
+static eReturnValues passthrough_Erase_MBR(const tDevice* device)
+{
+    eReturnValues ret = SUCCESS;
+    bool mbrEraseWarning = false;
+    if (device->drive_info.deviceBlockSize > 0)
+    {
+        uint8_t* eraseMBR = M_NULLPTR;
+        // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
+        // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
+        // why it will also be erased
+        eReturnValues writeMBR       = SUCCESS;
+        eReturnValues writeBackupMBR = SUCCESS;
+        if (device->drive_info.drive_type != SCSI_DRIVE && !is_Blocksize_And_Capacity_In_Sync(device) &&
+            device->drive_info.bridge_info.childDeviceBlockSize > 0)
+        {
+            // use a passthrough write instead
+            eraseMBR = M_REINTERPRET_CAST(uint8_t*,
+                                            safe_calloc_aligned(device->drive_info.bridge_info.childDeviceBlockSize,
+                                                                sizeof(uint8_t), device->os_info.minimumAlignment));
+            if (eraseMBR != M_NULLPTR)
+            {
+                if (device->drive_info.drive_type == ATA_DRIVE)
+                {
+                    writeMBR =
+                        ata_Write(device, 0, false, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
+                    writeBackupMBR = ata_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, false,
+                                                eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
+                }
+                else if (device->drive_info.drive_type == NVME_DRIVE)
+                {
+                    writeMBR       = nvme_Write(device, 0, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
+                                                device->drive_info.bridge_info.childDeviceBlockSize);
+                    writeBackupMBR = nvme_Write(device, device->drive_info.bridge_info.childDeviceMaxLba,
+                                                NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
+                                                device->drive_info.bridge_info.childDeviceBlockSize);
+                }
+                else
+                {
+                    mbrEraseWarning = true;
+                }
+            }
+            else
+            {
+                mbrEraseWarning = true;
+            }
+        }
+        else
+        {
+            eraseMBR = M_REINTERPRET_CAST(uint8_t*,
+                                            safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
+                                                                device->os_info.minimumAlignment));
+            if (eraseMBR != M_NULLPTR)
+            {
+                writeMBR       = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+                writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
+                                            device->drive_info.deviceBlockSize);
+            }
+            else
+            {
+                mbrEraseWarning = true;
+            }
+        }
+        if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+        {
+            mbrEraseWarning = true;
+        }
+        safe_free_aligned(&eraseMBR);
+        if (mbrEraseWarning)
+        {
+            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+            {
+                print_str(
+                    "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
+                    "first sector of the device\n");
+                print_str("         and the last sector (max LBA) then try creating new partitions again.\n");
+            }
+        }
+    }
+    return ret;
+}
+
 eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_t sectorSize, bool force)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -1613,87 +1740,6 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
         os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
         os_Lock_Device(device);
         os_Unmount_File_Systems_On_Device(device);
-        // a weird case was found when changing the sector size on a drive with an existing partition on it.
-        // Since the MBR was a "dummy" for GPT, it is setup to look like the entire disk has a partition to stop an
-        // old OS from overwriting partitions setup with GPT.
-        // So Windows blocks the ability to change the partition.
-        // The solution is simple: erase the MBR before the format.
-        // This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
-        bool mbrEraseWarning = false;
-        if (device->drive_info.deviceBlockSize > 0)
-        {
-            uint8_t* eraseMBR = M_NULLPTR;
-            // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
-            // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
-            // why it will also be erased
-            eReturnValues writeMBR       = SUCCESS;
-            eReturnValues writeBackupMBR = SUCCESS;
-            if (device->drive_info.drive_type != SCSI_DRIVE && !is_Blocksize_And_Capacity_In_Sync(device) &&
-                device->drive_info.bridge_info.childDeviceBlockSize > 0)
-            {
-                // use a passthrough write instead
-                eraseMBR = M_REINTERPRET_CAST(uint8_t*,
-                                              safe_calloc_aligned(device->drive_info.bridge_info.childDeviceBlockSize,
-                                                                  sizeof(uint8_t), device->os_info.minimumAlignment));
-                if (eraseMBR != M_NULLPTR)
-                {
-                    if (device->drive_info.drive_type == ATA_DRIVE)
-                    {
-                        writeMBR =
-                            ata_Write(device, 0, false, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
-                        writeBackupMBR = ata_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, false,
-                                                   eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
-                    }
-                    else if (device->drive_info.drive_type == NVME_DRIVE)
-                    {
-                        writeMBR       = nvme_Write(device, 0, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
-                                                    device->drive_info.bridge_info.childDeviceBlockSize);
-                        writeBackupMBR = nvme_Write(device, device->drive_info.bridge_info.childDeviceMaxLba,
-                                                    NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
-                                                    device->drive_info.bridge_info.childDeviceBlockSize);
-                    }
-                    else
-                    {
-                        mbrEraseWarning = true;
-                    }
-                }
-                else
-                {
-                    mbrEraseWarning = true;
-                }
-            }
-            else
-            {
-                eraseMBR = M_REINTERPRET_CAST(uint8_t*,
-                                              safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                                  device->os_info.minimumAlignment));
-                if (eraseMBR != M_NULLPTR)
-                {
-                    writeMBR       = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-                    writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
-                                               device->drive_info.deviceBlockSize);
-                }
-                else
-                {
-                    mbrEraseWarning = true;
-                }
-            }
-            if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
-            {
-                mbrEraseWarning = true;
-            }
-            safe_free_aligned(&eraseMBR);
-            if (mbrEraseWarning)
-            {
-                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-                {
-                    printf(
-                        "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
-                        "first sector of the device\n");
-                    print_str("         and the last sector (max LBA) then try creating new partitions again.\n");
-                }
-            }
-        }
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
             uint16_t descriptorCheck = UINT16_C(0);
@@ -1781,6 +1827,12 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
                 formatUnitParameters.formatType = FORMAT_FAST_WRITE_REQUIRED;
             }
             ret = run_Format_Unit(device, formatUnitParameters, true);
+        }
+        if (ret == SUCCESS)
+        {
+            fill_Drive_Info_Data(M_CONST_CAST(tDevice*, device));
+            // attempt to erase MBR to allow partitioning on drives that had a dummy MBR prior to changing sector size
+            passthrough_Erase_MBR(device);
         }
         os_Unlock_Device(device);
     }
