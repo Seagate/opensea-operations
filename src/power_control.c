@@ -1391,103 +1391,363 @@ eReturnValues get_Power_State(const tDevice* device, uint32_t* powerState, eFeat
     return ret;
 }
 
-eReturnValues get_Power_Consumption_Identifiers(const tDevice* device, ptrPowerConsumptionIdentifiers identifiers)
+static eReturnValues ata_Get_Power_Consumption_Identifiers(const tDevice*                 device,
+                                                           ptrPowerConsumptionIdentifiers identifiers)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE) // this is only available on SCSI drives.
+
+    DISABLE_NONNULL_COMPARE
+    if (identifiers == M_NULLPTR)
     {
-        uint32_t powerConsumptionLength = UINT32_C(0);
-        if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
+        return BAD_PARAMETER;
+    }
+    RESTORE_NONNULL_COMPARE
+    bool     featureSupported        = false;
+    uint32_t powerConsumptionLogSize = LEGACY_DRIVE_SEC_SIZE; // from ATA Spec
+    uint8_t* powerConsumptionLog =
+        C_CAST(uint8_t*, safe_calloc_aligned(powerConsumptionLogSize * sizeof(uint8_t), sizeof(uint8_t),
+                                             device->os_info.minimumAlignment));
+    if (powerConsumptionLog == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+
+    // read 30h for IDENTIFY DEVICE data log with page 03h for support capabilities
+    ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 0x03, powerConsumptionLog,
+                                    LEGACY_DRIVE_SEC_SIZE, 0);
+    if (SUCCESS == ret)
+    {
+        uint64_t qword1 = M_BytesTo8ByteValue(powerConsumptionLog[15], powerConsumptionLog[14], powerConsumptionLog[13],
+                                              powerConsumptionLog[12], powerConsumptionLog[11], powerConsumptionLog[10],
+                                              powerConsumptionLog[9], powerConsumptionLog[8]);
+        if ((qword1 & ATA_ID_DATA_QWORD_VALID_BIT) && (qword1 & BIT59))
         {
-            uint8_t* powerConsumptionPage =
-                C_CAST(uint8_t*,
-                       safe_calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (powerConsumptionPage == M_NULLPTR)
+            featureSupported = true;
+        }
+    }
+    else
+    {
+        safe_free_aligned(&powerConsumptionLog);
+        return ret;
+    }
+
+    if (!featureSupported)
+    {
+        // no need to read other pages, return from here
+        safe_free_aligned(&powerConsumptionLog);
+        return NOT_SUPPORTED;
+    }
+
+    // read 30h for IDENTIFY DEVICE data log with page 04h for current settings
+    memset(powerConsumptionLog, 0, LEGACY_DRIVE_SEC_SIZE);
+    ret = send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA, 0x04, powerConsumptionLog,
+                                    LEGACY_DRIVE_SEC_SIZE, 0);
+    if (SUCCESS == ret)
+    {
+        uint64_t qword1 = M_BytesTo8ByteValue(powerConsumptionLog[15], powerConsumptionLog[14], powerConsumptionLog[13],
+                                              powerConsumptionLog[12], powerConsumptionLog[11], powerConsumptionLog[10],
+                                              powerConsumptionLog[9], powerConsumptionLog[8]);
+        if ((qword1 & ATA_ID_DATA_QWORD_VALID_BIT) && (qword1 & BIT24))
+        {
+            identifiers->currentIdentifierValid = true;
+
+            uint64_t controlSettings = M_BytesTo8ByteValue(
+                powerConsumptionLog[95], powerConsumptionLog[94], powerConsumptionLog[93], powerConsumptionLog[92],
+                powerConsumptionLog[91], powerConsumptionLog[90], powerConsumptionLog[89], powerConsumptionLog[88]);
+            if (controlSettings & ATA_ID_DATA_QWORD_VALID_BIT)
             {
-                return MEMORY_FAILURE;
+
+                uint16_t defaultSetting                            = get_16bit_range_uint64(controlSettings, 31, 16);
+                identifiers->defaultControlField.controlIdentifier = get_8bit_range_uint16(defaultSetting, 7, 0);
+                identifiers->defaultControlField.activeLevel       = get_8bit_range_uint16(defaultSetting, 9, 8);
+
+                uint16_t currentSetting                            = get_16bit_range_uint64(controlSettings, 15, 0);
+                identifiers->currentControlField.controlIdentifier = get_8bit_range_uint16(currentSetting, 7, 0);
+                identifiers->currentControlField.activeLevel       = get_8bit_range_uint16(currentSetting, 9, 8);
             }
-            if (SUCCESS ==
-                scsi_Inquiry(device, powerConsumptionPage, powerConsumptionLength, POWER_CONSUMPTION, true, false))
+        }
+    }
+    else
+    {
+        safe_free_aligned(&powerConsumptionLog);
+        return ret;
+    }
+
+    // read 59h for Power Consumption Control log
+    memset(powerConsumptionLog, 0, LEGACY_DRIVE_SEC_SIZE);
+    ret = get_ATA_Log(device, ATA_LOG_POWER_CONSUMPTION_CONTROL_LOG, M_NULLPTR, M_NULLPTR, true, false, true,
+                      powerConsumptionLog, powerConsumptionLogSize, M_NULLPTR, powerConsumptionLogSize, 0);
+    if (SUCCESS == ret)
+    {
+        identifiers->numberOfPCIdentifiers =
+            C_CAST(uint8_t, M_BytesTo8ByteValue(powerConsumptionLog[7], powerConsumptionLog[6], powerConsumptionLog[5],
+                                                powerConsumptionLog[4], powerConsumptionLog[3], powerConsumptionLog[2],
+                                                powerConsumptionLog[1], powerConsumptionLog[0]));
+        uint32_t pcIter  = UINT32_C(8);
+        uint32_t counter = UINT32_C(0);
+
+        for (; pcIter < powerConsumptionLogSize && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 8);
+             pcIter += 8, counter++)
+        {
+            identifiers->identifiers[counter].value =
+                M_BytesTo2ByteValue(powerConsumptionLog[pcIter], powerConsumptionLog[pcIter + 1]);
+            identifiers->identifiers[counter].units           = powerConsumptionLog[pcIter + 2] & 0x07;
+            identifiers->identifiers[counter].identifierValue = powerConsumptionLog[pcIter + 3];
+        }
+    }
+    else
+    {
+        safe_free_aligned(&powerConsumptionLog);
+        return ret;
+    }
+
+    safe_free_aligned(&powerConsumptionLog);
+
+    return ret;
+}
+
+static eReturnValues scsi_Get_Power_Consumption_Identifiers(const tDevice*                 device,
+                                                            ptrPowerConsumptionIdentifiers identifiers)
+{
+    eReturnValues ret                    = NOT_SUPPORTED;
+    uint32_t      powerConsumptionLength = UINT32_C(0);
+    if (SUCCESS == get_SCSI_VPD_Page_Size(device, POWER_CONSUMPTION, &powerConsumptionLength))
+    {
+        uint8_t* powerConsumptionPage = C_CAST(
+            uint8_t*, safe_calloc_aligned(powerConsumptionLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        if (powerConsumptionPage == M_NULLPTR)
+        {
+            return MEMORY_FAILURE;
+        }
+        if (SUCCESS ==
+            scsi_Inquiry(device, powerConsumptionPage, powerConsumptionLength, POWER_CONSUMPTION, true, false))
+        {
+            ret = SUCCESS;
+            // now get all the power consumption descriptors into the struct
+            identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
+            uint32_t pcIter                    = UINT32_C(4);
+            uint32_t counter                   = UINT32_C(0);
+            // ctc changed the "<" conditions to "<=" so all the identifiers get parsed (was an "off-by-1" problem")
+            for (;
+                 pcIter <= powerConsumptionLength && pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4);
+                 pcIter += 4, counter++)
             {
-                ret = SUCCESS;
-                // now get all the power consumption descriptors into the struct
-                identifiers->numberOfPCIdentifiers = C_CAST(uint8_t, (powerConsumptionLength - 4) / 4);
-                uint32_t pcIter                    = UINT32_C(4);
-                uint32_t counter                   = UINT32_C(0);
-                // ctc changed the "<" conditions to "<=" so all the identifiers get parsed (was an "off-by-1" problem")
-                for (; pcIter <= powerConsumptionLength &&
-                       pcIter <= C_CAST(uint32_t, identifiers->numberOfPCIdentifiers * 4);
-                     pcIter += 4, counter++)
-                {
-                    identifiers->identifiers[counter].identifierValue = powerConsumptionPage[pcIter];
-                    identifiers->identifiers[counter].units           = powerConsumptionPage[pcIter + 1] & 0x07;
-                    identifiers->identifiers[counter].value =
-                        M_BytesTo2ByteValue(powerConsumptionPage[pcIter + 2], powerConsumptionPage[pcIter + 3]);
-                }
+                identifiers->identifiers[counter].identifierValue = powerConsumptionPage[pcIter];
+                identifiers->identifiers[counter].units           = powerConsumptionPage[pcIter + 1] & 0x07;
+                identifiers->identifiers[counter].value =
+                    M_BytesTo2ByteValue(powerConsumptionPage[pcIter + 2], powerConsumptionPage[pcIter + 3]);
+            }
+        }
+        else
+        {
+            ret = FAILURE;
+        }
+        safe_free_aligned(&powerConsumptionPage);
+    }
+    if (ret != FAILURE)
+    {
+        uint8_t* pcModePage =
+            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t),
+                                                             device->os_info.minimumAlignment));
+        if (pcModePage == M_NULLPTR)
+        {
+            return MEMORY_FAILURE;
+        }
+        // read changable value to see if active field can be modified
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true,
+                                          false, MPC_CHANGABLE_VALUES, pcModePage))
+        {
+            if (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) > 0)
+            {
+                identifiers->activeLevelChangable = true;
             }
             else
             {
-                ret = FAILURE;
+                identifiers->activeLevelChangable = false;
             }
-            safe_free_aligned(&powerConsumptionPage);
         }
-        if (ret != FAILURE)
+        // read the mode page to get the default identifier.
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true,
+                                          false, MPC_DEFAULT_VALUES, pcModePage))
         {
-            uint8_t* pcModePage =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + 16, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
-            if (pcModePage == M_NULLPTR)
+            // check the active level to make sure it is zero
+            identifiers->defaultControlField.activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+            if (identifiers->defaultControlField.activeLevel == 0)
             {
-                return MEMORY_FAILURE;
-            }
-            // read changable value to see if active field can be modified
-            if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01,
-                                              true, false, MPC_CHANGABLE_VALUES, pcModePage))
-            {
-                if (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) > 0)
+                // ctc 10 lines of code after the comments are necessary because the powerConsumptionIdentifier and
+                // the identfiers->identifiers[] are NOT necessarily in order ctc need to step through the
+                // indentifiers to find the correct one
+                uint8_t powerConsumptionIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
+                uint8_t counter                    = UINT8_C(0);
+                for (; counter < identifiers->numberOfPCIdentifiers; counter++)
                 {
-                    identifiers->activeLevelChangable = true;
-                }
-                else
-                {
-                    identifiers->activeLevelChangable = false;
-                }
-            }
-            // read the mode page to get the current identifier.
-            if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01,
-                                              true, false, MPC_CURRENT_VALUES, pcModePage))
-            {
-                ret = SUCCESS;
-                // check the active level to make sure it is zero
-                identifiers->activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                if (identifiers->activeLevel == 0)
-                {
-                    identifiers->currentIdentifierValid = true;
-                    // ctc 10 lines of code after the comments are necessary because the powerConsumptionIdentifier and
-                    // the identfiers->identifiers[] are NOT necessarily in order ctc need to step through the
-                    // indentifiers to find the correct one
-                    uint8_t powerConsumptionIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
-                    uint8_t counter                    = UINT8_C(0);
-                    for (; counter < identifiers->numberOfPCIdentifiers; counter++)
+                    if (identifiers->identifiers[counter].identifierValue == powerConsumptionIdentifier)
                     {
-                        if (identifiers->identifiers[counter].identifierValue == powerConsumptionIdentifier)
-                        {
-                            identifiers->currentIdentifier = counter;
-                        }
+                        identifiers->defaultControlField.controlIdentifier = counter;
                     }
                 }
             }
-            else
-            {
-                ret = NOT_SUPPORTED;
-            }
-            safe_free_aligned(&pcModePage);
         }
+        // read the mode page to get the current identifier.
+        if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16, 0x01, true,
+                                          false, MPC_CURRENT_VALUES, pcModePage))
+        {
+            ret = SUCCESS;
+            // check the active level to make sure it is zero
+            identifiers->currentControlField.activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
+            if (identifiers->currentControlField.activeLevel == 0)
+            {
+                identifiers->currentIdentifierValid = true;
+                // ctc 10 lines of code after the comments are necessary because the powerConsumptionIdentifier and
+                // the identfiers->identifiers[] are NOT necessarily in order ctc need to step through the
+                // indentifiers to find the correct one
+                uint8_t powerConsumptionIdentifier = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7];
+                uint8_t counter                    = UINT8_C(0);
+                for (; counter < identifiers->numberOfPCIdentifiers; counter++)
+                {
+                    if (identifiers->identifiers[counter].identifierValue == powerConsumptionIdentifier)
+                    {
+                        identifiers->currentControlField.controlIdentifier = counter;
+                    }
+                }
+            }
+        }
+        else
+        {
+            ret = NOT_SUPPORTED;
+        }
+        safe_free_aligned(&pcModePage);
     }
     return ret;
 }
 
-void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
+eReturnValues get_Power_Consumption_Identifiers(const tDevice* device, ptrPowerConsumptionIdentifiers identifiers)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ret = ata_Get_Power_Consumption_Identifiers(device, identifiers);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        ret = scsi_Get_Power_Consumption_Identifiers(device, identifiers);
+    }
+    return ret;
+}
+
+static void ata_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
+{
+    DISABLE_NONNULL_COMPARE
+    if (identifiers != M_NULLPTR)
+    {
+        if (identifiers->currentIdentifierValid)
+        {
+            if (identifiers->currentControlField.activeLevel == 0)
+            {
+                // valid controller identifier in logpage 59h
+                if (identifiers->numberOfPCIdentifiers > 0)
+                {
+                    double currentConsumption =
+                        identifiers->identifiers[identifiers->currentControlField.controlIdentifier].value;
+                    uint8_t currentUnit =
+                        identifiers->identifiers[identifiers->currentControlField.controlIdentifier].units;
+#define POWER_CONSUMPTION_UNIT_BUFFER_LENGTH 25
+                    DECLARE_ZERO_INIT_ARRAY(char, unitBuff, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH);
+                    char* currentUnits = &unitBuff[0];
+                    // convert this to a smaller value that can be reprsented with minimal floating point
+                    // (13500mw->13.5w)
+                    while ((currentConsumption / 1000.0) > 1 && currentUnit > 0)
+                    {
+                        currentConsumption /= 1000.0;
+                        --currentUnit; // change the unit
+                    }
+
+                    // now print the units
+                    switch (currentUnit)
+                    {
+                    case 3: // watts
+                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
+                        break;
+                    case 4: // milliwatts
+                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
+                        break;
+                    case 5: // microwatts
+                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
+                        break;
+                    default:
+                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH,
+                                            "unknown unit of measure");
+                        break;
+                    }
+                    printf("Current Power Consumption Value: %g %s\n", currentConsumption, currentUnits);
+                }
+                // even though active level is set to control identifier, logpage 59h is not returning valid identifier,
+                // this has been observed on STX drive - Nidhi
+                else
+                {
+                    print_str("Drive is currently configured with unknown settings!\n");
+                }
+            }
+            else
+            {
+                // high medium low value
+                print_str("Drive is currently configured with ");
+                switch (identifiers->currentControlField.activeLevel)
+                {
+                case 1:
+                    print_str("highest relative active power consumption\n");
+                    break;
+                case 2:
+                    print_str("intermediate relative active power consumption\n");
+                    break;
+                case 3:
+                    print_str("lowest relative active power consumption\n");
+                    break;
+                default:
+                    print_str("unknown active level!\n");
+                    break;
+                }
+            }
+
+            // show a list of the values supported (in watts). If the value is less than 1 watt, exclude it
+            print_str("Supported Max Power Consumption Set Points");
+            if (identifiers->numberOfPCIdentifiers > 0)
+                print_str(" (Watts)");
+            print_str(": \n\t[");
+            uint8_t pcIter = UINT8_C(0);
+            for (; pcIter < identifiers->numberOfPCIdentifiers; pcIter++)
+            {
+                double watts = identifiers->identifiers[pcIter].value;
+                switch (identifiers->identifiers[pcIter].units)
+                {
+                case 3: // watts
+                    break;
+                case 4: // milliwatts
+                    // ctc properly round milliwatts values
+                    watts /= 1000.0;
+                    break;
+                case 5: // microwatts
+                    // ctc properly round milliwatts values
+                    watts /= 1000000.0;
+                    break;
+                default:
+                    continue; // continue the for loop
+                }
+                printf(" %g |", watts); // use %g to use shortest possible notation for the output. This keeps 12w 13.5w
+                                        // without extra zeros all over the place
+            }
+            // now print default, highest, lowest, and intermediate
+            print_str(" highest | intermediate | lowest | default ]\n");
+        }
+        else
+        {
+            print_str("Power Consumption Control feature is currently disabled on drive.\n");
+        }
+    }
+    RESTORE_NONNULL_COMPARE
+}
+
+static void scsi_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
 {
     DISABLE_NONNULL_COMPARE
     if (identifiers != M_NULLPTR)
@@ -1497,8 +1757,10 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
             // show the current value
             if (identifiers->currentIdentifierValid)
             {
-                double  currentConsumption = identifiers->identifiers[identifiers->currentIdentifier].value;
-                uint8_t currentUnit        = identifiers->identifiers[identifiers->currentIdentifier].units;
+                double currentConsumption =
+                    identifiers->identifiers[identifiers->currentControlField.controlIdentifier].value;
+                uint8_t currentUnit =
+                    identifiers->identifiers[identifiers->currentControlField.controlIdentifier].units;
 #define POWER_CONSUMPTION_UNIT_BUFFER_LENGTH 25
                 DECLARE_ZERO_INIT_ARRAY(char, unitBuff, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH);
                 char* currentUnits = &unitBuff[0];
@@ -1540,7 +1802,7 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
             {
                 // high medium low value
                 print_str("Drive is currently configured with ");
-                switch (identifiers->activeLevel)
+                switch (identifiers->currentControlField.activeLevel)
                 {
                 case 1:
                     print_str("highest relative active power consumption\n");
@@ -1600,10 +1862,11 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
         {
             // high medium low value
             print_str("Drive is currently configured with ");
-            switch (identifiers->activeLevel)
+            switch (identifiers->currentControlField.activeLevel)
             {
             case 0:
-                printf("Power consumption identifier set to %" PRIu8 "\n", identifiers->currentIdentifier);
+                printf("Power consumption identifier set to %" PRIu8 "\n",
+                       identifiers->currentControlField.controlIdentifier);
                 break;
             case 1:
                 print_str("highest relative active power consumption\n");
@@ -1630,61 +1893,115 @@ void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifi
     RESTORE_NONNULL_COMPARE
 }
 
+void print_Power_Consumption_Identifiers(const tDevice* device, ptrPowerConsumptionIdentifiers identifiers)
+{
+    if (device->drive_info.drive_type == ATA_DRIVE)
+    {
+        ata_Print_Power_Consumption_Identifiers(identifiers);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        scsi_Print_Power_Consumption_Identifiers(identifiers);
+    }
+}
+
+static eReturnValues ata_Set_Power_Consumption(const tDevice* device,
+                                               ePCActiveLevel activeLevelField,
+                                               uint8_t        powerConsumptionIdentifier,
+                                               bool           resetToDefault,
+                                               bool           disableFeature)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (disableFeature)
+    {
+        ret = ata_SF_Power_Consumption(device, false, false, 0, 0);
+    }
+    else
+    {
+        ret = ata_SF_Power_Consumption(device, resetToDefault, true, activeLevelField, powerConsumptionIdentifier);
+
+        if (ret != SUCCESS)
+        {
+            ret = NOT_SUPPORTED;
+        }
+    }
+
+    return ret;
+}
+
+static eReturnValues scsi_Set_Power_Consumption(const tDevice* device,
+                                                ePCActiveLevel activeLevelField,
+                                                uint8_t        powerConsumptionIdentifier,
+                                                bool           resetToDefault)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+
+    uint8_t* pcModePage =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
+                                                         device->os_info.minimumAlignment));
+    eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
+    if (pcModePage == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    if (resetToDefault)
+    {
+        mpControl = MPC_DEFAULT_VALUES;
+    }
+    if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, 16 + MODE_PARAMETER_HEADER_10_LEN, 0x01, true,
+                                      false, mpControl, pcModePage))
+    {
+        if (!resetToDefault)
+        {
+            // modify the value we want to set
+            switch (activeLevelField)
+            {
+            case PC_ACTIVE_LEVEL_IDENTIFIER:
+                // set active level to 0
+                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC; // clear lower 2 bits to 0
+                // set the power consumption identifier we were given
+                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = powerConsumptionIdentifier;
+                break;
+            case PC_ACTIVE_LEVEL_HIGHEST:
+            case PC_ACTIVE_LEVEL_INTERMEDIATE:
+            case PC_ACTIVE_LEVEL_LOWEST:
+                // set the active level to what was requested (power consumption identifier is ignored here)
+                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC; // clear lower 2 bits to 0
+                // now set it now that the bits are cleared out
+                pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= C_CAST(uint8_t, activeLevelField);
+                break;
+            default:
+                ret = FAILURE;
+                break;
+            }
+        }
+        if (ret != FAILURE)
+        {
+            // now do mode select with the data for the mode to set
+            ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage,
+                                      16 + MODE_PARAMETER_HEADER_10_LEN);
+        }
+    }
+    safe_free_aligned(&pcModePage);
+
+    return ret;
+}
+
 eReturnValues set_Power_Consumption(const tDevice* device,
                                     ePCActiveLevel activeLevelField,
                                     uint8_t        powerConsumptionIdentifier,
-                                    bool           resetToDefault)
+                                    bool           resetToDefault,
+                                    bool           disableFeature)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint8_t* pcModePage =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(16 + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                             device->os_info.minimumAlignment));
-        eScsiModePageControl mpControl = MPC_CURRENT_VALUES;
-        if (pcModePage == M_NULLPTR)
-        {
-            return MEMORY_FAILURE;
-        }
-        if (resetToDefault)
-        {
-            mpControl = MPC_DEFAULT_VALUES;
-        }
-        if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, 16 + MODE_PARAMETER_HEADER_10_LEN, 0x01, true,
-                                          false, mpControl, pcModePage))
-        {
-            if (!resetToDefault)
-            {
-                // modify the value we want to set
-                switch (activeLevelField)
-                {
-                case PC_ACTIVE_LEVEL_IDENTIFIER:
-                    // set active level to 0
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC; // clear lower 2 bits to 0
-                    // set the power consumption identifier we were given
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] = powerConsumptionIdentifier;
-                    break;
-                case PC_ACTIVE_LEVEL_HIGHEST:
-                case PC_ACTIVE_LEVEL_INTERMEDIATE:
-                case PC_ACTIVE_LEVEL_LOWEST:
-                    // set the active level to what was requested (power consumption identifier is ignored here)
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] &= 0xFC; // clear lower 2 bits to 0
-                    // now set it now that the bits are cleared out
-                    pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] |= C_CAST(uint8_t, activeLevelField);
-                    break;
-                default:
-                    ret = FAILURE;
-                    break;
-                }
-            }
-            if (ret != FAILURE)
-            {
-                // now do mode select with the data for the mode to set
-                ret = scsi_Mode_Select_10(device, 16 + MODE_PARAMETER_HEADER_10_LEN, true, true, false, pcModePage,
-                                          16 + MODE_PARAMETER_HEADER_10_LEN);
-            }
-        }
-        safe_free_aligned(&pcModePage);
+        ret = ata_Set_Power_Consumption(device, activeLevelField, powerConsumptionIdentifier, resetToDefault,
+                                        disableFeature);
+    }
+    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    {
+        ret = scsi_Set_Power_Consumption(device, activeLevelField, powerConsumptionIdentifier, resetToDefault);
     }
     return ret;
 }
@@ -1697,13 +2014,14 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
     powerConsumptionIdentifiers identifiers;
     safe_memset(&identifiers, sizeof(powerConsumptionIdentifiers), 0, sizeof(powerConsumptionIdentifiers));
     *powerConsumptionIdentifier = 0xFF; // invalid
-    // ctc one line code change follows
-    uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
-    //*/
+
     ret = get_Power_Consumption_Identifiers(device, &identifiers);
-    /*/
-    //This is a dummied up test to make sure this code REALLY REALLY works by putting these in a random order (since
-    order is not specified in the SPC specification) ret = SUCCESS; identifiers.currentIdentifier = 0;
+
+    /*
+    This is a dummied up test to make sure this code REALLY REALLY works by putting these in a random order (since
+    order is not specified in the SPC specification)
+    ret = SUCCESS;
+    identifiers.currentIdentifier = 0;
     identifiers.numberOfpowerConsumptionIdentifiers = 4;
     identifiers.identifiers[0].identifierValue = 3;
     identifiers.identifiers[0].units = 3;//watts
@@ -1717,9 +2035,16 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
     identifiers.identifiers[3].identifierValue = 4;
     identifiers.identifiers[3].units = 3;//watts
     identifiers.identifiers[3].value = 2;
-    //*/
+    */
+
     if (ret == SUCCESS)
     {
+        if (identifiers.numberOfPCIdentifiers == 0) //to handle case when no descriptors are available
+            return BAD_PARAMETER;
+
+        // ctc one line code change follows
+        uint64_t roundedWatts = C_CAST(uint64_t, watts + 0.5);
+
         bool exactMatchFound = false;
         // now map the watt value to a power consumption identifier
         // ctc had to change variable initialization of iter1 and inter2 to match now-nested for loops
@@ -1730,14 +2055,15 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
         uint64_t watts1 = UINT64_C(0);
         uint64_t watts2 = UINT64_C(0);
 
-        ret = NOT_SUPPORTED;
+        ret = BAD_PARAMETER;
         // ctc changed to nested for loops here... not sure it's needed, but it's clearer
-        //         for (; iter1 < identifiers.numberOfpowerConsumptionIdentifiers /* && iter2 >= 0*/; iter1++, iter2--)
+        //         for (; iter1 < identifiers.numberOfpowerConsumptionIdentifiers /* && iter2 >= 0*/; iter1++,
+        //         iter2--)
         for (; iter1 < identifiers.numberOfPCIdentifiers; iter1++)
         {
-            // ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code doesn't
-            // follow convention ctc and use for(initializer, condition, increment), but whatever.  Nonstandard and
-            // goofy coding sytle, I guess
+            // ctc needed to reset iter2=0 to go through the for loop the next times... not sure why the code
+            // doesn't follow convention ctc and use for(initializer, condition, increment), but whatever.
+            // Nonstandard and goofy coding sytle, I guess
             iter2 = 0;
             for (; iter2 < identifiers.numberOfPCIdentifiers; iter2++)
             {
@@ -1827,11 +2153,11 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
                 }
             }
         }
+
         if (!exactMatchFound)
         {
-            // now compare the best results between the two iterators to see which is closer to the best match, or is
-            // the best match need to check which one is closer and select it
-
+            // now compare the best results between the two iterators to see which is closer to the best match, or
+            // is the best match need to check which one is closer and select it
             if (watts - C_CAST(double, watts1) >= watts - C_CAST(double, watts2))
             {
                 ret                         = SUCCESS;
@@ -2342,7 +2668,7 @@ void print_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
     print_str("\tS column = Savable\n");
     print_str("\tAll times are in 100 milliseconds\n\n");
     printf("%-9s %-13s %-13s %-11s %-13s %-11s %-11s C S\n", "Name", "Current Timer", "Default Timer", "Saved Timer",
-        "Recovery Time", "Min Timer", "Max Timer");
+           "Recovery Time", "Min Timer", "Max Timer");
     if (epcSettings->idle_a.powerConditionSupported)
     {
         print_Power_Condition(&epcSettings->idle_a, "Idle A");
@@ -2957,7 +3283,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(const tDevice* device,
     uint16_t enhPhyControlLength = UINT16_C(8); // only need 8 bytes to get the number of phys
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
-                                         sizeof(uint8_t), device->os_info.minimumAlignment));
+                                      sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -3005,7 +3331,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(const tDevic
     uint16_t enhPhyControlLength = UINT16_C(0);
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
-                                         sizeof(uint8_t), device->os_info.minimumAlignment));
+                                      sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;

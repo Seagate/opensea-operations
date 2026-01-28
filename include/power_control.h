@@ -143,22 +143,27 @@ extern "C"
 
     typedef struct s_powerConsumptionIdentifier
     {
-        uint8_t  identifierValue; // see SPC spec
-        uint8_t  units;           // matches SPC spec
-        uint16_t value;           // matches SPC spec
+        uint8_t  identifierValue;
+        uint8_t  units;
+        uint16_t value;
     } powerConsumptionIdentifier;
+
+    typedef struct s_powerConsumptionCOntrolField
+    {
+        uint8_t controlIdentifier;
+        uint8_t activeLevel;
+    } powerConsumptionControlField;
 
     typedef struct s_powerConsumptionIdentifiers
     {
-        uint8_t numberOfPCIdentifiers;
-        powerConsumptionIdentifier
-            identifiers[0xFF]; // Maximum number of power consumption identifiers...probably won't get this many, but
-                               // might as well make this possible to do.
-        bool    currentIdentifierValid;
-        uint8_t currentIdentifier;
-        bool    activeLevelChangable; // this may be changable or not depending on what the drive reports
-        uint8_t
-            activeLevel; // From power consumption mode page. This is a high/medium/low value. Only use this if non-zero
+        uint8_t                    numberOfPCIdentifiers;
+        powerConsumptionIdentifier identifiers[0xFF]; // Maximum number of power consumption identifiers...probably
+                                                      // won't get this many, but might as well make this possible to
+                                                      // do. According to SPEC for SAS it's 0xFF, for ATA it's 0x3F
+        bool                         currentIdentifierValid;
+        powerConsumptionControlField currentControlField;
+        powerConsumptionControlField defaultControlField;
+        bool activeLevelChangable; // This may be changable or not depending on what the drive reports, valid for SAS
     } powerConsumptionIdentifiers, *ptrPowerConsumptionIdentifiers;
 
     //-----------------------------------------------------------------------------
@@ -188,14 +193,17 @@ extern "C"
     //! \brief  Print out all the power consumption identifiers in the struct (the number that is supported anyways).
     //
     //  Entry:
+    //!   \param [in] device - file descriptor
     //!   \param [in] identifiers - pointer to a struct containing the power consumption identifier information
     //!
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
+    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API void print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API void print_Power_Consumption_Identifiers(const tDevice*                 device,
+                                                                    ptrPowerConsumptionIdentifiers identifiers);
 
     typedef enum ePCActiveLevelEnum
     {
@@ -216,10 +224,11 @@ extern "C"
     //  Entry:
     //!   \param [in] device - file descriptor
     //!   \param [in] activeLevelField - set to an enum value matching SCP spec. When set to PC_ACTIVE_LEVEL_IDENTIFIER,
-    //!   the powerConsumptionIdentifier value will be used. \param [in] powerConsumptionIdentifier - only valid when
-    //!   activeLevelField is set to PC_ACTIVE_LEVEL_IDENTIFIER. This value must match one the device supports. \param
-    //!   [in] resetToDefault - when set to true, all other inputs are ignored. The default mode is restored by reading
-    //!   the default settings and setting the current settings to the defaults.
+    //!                                  the powerConsumptionIdentifier value will be used.
+    //!   \param [in] powerConsumptionIdentifier - only valid when activeLevelField is set to PC_ACTIVE_LEVEL_IDENTIFIER. This value must match one the device supports.
+    //!   \param [in] resetToDefault - when set to true, all other inputs are ignored. The default mode is restored by
+    //!                                reading the default settings and setting the current settings to the defaults.
+    //!   \param [in] disableFeature - when set to true, disable the feature and all other inputs are ignored.
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
@@ -230,7 +239,8 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues set_Power_Consumption(const tDevice* device,
                                                                ePCActiveLevel activeLevelField,
                                                                uint8_t        powerConsumptionIdentifier,
-                                                               bool           resetToDefault);
+                                                               bool           resetToDefault,
+                                                               bool           disableFeature);
 
     //-----------------------------------------------------------------------------
     //
