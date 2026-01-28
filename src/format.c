@@ -31,6 +31,7 @@
 #include "nvme_helper_func.h"
 #include "platform_helper.h"
 #include "seagate_operations.h"
+#include "writesame.h"
 
 bool is_Format_Unit_Supported(const tDevice* device, bool* fastFormatSupported)
 {
@@ -1640,6 +1641,167 @@ eReturnValues set_Sector_Configuration(const tDevice* device, uint32_t sectorSiz
     return set_Sector_Configuration_With_Force(device, sectorSize, false);
 }
 
+static bool is_ATA_Zero_Ext_Supported_For_MBR_Erase(const tDevice* device)
+{
+    DECLARE_ZERO_INIT_ARRAY(uint8_t, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
+    if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
+                                                ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities,
+                                                LEGACY_DRIVE_SEC_SIZE, 0))
+    {
+        uint64_t qword0 = M_BytesTo8ByteValue(idDataLogSupportedCapabilities[7], idDataLogSupportedCapabilities[6],
+                                                idDataLogSupportedCapabilities[5], idDataLogSupportedCapabilities[4],
+                                                idDataLogSupportedCapabilities[3], idDataLogSupportedCapabilities[2],
+                                                idDataLogSupportedCapabilities[1], idDataLogSupportedCapabilities[0]);
+        if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES &&
+            M_Word0(qword0) >= 0x0001)
+        {
+            uint64_t supportedCapabilitiesQWord =
+                M_BytesTo8ByteValue(idDataLogSupportedCapabilities[15], idDataLogSupportedCapabilities[14],
+                                    idDataLogSupportedCapabilities[13], idDataLogSupportedCapabilities[12],
+                                    idDataLogSupportedCapabilities[11], idDataLogSupportedCapabilities[10],
+                                    idDataLogSupportedCapabilities[9], idDataLogSupportedCapabilities[8]);
+            if (supportedCapabilitiesQWord & BIT63 &&
+                supportedCapabilitiesQWord & BIT48)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+// Specific handling for ATA drives. Preference is to use something like write-same or zeroes ext to bypass any
+// out-of-sync block size issues with sending any write commands.
+// The benefit to these other commands is that they let the drive write based on it's block size rather than
+// the host trying to match the block size exactly with passthrough. A passthrough write SHOULD still work, but
+// this will bypass any weird issues in case the OS screens the size in some way or fails to complete the command
+// correctly
+static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* device)
+{
+    eReturnValues ret = SUCCESS;
+    uint32_t    eraseBlockSize = device->drive_info.deviceBlockSize;
+    uint64_t devMaxLBA = device->drive_info.deviceMaxLba;
+    uint32_t maxLBARange = 1;
+    if (device->drive_info.bridge_info.isValid)
+    {
+        if (device->drive_info.bridge_info.childDeviceMaxLba > devMaxLBA)
+        {
+            devMaxLBA = device->drive_info.bridge_info.childDeviceMaxLba - 1;
+            maxLBARange = 2;
+        }
+        eraseBlockSize = device->drive_info.bridge_info.childDeviceBlockSize;
+    }
+    if (is_ATA_Zero_Ext_Supported_For_MBR_Erase(device))
+    {
+        // use the zero ext command to erase the MBR
+        ret = ata_Zeros_Ext(device, maxLBARange, 0, false);
+        if (ret == SUCCESS)
+        {
+            ret = ata_Zeros_Ext(device, maxLBARange, devMaxLBA, false);
+        }
+    }
+    if (ret != SUCCESS && is_Write_Same_Supported(device, 0, maxLBARange, M_NULLPTR))
+    {
+        DECLARE_ZERO_INIT_ARRAY(uint8_t, zeroPattern, 4);
+        ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, 0,
+                                        maxLBARange, zeroPattern, SIZE_OF_STACK_ARRAY(zeroPattern));
+        if (ret == SUCCESS)
+        {
+            ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, devMaxLBA,
+                                        maxLBARange, zeroPattern, SIZE_OF_STACK_ARRAY(zeroPattern));
+        }
+    }
+    if (ret != SUCCESS)
+    {
+        // fallback to passthrough write
+        uint8_t *eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange,
+                                                                 sizeof(uint8_t), device->os_info.minimumAlignment));
+        ret = ata_Write(device, 0, false, eraseMBR, eraseBlockSize * maxLBARange);
+        if (ret == SUCCESS)
+        {
+            ret = ata_Write(device, devMaxLBA, false, eraseMBR, eraseBlockSize * maxLBARange);
+        }
+        safe_free_aligned(&eraseMBR);
+    }
+    return ret;
+}
+
+static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* device)
+{
+    eReturnValues ret = SUCCESS;
+    uint32_t    eraseBlockSize = device->drive_info.deviceBlockSize;
+    uint64_t devMaxLBA = device->drive_info.deviceMaxLba;
+    uint32_t maxLBARange = 1;
+    if (device->drive_info.bridge_info.isValid)
+    {
+        if (device->drive_info.bridge_info.childDeviceMaxLba > devMaxLBA)
+        {
+            devMaxLBA = device->drive_info.bridge_info.childDeviceMaxLba - 1;
+            maxLBARange = 2;
+        }
+        eraseBlockSize = device->drive_info.bridge_info.childDeviceBlockSize;
+    }
+    if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT3)
+    {
+        // Should we set FUA?
+        ret = nvme_Write_Zeroes(device, 0, maxLBARange, false, false, false);
+        if (ret == SUCCESS)
+        {
+            ret = nvme_Write_Zeroes(device, devMaxLBA, maxLBARange, false, false, false);
+        }
+    }
+
+    if (ret != SUCCESS)
+    {
+        uint8_t *eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange,
+                                                                sizeof(uint8_t), device->os_info.minimumAlignment));
+        ret = nvme_Write(device, 0, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
+        if (ret == SUCCESS)
+        {
+            ret = nvme_Write(device, devMaxLBA, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
+        }
+        safe_free_aligned(&eraseMBR);
+    }
+    return ret;
+}
+
+// SCSI Method may get ugly as there may be trial and error.
+// Will attempt similar methods to ATA with write same and the equivalent to zeroes ext.
+// If those fail, will have to do passthrough write.
+static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* device)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    eDriveType temp = device->drive_info.drive_type;
+    M_CONST_CAST(tDevice*, device)->drive_info.drive_type = SCSI_DRIVE; // force SCSI drive type for these calls
+    ret = write_Same(device, 0, 1, M_NULLPTR);
+    if (ret == SUCCESS)
+    {
+        ret = write_Same(device, device->drive_info.deviceMaxLba, 1, M_NULLPTR);
+    }
+    if (ret != SUCCESS) // purposely not an else in case one or both write-same's fail
+    {
+        // fallback to passthrough write
+        uint8_t *eraseMBR =
+                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize,
+                                                                 sizeof(uint8_t), device->os_info.minimumAlignment));
+        ret = scsi_Write(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
+        if (ret == SUCCESS)
+        {
+            ret = scsi_Write(device, device->drive_info.deviceMaxLba, false, eraseMBR,
+                             device->drive_info.deviceBlockSize);
+        }
+        safe_free_aligned(&eraseMBR);
+    }
+    M_CONST_CAST(tDevice*, device)->drive_info.drive_type = temp; // restore original drive type
+    return ret;
+}
+
 // a weird case was found when changing the sector size on a drive with an existing partition on it.
 // Since the MBR was a "dummy" for GPT, it is setup to look like the entire disk has a partition to stop an
 // old OS from overwriting partitions setup with GPT.
@@ -1648,80 +1810,22 @@ eReturnValues set_Sector_Configuration(const tDevice* device, uint32_t sectorSiz
 // This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
 static eReturnValues passthrough_Erase_MBR(const tDevice* device)
 {
-    eReturnValues ret             = SUCCESS;
-    bool          mbrEraseWarning = false;
+    eReturnValues ret             = NOT_SUPPORTED;
     if (device->drive_info.deviceBlockSize > 0)
     {
-        uint8_t* eraseMBR = M_NULLPTR;
-        // write the allocated zeros over the MBR (first sector), and the last sector (maxLBA) to ensure it is
-        // erased and not causing a problem NOTE: last sector is sometimes used as a backup of the MBR, which is
-        // why it will also be erased
-        eReturnValues writeMBR       = SUCCESS;
-        eReturnValues writeBackupMBR = SUCCESS;
-        if (device->drive_info.drive_type != SCSI_DRIVE && !is_Blocksize_And_Capacity_In_Sync(device) &&
-            device->drive_info.bridge_info.childDeviceBlockSize > 0)
+        if (device->drive_info.drive_type == ATA_DRIVE)
         {
-            // use a passthrough write instead
-            eraseMBR =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.bridge_info.childDeviceBlockSize,
-                                                                 sizeof(uint8_t), device->os_info.minimumAlignment));
-            if (eraseMBR != M_NULLPTR)
-            {
-                if (device->drive_info.drive_type == ATA_DRIVE)
-                {
-                    writeMBR =
-                        ata_Write(device, 0, false, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
-                    writeBackupMBR = ata_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, false,
-                                               eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
-                }
-                else if (device->drive_info.drive_type == NVME_DRIVE)
-                {
-                    writeMBR = nvme_Write(device, 0, NVME_0_BASED_ADJUST(1), false, false, 0, 0, eraseMBR,
-                                          device->drive_info.bridge_info.childDeviceBlockSize);
-                    writeBackupMBR =
-                        nvme_Write(device, device->drive_info.bridge_info.childDeviceMaxLba, NVME_0_BASED_ADJUST(1),
-                                   false, false, 0, 0, eraseMBR, device->drive_info.bridge_info.childDeviceBlockSize);
-                }
-                else
-                {
-                    mbrEraseWarning = true;
-                }
-            }
-            else
-            {
-                mbrEraseWarning = true;
-            }
+            ret = ata_Passthrough_Erase_MBR(device);
         }
-        else
+        else if (device->drive_info.drive_type == NVME_DRIVE)
         {
-            eraseMBR =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
-            if (eraseMBR != M_NULLPTR)
-            {
-                writeMBR       = write_LBA(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
-                writeBackupMBR = write_LBA(device, device->drive_info.deviceMaxLba, false, eraseMBR,
-                                           device->drive_info.deviceBlockSize);
-            }
-            else
-            {
-                mbrEraseWarning = true;
-            }
+            ret = nvme_Passthrough_Erase_MBR(device);
         }
-        if (writeBackupMBR != SUCCESS || writeMBR != SUCCESS)
+        if (ret != SUCCESS)
         {
-            mbrEraseWarning = true;
-        }
-        safe_free_aligned(&eraseMBR);
-        if (mbrEraseWarning)
-        {
-            if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
-            {
-                print_str(
-                    "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
-                    "first sector of the device\n");
-                print_str("         and the last sector (max LBA) then try creating new partitions again.\n");
-            }
+            // This is a final fallback for ATA and NVMe to retry with the SCSI method
+            // SCSI will always fall back here as well
+            ret = scsi_Passthrough_Erase_MBR(device);
         }
     }
     return ret;
@@ -1750,7 +1854,7 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
             print_str("If this command takes an hour or the command reports a failure due to\n");
             print_str("interruption by the system with a reset, recovery will be attempted\n");
             print_str("automatically. You may attempt to run this command again if recovery\n");
-            print_str("does not appear successfull.\n");
+            print_str("does not appear successful.\n");
         }
         os_Get_Exclusive(M_CONST_CAST(tDevice*, device));
         os_Lock_Device(device);
@@ -1847,7 +1951,14 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
         {
             fill_Drive_Info_Data(M_CONST_CAST(tDevice*, device));
             // attempt to erase MBR to allow partitioning on drives that had a dummy MBR prior to changing sector size
-            passthrough_Erase_MBR(device);
+            if (SUCCESS != passthrough_Erase_MBR(device))
+            {
+                if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
+                {
+                    print_str("WARNING: Unable to erase MBR after sector size change. You may need to manually "
+                              "erase the MBR to repartition the drive.\n");
+                }
+            }
         }
         os_Unlock_Device(device);
     }
