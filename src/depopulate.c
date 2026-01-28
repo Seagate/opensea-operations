@@ -31,6 +31,17 @@
 #include "platform_helper.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
 
+static bool is_Possible_Invalid_Depop_Time_Value(uint64_t depopTime)
+{
+    // according to the ACS4/SBC4 spec, valid depop times are 0x00000001 to 0xFFFFFFFE
+    // 0 means "time not reported" and 0xFFFFFFFF means "depopulation not supported"
+    if (depopTime == UINT64_MAX || depopTime == UINT32_MAX || depopTime == 0 || depopTime == UINT16_MAX)
+    {
+        return true;
+    }
+    return false;
+}
+
 bool is_Depopulation_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
@@ -312,7 +323,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
     print_str("\t S - storage element\n");
 
     print_str("\nApproximate time to depopulate: ");
-    if (depopulateTime > UINT64_C(0) && depopulateTime < UINT64_MAX)
+    if (is_Possible_Invalid_Depop_Time_Value(depopulateTime) == false)
     {
         uint16_t days    = UINT16_C(0);
         uint8_t  hours   = UINT8_C(0);
@@ -324,7 +335,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
     }
     else
     {
-        print_str("Not reported.\n");
+        printf("Not reported or possible invalid time reported: %" PRIu64 ".\n", depopulateTime);
     }
     if (depopElementID > 0)
     {
@@ -732,7 +743,7 @@ eReturnValues show_Depop_Repop_Progress(const tDevice* device)
 
 static M_INLINE void print_Depop_Start(uint64_t depopTime, const char* operation)
 {
-    if (depopTime == UINT64_MAX || depopTime == 0)
+    if (is_Possible_Invalid_Depop_Time_Value(depopTime))
     {
         printf("Starting %s. Approximate time until completion is not available.\n", operation);
     }
