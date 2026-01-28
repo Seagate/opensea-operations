@@ -2254,6 +2254,8 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
         bool     dlcEnabled   = false;
         bool     cdlSupported = false;
         bool     cdlEnabled   = false;
+        bool     powerConsumptionSupported = false;
+        bool     powerConsumptionEnabled   = false;
         for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET;
              iter < C_CAST(uint16_t, listLen + ATA_ID_DATA_SUP_PG_LIST_OFFSET) && iter < ATA_LOG_PAGE_LEN_BYTES; ++iter)
         {
@@ -2351,6 +2353,10 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
                     {
                         dlcSupported = true;
                     }
+                    if (supportedCapabilitiesQWord & BIT59)
+                    {
+                        powerConsumptionSupported = true;
+                    }
                 }
                 // Download capabilities
                 uint64_t downloadCapabilities = M_BytesTo8ByteValue(
@@ -2435,6 +2441,10 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
                     {
                         dlcEnabled = true;
                     }
+                    if (currentSettingsQWord & BIT24)
+                    {
+                        powerConsumptionEnabled = true;
+                    }
                 }
             }
         }
@@ -2462,6 +2472,19 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
             {
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               "Command Duration Limits");
+            }
+        }
+        if (powerConsumptionSupported)
+        {
+            if (powerConsumptionEnabled)
+            {
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
+                                              "Power Consumption [Enabled]");
+            }
+            else
+            {
+                add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
+                                              "Power Consumption");
             }
         }
         /*offset = ATA_LOG_PAGE_LEN_BYTES * ATA_ID_DATA_LOG_ATA_STRINGS;
