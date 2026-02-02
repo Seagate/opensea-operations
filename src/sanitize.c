@@ -255,7 +255,7 @@ static void print_Sanitize_Status_To_Screen(eSanitizeStatus sanitizeInProgress, 
     {
         // ATA- Completed with physical sectors that are available to be allocated for user data that were not
         // successfully sanitized
-        printf("\tSanitize command failed: completed with physical sectors that are available for user data and were "
+        print_str("\tSanitize command failed: completed with physical sectors that are available for user data and were "
                "not successfully sanitized!\n");
     }
     else
@@ -640,7 +640,7 @@ static eReturnValues sanitize_Poll_For_Progress(const tDevice* device,
                     percentComplete < 100.0) // if we get to the end, percent complete may not say 100%, so we need this
                                              // condition to correct it
                 {
-                    printf("\r\tSanitize Progress = 100.00%%");
+                    print_str("\r\tSanitize Progress = 100.00%");
                     flush_stdout();
                 }
                 else

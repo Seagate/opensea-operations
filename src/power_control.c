@@ -708,8 +708,8 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
         print_str("\t\tRRL = Relative Read Latency\n");
         print_str("\t\tRWT = Relative Write Throughput\n");
         print_str("\t\tRWL = Relative Write Latency\n");
-        printf("\t\tRead/Write throughput and latency values are scaled from 0 - 100%%.\n");
-        printf("\t100%% = max performance, 0%% = minimum relative performance.\n");
+        print_str("\t\tRead/Write throughput and latency values are scaled from 0 - 100%.\n");
+        print_str("\t100% = max performance, 0% = minimum relative performance.\n");
         // flags | # | max power | idle power | active power | latencies and throughputs (can be N/A when not reported)
         print_str("\n   #  Max Power: Idle Power: Active Power: RRT: RRL: RWT: RWL: Entry Time: Exit Time:\n");
         print_str("-------------------------------------------------------------------------------------\n");

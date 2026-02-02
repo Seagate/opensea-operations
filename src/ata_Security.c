@@ -812,7 +812,7 @@ eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
-                                printf("Password attempts exceeded. You must power cycle the drive to clear the "
+                                print_str("Password attempts exceeded. You must power cycle the drive to clear the "
                                        "attempt counter and retry the operation.\n");
                             }
                             return DEVICE_ACCESS_DENIED;
@@ -957,7 +957,7 @@ eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
-                                printf("Password attempts exceeded. You must power cycle the drive to clear the "
+                                print_str("Password attempts exceeded. You must power cycle the drive to clear the "
                                        "attempt counter and retry the operation.\n");
                             }
                             return DEVICE_ACCESS_DENIED;
@@ -1048,7 +1048,7 @@ eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
                 // password) Master password should be able to be set.
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("Security is Locked. Cannot set a password without unlocking or erasing the device (with "
+                    print_str("Security is Locked. Cannot set a password without unlocking or erasing the device (with "
                            "the master password).\n");
                 }
                 ret = FAILURE;
@@ -1257,7 +1257,7 @@ static void clear_Password_After_Erase_Failure(const tDevice*            device,
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("\tThe host reset the drive during the erase.\n\tEnsure no other applications are trying to "
+            print_str("\tThe host reset the drive during the erase.\n\tEnsure no other applications are trying to "
                    "access\n\tthe drive while it is erasing.\n\n");
         }
     }
@@ -1387,7 +1387,7 @@ eReturnValues run_ATA_Security_Erase(const tDevice*              device,
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            printf("Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry "
+            print_str("Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry "
                    "the operation.\n");
         }
         return DEVICE_ACCESS_DENIED;

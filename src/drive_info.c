@@ -8551,7 +8551,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         {
             if (driveInfo->humidityData.currentHumidity == UINT8_MAX)
             {
-                printf("\t\tCurrent Humidity (%%): Invalid Reading\n");
+                print_str("\t\tCurrent Humidity (%): Invalid Reading\n");
             }
             else
             {
@@ -8560,13 +8560,13 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("\t\tCurrent Humidity (%%): Not Reported\n");
+            print_str("\t\tCurrent Humidity (%): Not Reported\n");
         }
         if (driveInfo->humidityData.highestValid)
         {
             if (driveInfo->humidityData.currentHumidity == UINT8_MAX)
             {
-                printf("\t\tHighest Humidity (%%): Invalid Reading\n");
+                print_str("\t\tHighest Humidity (%): Invalid Reading\n");
             }
             else
             {
@@ -8575,13 +8575,13 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("\t\tHighest Humidity (%%): Not Reported\n");
+            print_str("\t\tHighest Humidity (%): Not Reported\n");
         }
         if (driveInfo->humidityData.lowestValid)
         {
             if (driveInfo->humidityData.currentHumidity == UINT8_MAX)
             {
-                printf("\t\tLowest Humidity (%%): Invalid Reading\n");
+                print_str("\t\tLowest Humidity (%): Invalid Reading\n");
             }
             else
             {
@@ -8590,7 +8590,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("\t\tLowest Humidity (%%): Not Reported\n");
+            print_str("\t\tLowest Humidity (%): Not Reported\n");
         }
     }
     // Power On Time
@@ -9063,7 +9063,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     // Drive reported Utilization
     if (driveInfo->deviceReportedUtilizationRate > 0)
     {
-        printf("\tDrive Reported Utilization (%%): ");
+        print_str("\tDrive Reported Utilization (%): ");
         printf("%0.04f", driveInfo->deviceReportedUtilizationRate);
     }
     // Encryption Support
@@ -9083,7 +9083,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     if (driveInfo->trustedCommandsBeingBlocked)
     {
-        printf("\t\tWARNING: OS/driver/HBA is blocking TCG commands over passthrough. Please enable it before running "
+        print_str("\t\tWARNING: OS/driver/HBA is blocking TCG commands over passthrough. Please enable it before running "
                "any TCG commands\n");
     }
     // Cache Size -- convert to MB
@@ -9117,7 +9117,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("\tPercentage Used Endurance Indicator (%%): Not Reported\n");
+            print_str("\tPercentage Used Endurance Indicator (%): Not Reported\n");
         }
     }
     // Write Amplification
@@ -9130,7 +9130,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
         }
         else
         {
-            printf("\tWrite Amplification (%%): 0\n");
+            print_str("\tWrite Amplification (%): 0\n");
         }
     }
     // Read look ahead

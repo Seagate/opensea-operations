@@ -3267,7 +3267,7 @@ static void print_Raw_ATA_Attributes(const tDevice* device, smartLogData* smartD
     print_str("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
     print_str("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
     print_str("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
-    printf("%% - attribute is currently issuing a warning (thresholds required)\n");
+    print_str("% - attribute is currently issuing a warning (thresholds required)\n");
     print_str("~ - attribute has previously warned about its condition (thresholds required)\n");
     print_str("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
     safe_free(&attributeName);
@@ -3601,7 +3601,7 @@ static void print_Hybrid_ATA_Attributes(const tDevice* device, smartLogData* sma
     print_str("\t  ? - See analyzed output for more information on raw data\n");
     print_str("\t  ! - attribute is currently failing\n");
     print_str("\t  ^ - attribute has previously failed\n");
-    printf("\t  %% - attribute is currently issuing a warning\n");
+    print_str("\t  % - attribute is currently issuing a warning\n");
     print_str("\t  ~ - attribute has previously warned about its condition\n");
     print_str("\tTemperature: (Celcius unless specified)\n");
     print_str("\t  m = minimum\n");
@@ -4843,7 +4843,7 @@ static void print_Raw_ATA_Attributes(const tDevice* device, smartLogData* smartD
             print_str("\n* Indicates warranty attribute type, also called Pre-fail attribute type\n");
             print_str("! - attribute is currently failing (thresholds required) - prefail/warranty\n");
             print_str("^ - attribute has previously failed (thresholds required) - prefail/warranty\n");
-            printf("%% - attribute is currently issuing a warning (thresholds required)\n");
+            print_str("% - attribute is currently issuing a warning (thresholds required)\n");
             print_str("~ - attribute has previously warned about its condition (thresholds required)\n");
             print_str("\"Current\" is also referred to as the \"Nominal\" value in specifications.\n");
         }
@@ -4917,12 +4917,12 @@ static void print_ATA_SMART_Attribute_Analyzed(uint8_t number, ataSMARTAnalyzedA
 
     if (noAnalyzedFields)
     {
-        printf("\tRaw Data: ");
+        print_str("\tRaw Data: ");
         for (uint8_t rawIter = UINT8_C(0); rawIter < SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT; ++rawIter)
         {
             printf("%02" PRIX8 "", smartAnalyzedAttribute.rawData.rawData[6 - rawIter]);
         }
-        printf("h\n");
+        print_str("h\n");
     }
     else
     {
@@ -5211,20 +5211,20 @@ static void print_Hybrid_ATA_Attributes(const tDevice* device, smartLogData* sma
             print_str("\t  ? - See analyzed output for more information on raw data\n");
             print_str("\t  ! - attribute is currently failing\n");
             print_str("\t  ^ - attribute has previously failed\n");
-            printf("\t  %% - attribute is currently issuing a warning\n");
-            printf("\t  ~ - attribute has previously warned about its condition\n");
-            printf("\tTemperature: (Celsius unless specified)\n");
-            printf("\t  m = minimum\n");
-            printf("\t  M = maximum\n");
-            printf("\tColumns:\n");
-            printf("\t  CV - current value (Also called nominal value in specifications)\n");
-            printf("\t  WV - worst ever value\n");
-            printf("\t  TV - threshold value (requires support of thresholds data)\n");
-            printf("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
-            printf("-------------------------------------------------------------------------------------------\n");
+            print_str("\t  % - attribute is currently issuing a warning\n");
+            print_str("\t  ~ - attribute has previously warned about its condition\n");
+            print_str("\tTemperature: (Celsius unless specified)\n");
+            print_str("\t  m = minimum\n");
+            print_str("\t  M = maximum\n");
+            print_str("\tColumns:\n");
+            print_str("\t  CV - current value (Also called nominal value in specifications)\n");
+            print_str("\t  WV - worst ever value\n");
+            print_str("\t  TV - threshold value (requires support of thresholds data)\n");
+            print_str("\t  Raw - raw data associated with attribute. Vendor specific definition.\n");
+            print_str("-------------------------------------------------------------------------------------------\n");
             printf("SMART Version: 0x02%" PRIX16 "\n", smartData->attributes.ataSMARTAttr.smartVersion);
-            printf("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
-            printf("-------------------------------------------------------------------------------------------\n");
+            print_str("     # Attribute Name:                     Flags:   CV: WV: TV: Raw:\n");
+            print_str("-------------------------------------------------------------------------------------------\n");
 
             // Now print this on console
             for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
@@ -7387,11 +7387,11 @@ eReturnValues print_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartI
             print_str("The self-test routine was interrupted by the host with a hardware or software reset");
             break;
         case 3:
-            printf("A fatal error or unknown test error occurred while the device was executing its self-test routine "
+            print_str("A fatal error or unknown test error occurred while the device was executing its self-test routine "
                    "and the device was unable to complete the self-test routine");
             break;
         case 4:
-            printf("The previous self-test completed having a test element that failed and the test element that "
+            print_str("The previous self-test completed having a test element that failed and the test element that "
                    "failed is not known");
             break;
         case 5:
@@ -7404,7 +7404,7 @@ eReturnValues print_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartI
             print_str("The previous self-test completed having the read element of the test failed");
             break;
         case 8:
-            printf("The previous self-test completed having a test element that failed and the device is suspected of "
+            print_str("The previous self-test completed having a test element that failed and the device is suspected of "
                    "having handling damage");
             break;
         case 0xF:
@@ -11811,8 +11811,7 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     print_str("\tSC - Sector Count\tSCe - Sector Count Ext\n");
                     print_str("\tLL - LBA Low     \tLM - LBA Mid     \tLH - LBA Hi\n");
                     print_str("\tLLe - LBA Low Ext\tLMe - LBA Mid Ext\tLHe - LBA Hi Ext\n");
-                    printf(
-                        "\tDH - Device/Head \tDC - Device Control\tVU Bytes - Extended Error Info (Vendor Unique)\n");
+                    print_str("\tDH - Device/Head \tDC - Device Control\tVU Bytes - Extended Error Info (Vendor Unique)\n");
                     print_str("\t---------------------\n");
                 }
                 else

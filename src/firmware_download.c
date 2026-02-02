@@ -366,7 +366,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
+                        print_str("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
                                "deferred download.\n");
                         print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
@@ -378,7 +378,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
+                        print_str("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
                                "deferred download.\n");
                         print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
@@ -469,7 +469,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                             downloadMode    = DL_FW_SEGMENTED;
                             if (device->deviceVerbosity > VERBOSITY_QUIET)
                             {
-                                printf("\nAutomatic deferred download failed. Either the drive does not support this "
+                                print_str("\nAutomatic deferred download failed. Either the drive does not support this "
                                        "mode\n");
                                 print_str("or this is an invalid firmware image for this device.\n");
                                 print_str("Retrying the download with segmented download mode to verify.\n");
@@ -485,7 +485,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                                 downloadMode    = DL_FW_SEGMENTED;
                                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                                 {
-                                    printf("\nAutomatic deferred download failed. Either the drive does not support "
+                                    print_str("\nAutomatic deferred download failed. Either the drive does not support "
                                            "this mode\n");
                                     print_str("or this is an invalid firmware image for this device.\n");
                                     print_str("Retrying the download with segmented download mode to verify.\n");

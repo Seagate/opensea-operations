@@ -477,7 +477,7 @@ eReturnValues writesame(const tDevice* device,
                     {
                         if (lastPercentComplete > 0 && writeSameInProgress == false)
                         {
-                            printf("\tWrite Same progress: 100.00%%\n");
+                            print_str("\tWrite Same progress: 100.00%\n");
                         }
                         else
                         {

@@ -8438,7 +8438,7 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, const c
             }
             else
             {
-                printf(">655.34%%");
+                print_str(">655.34%");
             }
         }
         else
@@ -8502,7 +8502,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const
             case 0: // valid
                 if (utilizationUsageRate == 255)
                 {
-                    printf(">254%%");
+                    print_str(">254%");
                 }
                 else
                 {

@@ -134,7 +134,7 @@ eReturnValues show_Format_Unit_Progress(const tDevice* device)
         // warn the user that the drive is not yet done with the format
         if (percentComplete + 0.005 >= 100.0)
         {
-            printf("\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
+            print_str("\tWARNING: Even though progress reports 100%, the sense data indicates\n");
             print_str("\t         that a format is still in progress! Please wait an additional\n");
             print_str("\t         30 seconds and check again to see when the sense data no longer\n");
             print_str("\t         indicates that a format is in progress!\n");
@@ -463,7 +463,7 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
                     // enough to warn the user that the drive is not yet done with the format
                     if (progress + 0.005 >= 100.0)
                     {
-                        printf("\n\tWARNING: Even though progress reports 100%%, the sense data indicates\n");
+                        print_str("\n\tWARNING: Even though progress reports 100%, the sense data indicates\n");
                         print_str("\t         that a format is still in progress! Please continue waiting\n");
                         print_str("\t         until the sense data no longer indicates that a format is\n");
                         print_str("\t         in progress!\n");
@@ -477,7 +477,7 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
             {
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
-                    printf("\r\tPercent Complete: 100.00%%\n");
+                    print_str("\r\tPercent Complete: 100.00%\n");
                     flush_stdout();
                 }
             }
@@ -1474,7 +1474,7 @@ void show_Supported_Formats(ptrSupportedFormats formats)
         }
         if (formats->protectionInformationSupported.protectionType2Supported)
         {
-            printf("\tType 2 - Logical Block Guard and Logical Block Reference Tag (except first block)\n\t\t 32byte "
+            print_str("\tType 2 - Logical Block Guard and Logical Block Reference Tag (except first block)\n\t\t 32byte "
                    "read/write CDBs allowed\n");
         }
         if (formats->protectionInformationSupported.protectionType3Supported)
@@ -1687,8 +1687,7 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
-                    printf(
-                        "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
+                    print_str("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
                         "first sector of the device\n");
                     print_str("         and the last sector (max LBA) then try creating new partitions again.\n");
                 }
@@ -1744,7 +1743,7 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
                             print_str("Seagate quick format successfully recovered the device!\n");
                             print_str(
                                 "If sector size change is attempted again, format only single disks at a time,\n");
-                            printf("disable all background software, disable any management hardware or software, and "
+                            print_str("disable all background software, disable any management hardware or software, and "
                                    "then\n");
                             print_str("try again if the sector size is not correct.\n");
                         }
@@ -1834,7 +1833,7 @@ eReturnValues show_NVM_Format_Progress(const tDevice* device)
     }
     else if (ret == SUCCESS)
     {
-        printf("\tA format is not detected as running. Either it is complete or the device does not report its "
+        print_str("\tA format is not detected as running. Either it is complete or the device does not report its "
                "progress\n");
     }
     else

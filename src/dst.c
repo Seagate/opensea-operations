@@ -779,12 +779,12 @@ eReturnValues run_SMART_Offline(const tDevice* device)
                    minutes, seconds);
             if (abortRestart)
             {
-                printf("\tInterrupting commands will cause data collection to abort and will require manually "
+                print_str("\tInterrupting commands will cause data collection to abort and will require manually "
                        "restarting.\n");
             }
             else
             {
-                printf("\tInterrupting commands will cause data collection to suspend and will restart after a vendor "
+                print_str("\tInterrupting commands will cause data collection to suspend and will restart after a vendor "
                        "specific event.\n");
             }
             time_t currentTime = time(M_NULLPTR);
@@ -1067,7 +1067,7 @@ static eReturnValues poll_DST_Progress(const tDevice* device, dstTiming timing, 
         // status update
         printf("\r                                    %.*s", C_CAST(int, safe_strlen(overTimeWarningMessage)),
                "                                                                        ");
-        printf("\r    Test progress: 100%% complete   ");
+        print_str("\r    Test progress: 100% complete   ");
         flush_stdout();
     }
     else if (status == 0x01 || status == 0x02 || ret == ABORTED)
