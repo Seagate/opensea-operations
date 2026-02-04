@@ -69,9 +69,9 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults testResults);
+    M_PARAM_WO(2)
+    eReturnValues perform_Cable_Test(const tDevice* M_NONNULL device, ptrCableTestResults M_NONNULL testResults);
 
     //-----------------------------------------------------------------------------
     //

@@ -231,7 +231,7 @@ static void get_ATA_Security_Info_ID_Data_Log(const tDevice* device, ptrATASecur
     DECLARE_ZERO_INIT_ARRAY(uint8_t, securityPage, ATA_LOG_PAGE_LEN_BYTES);
     if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, 0, 0, securityPage, ATA_LOG_PAGE_LEN_BYTES, 0))
     {
-        if (get_ATA_Log_Size_From_Directory(securityPage, ATA_LOG_PAGE_LEN_BYTES, ATA_LOG_IDENTIFY_DEVICE_DATA) > 0)
+        if (get_ATA_Log_Size_From_Directory(securityPage, ATA_LOG_IDENTIFY_DEVICE_DATA) > 0)
         {
             safe_memset(&securityPage, 512, 0, 512);
             // IDData log suppored. Read first page to see if security subpage (06h) is supported
@@ -548,7 +548,7 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
                                          bool                   eraseUnit,
                                          bool                   useSAT)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (ptrData != M_NULLPTR && ataPassword != M_NULLPTR)
     {
         // copy the password in, but the max length is 32 bytes according to the spec!
@@ -603,7 +603,6 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 uint16_t increment_Master_Password_Identifier(uint16_t masterPWID)
@@ -625,7 +624,9 @@ uint16_t increment_Master_Password_Identifier(uint16_t masterPWID)
     return newID;
 }
 
-void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT)
+void set_ATA_Security_Erase_Type_In_Buffer(uint8_t               ptrData[M_NONNULL_ARRAY LEGACY_DRIVE_SEC_SIZE],
+                                           eATASecurityEraseType eraseType,
+                                           bool                  useSAT)
 {
     DISABLE_NONNULL_COMPARE
     if (ptrData != M_NULLPTR)
@@ -813,7 +814,7 @@ eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
                                 print_str("Password attempts exceeded. You must power cycle the drive to clear the "
-                                       "attempt counter and retry the operation.\n");
+                                          "attempt counter and retry the operation.\n");
                             }
                             return DEVICE_ACCESS_DENIED;
                         }
@@ -958,7 +959,7 @@ eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
                             {
                                 print_str("Password attempts exceeded. You must power cycle the drive to clear the "
-                                       "attempt counter and retry the operation.\n");
+                                          "attempt counter and retry the operation.\n");
                             }
                             return DEVICE_ACCESS_DENIED;
                         }
@@ -1049,7 +1050,7 @@ eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
                     print_str("Security is Locked. Cannot set a password without unlocking or erasing the device (with "
-                           "the master password).\n");
+                              "the master password).\n");
                 }
                 ret = FAILURE;
             }
@@ -1205,7 +1206,7 @@ static bool did_host_reset_occur(const tDevice* device, bool satATASecuritySuppo
     return hostResetDuringErase;
 }
 
-static void clear_Password_After_Erase_Failure(const tDevice*            device,
+static void clear_Password_After_Erase_Failure(const tDevice*      device,
                                                ataSecurityStatus   securityStatus,
                                                ataSecurityStatus   finalSecurityStatus,
                                                ataSecurityPassword ataPassword,
@@ -1258,12 +1259,12 @@ static void clear_Password_After_Erase_Failure(const tDevice*            device,
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
             print_str("\tThe host reset the drive during the erase.\n\tEnsure no other applications are trying to "
-                   "access\n\tthe drive while it is erasing.\n\n");
+                      "access\n\tthe drive while it is erasing.\n\n");
         }
     }
 }
 
-static eReturnValues ata_Security_Erase_Final_Results(const tDevice*          device,
+static eReturnValues ata_Security_Erase_Final_Results(const tDevice*    device,
                                                       eReturnValues     ataEraseResult,
                                                       ataSecurityStatus finalSecurityStatus,
                                                       seatimer_t        ataSecureEraseTimer)
@@ -1313,7 +1314,7 @@ static eReturnValues ata_Security_Erase_Final_Results(const tDevice*          de
     return result;
 }
 
-eReturnValues run_ATA_Security_Erase(const tDevice*              device,
+eReturnValues run_ATA_Security_Erase(const tDevice*        device,
                                      eATASecurityEraseType eraseType,
                                      ataSecurityPassword   ataPassword,
                                      bool                  forceSATvalid,
@@ -1387,8 +1388,9 @@ eReturnValues run_ATA_Security_Erase(const tDevice*              device,
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
         {
-            print_str("Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry "
-                   "the operation.\n");
+            print_str(
+                "Password attempts exceeded. You must power cycle the drive to clear the attempt counter and retry "
+                "the operation.\n");
         }
         return DEVICE_ACCESS_DENIED;
     }

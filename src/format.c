@@ -503,12 +503,12 @@ eReturnValues run_Format_Unit(const tDevice* device, runFormatUnitParameters for
 eReturnValues get_Format_Status(const tDevice* device, ptrFormatStatus formatStatus)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (device == M_NULLPTR || formatStatus == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     // Need to allocate enough memory to read all parameters (0 - 5)
     // 4 for header
     // 4 + 255 for param 0
@@ -684,7 +684,7 @@ eReturnValues get_Format_Status(const tDevice* device, ptrFormatStatus formatSta
 
 void show_Format_Status_Log(ptrFormatStatus formatStatus)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (formatStatus != M_NULLPTR)
     {
         print_str("Format Status:\n");
@@ -774,7 +774,6 @@ void show_Format_Status_Log(ptrFormatStatus formatStatus)
             print_str("Format unit currently in progress or the last format command failed!\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 bool is_Set_Sector_Configuration_Supported(const tDevice* device)
@@ -1284,12 +1283,12 @@ static eReturnValues nvme_Get_Supported_Formats(const tDevice* device, ptrSuppor
 eReturnValues get_Supported_Formats(const tDevice* device, ptrSupportedFormats formats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (formats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     switch (device->drive_info.drive_type)
     {
     case ATA_DRIVE:
@@ -1474,8 +1473,9 @@ void show_Supported_Formats(ptrSupportedFormats formats)
         }
         if (formats->protectionInformationSupported.protectionType2Supported)
         {
-            print_str("\tType 2 - Logical Block Guard and Logical Block Reference Tag (except first block)\n\t\t 32byte "
-                   "read/write CDBs allowed\n");
+            print_str(
+                "\tType 2 - Logical Block Guard and Logical Block Reference Tag (except first block)\n\t\t 32byte "
+                "read/write CDBs allowed\n");
         }
         if (formats->protectionInformationSupported.protectionType3Supported)
         {
@@ -1513,7 +1513,7 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(const tDevice* device,
                                                       uint8_t*       descriptorIndex)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (descriptorCheckCode == M_NULLPTR || descriptorIndex == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -1522,7 +1522,7 @@ eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(const tDevice* device,
     {
         *descriptorCheckCode = UINT16_C(0);
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         uint32_t            formatsDataSize = C_CAST(uint32_t, sizeof(supportedFormats));
@@ -1687,7 +1687,8 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
             {
                 if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
                 {
-                    print_str("WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
+                    print_str(
+                        "WARNING: Unable to erase MBR. If unable to write a partition after this operation, erase the "
                         "first sector of the device\n");
                     print_str("         and the last sector (max LBA) then try creating new partitions again.\n");
                 }
@@ -1743,8 +1744,9 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
                             print_str("Seagate quick format successfully recovered the device!\n");
                             print_str(
                                 "If sector size change is attempted again, format only single disks at a time,\n");
-                            print_str("disable all background software, disable any management hardware or software, and "
-                                   "then\n");
+                            print_str(
+                                "disable all background software, disable any management hardware or software, and "
+                                "then\n");
                             print_str("try again if the sector size is not correct.\n");
                         }
                     }
@@ -1789,12 +1791,12 @@ eReturnValues set_Sector_Configuration_With_Force(const tDevice* device, uint32_
 eReturnValues get_NVM_Format_Progress(const tDevice* device, uint8_t* percentComplete)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (percentComplete == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     *percentComplete = UINT8_C(0);
     if (device->drive_info.drive_type == NVME_DRIVE)
     {
@@ -1834,7 +1836,7 @@ eReturnValues show_NVM_Format_Progress(const tDevice* device)
     else if (ret == SUCCESS)
     {
         print_str("\tA format is not detected as running. Either it is complete or the device does not report its "
-               "progress\n");
+                  "progress\n");
     }
     else
     {
@@ -1865,7 +1867,7 @@ static uint8_t map_NVM_Format_To_Format_Number(const tDevice* device, uint32_t l
 eReturnValues get_NVMe_Format_Support(const tDevice* device, ptrNvmeFormatSupport formatSupport)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == NVME_DRIVE && formatSupport != M_NULLPTR)
     {
         ret = SUCCESS;
@@ -1898,7 +1900,7 @@ eReturnValues get_NVMe_Format_Support(const tDevice* device, ptrNvmeFormatSuppor
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 

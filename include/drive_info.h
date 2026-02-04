@@ -404,7 +404,7 @@ extern "C"
         };
     } driveInformation, *ptrDriveInformation;
 
-    static M_INLINE void safe_free_drive_info(driveInformation** info)
+    static M_INLINE void safe_free_drive_info(driveInformation * M_NULLABLE * M_NULLABLE info)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, info));
     }
@@ -423,11 +423,10 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice*              device,
-                                                                   ptrDriveInformationSAS_SATA driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice* M_NONNULL              device,
+                                                                   ptrDriveInformationSAS_SATA M_NONNULL driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -443,17 +442,15 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice*              device,
-                                                                    ptrDriveInformationSAS_SATA driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice* M_NONNULL              device,
+                                                                    ptrDriveInformationSAS_SATA M_NONNULL driveInfo);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(const tDevice*          device,
-                                                                    ptrDriveInformationNVMe driveInfo);
+    OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(const tDevice* M_NONNULL          device,
+                                                                    ptrDriveInformationNVMe M_NONNULL driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -471,21 +468,21 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_WO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(3)
-    OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
-                                                                    ptrDriveInformationSAS_SATA scsiDriveInfo,
-                                                                    ptrDriveInformationSAS_SATA ataDriveInfo);
+    OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA M_NONNULL
+                                                                        externalDriveInfo,
+                                                                    ptrDriveInformationSAS_SATA M_NONNULL scsiDriveInfo,
+                                                                    ptrDriveInformationSAS_SATA M_NONNULL ataDriveInfo);
 
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_WO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(3)
-    OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
-                                                                         ptrDriveInformationSAS_SATA scsiDriveInfo,
-                                                                         ptrDriveInformationNVMe     nvmeDriveInfo);
+    OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(
+        ptrDriveInformationSAS_SATA M_NONNULL externalDriveInfo,
+        ptrDriveInformationSAS_SATA M_NONNULL scsiDriveInfo,
+        ptrDriveInformationNVMe M_NONNULL     nvmeDriveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -500,11 +497,11 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA M_NONNULL driveInfo);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDriveInformationNVMe M_NONNULL driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -519,8 +516,7 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Device_Information(ptrDriveInformation driveInfo);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Device_Information(ptrDriveInformation M_NONNULL driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -536,11 +532,11 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     OPENSEA_OPERATIONS_API
-    void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo, ptrDriveInformation driveInfo);
+    void print_Parent_And_Child_Information(ptrDriveInformation M_NONNULL translatorDriveInfo,
+                                            ptrDriveInformation M_NONNULL driveInfo);
 
     //-----------------------------------------------------------------------------
     //
@@ -559,9 +555,9 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = one of the operations being called inside of this function failed.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(const tDevice* device, bool showChildInformation);
+    OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(const tDevice* M_NONNULL device,
+                                                                 bool                     showChildInformation);
 
     typedef enum _eDriveTypeForPrint
     {
@@ -574,22 +570,21 @@ extern "C"
         PRINT_INFO_FOR_UNKNOWN_DRIVE
     } eDriveTypeForPrintInfo;
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
     M_PARAM_WO(4)
     M_PARAM_WO(5)
     M_PARAM_WO(6)
     M_PARAM_WO(7)
-    OPENSEA_OPERATIONS_API eReturnValues get_Drive_Information(const tDevice*          device,
-                                                               bool                    showChildInformation,
-                                                               ptrDriveInformation*    ataDriveInfo,
-                                                               ptrDriveInformation*    scsiDriveInfo,
-                                                               ptrDriveInformation*    nvmeDriveInfo,
-                                                               ptrDriveInformation*    usbDriveInfo,
-                                                               eDriveTypeForPrintInfo* driveType);
+    OPENSEA_OPERATIONS_API eReturnValues get_Drive_Information(const tDevice* M_NONNULL device,
+                                                               bool                     showChildInformation,
+                                                               ptrDriveInformation M_NONNULL* M_NULLABLE ataDriveInfo,
+                                                               ptrDriveInformation M_NONNULL* M_NULLABLE scsiDriveInfo,
+                                                               ptrDriveInformation M_NONNULL* M_NULLABLE nvmeDriveInfo,
+                                                               ptrDriveInformation M_NONNULL* M_NULLABLE usbDriveInfo,
+                                                               eDriveTypeForPrintInfo* M_NULLABLE        driveType);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) const char* print_drive_type(const tDevice* device);
+    M_RETURNS_NONNULL M_PARAM_RO(1) const char* M_NONNULL print_drive_type(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
@@ -604,7 +599,7 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) eReturnValues print_Nvme_Ctrl_Information(const tDevice* device);
+    M_PARAM_RO(1) eReturnValues print_Nvme_Ctrl_Information(const tDevice* M_NONNULL device);
 
 #if defined(__cplusplus)
 }

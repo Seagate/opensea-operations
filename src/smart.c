@@ -6244,7 +6244,7 @@ eReturnValues nvme_SMART_Check(const tDevice* device, ptrSmartTripInfo tripInfo)
     smartPageOpts.addr    = smartLogPage;
     smartPageOpts.dataLen = LEGACY_DRIVE_SEC_SIZE;
     smartPageOpts.lid     = NVME_LOG_SMART_ID;
-    smartPageOpts.nsid    = UINT32_MAX; // requesting controller page, not namespace page. - TJE
+    smartPageOpts.nsid    = NVME_ALL_NAMESPACES; // requesting controller page, not namespace page. - TJE
     if (SUCCESS == nvme_Get_Log_Page(device, &smartPageOpts))
     {
         // check the critical warning byte! (Byte 0)
@@ -6729,7 +6729,7 @@ eReturnValues sct_Get_Feature_Control(const tDevice* device,
             ret = send_ATA_SCT_Feature_Control(device, 0x0002, featureCode, &state, &optionFlags);
             if (ret == SUCCESS)
             {
-                DISABLE_NONNULL_COMPARE
+
                 if (hdaTemperatureIntervalOrState != M_NULLPTR)
                 {
                     *hdaTemperatureIntervalOrState = state;
@@ -6738,35 +6738,35 @@ eReturnValues sct_Get_Feature_Control(const tDevice* device,
                 {
                     *defaultValue = false;
                 }
-                RESTORE_NONNULL_COMPARE
+
                 switch (sctFeature)
                 {
                 case SCT_FEATURE_CONTROL_WRITE_CACHE_STATE:
                     switch (state)
                     {
                     case 0x0001:
-                        DISABLE_NONNULL_COMPARE
+
                         if (defaultValue != M_NULLPTR)
                         {
                             *defaultValue = true;
                         }
-                        RESTORE_NONNULL_COMPARE
+
                         break;
                     case 0x0002:
-                        DISABLE_NONNULL_COMPARE
+
                         if (enableDisable != M_NULLPTR)
                         {
                             *enableDisable = true;
                         }
-                        RESTORE_NONNULL_COMPARE
+
                         break;
                     case 0x0003:
-                        DISABLE_NONNULL_COMPARE
+
                         if (enableDisable != M_NULLPTR)
                         {
                             *enableDisable = false;
                         }
-                        RESTORE_NONNULL_COMPARE
+
                         break;
                     default:
                         // unknown, don't do anything
@@ -6777,7 +6777,7 @@ eReturnValues sct_Get_Feature_Control(const tDevice* device,
                     switch (state)
                     {
                     case 0x0001:
-                        DISABLE_NONNULL_COMPARE
+
                         if (defaultValue != M_NULLPTR)
                         {
                             *defaultValue = true;
@@ -6786,15 +6786,15 @@ eReturnValues sct_Get_Feature_Control(const tDevice* device,
                         {
                             *enableDisable = true;
                         }
-                        RESTORE_NONNULL_COMPARE
+
                         break;
                     case 0x0002:
-                        DISABLE_NONNULL_COMPARE
+
                         if (enableDisable != M_NULLPTR)
                         {
                             *enableDisable = false;
                         }
-                        RESTORE_NONNULL_COMPARE
+
                         break;
                     default:
                         // unknown, don't do anything
@@ -6807,13 +6807,12 @@ eReturnValues sct_Get_Feature_Control(const tDevice* device,
                     break;
                 }
                 // get option flags if pointer is valid
-                DISABLE_NONNULL_COMPARE
+
                 if (featureOptionFlags != M_NULLPTR)
                 {
                     ret = send_ATA_SCT_Feature_Control(device, 0x0003, featureCode, &state, &optionFlags);
                     *featureOptionFlags = optionFlags;
                 }
-                RESTORE_NONNULL_COMPARE
             }
         }
     }
@@ -7031,7 +7030,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(const tDevice*             
                                                      ptrInformationalExceptionsLog     logData)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (controlData == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -7062,7 +7061,7 @@ eReturnValues get_SCSI_Informational_Exceptions_Info(const tDevice*             
             safe_free_aligned(&infoLogPage);
         }
     }
-    RESTORE_NONNULL_COMPARE
+
     // read the mode page
     uint8_t* infoControlPage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MODE_PARAMETER_HEADER_10_LEN + MP_INFORMATION_EXCEPTIONS_LEN,
@@ -7273,12 +7272,12 @@ eReturnValues enable_Disable_SMART_Auto_Offline(const tDevice* device, bool enab
 eReturnValues get_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (smartInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check SMART support and enabled
@@ -7315,12 +7314,12 @@ eReturnValues get_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartInf
 eReturnValues print_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (smartInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         print_str("\n===SMART Info===\n");
@@ -7387,12 +7386,13 @@ eReturnValues print_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartI
             print_str("The self-test routine was interrupted by the host with a hardware or software reset");
             break;
         case 3:
-            print_str("A fatal error or unknown test error occurred while the device was executing its self-test routine "
-                   "and the device was unable to complete the self-test routine");
+            print_str(
+                "A fatal error or unknown test error occurred while the device was executing its self-test routine "
+                "and the device was unable to complete the self-test routine");
             break;
         case 4:
             print_str("The previous self-test completed having a test element that failed and the test element that "
-                   "failed is not known");
+                      "failed is not known");
             break;
         case 5:
             print_str("The previous self-test completed having the electrical element of the test failed");
@@ -7404,8 +7404,9 @@ eReturnValues print_SMART_Info(const tDevice* device, ptrSmartFeatureInfo smartI
             print_str("The previous self-test completed having the read element of the test failed");
             break;
         case 8:
-            print_str("The previous self-test completed having a test element that failed and the device is suspected of "
-                   "having handling damage");
+            print_str(
+                "The previous self-test completed having a test element that failed and the device is suspected of "
+                "having handling damage");
             break;
         case 0xF:
             print_str("Self-test routine in progress");
@@ -7705,12 +7706,12 @@ eReturnValues get_ATA_Summary_SMART_Error_Log(const tDevice* device, ptrSummaryS
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        DISABLE_NONNULL_COMPARE
+
         if (smartErrorLog == M_NULLPTR)
         {
             return BAD_PARAMETER;
         }
-        RESTORE_NONNULL_COMPARE
+
         if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device)) // must be enabled to read this page
         {
             // Check to make sure it is in the SMART log directory
@@ -7867,12 +7868,12 @@ eReturnValues get_ATA_Comprehensive_SMART_Error_Log(const tDevice*              
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        DISABLE_NONNULL_COMPARE
+
         if (smartErrorLog == M_NULLPTR)
         {
             return BAD_PARAMETER;
         }
-        RESTORE_NONNULL_COMPARE
+
         if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device)) // must be enabled to read this page
         {
             uint32_t compErrLogSize = UINT32_C(0);
@@ -11285,7 +11286,7 @@ static void get_Command_Info(uint8_t  commandOpCode,
         if (M_Byte0(features) == IDLE_IMMEDIATE_UNLOAD_FEATURE)
         {
             uint32_t idleImmdLBA =
-                C_CAST(uint32_t, lba & UINT32_C(0x00FFFFFFFF)) | (C_CAST(uint32_t, M_Nibble0(device)) << 24);
+                C_CAST(uint32_t, lba& UINT32_C(0x00FFFFFFFF)) | (C_CAST(uint32_t, M_Nibble0(device)) << 24);
             if (IDLE_IMMEDIATE_UNLOAD_LBA == idleImmdLBA)
             {
                 snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate - Unload");
@@ -11757,7 +11758,7 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
 
 void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog errorLogData, bool genericOutput)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (errorLogData != M_NULLPTR)
     {
         print_str("SMART Comprehensive Error Log");
@@ -11811,7 +11812,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
                     print_str("\tSC - Sector Count\tSCe - Sector Count Ext\n");
                     print_str("\tLL - LBA Low     \tLM - LBA Mid     \tLH - LBA Hi\n");
                     print_str("\tLLe - LBA Low Ext\tLMe - LBA Mid Ext\tLHe - LBA Hi Ext\n");
-                    print_str("\tDH - Device/Head \tDC - Device Control\tVU Bytes - Extended Error Info (Vendor Unique)\n");
+                    print_str(
+                        "\tDH - Device/Head \tDC - Device Control\tVU Bytes - Extended Error Info (Vendor Unique)\n");
                     print_str("\t---------------------\n");
                 }
                 else
@@ -12141,13 +12143,12 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog error
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 // Ext commands reported in the summary log will be truncated to 28bits! Data will not be as accurate!
 void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, bool genericOutput)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (errorLogData != M_NULLPTR)
     {
         print_str("SMART Summary Error Log");
@@ -12374,5 +12375,4 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog errorLogData, boo
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
 }

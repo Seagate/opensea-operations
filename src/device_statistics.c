@@ -28,8 +28,8 @@
 #include "device_statistics.h"
 #include "logs.h"
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_general_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                  uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsGeneralOffsets, byteOffsetOnPage))
@@ -74,8 +74,8 @@ static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics devic
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_freefall_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                   uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsFreeFallOffset, byteOffsetOnPage))
@@ -90,8 +90,8 @@ static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics devi
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_rotating_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                   uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsRotatingOffset, byteOffsetOnPage))
@@ -124,8 +124,8 @@ static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics devi
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_generallerror_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                        uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsGeneralErrorOffset, byteOffsetOnPage))
@@ -143,8 +143,8 @@ static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_temperature_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                      uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsTemperatureOffset, byteOffsetOnPage))
@@ -192,8 +192,8 @@ static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics d
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_transport_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                    uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsTransportOffset, byteOffsetOnPage))
@@ -211,8 +211,8 @@ static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics dev
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_ssd_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                              uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsSSDOffset, byteOffsetOnPage))
@@ -224,8 +224,8 @@ static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceSta
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_zoned_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsZonedOffset, byteOffsetOnPage))
@@ -270,7 +270,8 @@ static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceS
     return stat;
 }
 
-static statistic* dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                  uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsCDL_0_1_Offset, byteOffsetOnPage))
@@ -457,7 +458,8 @@ static statistic* dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics deviceStats, u
     return stat;
 }
 
-static statistic* dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                  uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsCDL_2_3_Offset, byteOffsetOnPage))
@@ -642,10 +644,9 @@ static statistic* dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics deviceStats, u
 
 // this is ued to determine which device statistic is being talked about by the DSN log on ata
 // TODO: Make enum of all stat offsets on each page so it is easy to make sure all cases are handled correctly
-M_NONNULL_PARAM_LIST(1)
-static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
-                                           uint8_t             ataDevStatPage,
-                                           uint16_t            byteOffsetOnPage)
+static statistic* M_NULLABLE dev_stat_page_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                      uint8_t                       ataDevStatPage,
+                                                      uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDeviceStatisticsLog, ataDevStatPage))
@@ -690,9 +691,9 @@ static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1) M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* ptrStatistic); // prototype
+M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* M_NONNULL ptrStatistic); // prototype
 
-static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic* stat)
+static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic* M_NONNULL stat)
 {
     if (stat != M_NULLPTR)
     {
@@ -725,7 +726,7 @@ static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, stat
 
 // NOTE: call le64 to host on qword when passing in to keep this simpler!
 M_PARAM_WO(2)
-static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* stat)
+static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* M_NONNULL stat)
 {
     bool statisticPopulated = false;
     if (stat != M_NULLPTR)
@@ -749,7 +750,8 @@ static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* stat)
     return statisticPopulated;
 }
 
-static eReturnValues get_ATA_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_ATA_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                              ptrDeviceStatistics M_NONNULL deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (deviceStats == M_NULLPTR)
@@ -989,7 +991,8 @@ static eReturnValues get_ATA_DeviceStatistics(const tDevice* device, ptrDeviceSt
     return ret;
 }
 
-static eReturnValues get_SCSI_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                               ptrDeviceStatistics M_NONNULL deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (deviceStats == M_NULLPTR)
@@ -8229,7 +8232,7 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* device, ptrDeviceS
 eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (deviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -8242,13 +8245,13 @@ eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics de
     {
         return get_SCSI_DeviceStatistics(device, deviceStats);
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 
 void scsi_Threshold_Comparison(statistic* ptrStatistic)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (ptrStatistic != M_NULLPTR)
     {
         if (ptrStatistic->isThresholdValid && ptrStatistic->thresholdNotificationEnabled &&
@@ -8281,7 +8284,6 @@ void scsi_Threshold_Comparison(statistic* ptrStatistic)
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 #define DEVICE_STATISTIC_FLAGS_LEN 4
@@ -9937,12 +9939,12 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED const tDevice* de
 eReturnValues print_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (deviceStats == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
-    RESTORE_NONNULL_COMPARE
+
     // as I write this I'm going to try and keep ATA and SCSI having the same printout format, but that may need to
     // change...-TJE
     if (device->drive_info.drive_type == ATA_DRIVE)

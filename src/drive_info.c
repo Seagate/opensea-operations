@@ -129,12 +129,17 @@ typedef struct s_idDataCapabilitiesForDriveInfo
     bool processedStdIDData; // set when the function that reviews the standard ID data (ECh) has already been called.
 } idDataCapabilitiesForDriveInfo, *ptrIdDataCapabilitiesForDriveInfo;
 
-static void add_Sanitize_Feature_To_Drive_Info(char        featuresSupported[MAX_FEATURES][MAX_FEATURE_LENGTH],
-                                          uint8_t*    numberOfFeaturesSupported, bool overwrite, bool block, bool crypto, bool antifreeze, bool acs2)
+static void add_Sanitize_Feature_To_Drive_Info(char     featuresSupported[MAX_FEATURES][MAX_FEATURE_LENGTH],
+                                               uint8_t* numberOfFeaturesSupported,
+                                               bool     overwrite,
+                                               bool     block,
+                                               bool     crypto,
+                                               bool     antifreeze,
+                                               bool     acs2)
 {
-    #define SANITIZE_CMDS_FEATURES_LEN 34
+#define SANITIZE_CMDS_FEATURES_LEN 34
     DECLARE_ZERO_INIT_ARRAY(char, sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN);
-    const char *sanitizeCmdsStr = "Sanitize";
+    const char* sanitizeCmdsStr = "Sanitize";
     if (acs2)
     {
         sanitizeCmdsStr = "Sanitize (ACS-2)";
@@ -173,17 +178,15 @@ static void add_Sanitize_Feature_To_Drive_Info(char        featuresSupported[MAX
     //     safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Antifreeze");
     // }
     M_USE_UNUSED(antifreeze);
-    char *sanitizeFeatureString = M_NULLPTR;
+    char* sanitizeFeatureString = M_NULLPTR;
     if (asprintf(&sanitizeFeatureString, "%s [%s]", sanitizeCmdsStr, sanitizeFeatures) != -1 &&
         sanitizeFeatureString != M_NULLPTR)
     {
-        add_Feature_To_Supported_List(featuresSupported,    numberOfFeaturesSupported,
-                                    sanitizeFeatureString);
+        add_Feature_To_Supported_List(featuresSupported, numberOfFeaturesSupported, sanitizeFeatureString);
     }
     else
     {
-        add_Feature_To_Supported_List(featuresSupported,    numberOfFeaturesSupported,
-                                      "Sanitize");
+        add_Feature_To_Supported_List(featuresSupported, numberOfFeaturesSupported, "Sanitize");
     }
     safe_free(&sanitizeFeatureString);
 }
@@ -443,13 +446,11 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         if (le16_to_host(wordPtr[59]) & BIT12)
         {
-            add_Sanitize_Feature_To_Drive_Info( driveInfo->featuresSupported,
-                                              &driveInfo->numberOfFeaturesSupported,
-                                              (le16_to_host(wordPtr[59]) & BIT14) != 0,
-                                              (le16_to_host(wordPtr[59]) & BIT15) != 0,
-                                              (le16_to_host(wordPtr[59]) & BIT13) != 0,
-                                              (le16_to_host(wordPtr[59]) & BIT10) != 0,
-                                              (le16_to_host(wordPtr[59]) & BIT11) == 0);
+            add_Sanitize_Feature_To_Drive_Info(
+                driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
+                (le16_to_host(wordPtr[59]) & BIT14) != 0, (le16_to_host(wordPtr[59]) & BIT15) != 0,
+                (le16_to_host(wordPtr[59]) & BIT13) != 0, (le16_to_host(wordPtr[59]) & BIT10) != 0,
+                (le16_to_host(wordPtr[59]) & BIT11) == 0);
         }
     }
 
@@ -1786,7 +1787,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             // get the number of logical blocks per physical blocks
             sectorSizeExponent = le16_to_host(wordPtr[106]) & 0x000F;
             driveInfo->physicalSectorSize =
-                C_CAST(uint32_t, driveInfo->logicalSectorSize * power_Of_Two(sectorSizeExponent));
+                C_CAST(uint32_t, driveInfo->logicalSectorSize* power_Of_Two(sectorSizeExponent));
         }
     }
 
@@ -2248,12 +2249,12 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
         ret                                = SUCCESS;
         ataCapabilities->supportsIDDataLog = true;
         // data is valid, so figure out supported pages
-        uint8_t  listLen      = idDataLog[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
-        uint32_t offset       = UINT32_C(0);
-        bool     dlcSupported = false;
-        bool     dlcEnabled   = false;
-        bool     cdlSupported = false;
-        bool     cdlEnabled   = false;
+        uint8_t  listLen                   = idDataLog[ATA_ID_DATA_SUP_PG_LIST_LEN_OFFSET];
+        uint32_t offset                    = UINT32_C(0);
+        bool     dlcSupported              = false;
+        bool     dlcEnabled                = false;
+        bool     cdlSupported              = false;
+        bool     cdlEnabled                = false;
         bool     powerConsumptionSupported = false;
         bool     powerConsumptionEnabled   = false;
         for (uint16_t iter = ATA_ID_DATA_SUP_PG_LIST_OFFSET;
@@ -3270,12 +3271,12 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
     bool                           smartStatusFromSCTStatusLog = false;
     idDataCapabilitiesForDriveInfo ataCap;
     safe_memset(&ataCap, sizeof(idDataCapabilitiesForDriveInfo), 0, sizeof(idDataCapabilitiesForDriveInfo));
-    DISABLE_NONNULL_COMPARE
+
     if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     safe_memset(driveInfo, sizeof(driveInformationSAS_SATA), 0, sizeof(driveInformationSAS_SATA));
     safe_memcpy(&driveInfo->adapterInformation, sizeof(adapterInfo), &device->drive_info.adapter_info,
                 sizeof(adapterInfo));
@@ -3326,18 +3327,16 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
         uint32_t farmLogSize          = UINT32_C(0);
         if (gotLogDirectory)
         {
-            devStatsSize   = get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_LOG_DEVICE_STATISTICS);
-            idDataLogSize  = get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_LOG_IDENTIFY_DEVICE_DATA);
-            hybridInfoSize = get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_LOG_HYBRID_INFORMATION);
-            smartSelfTest  = get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_LOG_SMART_SELF_TEST_LOG);
-            extSelfTest =
-                get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG);
-            sctStatus   = get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_SCT_COMMAND_STATUS);
-            hostlogging = get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_LOG_HOST_SPECIFIC_80H);
-            concurrentRangesSize =
-                get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize, ATA_LOG_CONCURRENT_POSITIONING_RANGES);
-            farmLogSize = get_ATA_Log_Size_From_Directory(logBuffer, logBufferSize,
-                                                          SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS);
+            devStatsSize         = get_ATA_Log_Size_From_Directory(logBuffer, ATA_LOG_DEVICE_STATISTICS);
+            idDataLogSize        = get_ATA_Log_Size_From_Directory(logBuffer, ATA_LOG_IDENTIFY_DEVICE_DATA);
+            hybridInfoSize       = get_ATA_Log_Size_From_Directory(logBuffer, ATA_LOG_HYBRID_INFORMATION);
+            smartSelfTest        = get_ATA_Log_Size_From_Directory(logBuffer, ATA_LOG_SMART_SELF_TEST_LOG);
+            extSelfTest          = get_ATA_Log_Size_From_Directory(logBuffer, ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG);
+            sctStatus            = get_ATA_Log_Size_From_Directory(logBuffer, ATA_SCT_COMMAND_STATUS);
+            hostlogging          = get_ATA_Log_Size_From_Directory(logBuffer, ATA_LOG_HOST_SPECIFIC_80H);
+            concurrentRangesSize = get_ATA_Log_Size_From_Directory(logBuffer, ATA_LOG_CONCURRENT_POSITIONING_RANGES);
+            farmLogSize =
+                get_ATA_Log_Size_From_Directory(logBuffer, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS);
         }
         else
         {
@@ -5397,7 +5396,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         awreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
-                                                                 awreStringLength * sizeof(char)));
+                                                                       awreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
@@ -5424,7 +5423,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         arreStringLength = 30;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
-                                                                 arreStringLength * sizeof(char)));
+                                                                       arreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
@@ -5480,7 +5479,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         awreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &awreString),
-                                                                 awreStringLength * sizeof(char)));
+                                                                       awreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
@@ -5507,7 +5506,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                         arreStringLength = 40;
                                         char* temp       = M_REINTERPRET_CAST(
                                             char*, safe_reallocf(M_REINTERPRET_CAST(void**, &arreString),
-                                                                 arreStringLength * sizeof(char)));
+                                                                       arreStringLength * sizeof(char)));
                                         if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
@@ -6844,7 +6843,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
                                         char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
-                                                             bmsPSStringLength * sizeof(char)));
+                                                                    bmsPSStringLength * sizeof(char)));
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
@@ -6922,7 +6921,7 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                                     bmsPSStringLength = 50;
                                     char* temp        = M_REINTERPRET_CAST(
                                         char*, safe_reallocf(M_REINTERPRET_CAST(void**, &bmsPSString),
-                                                             bmsPSStringLength * sizeof(char)));
+                                                                    bmsPSStringLength * sizeof(char)));
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
@@ -7069,27 +7068,25 @@ static eReturnValues get_SCSI_Diagnostic_Data(const tDevice*              device
 }
 
 // report supported operation codes to figure out additional features.
-M_NONNULL_PARAM_LIST(1, 2, 3)
 M_PARAM_RO(1)
 M_PARAM_RW(2)
 M_PARAM_RO(3)
-static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice*              device,
-                                                   ptrDriveInformationSAS_SATA driveInfo,
-                                                   const ptrSCSIIdentifyInfo   scsiInfo)
+static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL              device,
+                                                   ptrDriveInformationSAS_SATA M_NONNULL driveInfo,
+                                                   const ptrSCSIIdentifyInfo M_NONNULL   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (device != M_NULLPTR && driveInfo != M_NULLPTR && scsiInfo != M_NULLPTR)
-    RESTORE_NONNULL_COMPARE
+
     {
         // mostly for USB devices to prevent sending commands that don't usually
         // work in the first place.
         if (!device->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations)
         {
             {
-                // Most SAT devices won't report all at once, so try asking for individual commands that are supported
-                // one at a time instead of asking for everything all at once.
-                // Format unit
+                // Most SAT devices won't report all at once, so try asking for individual commands that are
+                // supported one at a time instead of asking for everything all at once. Format unit
                 bool                         fastFormatSupported = false;
                 scsiOperationCodeInfoRequest supportedOpRequest;
                 safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
@@ -7169,13 +7166,11 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice*              d
                     sanitizeBlockSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD ||
                     sanitizeCryptoSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
                 {
-                    add_Sanitize_Feature_To_Drive_Info( driveInfo->featuresSupported,
-                                                     &driveInfo->numberOfFeaturesSupported,
-                                                     sanitizeOverwriteSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
-                                                     sanitizeBlockSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
-                                                     sanitizeCryptoSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
-                                                     false,
-                                                     false);
+                    add_Sanitize_Feature_To_Drive_Info(
+                        driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
+                        sanitizeOverwriteSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
+                        sanitizeBlockSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD,
+                        sanitizeCryptoSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD, false, false);
                 }
 
                 safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
@@ -7246,16 +7241,16 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice*              d
 
                 if (!driveInfo->securityInfo.securityProtocolInfoValid)
                 {
-                    // Check security protocol in case the earlier attempt did not work to detect when the OS/driver/HBA
-                    // are blocking these commands
+                    // Check security protocol in case the earlier attempt did not work to detect when the
+                    // OS/driver/HBA are blocking these commands
                     safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
                                 sizeof(scsiOperationCodeInfoRequest));
                     supportedOpRequest.operationCode      = 0xA2;
                     supportedOpRequest.serviceActionValid = false;
                     eSCSICmdSupport secProtSupported = is_SCSI_Operation_Code_Supported(device, &supportedOpRequest);
-                    // If this command is being reported by the device as supported according to the standard, but it
-                    // failed to read the list of supported protocols earlier, then it is being blocked. Any other value
-                    // tells us it is not supported by the device (more or less)
+                    // If this command is being reported by the device as supported according to the standard, but
+                    // it failed to read the list of supported protocols earlier, then it is being blocked. Any
+                    // other value tells us it is not supported by the device (more or less)
                     if (secProtSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
                     {
                         driveInfo->trustedCommandsBeingBlocked = true;
@@ -7318,12 +7313,12 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice*              d
 eReturnValues get_SCSI_Drive_Information(const tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     safe_memset(driveInfo, sizeof(driveInformationSAS_SATA), 0, sizeof(driveInformationSAS_SATA));
     scsiIdentifyInfo scsiInfo;
     safe_memset(&scsiInfo, sizeof(scsiIdentifyInfo), 0, sizeof(scsiIdentifyInfo));
@@ -7653,10 +7648,9 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice*          d
     if (nvmeIdentifyData[328] & BIT0) // Sanitize supported
     {
         add_Sanitize_Feature_To_Drive_Info(driveInfo->controllerData.controllerFeaturesSupported,
-                                      &driveInfo->controllerData.numberOfControllerFeatures,
-                                      (nvmeIdentifyData[328] & BIT2) != 0,
-                                      (nvmeIdentifyData[328] & BIT1) != 0,
-                                      (nvmeIdentifyData[328] & BIT0) != 0, false, false);
+                                           &driveInfo->controllerData.numberOfControllerFeatures,
+                                           (nvmeIdentifyData[328] & BIT2) != 0, (nvmeIdentifyData[328] & BIT1) != 0,
+                                           (nvmeIdentifyData[328] & BIT0) != 0, false, false);
     }
     // max namespaces
     driveInfo->controllerData.maxNumberOfNamespaces =
@@ -8021,12 +8015,12 @@ static eReturnValues get_NVMe_Log_Data(const tDevice* device, ptrDriveInformatio
 eReturnValues get_NVMe_Drive_Information(const tDevice* device, ptrDriveInformationNVMe driveInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     safe_memset(driveInfo, sizeof(driveInformationNVMe), 0, sizeof(driveInformationNVMe));
     // changing ret to success since we have passthrough available
     ret                       = SUCCESS;
@@ -8354,7 +8348,7 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
         char*  mUtilizationUnit = &mUtilizationUnits[0];
         char*  utilizationUnit  = &utilizationUnits[0];
         double nvmMUtilization  = C_CAST(double, driveInfo->namespaceData.namespaceUtilization *
-                                                    driveInfo->namespaceData.formattedLBASizeBytes);
+                                                     driveInfo->namespaceData.formattedLBASizeBytes);
         double nvmUtilization   = nvmMUtilization;
         metric_Unit_Convert(&nvmMUtilization, &mUtilizationUnit);
         capacity_Unit_Convert(&nvmUtilization, &utilizationUnit);
@@ -9083,8 +9077,9 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
     }
     if (driveInfo->trustedCommandsBeingBlocked)
     {
-        print_str("\t\tWARNING: OS/driver/HBA is blocking TCG commands over passthrough. Please enable it before running "
-               "any TCG commands\n");
+        print_str(
+            "\t\tWARNING: OS/driver/HBA is blocking TCG commands over passthrough. Please enable it before running "
+            "any TCG commands\n");
     }
     // Cache Size -- convert to MB
     if (driveInfo->cacheSize > 0)
@@ -9398,7 +9393,7 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 // NOT FOR USE WITH A SAS DRIVE
 void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo, ptrDriveInformation driveInfo)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (translatorDriveInfo != M_NULLPTR && translatorDriveInfo->infoType == DRIVE_INFO_SAS_SATA)
     {
         print_str("SCSI Translator Reported Information:\n");
@@ -9427,7 +9422,6 @@ void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
     {
         print_str("Drive Information not available.\n\n");
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 // This function ONLY exists because we need to show a mix of SCSI and ATA information on USB.
@@ -9435,7 +9429,7 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
                                          ptrDriveInformationSAS_SATA scsiDriveInfo,
                                          ptrDriveInformationSAS_SATA ataDriveInfo)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (externalDriveInfo != M_NULLPTR && scsiDriveInfo != M_NULLPTR && ataDriveInfo != M_NULLPTR)
     {
         // take data from each of the inputs, and plug it into a new one, then call the standard print function
@@ -9490,7 +9484,6 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
             ++(externalDriveInfo->numberOfSpecificationsSupported);
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
@@ -9500,7 +9493,7 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     // for the most part, keep all the SCSI information.
     // After that take the POH, temperature, DST information, workload, and combine the features.
     // Also add the NVMe spec version to the output as well.
-    DISABLE_NONNULL_COMPARE
+
     if (externalDriveInfo != M_NULLPTR && scsiDriveInfo != M_NULLPTR && nvmeDriveInfo != M_NULLPTR)
     {
         // take data from each of the inputs, and plug it into a new one, then call the standard print function
@@ -9594,7 +9587,6 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues get_Drive_Information(const tDevice*          device,
@@ -9829,9 +9821,8 @@ eReturnValues print_Drive_Information(const tDevice* device, bool showChildInfor
     return ret;
 }
 
-const char* print_drive_type(const tDevice* device)
+M_RETURNS_NONNULL const char* print_drive_type(const tDevice* device)
 {
-    DISABLE_NONNULL_COMPARE
     if (device != M_NULLPTR)
     {
         if (device->drive_info.drive_type == ATA_DRIVE)
@@ -9871,5 +9862,4 @@ const char* print_drive_type(const tDevice* device)
     {
         return "Invalid device structure pointer";
     }
-    RESTORE_NONNULL_COMPARE
 }

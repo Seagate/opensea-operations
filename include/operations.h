@@ -37,13 +37,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Ready_LED_State(const tDevice* device, bool* readyLEDOnOff);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Ready_LED_State(const tDevice* M_NONNULL device,
+                                                             bool* M_NONNULL          readyLEDOnOff);
 
     //-----------------------------------------------------------------------------
     //
-    //  change_Ready_LED( tDevice * device )
+    //  change_Ready_LED( tDevice* M_NONNULL device )
     //
     //! \brief   Change Ready LED behavior on SAS drives. SAS is configurable with a command, SATA is not so SAS is the
     //! only thing supported in this call.
@@ -58,15 +59,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues change_Ready_LED(const tDevice* device,
-                                                          bool           readyLEDDefault,
-                                                          bool           readyLEDOnOff);
+    OPENSEA_OPERATIONS_API eReturnValues change_Ready_LED(const tDevice* M_NONNULL device,
+                                                          bool                     readyLEDDefault,
+                                                          bool                     readyLEDOnOff);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_is_NV_DIS_Bit_Set( tDevice * device )
+    //  scsi_is_NV_DIS_Bit_Set( tDevice* M_NONNULL device )
     //
     //! \brief   get whether NV_DIS bit in the SCSI Caching mode page is set or not
     //
@@ -77,17 +77,17 @@ extern "C"
     //!   \return true = enabled, false = disabled
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_is_NV_DIS_Bit_Set(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_is_NV_DIS_Bit_Set(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_NV_Cache_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_NV_Cache_Supported(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_NV_Cache_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_NV_Cache_Supported(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_NV_Cache_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_NV_Cache_Enabled(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Set_NV_DIS( tDevice * device, bool nv_disEnableDisable)
+    //  scsi_Set_NV_DIS( tDevice* M_NONNULL device, bool nv_disEnableDisable)
     //
     //! \brief   Set the SCSI NV_DIS bit using scsi commands (Caching Mode Page, SBC). setting enableDisable to true
     //! turns the NV cache ON (NV_DIS = 0), false turns the cache off (NV_DIS = 1)
@@ -100,12 +100,12 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Set_NV_DIS(const tDevice* device, bool nv_disEnableDisable);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_NV_DIS(const tDevice* M_NONNULL device, bool nv_disEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Read_Look_Ahead( tDevice * device )
+    //  set_Read_Look_Ahead( tDevice* M_NONNULL device )
     //
     //! \brief   set read look-ahead to enabled or disabled.
     //
@@ -117,13 +117,13 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_Read_Look_Ahead(const tDevice* device, bool readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues set_Read_Look_Ahead(const tDevice* M_NONNULL device,
+                                                             bool                     readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Set_Read_Look_Ahead( tDevice * device )
+    //  scsi_Set_Read_Look_Ahead( tDevice* M_NONNULL device )
     //
     //! \brief   set read look-ahead to enabled or disabled using scsi commands
     //
@@ -135,14 +135,13 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Read_Look_Ahead(const tDevice* device,
-                                                                  bool           readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Read_Look_Ahead(const tDevice* M_NONNULL device,
+                                                                  bool                     readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Set_Read_Look_Ahead( tDevice * device )
+    //  ata_Set_Read_Look_Ahead( tDevice* M_NONNULL device )
     //
     //! \brief   set read look-ahead to enabled or disabled using ata commands
     //
@@ -154,14 +153,13 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Read_Look_Ahead(const tDevice* device,
-                                                                 bool           readLookAheadEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Read_Look_Ahead(const tDevice* M_NONNULL device,
+                                                                 bool                     readLookAheadEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Write_Cache( tDevice * device )
+    //  set_Write_Cache( tDevice* M_NONNULL device )
     //
     //! \brief   set write cache to enabled or disabled.
     //
@@ -173,13 +171,12 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues set_Write_Cache(const tDevice* M_NONNULL device, bool writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Set_Write_Cache( tDevice * device )
+    //  scsi_Set_Write_Cache( tDevice* M_NONNULL device )
     //
     //! \brief   set write cache to enabled or disabled using scsi commands
     //
@@ -191,13 +188,13 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Write_Cache(const tDevice* M_NONNULL device,
+                                                              bool                     writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Set_Write_Cache( tDevice * device )
+    //  ata_Set_Write_Cache( tDevice* M_NONNULL device )
     //
     //! \brief   set write cache to enabled or disabled using ata commands
     //
@@ -209,17 +206,17 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Write_Cache(const tDevice* M_NONNULL device,
+                                                             bool                     writeCacheEnableDisable);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Set_Write_Cache(const tDevice* M_NONNULL device,
+                                                              bool                     writeCacheEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Read_Look_Ahead_Enabled( tDevice * device )
+    //  is_Read_Look_Ahead_Enabled( tDevice* M_NONNULL device )
     //
     //! \brief   get whether read look ahead is currently enabled or not.
     //
@@ -230,14 +227,13 @@ extern "C"
     //!   \return true = enabled, false = disabled
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Enabled(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Is_Read_Look_Ahead_Enabled( tDevice * device )
+    //  scsi_Is_Read_Look_Ahead_Enabled( tDevice* M_NONNULL device )
     //
     //! \brief   get whether read look ahead is currently enabled or not from scsi caching mode page
     //
@@ -248,15 +244,13 @@ extern "C"
     //!   \return true = enabled, false = disabled
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Enabled(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Is_Read_Look_Ahead_Enabled( tDevice * device )
+    //  ata_Is_Read_Look_Ahead_Enabled( tDevice* M_NONNULL device )
     //
     //! \brief   get whether read look ahead is currently enabled or not from ata identify information
     //
@@ -267,21 +261,16 @@ extern "C"
     //!   \return true = enabled, false = disabled
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Enabled(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Supported(const tDevice* device);
-
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Supported(const tDevice* M_NONNULL device);
     //-----------------------------------------------------------------------------
     //
-    //  is_Write_Cache_Enabled( tDevice * device )
+    //  is_Write_Cache_Enabled( tDevice* M_NONNULL device )
     //
     //! \brief   get whether write caching is currently enabled or not.
     //
@@ -292,13 +281,13 @@ extern "C"
     //!   \return true = enabled, false = disabled
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Write_Cache_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Write_Cache_Enabled(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Is_Read_Look_Ahead_Enabled( tDevice * device )
+    //  scsi_Is_Read_Look_Ahead_Enabled( tDevice* M_NONNULL device )
     //
     //! \brief   get whether read look ahead is currently enabled or not from scsi caching mode page
     //
@@ -309,15 +298,13 @@ extern "C"
     //!   \return true = enabled, false = disabled
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Enabled(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Is_Write_Cache_Enabled( tDevice * device )
+    //  ata_Is_Write_Cache_Enabled( tDevice* M_NONNULL device )
     //
     //! \brief   get whether read look ahead is currently enabled or not from ata identify information
     //
@@ -328,10 +315,9 @@ extern "C"
     //!   \return true = enabled, false = disabled
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Enabled(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Enabled(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(const tDevice* M_NONNULL device);
 
     typedef enum eEraseMethodEnum
     {
@@ -404,14 +390,13 @@ extern "C"
     //!   support.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     M_PARAM_WO(3)
     OPENSEA_OPERATIONS_API eReturnValues
-    get_Supported_Erase_Methods(const tDevice* device,
-                                eraseMethod    eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-                                uint32_t*      overwriteEraseTimeEstimateMinutes);
+    get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
+                                eraseMethod              eraseMethodList[M_NONNULL_ARRAY MAX_SUPPORTED_ERASE_METHODS],
+                                uint32_t* M_NULLABLE     overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -429,14 +414,13 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     M_PARAM_RO(3)
     OPENSEA_OPERATIONS_API
-    void print_Supported_Erase_Methods(const tDevice*    device,
-                                       eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-                                       const uint32_t*   overwriteEraseTimeEstimateMinutes);
+    void print_Supported_Erase_Methods(const tDevice* M_NONNULL device,
+                                       eraseMethod const eraseMethodList[M_NONNULL_ARRAY MAX_SUPPORTED_ERASE_METHODS],
+                                       const uint32_t* M_NULLABLE overwriteEraseTimeEstimateMinutes);
 
     //-----------------------------------------------------------------------------
     //
@@ -456,51 +440,43 @@ extern "C"
     //!   support.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_Sense_Data_Format(const tDevice* device,
-                                                               bool           defaultSetting,
-                                                               bool           descriptorFormat,
-                                                               bool           saveParameters);
+    OPENSEA_OPERATIONS_API eReturnValues set_Sense_Data_Format(const tDevice* M_NONNULL device,
+                                                               bool                     defaultSetting,
+                                                               bool                     descriptorFormat,
+                                                               bool                     saveParameters);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API eReturnValues get_Current_Free_Fall_Control_Sensitivity(
-        const tDevice* device,
-        uint16_t* sensitivity); // if sensitivity is set to UINT16_MAX, then the feature is supported, but not enabled,
-                                // so the value wouldn't otherwise make sense
+        const tDevice* M_NONNULL device,
+        uint16_t* M_NONNULL sensitivity); // if sensitivity is set to UINT16_MAX, then the feature is supported, but not
+                                          // enabled, so the value wouldn't otherwise make sense
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_Free_Fall_Control_Sensitivity(
-        const tDevice* device,
-        uint8_t        sensitivity); // enables the feature. Value of zero sets a vendor's recommended setting
+        const tDevice* M_NONNULL device,
+        uint8_t                  sensitivity); // enables the feature. Value of zero sets a vendor's recommended setting
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues
-    disable_Free_Fall_Control_Feature(const tDevice* device); // disables the free fall control feature
+    disable_Free_Fall_Control_Feature(const tDevice* M_NONNULL device); // disables the free fall control feature
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues enable_Disable_AAM_Feature(const tDevice* device, bool enable);
-
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_AAM_Level(const tDevice* device, uint8_t aamLevel);
-
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_AAM_Level(const tDevice* device, uint8_t* aamLevel);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_AAM_Feature(const tDevice* M_NONNULL device, bool enable);
+
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_AAM_Level(const tDevice* M_NONNULL device, uint8_t aamLevel);
+
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_AAM_Level(const tDevice* M_NONNULL device, uint8_t* M_NONNULL aamLevel);
 
     // This is the reset to defaults bit in mode select command. Not anything else. If this is
     // false, the old read the defaults and write it back should still work - TJE
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API bool scsi_MP_Reset_To_Defaults_Supported(const tDevice* device);
-
+    OPENSEA_OPERATIONS_API bool scsi_MP_Reset_To_Defaults_Supported(const tDevice* M_NONNULL device);
     typedef enum eSCSI_MP_UPDATE_MODEEnum
     {
         UPDATE_SCSI_MP_RESET_TO_DEFAULT,
@@ -508,48 +484,46 @@ extern "C"
         UPDATE_SCSI_MP_SAVE_CURRENT
     } eSCSI_MP_UPDATE_MODE;
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
-                                                               uint8_t              modePage,
-                                                               uint8_t              subpage,
-                                                               eSCSI_MP_UPDATE_MODE updateMode);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(const tDevice* M_NONNULL device,
+                                                               uint8_t                  modePage,
+                                                               uint8_t                  subpage,
+                                                               eSCSI_MP_UPDATE_MODE     updateMode);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(const tDevice*       device,
-                                                    uint8_t              modePage,
-                                                    uint8_t              subpage,
-                                                    eScsiModePageControl mpc,
-                                                    bool                 bufferFormatOutput);
+    OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(const tDevice* M_NONNULL device,
+                                                    uint8_t                  modePage,
+                                                    uint8_t                  subpage,
+                                                    eScsiModePageControl     mpc,
+                                                    bool                     bufferFormatOutput);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API
-    void show_SCSI_Mode_Page_All(const tDevice* device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput);
+    void show_SCSI_Mode_Page_All(const tDevice* M_NONNULL device,
+                                 uint8_t                  modePage,
+                                 uint8_t                  subpage,
+                                 bool                     bufferFormatOutput);
 
     // Should this go into a different file???
     // NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(2, 3)
     M_PARAM_RO_SIZE(2, 3)
     OPENSEA_OPERATIONS_API eReturnValues
-    scsi_Set_Mode_Page(const tDevice* device,
-                       uint8_t*       modePageData,
-                       uint16_t       modeDataLength,
-                       bool           saveChanges); // takes a byte array and sends it to the drive.
+    scsi_Set_Mode_Page(const tDevice* M_NONNULL device,
+                       uint8_t* M_NULLABLE      modePageData,
+                       uint16_t                 modeDataLength,
+                       bool                     saveChanges); // takes a byte array and sends it to the drive.
 
     // NOTE: SPC4 and higher is required to reset only a specific page. Prior to that, all pages will be reset (logpage
     // and logSubPage both set to zero) This function will return BAD_PARAMETER if the device does not support resetting
     // a specific page (logpage or subpage not equal to zero)
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues reset_SCSI_Log_Page(const tDevice*      device,
-                                                             eScsiLogPageControl pageControl,
-                                                             uint8_t             logPage,
-                                                             uint8_t             logSubPage,
-                                                             bool                saveChanges);
+    OPENSEA_OPERATIONS_API eReturnValues reset_SCSI_Log_Page(const tDevice* M_NONNULL device,
+                                                             eScsiLogPageControl      pageControl,
+                                                             uint8_t                  logPage,
+                                                             uint8_t                  logSubPage,
+                                                             bool                     saveChanges);
 
     // The following functions are for help with devices that contain multiple logical units (actuators, for example).
     // These commands are intended to help inform users when certain things may affect multiple LUs.
@@ -566,7 +540,7 @@ extern "C"
     // NOTE: some log pages may also share data for multiple logical units, like power transitions or cache memory
     // statistics
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint8_t get_LUN_Count(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API uint8_t get_LUN_Count(const tDevice* M_NONNULL device);
 
     typedef enum eMLUEnum
     {
@@ -576,20 +550,22 @@ extern "C"
         MLU_AFFECTS_ALL_LU         = 3
     } eMLU;
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eMLU get_MLU_Value_For_SCSI_Operation(const tDevice* device,
-                                                                 uint8_t        operationCode,
-                                                                 uint16_t       serviceAction);
+    OPENSEA_OPERATIONS_API eMLU get_MLU_Value_For_SCSI_Operation(const tDevice* M_NONNULL device,
+                                                                 uint8_t                  operationCode,
+                                                                 uint16_t                 serviceAction);
 
     // If true, then the specified mode page affects multiple logical units, otherwise it is not reported whether
     // multiple are affected or not.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API
-    bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(const tDevice* device, uint8_t modePage, uint8_t subPage);
+    bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(const tDevice* M_NONNULL device,
+                                                          uint8_t                  modePage,
+                                                          uint8_t                  subPage);
 
 #define CONCURRENT_RANGES_VERSION 1
+// maximum of 15 concurrent ranges per ACS-5
+#define MAX_CONCURRENT_RANGES 15
 
     typedef struct s_concurrentRangeDescription
     {
@@ -604,7 +580,7 @@ extern "C"
         size_t                     size;
         uint32_t                   version;
         uint8_t                    numberOfRanges;
-        concurrentRangeDescription range[15]; // maximum of 15 concurrent ranges per ACS5
+        concurrentRangeDescription range[MAX_CONCURRENT_RANGES];
     } concurrentRanges, *ptrConcurrentRanges;
 
     //-----------------------------------------------------------------------------
@@ -623,11 +599,10 @@ extern "C"
     //!   version or other input error, anything else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Concurrent_Positioning_Ranges(const tDevice*      device,
-                                                                           ptrConcurrentRanges ranges);
+    OPENSEA_OPERATIONS_API eReturnValues get_Concurrent_Positioning_Ranges(const tDevice* M_NONNULL      device,
+                                                                           ptrConcurrentRanges M_NONNULL ranges);
 
     //-----------------------------------------------------------------------------
     //
@@ -642,8 +617,7 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges M_NONNULL ranges);
 
     typedef struct s_wrvInfo
     {
@@ -660,7 +634,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Write_Read_Verify_Info(const tDevice * device, ptrWRVInfo info)
+    //  get_Write_Read_Verify_Info(const tDevice* M_NONNULL device, ptrWRVInfo info)
     //
     //! \brief   This reads the current settings associated with an ATA drive's write-read-verify feature
     //
@@ -674,10 +648,10 @@ extern "C"
     //!   occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Write_Read_Verify_Info(const tDevice* device, ptrWRVInfo info);
+    OPENSEA_OPERATIONS_API eReturnValues get_Write_Read_Verify_Info(const tDevice* M_NONNULL device,
+                                                                    ptrWRVInfo M_NONNULL     info);
 
     //-----------------------------------------------------------------------------
     //
@@ -691,11 +665,11 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Write_Read_Verify_Info(ptrWRVInfo info);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Write_Read_Verify_Info(ptrWRVInfo M_NONNULL info);
 
     //-----------------------------------------------------------------------------
     //
-    //  disable_Write_Read_Verify(const tDevice * device)
+    //  disable_Write_Read_Verify(const tDevice* M_NONNULL device)
     //
     //! \brief   Disable the write-read-verify feature on an ATA device
     //
@@ -708,12 +682,11 @@ extern "C"
     //!   occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues disable_Write_Read_Verify(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues disable_Write_Read_Verify(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Write_Read_Verify(const tDevice * device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
+    //  set_Write_Read_Verify(const tDevice* M_NONNULL device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
     //
     //! \brief   Enable the write-read-verify feature on an ATA device to a specific mode
     //
@@ -729,12 +702,11 @@ extern "C"
     //!   else = some error occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_Write_Read_Verify(const tDevice* device,
-                                                               bool           all,
-                                                               bool           vendorSpecific,
-                                                               uint32_t       wrvSectorCount);
+    OPENSEA_OPERATIONS_API eReturnValues set_Write_Read_Verify(const tDevice* M_NONNULL device,
+                                                               bool                     all,
+                                                               bool                     vendorSpecific,
+                                                               uint32_t                 wrvSectorCount);
 
     typedef enum eWriteAfterErasereqEnum
     {
@@ -755,7 +727,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Write_After_Crypto_Erase_Required(const tDevice * device, ptrWriteAfterErase writeReq)
+    //  is_Write_After_Crypto_Erase_Required(const tDevice* M_NONNULL device, ptrWriteAfterErase writeReq)
     //
     //! \brief   This reads the SCSI block device characteristics VPD page to determine if a write is required after
     //! crypto or block erase before a read completes successfully.
@@ -770,12 +742,10 @@ extern "C"
     //!   occured while determining support.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(const tDevice*     device,
-                                                                       ptrWriteAfterErase writeReq);
-
+    OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(const tDevice* M_NONNULL     device,
+                                                                       ptrWriteAfterErase M_NONNULL writeReq);
     typedef enum eOSFeatureSupportedEnum
     {
         OS_FEATURE_UNKNOWN,
@@ -785,14 +755,16 @@ extern "C"
         OS_FEATURE_INTERFACE_BLOCKS, // blocking because of Interface
     } eOSFeatureSupported;
 
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Block_Sanitize_Operation_Supported(const tDevice* device);
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(const tDevice* device);
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(const tDevice* device);
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_NVMe_Format_Operation_Supported(const tDevice* device);
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(const tDevice* device);
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_SMART_Check_Operation_Supported(const tDevice* device);
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_DST_Operation_Supported(const tDevice* device);
-    OPENSEA_OPERATIONS_API eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(const tDevice* device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Block_Sanitize_Operation_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported
+    is_Overwrite_Sanitize_Operation_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_NVMe_Format_Operation_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_SMART_Check_Operation_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_DST_Operation_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(const tDevice* M_NONNULL device);
+
 #if defined(__cplusplus)
 }
 #endif

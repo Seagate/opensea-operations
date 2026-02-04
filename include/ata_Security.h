@@ -130,12 +130,11 @@ extern "C"
         uint8_t passwordLength;
     } ataSecurityPassword, *ptrATASecurityPassword;
 
-    //! \fn bool sat_ATA_Security_Protocol_Supported(tDevice* device)
+    //! \fn bool sat_ATA_Security_Protocol_Supported(tDevice* M_NONNULL device)
     //! \brief Checks if the SAT specification's security protocol Eh is supported or not.
     //! \param[in] device pointer to the device structure representing the drive to check
     //! \return true means supported, false means not supported.
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool sat_ATA_Security_Protocol_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool sat_ATA_Security_Protocol_Supported(const tDevice* M_NONNULL device);
 
     //! \struct ataSecurityStatus
     //! \brief This structure holds all ATA security information that can be read from the device.
@@ -199,17 +198,18 @@ extern "C"
         bool encryptAll;
     } ataSecurityStatus, *ptrATASecurityStatus;
 
-    //! \fn void get_ATA_Security_Info(tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
+    //! \fn void get_ATA_Security_Info(tDevice* M_NONNULL device, ptrATASecurityStatus securityStatus, bool useSAT);
     //! \brief Reads the ATA Security info from the device
     //! \param[in] device pointer to the device structure of the device to query for information
     //! \param[out] securityStatus pointer to the \a ataSecurityStatus structure to fill with information
     //! \param[in] useSAT use the SAT security protocol to retrieve information
     //! \return void
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API
-    void get_ATA_Security_Info(const tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT);
+    void get_ATA_Security_Info(const tDevice* M_NONNULL       device,
+                               ptrATASecurityStatus M_NONNULL securityStatus,
+                               bool                           useSAT);
 
     //! \fn void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported);
     //! \brief Prints the ATA Security info to stdout
@@ -217,10 +217,9 @@ extern "C"
     //! \param[in] satSecurityProtocolSupported Specifies if SAT security protocol is supported so this function
     //! can adjust output or note SAT security protocol support as needed.
     //! \return void
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API
-    void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported);
+    void print_ATA_Security_Info(ptrATASecurityStatus M_NONNULL securityStatus, bool satSecurityProtocolSupported);
 
     //! \fn void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
     //!                                                                     ptrATASecurityPassword ataPassword,
@@ -237,14 +236,13 @@ extern "C"
     //! \param[in] useSAT set to true if this buffer is for use the SAT security protocol since that may
     //! put some flags in different locations
     //! \return void
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_WO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
-                                                                    ptrATASecurityPassword ataPassword,
-                                                                    bool                   setPassword,
-                                                                    bool                   eraseUnit,
-                                                                    bool                   useSAT);
+    OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t* M_NONNULL               ptrData,
+                                                                    ptrATASecurityPassword M_NONNULL ataPassword,
+                                                                    bool                             setPassword,
+                                                                    bool                             eraseUnit,
+                                                                    bool                             useSAT);
 
     //! \fn void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT)
     //! \brief Sets the requested ATA security erase type into the provided buffer
@@ -253,12 +251,13 @@ extern "C"
     //! \param[in] useSAT set to true if this buffer is for use the SAT security protocol since that may
     //! put some flags in different locations
     //! \return void
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RW(1)
     OPENSEA_OPERATIONS_API
-    void set_ATA_Security_Erase_Type_In_Buffer(uint8_t* ptrData, eATASecurityEraseType eraseType, bool useSAT);
+    void set_ATA_Security_Erase_Type_In_Buffer(uint8_t               ptrData[M_NONNULL_ARRAY LEGACY_DRIVE_SEC_SIZE],
+                                               eATASecurityEraseType eraseType,
+                                               bool                  useSAT);
 
-    //! \fn eReturnValues disable_ATA_Security_Password(tDevice*            device,
+    //! \fn eReturnValues disable_ATA_Security_Password(tDevice* M_NONNULL device,
     //!                                                                     ataSecurityPassword ataPassword,
     //!                                                                     bool                useSAT)
     //! \brief Uses the provided password information to run the disable ATA Security password command
@@ -268,13 +267,12 @@ extern "C"
     //! put some flags in different locations
     //! \return SUCCESS if disabling the password worked successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(const tDevice*      device,
-                                                                       ataSecurityPassword ataPassword,
-                                                                       bool                useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                                       ataSecurityPassword      ataPassword,
+                                                                       bool                     useSAT);
 
-    //! \fn eReturnValues set_ATA_Security_Password(tDevice*            device,
+    //! \fn eReturnValues set_ATA_Security_Password(tDevice* M_NONNULL device,
     //!                                                                 ataSecurityPassword ataPassword,
     //!                                                                 bool                useSAT)
     //! \brief Uses the provided information to set the ATA security password on the device
@@ -284,13 +282,12 @@ extern "C"
     //! put some flags in different locations
     //! \return SUCCESS if the password is set successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(const tDevice*      device,
-                                                                   ataSecurityPassword ataPassword,
-                                                                   bool                useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                                   ataSecurityPassword      ataPassword,
+                                                                   bool                     useSAT);
 
-    //! \fn eReturnValues unlock_ATA_Security(tDevice*            device,
+    //! \fn eReturnValues unlock_ATA_Security(tDevice* M_NONNULL device,
     //!                                                           ataSecurityPassword ataPassword,
     //!                                                           bool                useSAT)
     //! \brief Uses the provided password information to unlock ATA security on a device.
@@ -300,13 +297,12 @@ extern "C"
     //! put some flags in different locations
     //! \return SUCCESS if the drive is unlocked successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(const tDevice*      device,
-                                                             ataSecurityPassword ataPassword,
-                                                             bool                useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(const tDevice* M_NONNULL device,
+                                                             ataSecurityPassword      ataPassword,
+                                                             bool                     useSAT);
 
-    //! \fn eReturnValues start_ATA_Security_Erase(tDevice*              device,
+    //! \fn eReturnValues start_ATA_Security_Erase(tDevice* M_NONNULL device,
     //!                                                                  ataSecurityPassword   ataPassword,
     //!                                                                  eATASecurityEraseType eraseType,
     //!                                                                  uint32_t              timeout,
@@ -326,15 +322,14 @@ extern "C"
     //! put some flags in different locations
     //! \return SUCCESS if the drive is unlocked successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(const tDevice*        device,
-                                                                  ataSecurityPassword   ataPassword,
-                                                                  eATASecurityEraseType eraseType,
-                                                                  uint32_t              timeout,
-                                                                  bool                  useSAT);
+    OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(const tDevice* M_NONNULL device,
+                                                                  ataSecurityPassword      ataPassword,
+                                                                  eATASecurityEraseType    eraseType,
+                                                                  uint32_t                 timeout,
+                                                                  bool                     useSAT);
 
-    //! \fn eReturnValues run_ATA_Security_Erase(tDevice*              device,
+    //! \fn eReturnValues run_ATA_Security_Erase(tDevice* M_NONNULL device,
     //!                                                                eATASecurityEraseType eraseType,
     //!                                                                ataSecurityPassword   ataPassword,
     //!                                                                bool                  forceSATvalid,
@@ -351,15 +346,14 @@ extern "C"
     //! security commands.
     //! \return SUCCESS if the drive is unlocked successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(const tDevice*        device,
-                                                                eATASecurityEraseType eraseType,
-                                                                ataSecurityPassword   ataPassword,
-                                                                bool                  forceSATvalid,
-                                                                bool                  forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(const tDevice* M_NONNULL device,
+                                                                eATASecurityEraseType    eraseType,
+                                                                ataSecurityPassword      ataPassword,
+                                                                bool                     forceSATvalid,
+                                                                bool                     forceSAT);
 
-    //! \fn eReturnValues eReturnValues run_Disable_ATA_Security_Password(tDevice*   device,
+    //! \fn eReturnValues eReturnValues run_Disable_ATA_Security_Password(tDevice* M_NONNULL device,
     //!                                                                              ataSecurityPassword ataPassword,
     //!                                                                              bool                forceSATvalid,
     //!                                                                              bool                forceSAT)
@@ -373,14 +367,13 @@ extern "C"
     //! security commands.
     //! \return SUCCESS if the drive password is disabled successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
-                                                                           ataSecurityPassword ataPassword,
-                                                                           bool                forceSATvalid,
-                                                                           bool                forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                                           ataSecurityPassword      ataPassword,
+                                                                           bool                     forceSATvalid,
+                                                                           bool                     forceSAT);
 
-    //! \fn eReturnValues eReturnValues run_Set_ATA_Security_Password(tDevice*   device,
+    //! \fn eReturnValues eReturnValues run_Set_ATA_Security_Password(tDevice* M_NONNULL device,
     //!                                                                          ataSecurityPassword ataPassword,
     //!                                                                          bool                forceSATvalid,
     //!                                                                          bool                forceSAT)
@@ -394,14 +387,13 @@ extern "C"
     //! security commands.
     //! \return SUCCESS if the drive password is set successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
-                                                                       ataSecurityPassword ataPassword,
-                                                                       bool                forceSATvalid,
-                                                                       bool                forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                                       ataSecurityPassword      ataPassword,
+                                                                       bool                     forceSATvalid,
+                                                                       bool                     forceSAT);
 
-    //! \fn eReturnValues eReturnValues run_Unlock_ATA_Security(tDevice*   device,
+    //! \fn eReturnValues eReturnValues run_Unlock_ATA_Security(tDevice* M_NONNULL device,
     //!                                                                    ataSecurityPassword ataPassword,
     //!                                                                    bool                forceSATvalid,
     //!                                                                    bool                forceSAT)
@@ -415,14 +407,13 @@ extern "C"
     //! security commands.
     //! \return SUCCESS if the drive unlock is successfully. FROZEN if ATA security is frozen.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
-                                                                 ataSecurityPassword ataPassword,
-                                                                 bool                forceSATvalid,
-                                                                 bool                forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(const tDevice* M_NONNULL device,
+                                                                 ataSecurityPassword      ataPassword,
+                                                                 bool                     forceSATvalid,
+                                                                 bool                     forceSAT);
 
-    //! \fn eReturnValues run_Freeze_ATA_Security(tDevice* device, bool forceSATvalid, bool forceSAT)
+    //! \fn eReturnValues run_Freeze_ATA_Security(tDevice* M_NONNULL device, bool forceSATvalid, bool forceSAT)
     //! \brief This function handles all necessary steps to perform an ATA security freeze lock on a device.
     //! It will check current state, and run any necessary steps to freeze ATA security. Once frozen, other
     //! ATA security operations cannot be run until the drive has been power cycled.
@@ -433,11 +424,10 @@ extern "C"
     //! security commands.
     //! \return SUCCESS if the drive freeze lock is successfully.
     //! other values may be returned if some other failure occurs.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(const tDevice* device,
-                                                                 bool           forceSATvalid,
-                                                                 bool           forceSAT);
+    OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(const tDevice* M_NONNULL device,
+                                                                 bool                     forceSATvalid,
+                                                                 bool                     forceSAT);
 
 #if defined(__cplusplus)
 }

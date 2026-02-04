@@ -145,44 +145,41 @@ extern "C"
         };
     } tCDLSettings;
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(const tDevice* device, eCDLFeatureSet countField);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(const tDevice* M_NONNULL device,
+                                                                    eCDLFeatureSet           countField);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(const tDevice* M_NONNULL device,
+                                                          tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(const tDevice* M_NONNULL device,
+                                                            tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(const tDevice* M_NONNULL device,
+                                                             tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                      tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API bool is_Total_Time_Policy_Type_Supported(tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API bool is_Total_Time_Policy_Type_Supported(tCDLSettings* M_NONNULL cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* M_NONNULL cdlSettings);
 
-    M_NONNULL_PARAM_LIST(4)
     M_PARAM_RW(4)
-    OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType     driveType,
-                                                            eCDLPolicyType policyType,
-                                                            uint16_t       policySupportedDescriptor,
-                                                            char*          policyString);
+    OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType      driveType,
+                                                            eCDLPolicyType  policyType,
+                                                            uint16_t        policySupportedDescriptor,
+                                                            char* M_NONNULL policyString);
 
     OPENSEA_OPERATIONS_API uint32_t convert_CDL_TimeField_To_Microseconds(eCDLTimeFieldUnitType unitType,
                                                                           uint32_t              value);

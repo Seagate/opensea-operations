@@ -255,8 +255,9 @@ static void print_Sanitize_Status_To_Screen(eSanitizeStatus sanitizeInProgress, 
     {
         // ATA- Completed with physical sectors that are available to be allocated for user data that were not
         // successfully sanitized
-        print_str("\tSanitize command failed: completed with physical sectors that are available for user data and were "
-               "not successfully sanitized!\n");
+        print_str(
+            "\tSanitize command failed: completed with physical sectors that are available for user data and were "
+            "not successfully sanitized!\n");
     }
     else
     {
@@ -498,7 +499,7 @@ eReturnValues get_Sanitize_Device_Features(const tDevice* device, sanitizeFeatur
         ret = NOT_SUPPORTED;
         break;
     }
-    DISABLE_NONNULL_COMPARE
+
     // NOTE: Quick hack to disable block erase and sanitize command on Rugged SSD4 devices
     //       This is here because of some strange behavior when issued that is still under investigation.
     if (strcasecmp("Rugged SSD4", device->drive_info.product_identification) == 0 && opts != M_NULLPTR)
@@ -506,7 +507,7 @@ eReturnValues get_Sanitize_Device_Features(const tDevice* device, sanitizeFeatur
         opts->blockErase         = false;
         opts->sanitizeCmdEnabled = false;
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 

@@ -77,7 +77,33 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-fvisibility=hidden',  #to work similarly to Window's DLL import/export
         '-Wmismatched-dealloc',
         '-Wfree-nonheap-object',
+        '-fnullability',
+        '-Wnullability',  # Warnings for nullability annotations
+        '-Wnullability-completeness',  # Warn if nullability annotations are incomplete
+        '-Wnullability-completeness-on-arrays',  # Warn if nullability annotations are incomplete
+        # '-Wnullable-to-nonnull-conversion', # Basically warns so you have to cast to the correct nullability type. Not needed today -TJE
+        # '-Wswitch-enum', # too noisy for now - TJE
+        '-Walloc-zero',
+        '-Walloc-size',
+        '-Wcalloc-transposed-args',
+        '-Werror=alloca',  # Do not allow use of the alloca function
+        '-Wstring-compare',  # Helps detect when strcmp is used when the programmer likely meant to use strncmp
     ]
+
+    if get_option('cc-suggest-attribute')
+        warning_flags += [
+            '-Wsuggest-attribute=pure',
+            '-Wsuggest-attribute=const',
+            '-Wsuggest-attribute=noreturn',
+            '-Wsuggest-attribute=returns_nonnull',
+            '-Wmissing-noreturn',
+            '-Wsuggest-attribute=malloc',
+            '-Wsuggest-attribute=format',
+            '-Wmissing-format-attribute',
+            '-Wsuggest-attribute=cold',
+            '-fipa-pure-const',
+        ]
+    endif
 
     if c.get_id().contains('gcc') and c.version().version_compare('>=10.0')
         #only enable the sign conversion warning on versions 10 and up because it is way too noisy on earlier GCC versions than it is useful-TJE

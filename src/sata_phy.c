@@ -28,13 +28,12 @@
 #include "ata_helper_func.h"
 #include "sata_phy.h"
 
-M_NONNULL_PARAM_LIST(1, 2)
 M_PARAM_WO(1)
-static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters counters,
-                                                       uint8_t*                phyEventLog,
-                                                       uint32_t                dataLength)
+static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters M_NONNULL counters,
+                                                       uint8_t* M_NONNULL                phyEventLog,
+                                                       uint32_t                          dataLength)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (counters != M_NULLPTR && phyEventLog != M_NULLPTR && dataLength >= ATA_LOG_PAGE_LEN_BYTES)
     {
         uint32_t firstInvalidSector = UINT32_C(0);
@@ -107,19 +106,18 @@ static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters c
             counters->numberOfCounters += 1;
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          device,
                                                    ptrSATAPhyEventCounters counters /* optional */)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (device == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
@@ -144,12 +142,12 @@ eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          devic
 eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEventCounters counters)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (device == M_NULLPTR || counters == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the ID bits that show this is supported, then just read the page.
@@ -172,7 +170,7 @@ eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEvent
 
 void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (counters != M_NULLPTR && counters->valid)
     {
         print_str("\n====SATA Phy Event Counters====\n");
@@ -290,5 +288,4 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
             print_str("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }

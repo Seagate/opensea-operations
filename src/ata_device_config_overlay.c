@@ -44,7 +44,7 @@ bool is_DCO_Supported(const tDevice* device, bool* dmaSupport)
              le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT11))
         {
             supported = true;
-            DISABLE_NONNULL_COMPARE
+
             if (dmaSupport != M_NULLPTR)
             {
                 *dmaSupport = false;
@@ -57,7 +57,6 @@ bool is_DCO_Supported(const tDevice* device, bool* dmaSupport)
                     *dmaSupport = true;
                 }
             }
-            RESTORE_NONNULL_COMPARE
         }
     }
     return supported;
@@ -103,7 +102,7 @@ eReturnValues dco_Identify(const tDevice* device, ptrDcoData data)
     bool          dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
-        DISABLE_NONNULL_COMPARE
+
         if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
@@ -186,14 +185,13 @@ eReturnValues dco_Identify(const tDevice* device, ptrDcoData data)
         {
             ret = BAD_PARAMETER;
         }
-        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }
 
 void show_DCO_Identify_Data(const ptrDcoData data)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (data != M_NULLPTR)
     {
         print_str("\n===============================\n");
@@ -359,13 +357,12 @@ void show_DCO_Identify_Data(const ptrDcoData data)
             print_str("WARNING: Drive returned invalid checksum on DCO Identify data!\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
-M_NONNULL_PARAM_LIST(1, 3)
-M_PARAM_RW_SIZE(1, 2)
-M_PARAM_RO(3)
-static M_INLINE void dco_Set_DMA_Modes(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+M_NONNULL_PARAM_LIST(2)
+M_PARAM_RW(1)
+M_PARAM_RO(2)
+static M_INLINE void dco_Set_DMA_Modes(uint8_t dcoIdentData[M_NONNULL_ARRAY DCO_DATA_SIZE], ptrDcoData M_NONNULL data)
 {
     // mwdma bits
     if (!data->mwdma.mwdma2)
@@ -411,10 +408,10 @@ static M_INLINE void dco_Set_DMA_Modes(uint8_t* dcoIdentData, M_ATTR_UNUSED uint
     }
 }
 
-M_NONNULL_PARAM_LIST(1, 3)
-M_PARAM_RW_SIZE(1, 2)
-M_PARAM_RO(3)
-static M_INLINE void dco_Set_MaxLBA(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+M_NONNULL_PARAM_LIST(2)
+M_PARAM_RW(1)
+M_PARAM_RO(2)
+static M_INLINE void dco_Set_MaxLBA(uint8_t dcoIdentData[M_NONNULL_ARRAY DCO_DATA_SIZE], ptrDcoData M_NONNULL data)
 {
     // maxLBA
     dcoIdentData[13] = M_Byte7(data->maxLBA);
@@ -427,10 +424,10 @@ static M_INLINE void dco_Set_MaxLBA(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_
     dcoIdentData[6]  = M_Byte0(data->maxLBA);
 }
 
-M_NONNULL_PARAM_LIST(1, 3)
-M_PARAM_RW_SIZE(1, 2)
-M_PARAM_RO(3)
-static M_INLINE void dco_Set_Features1(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+M_NONNULL_PARAM_LIST(2)
+M_PARAM_RW(1)
+M_PARAM_RO(2)
+static M_INLINE void dco_Set_Features1(uint8_t dcoIdentData[M_NONNULL_ARRAY DCO_DATA_SIZE], ptrDcoData M_NONNULL data)
 {
     // features 1
     if (!data->feat1.writeReadVerify)
@@ -495,12 +492,11 @@ static M_INLINE void dco_Set_Features1(uint8_t* dcoIdentData, M_ATTR_UNUSED uint
     }
 }
 
-M_NONNULL_PARAM_LIST(1, 3)
-M_PARAM_RW_SIZE(1, 2)
-M_PARAM_RO(3)
-static M_INLINE void dco_Set_Sata_Features(uint8_t*               dcoIdentData,
-                                           M_ATTR_UNUSED uint32_t dcoIdentDataSize,
-                                           ptrDcoData             data)
+M_NONNULL_PARAM_LIST(2)
+M_PARAM_RW(1)
+M_PARAM_RO(2)
+static M_INLINE void dco_Set_Sata_Features(uint8_t              dcoIdentData[M_NONNULL_ARRAY DCO_DATA_SIZE],
+                                           ptrDcoData M_NONNULL data)
 {
     if (!data->sataFeat.softwareSettingsPreservation)
     {
@@ -525,10 +521,10 @@ static M_INLINE void dco_Set_Sata_Features(uint8_t*               dcoIdentData,
     // sata reserved in word 9
 }
 
-M_NONNULL_PARAM_LIST(1, 3)
-M_PARAM_RW_SIZE(1, 2)
-M_PARAM_RO(3)
-static M_INLINE void dco_Set_Features2(uint8_t* dcoIdentData, M_ATTR_UNUSED uint32_t dcoIdentDataSize, ptrDcoData data)
+M_NONNULL_PARAM_LIST(2)
+M_PARAM_RW(1)
+M_PARAM_RO(2)
+static M_INLINE void dco_Set_Features2(uint8_t dcoIdentData[M_NONNULL_ARRAY DCO_DATA_SIZE], ptrDcoData M_NONNULL data)
 {
     // feature set 2
     if (!data->feat2.nvCache)
@@ -567,7 +563,7 @@ eReturnValues dco_Set(const tDevice* device, ptrDcoData data)
     bool          dcoDMASupport = false;
     if (is_DCO_Supported(device, &dcoDMASupport))
     {
-        DISABLE_NONNULL_COMPARE
+
         if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, DCO_DATA_SIZE);
@@ -584,12 +580,12 @@ eReturnValues dco_Set(const tDevice* device, ptrDcoData data)
             else
             {
                 // go through the user-provided details and make changes to the requested fields
-                dco_Set_DMA_Modes(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
-                dco_Set_MaxLBA(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
-                dco_Set_Features1(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
-                dco_Set_Sata_Features(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
+                dco_Set_DMA_Modes(dcoIdentData, data);
+                dco_Set_MaxLBA(dcoIdentData, data);
+                dco_Set_Features1(dcoIdentData, data);
+                dco_Set_Sata_Features(dcoIdentData, data);
                 // words 10-20 reserved
-                dco_Set_Features2(dcoIdentData, SIZE_OF_STACK_ARRAY(dcoIdentData), data);
+                dco_Set_Features2(dcoIdentData, data);
                 // dcoIdentData[44] = M_Byte0(data->features3);
                 // dcoIdentData[45] = M_Byte1(data->features3);
                 // words 23-207 reserved
@@ -604,7 +600,6 @@ eReturnValues dco_Set(const tDevice* device, ptrDcoData data)
         {
             ret = BAD_PARAMETER;
         }
-        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }

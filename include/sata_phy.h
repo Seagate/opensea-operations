@@ -69,20 +69,17 @@ extern "C"
         phyEventCounter counters[MAX_PHY_EVENT_COUNTERS];
     } sataPhyEventCounters, *ptrSATAPhyEventCounters;
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters(const tDevice*          device,
-                                                                     ptrSATAPhyEventCounters counters);
+    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters(const tDevice* M_NONNULL          device,
+                                                                     ptrSATAPhyEventCounters M_NONNULL counters);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters M_NONNULL counters);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API
-    eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          device,
-                                                       ptrSATAPhyEventCounters counters /* optional */);
+    eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice* M_NONNULL           device,
+                                                       ptrSATAPhyEventCounters M_NULLABLE counters /* optional */);
 
 #if defined(__cplusplus)
 }
