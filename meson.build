@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.3.0', default_options: ['warning_level=2'])
+project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.3.0', default_options: ['warning_level=2', 'default_library=static'])
 
 c = meson.get_compiler('c')
 
@@ -74,7 +74,6 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wsequence-point',
         '-Wreturn-type',
         '-Wpointer-bool-conversion',
-        '-fvisibility=hidden',  #to work similarly to Window's DLL import/export
         '-Wmismatched-dealloc',
         '-Wfree-nonheap-object',
         '-fnullability',
@@ -143,7 +142,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         warning_flags += ['-mbranch-protection=standard']
     endif
 
-    linker_flags += ['-Wl,-z,nodlopen', '-Wl,-z,noexecstack', '-Wl,-z,relro', '-Wl,-z,now']
+    linker_flags += ['-Wl,-z,noexecstack', '-Wl,-z,relro', '-Wl,-z,now']
 
     fortifytest = ''' #include <stdio.h>
                       int main() {
@@ -285,9 +284,23 @@ if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
 endif
 
 if target_machine.system() == 'windows'
-    global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
-    global_cpp_args += ['-DSTATIC_OPENSEA_OPERATIONS']
+  global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
 endif
+
+defaultlib = get_option('default_library')
+
+build_c_args = []
+dep_c_args = []
+
+if defaultlib == 'static'
+    # no additional args required
+elif defaultlib == 'shared'
+    build_c_args += ['-DEXPORT_OPENSEA_OPERATIONS']
+    dep_c_args += ['-DIMPORT_OPENSEA_OPERATIONS']
+else
+    error('Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib)
+endif
+
 
 incdir = include_directories('include')
 
@@ -297,7 +310,7 @@ opensea_common_dep = opensea_common.get_variable('opensea_common_dep')
 opensea_transport = subproject('opensea-transport')
 opensea_transport_dep = opensea_transport.get_variable('opensea_transport_dep')
 
-opensea_operations_lib = static_library(
+opensea_operations_lib = library(
     'opensea-operations',
     'src/ata_Security.c',
     'src/buffer_test.c',
@@ -329,12 +342,14 @@ opensea_operations_lib = static_library(
     'src/partition_info.c',
     'src/ata_device_config_overlay.c',
     'src/sata_phy.c',
-    c_args: global_cpp_args,
+    c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep],
     include_directories: incdir,
+    gnu_symbol_visibility : 'hidden'
 )
+
 opensea_operations_dep = declare_dependency(
     link_with: opensea_operations_lib,
-    compile_args: global_cpp_args,
+    compile_args: global_cpp_args + dep_c_args,
     include_directories: incdir,
 )
