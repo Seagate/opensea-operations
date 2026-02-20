@@ -32,10 +32,10 @@ extern "C"
 {
 #endif
 
-// This is a bunch of stuff for creating opensea-transport as a dynamic library (DLL in Windows or shared object in
+// This is a bunch of stuff for creating opensea-operations as a dynamic library (DLL in Windows or shared object in
 // linux)
 #if defined(OPENSEA_OPERATIONS_API)
-#    undef(OPENSEA_OPERATIONS_API)
+#    undef OPENSEA_OPERATIONS_API
 #endif
 
 #if defined(EXPORT_OPENSEA_OPERATIONS) && defined(STATIC_OPENSEA_OPERATIONS)

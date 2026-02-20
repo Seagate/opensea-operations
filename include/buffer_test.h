@@ -85,7 +85,7 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    void print_Cable_Test_Results(cableTestResults testResults);
+    OPENSEA_OPERATIONS_API void print_Cable_Test_Results(cableTestResults testResults);
 
 #if defined(__cplusplus)
 }
