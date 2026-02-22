@@ -3083,12 +3083,10 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                                                      driveInfo->maxAvailableSectorsForReassignment);
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus,
                                                    "Data Protect", "No Data Protect");
-            print_Stat_If_Supported_And_Valid_Time("POH of Most Recent FARM TS Frame",
-                                                   driveInfo->pohOfMostRecentTimeseriesFrame,
-                                                   MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Time("POH of 2nd Most Recent FARM TS Frame",
-                                                   driveInfo->pohOfSecondMostRecentTimeseriesFrame,
-                                                   MICRO_SECONDS_PER_MILLI_SECONDS);
+            print_Stat_If_Supported_And_Valid_Uint64("POH of Most Recent FARM TS Frame",
+                                                   driveInfo->pohOfMostRecentTimeseriesFrame);
+            print_Stat_If_Supported_And_Valid_Uint64("POH of 2nd Most Recent FARM TS Frame",
+                                                   driveInfo->pohOfSecondMostRecentTimeseriesFrame);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "Seq or Before Req for Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
