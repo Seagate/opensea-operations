@@ -1905,7 +1905,7 @@ static eReturnValues get_ATA_SMART_DST_Log_Entries(const tDevice* device, ptrDst
             {
                 uint8_t descriptorLength = UINT8_C(24);
                 uint8_t descriptorOffset =
-                    C_CAST(uint8_t, ((selfTestIndex * descriptorLength) - descriptorLength) + UINT8_C(2));
+                    C_CAST(uint8_t, ((selfTestIndex * descriptorLength) - descriptorLength) + C_CAST(uint8_t, 2));
                 uint16_t offset  = descriptorOffset;
                 uint16_t counter = UINT16_C(0); // when this get's larger than our max, we need to break out of the
                                                 // loop. This is always incremented. - TJE
