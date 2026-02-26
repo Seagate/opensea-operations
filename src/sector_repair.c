@@ -27,7 +27,8 @@
 #include "cmds.h"
 #include "sector_repair.h"
 
-typedef enum {
+typedef enum
+{
     REASSIGN_LBA_ADD_TO_LIST,
     REASSIGN_LBA_REMOVE_ALL_BEFORE_LBA_VALUE
 } eReassignLBAOperation;
@@ -45,9 +46,11 @@ static M_INLINE uint32_t get_Current_Reassign_List_Length(const uint8_t* reassig
 }
 
 M_NONNULL_PARAM_LIST(1, 2)
-static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t **reassignList, uint32_t* listLength, size_t listAlignment)
+static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t** reassignList,
+                                                          uint32_t* listLength,
+                                                          size_t    listAlignment)
 {
-    eReturnValues ret = SUCCESS;
+    eReturnValues ret               = SUCCESS;
     uint32_t      currentListLength = get_Current_Reassign_List_Length(*reassignList, false);
     if (currentListLength == 0)
     {
@@ -55,17 +58,21 @@ static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t **reassignList
     }
     else
     {
-        uint32_t      newListLength = ((currentListLength / REASSIGN_BLOCKS_SHORT_LBA_LENGTH) * REASSIGN_BLOCKS_LONG_LBA_LENGTH) + REASSIGN_BLOCKS_LIST_HEADER_LENGTH;
-        uint8_t*      temp = safe_reallocf_aligned(M_REINTERPRET_CAST(void**, reassignList), *listLength, newListLength, listAlignment);
+        uint32_t newListLength =
+            ((currentListLength / REASSIGN_BLOCKS_SHORT_LBA_LENGTH) * REASSIGN_BLOCKS_LONG_LBA_LENGTH) +
+            REASSIGN_BLOCKS_LIST_HEADER_LENGTH;
+        uint8_t* temp =
+            safe_reallocf_aligned(M_REINTERPRET_CAST(void**, reassignList), *listLength, newListLength, listAlignment);
         if (temp == M_NULLPTR)
         {
             return MEMORY_FAILURE;
         }
         *reassignList = temp;
-        *listLength = newListLength;
+        *listLength   = newListLength;
         // expand each LBA from 4 bytes to 8 bytes in the buffer. Prepend 0's to the upper 4 bytes.
-        for (uint32_t currentOffset = REASSIGN_BLOCKS_LIST_HEADER_LENGTH + (currentListLength - 4), newOffset = newListLength - REASSIGN_BLOCKS_LONG_LBA_LENGTH; ;
-             currentOffset -= REASSIGN_BLOCKS_SHORT_LBA_LENGTH, newOffset -= REASSIGN_BLOCKS_LONG_LBA_LENGTH)
+        for (uint32_t currentOffset = REASSIGN_BLOCKS_LIST_HEADER_LENGTH + (currentListLength - 4),
+                      newOffset     = newListLength - REASSIGN_BLOCKS_LONG_LBA_LENGTH;
+             ; currentOffset -= REASSIGN_BLOCKS_SHORT_LBA_LENGTH, newOffset -= REASSIGN_BLOCKS_LONG_LBA_LENGTH)
         {
             // use currentListLength since it is still the old length in bytes to find the end of the list.
             // Then use that LBA value to write into the new location at the end of the reallocated buffer.
@@ -84,7 +91,8 @@ static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t **reassignList
             }
         }
         // update header to long LBA mode
-        currentListLength = (currentListLength / REASSIGN_BLOCKS_SHORT_LBA_LENGTH) * REASSIGN_BLOCKS_LONG_LBA_LENGTH;// convert count from 4 byte LBAs to 8 byte LBAs
+        currentListLength = (currentListLength / REASSIGN_BLOCKS_SHORT_LBA_LENGTH) *
+                            REASSIGN_BLOCKS_LONG_LBA_LENGTH; // convert count from 4 byte LBAs to 8 byte LBAs
         (*reassignList)[0] = M_Byte3(currentListLength);
         (*reassignList)[1] = M_Byte2(currentListLength);
         (*reassignList)[2] = M_Byte1(currentListLength);
@@ -94,13 +102,20 @@ static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t **reassignList
 }
 
 // Adds an LBA to the reassign list buffer
-// First detects how many LBAs are in it, then adds the new one to the list in the correct place since they must be in order.
+// First detects how many LBAs are in it, then adds the new one to the list in the correct place since they must be in
+// order.
 // TODO: Handle case where current list is 32bit LBAs and adding a 64bit LBA to it so longLBA mode is changed.
 M_NONNULL_PARAM_LIST(1, 2)
-static eReturnValues update_LBA_Reassign_List(uint8_t **reassignList, uint32_t* listLength, size_t listAlignment, uint64_t lba, eReassignLBAOperation operation, bool *longLBA, uint16_t logicalPerPhysical)
+static eReturnValues update_LBA_Reassign_List(uint8_t**             reassignList,
+                                              uint32_t*             listLength,
+                                              size_t                listAlignment,
+                                              uint64_t              lba,
+                                              eReassignLBAOperation operation,
+                                              bool*                 longLBA,
+                                              uint16_t              logicalPerPhysical)
 {
-    eReturnValues ret = SUCCESS;
-    uint8_t       increment = *longLBA ? REASSIGN_BLOCKS_LONG_LBA_LENGTH : REASSIGN_BLOCKS_SHORT_LBA_LENGTH;
+    eReturnValues ret               = SUCCESS;
+    uint8_t       increment         = *longLBA ? REASSIGN_BLOCKS_LONG_LBA_LENGTH : REASSIGN_BLOCKS_SHORT_LBA_LENGTH;
     uint32_t      currentListLength = UINT32_C(0);
     if (*reassignList != M_NULLPTR)
     {
@@ -116,34 +131,41 @@ static eReturnValues update_LBA_Reassign_List(uint8_t **reassignList, uint32_t* 
         }
         *longLBA = true;
     }
-    for (uint32_t offset = REASSIGN_BLOCKS_LIST_HEADER_LENGTH; ; offset += increment)
+    for (uint32_t offset = REASSIGN_BLOCKS_LIST_HEADER_LENGTH;; offset += increment)
     {
         uint64_t currentLBA = UINT64_C(0);
         if (offset > *listLength)
         {
             uint32_t fullListLength = *listLength;
             // reallocate the list for more memory
-            uint8_t *temp = safe_reallocf_aligned(M_REINTERPRET_CAST(void**, reassignList), fullListLength, fullListLength + (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) + REASSIGN_BLOCKS_LIST_HEADER_LENGTH, listAlignment);
+            uint8_t* temp = safe_reallocf_aligned(
+                M_REINTERPRET_CAST(void**, reassignList), fullListLength,
+                fullListLength + (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) +
+                    REASSIGN_BLOCKS_LIST_HEADER_LENGTH,
+                listAlignment);
             if (temp == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
             }
             *reassignList = temp;
-            *listLength += (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) + REASSIGN_BLOCKS_LIST_HEADER_LENGTH;
+            *listLength += (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) +
+                           REASSIGN_BLOCKS_LIST_HEADER_LENGTH;
             // zero out new memory
-            safe_memset(&(*reassignList)[fullListLength], *listLength - fullListLength, 0, *listLength - fullListLength);
+            safe_memset(&(*reassignList)[fullListLength], *listLength - fullListLength, 0,
+                        *listLength - fullListLength);
         }
         // First read current LBA in the list, then determine where we need to place the new one/remove it from the list
         if (*longLBA)
         {
-            currentLBA = M_BytesTo8ByteValue(
-                (*reassignList)[offset + 0], (*reassignList)[offset + 1], (*reassignList)[offset + 2], (*reassignList)[offset + 3],
-                (*reassignList)[offset + 4], (*reassignList)[offset + 5], (*reassignList)[offset + 6], (*reassignList)[offset + 7]);
+            currentLBA = M_BytesTo8ByteValue((*reassignList)[offset + 0], (*reassignList)[offset + 1],
+                                             (*reassignList)[offset + 2], (*reassignList)[offset + 3],
+                                             (*reassignList)[offset + 4], (*reassignList)[offset + 5],
+                                             (*reassignList)[offset + 6], (*reassignList)[offset + 7]);
         }
         else
         {
-            currentLBA = M_BytesTo4ByteValue(
-                (*reassignList)[offset + 0], (*reassignList)[offset + 1], (*reassignList)[offset + 2], (*reassignList)[offset + 3]);
+            currentLBA = M_BytesTo4ByteValue((*reassignList)[offset + 0], (*reassignList)[offset + 1],
+                                             (*reassignList)[offset + 2], (*reassignList)[offset + 3]);
         }
         if (operation == REASSIGN_LBA_ADD_TO_LIST)
         {
@@ -153,7 +175,8 @@ static eReturnValues update_LBA_Reassign_List(uint8_t **reassignList, uint32_t* 
                 {
                     // move the list for an insertion
                     uint32_t bytesToMove = currentListLength + REASSIGN_BLOCKS_LIST_HEADER_LENGTH - offset;
-                    safe_memmove(&(*reassignList)[offset + increment], *listLength - (offset + increment), &(*reassignList)[offset], bytesToMove);
+                    safe_memmove(&(*reassignList)[offset + increment], *listLength - (offset + increment),
+                                 &(*reassignList)[offset], bytesToMove);
                 }
                 // offset is at an empty location, so add the LBA here
                 if (*longLBA)
@@ -189,7 +212,8 @@ static eReturnValues update_LBA_Reassign_List(uint8_t **reassignList, uint32_t* 
             {
                 // need to remove this LBA from the list (shift existing list to overwrite this, then zero out end)
                 uint32_t bytesToMove = currentListLength + REASSIGN_BLOCKS_LIST_HEADER_LENGTH - (offset + increment);
-                safe_memmove(&(*reassignList)[offset], *listLength - offset, &(*reassignList)[offset + increment], bytesToMove);
+                safe_memmove(&(*reassignList)[offset], *listLength - offset, &(*reassignList)[offset + increment],
+                             bytesToMove);
                 // zero out the end of the list that was just moved up
                 safe_memset(&(*reassignList)[*listLength - increment], increment, 0, increment);
                 currentListLength -= increment;
@@ -257,7 +281,7 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
     {
         if (lbaList[listIndex].errorAddress > UINT32_MAX)
         {
-            longLBA = true;
+            longLBA   = true;
             increment = REASSIGN_BLOCKS_LONG_LBA_LENGTH;
             break;
         }
@@ -274,18 +298,18 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
     // build the list of LBAs to reassign
     for (listIndex = UINT32_C(0); listIndex < lbaListLength; ++listIndex)
     {
-        uint64_t reassignLBA  = lbaList[listIndex].errorAddress;
+        uint64_t reassignLBA = lbaList[listIndex].errorAddress;
         // create the list of LBAs. 1 for 1 logical per physical, 8 for 8 logical per physical
-        ret = update_LBA_Reassign_List(&dataBuf, &reassignListLength, device->os_info.minimumAlignment,
-                                reassignLBA, REASSIGN_LBA_ADD_TO_LIST, &longLBA, logicalPerPhysical);
+        ret = update_LBA_Reassign_List(&dataBuf, &reassignListLength, device->os_info.minimumAlignment, reassignLBA,
+                                       REASSIGN_LBA_ADD_TO_LIST, &longLBA, logicalPerPhysical);
     }
     if (ret != SUCCESS)
     {
         safe_free_aligned(&dataBuf);
         return ret;
     }
-    bool    done    = false;
-    uint8_t counter = UINT8_C(0);
+    bool    done       = false;
+    uint8_t counter    = UINT8_C(0);
     uint8_t maxRetries = UINT8_C(5) * logicalPerPhysical;
     do
     {
@@ -301,14 +325,14 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
         if (is_Invalid_Opcode(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
         {
             // Device does not support the reassign blocks command.
-            ret = NOT_SUPPORTED;
+            ret  = NOT_SUPPORTED;
             done = true;
             break;
         }
         else if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
         {
             // TODO: Can possibly check if long/short LBA or long/short list is the issue and retry.
-            ret = NOT_SUPPORTED;
+            ret  = NOT_SUPPORTED;
             done = true;
             break;
         }
@@ -317,14 +341,14 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
             // LBA is out of range, so we cannot reassign it.
             // Note, this may also be invalid field in parameter list.
             // That would need more evaluation to determine which one it is.
-            ret = BAD_PARAMETER;
+            ret  = BAD_PARAMETER;
             done = true;
             break;
         }
         else if (is_HW_Error_No_Defect_Spare_Available(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
         {
             // Hardware error and no defect spare available, so we cannot reassign it.
-            ret = FAILURE;
+            ret  = FAILURE;
             done = true;
             break;
         }
@@ -341,15 +365,18 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
                     senseFields.scsiStatusCodes.senseKey != SENSE_KEY_HARDWARE_ERROR &&
                     senseFields.scsiStatusCodes.senseKey != SENSE_KEY_NO_ERROR)
                 {
-                    uint64_t commandSpecificLba = senseFields.fixedFormat ? senseFields.fixedCommandSpecificInformation :
-                                                                        senseFields.descriptorCommandSpecificInformation;
-                    done = false;
+                    uint64_t commandSpecificLba = senseFields.fixedFormat
+                                                      ? senseFields.fixedCommandSpecificInformation
+                                                      : senseFields.descriptorCommandSpecificInformation;
+                    done                        = false;
                     // if we have a valid LBA, then we need to remove all LBAs prior to that one and reissue the
                     // command.
-                    if (is_Valid_Reassign_LBA(commandSpecificLba, device->drive_info.deviceMaxLba, senseFields.fixedFormat))
+                    if (is_Valid_Reassign_LBA(commandSpecificLba, device->drive_info.deviceMaxLba,
+                                              senseFields.fixedFormat))
                     {
                         ret = update_LBA_Reassign_List(&dataBuf, &reassignListLength, device->os_info.minimumAlignment,
-                                                commandSpecificLba, REASSIGN_LBA_REMOVE_ALL_BEFORE_LBA_VALUE, &longLBA, logicalPerPhysical);
+                                                       commandSpecificLba, REASSIGN_LBA_REMOVE_ALL_BEFORE_LBA_VALUE,
+                                                       &longLBA, logicalPerPhysical);
                         if (ret != SUCCESS)
                         {
                             safe_free_aligned(&dataBuf);
@@ -358,7 +385,7 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
                     }
                     else
                     {
-                        ret = FAILURE;
+                        ret  = FAILURE;
                         done = true;
                     }
                 }
@@ -368,14 +395,15 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
                 }
                 if (senseFields.scsiStatusCodes.senseKey == SENSE_KEY_MEDIUM_ERROR)
                 {
-                    uint64_t informationLba = senseFields.fixedFormat ? senseFields.fixedInformation :
-                                                                    senseFields.descriptorInformation;
+                    uint64_t informationLba =
+                        senseFields.fixedFormat ? senseFields.fixedInformation : senseFields.descriptorInformation;
                     done = false;
                     // if valid, add it to the list and reissue the command
                     if (is_Valid_Reassign_LBA(informationLba, device->drive_info.deviceMaxLba, senseFields.fixedFormat))
                     {
                         update_LBA_Reassign_List(&dataBuf, &reassignListLength, device->os_info.minimumAlignment,
-                                                informationLba, REASSIGN_LBA_ADD_TO_LIST, &longLBA, logicalPerPhysical);
+                                                 informationLba, REASSIGN_LBA_ADD_TO_LIST, &longLBA,
+                                                 logicalPerPhysical);
                     }
                     else
                     {
@@ -418,11 +446,11 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
     return ret;
 }
 
-eReturnValues repair_LBA(const tDevice*    device,
-                         ptrErrorLBA LBA,
-                         bool        forcePassthroughCommand,
-                         bool        automaticWriteReallocationEnabled,
-                         bool        automaticReadReallocationEnabled)
+eReturnValues repair_LBA(const tDevice* device,
+                         ptrErrorLBA    LBA,
+                         bool           forcePassthroughCommand,
+                         bool           automaticWriteReallocationEnabled,
+                         bool           automaticReadReallocationEnabled)
 {
     eReturnValues ret = UNKNOWN;
     uint16_t      logicalPerPhysical =
@@ -595,7 +623,7 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
                                                  bool*          automaticReadReallocationEnabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (automaticReadReallocationEnabled != M_NULLPTR)
     {
         *automaticReadReallocationEnabled = false;
@@ -604,12 +632,12 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
     {
         *automaticWriteReallocationEnabled = false;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE) // this should also catch USB drives
     {
         // ATA always supports automatic write reallocation.
         // ATA does not support automatic read reallocation.
-        DISABLE_NONNULL_COMPARE
+
         if (automaticReadReallocationEnabled != M_NULLPTR)
         {
             *automaticReadReallocationEnabled = false;
@@ -618,12 +646,12 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
         {
             *automaticWriteReallocationEnabled = true;
         }
-        RESTORE_NONNULL_COMPARE
+
         ret = SUCCESS;
     }
     else if (device->drive_info.drive_type == NVME_DRIVE)
     {
-        DISABLE_NONNULL_COMPARE
+
         if (automaticReadReallocationEnabled != M_NULLPTR)
         {
             *automaticReadReallocationEnabled = true;
@@ -632,7 +660,7 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
         {
             *automaticWriteReallocationEnabled = true;
         }
-        RESTORE_NONNULL_COMPARE
+
         ret = SUCCESS;
     }
     else
@@ -662,7 +690,7 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
             {
                 ret = SUCCESS;
                 // we have the right page, so we can get the bits
-                DISABLE_NONNULL_COMPARE
+
                 if (automaticReadReallocationEnabled != M_NULLPTR)
                 {
                     if (readWriteErrorRecoveryMP[headerLength + 2] & BIT7)
@@ -677,7 +705,6 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
                         *automaticWriteReallocationEnabled = true;
                     }
                 }
-                RESTORE_NONNULL_COMPARE
             }
         }
     }
@@ -705,12 +732,12 @@ static int errorLBACompare(const void* a, const void* b)
 
 void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (LBAList == M_NULLPTR || numberOfLBAsInTheList == M_NULLPTR)
     {
         return;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (*numberOfLBAsInTheList > UINT32_C(1))
     {
         uint32_t duplicatesDetected = UINT32_C(0);
@@ -744,12 +771,12 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
 bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
 {
     bool inList = false;
-    DISABLE_NONNULL_COMPARE
+
     if (LBAList == M_NULLPTR)
     {
         return inList;
     }
-    RESTORE_NONNULL_COMPARE
+
     for (uint32_t begin = UINT32_C(0), end = numberOfLBAsInTheList; begin < numberOfLBAsInTheList && end > UINT32_C(0);
          ++begin, --end)
     {
@@ -765,12 +792,12 @@ bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheL
 uint32_t find_LBA_Entry_In_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
 {
     uint32_t index = UINT32_MAX; // something invalid
-    DISABLE_NONNULL_COMPARE
+
     if (LBAList == M_NULLPTR)
     {
         return index;
     }
-    RESTORE_NONNULL_COMPARE
+
     for (uint32_t begin = UINT32_C(0), end = numberOfLBAsInTheList; begin < numberOfLBAsInTheList && end > UINT32_C(0);
          ++begin, --end)
     {

@@ -82,11 +82,11 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API eReturnValues
-    get_SCSI_Sanitize_Supported_Features(const tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
+    get_SCSI_Sanitize_Supported_Features(const tDevice* M_NONNULL             device,
+                                         sanitizeFeaturesSupported* M_NONNULL sanitizeOptions);
 
     //-----------------------------------------------------------------------------
     //
@@ -102,18 +102,16 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1)
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Sanitize_Device_Features(const tDevice*             device,
-                                                                          sanitizeFeaturesSupported* sanitizeOptions);
-
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     OPENSEA_OPERATIONS_API eReturnValues
-    get_NVMe_Sanitize_Supported_Features(const tDevice* device, sanitizeFeaturesSupported* sanitizeOptions);
-
+    get_ATA_Sanitize_Device_Features(const tDevice* M_NONNULL             device,
+                                     sanitizeFeaturesSupported* M_NONNULL sanitizeOptions);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues
+    get_NVMe_Sanitize_Supported_Features(const tDevice* M_NONNULL             device,
+                                         sanitizeFeaturesSupported* M_NONNULL sanitizeOptions);
     //-----------------------------------------------------------------------------
     //
     //  get_Sanitize_Device_Features()
@@ -128,11 +126,10 @@ extern "C"
     //!   \return SUCCESS on successful completion, !SUCCESS if problems encountered
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Sanitize_Device_Features(const tDevice*             device,
-                                                                      sanitizeFeaturesSupported* opts);
+    OPENSEA_OPERATIONS_API eReturnValues get_Sanitize_Device_Features(const tDevice* M_NONNULL             device,
+                                                                      sanitizeFeaturesSupported* M_NONNULL opts);
 
     typedef enum eSanitizeStatusEnum
     {
@@ -168,13 +165,12 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_Sanitize_Progress(const tDevice*   device,
-                                                               double*          percentComplete,
-                                                               eSanitizeStatus* sanitizeStatus);
+    OPENSEA_OPERATIONS_API eReturnValues get_Sanitize_Progress(const tDevice* M_NONNULL   device,
+                                                               double* M_NONNULL          percentComplete,
+                                                               eSanitizeStatus* M_NONNULL sanitizeStatus);
 
     //-----------------------------------------------------------------------------
     //
@@ -189,8 +185,7 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Sanitize_Progress(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Sanitize_Progress(const tDevice* M_NONNULL device);
 
     typedef enum eSanitizeOperationsEnum
     {
@@ -223,19 +218,17 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_DEPRECATED M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) M_NONNULL_IF_NONZERO_PARAM(4, 5)
+    M_DEPRECATED M_PARAM_RO(1) M_NONNULL_IF_NONZERO_PARAM(4, 5)
         M_PARAM_RO_SIZE(4, 5) OPENSEA_OPERATIONS_API eReturnValues
-        run_Sanitize_Operation(const tDevice*      device,
-                               eSanitizeOperations sanitizeOperation,
-                               bool                pollForProgress,
-                               uint8_t*            pattern,
-                               uint32_t            patternLength);
+        run_Sanitize_Operation(const tDevice* M_NONNULL device,
+                               eSanitizeOperations      sanitizeOperation,
+                               bool                     pollForProgress,
+                               uint8_t* M_NULLABLE      pattern,
+                               uint32_t                 patternLength);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sanitize_Freezelock(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sanitize_Freezelock(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sanitize_Anti_Freezelock(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sanitize_Anti_Freezelock(const tDevice* M_NONNULL device);
 
     typedef enum eSanitizeEraseEnum
     {
@@ -274,9 +267,8 @@ extern "C"
         } overwriteOptions; // overwrite unique options
     } sanitizeOperationOptions;
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues run_Sanitize_Operation2(const tDevice*           device,
+    OPENSEA_OPERATIONS_API eReturnValues run_Sanitize_Operation2(const tDevice* M_NONNULL device,
                                                                  sanitizeOperationOptions sanitizeOptions);
 
 #if defined(__cplusplus)

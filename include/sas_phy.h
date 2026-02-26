@@ -27,8 +27,7 @@ extern "C"
 #include "scsi_helper_func.h"
 
     // checks if it is SAS protocol and Diagnostic page 3F is supported
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* M_NONNULL device);
 
     typedef enum eSASPhyTestPatternEnum
     {
@@ -93,23 +92,21 @@ extern "C"
 #define PHY_TEST_PATTERN_DWORD_PAIR_ALIGN_0   UINT64_C(0xBC4A4A7B4A787E7E)
 
     // Takes all the inputs to start a test pattern
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues start_SAS_Test_Pattern(const tDevice*          device,
-                                                                uint8_t                 phyIdentifier,
-                                                                eSASPhyTestPattern      pattern,
-                                                                bool                    sataTestFunction,
-                                                                eSASPhyTestFunctionSSC  testFunctionSSC,
-                                                                eSASPhyPhysicalLinkRate linkRate,
-                                                                eSASPhyDwordControl     dwordControl,
-                                                                uint64_t                phyTestPatternDwords);
+    OPENSEA_OPERATIONS_API eReturnValues start_SAS_Test_Pattern(const tDevice* M_NONNULL device,
+                                                                uint8_t                  phyIdentifier,
+                                                                eSASPhyTestPattern       pattern,
+                                                                bool                     sataTestFunction,
+                                                                eSASPhyTestFunctionSSC   testFunctionSSC,
+                                                                eSASPhyPhysicalLinkRate  linkRate,
+                                                                eSASPhyDwordControl      dwordControl,
+                                                                uint64_t                 phyTestPatternDwords);
 
     // will stop a test pattern on a specified phy
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues stop_SAS_Test_Pattern(const tDevice*          device,
-                                                               uint8_t                 phyIdentifier,
-                                                               eSASPhyPhysicalLinkRate linkRate);
+    OPENSEA_OPERATIONS_API eReturnValues stop_SAS_Test_Pattern(const tDevice* M_NONNULL device,
+                                                               uint8_t                  phyIdentifier,
+                                                               eSASPhyPhysicalLinkRate  linkRate);
 
 #if defined(__cplusplus)
 }

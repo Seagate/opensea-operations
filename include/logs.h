@@ -38,12 +38,11 @@ extern "C"
 #define FARM_SUBLOGPAGE_LEN     16384
 #define TOTAL_CONSTITUENT_PAGES 32
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API const char* get_Drive_ID_For_Logfile_Name(const tDevice* device);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API const char* M_NULLABLE get_Drive_ID_For_Logfile_Name(const tDevice* M_NONNULL device);
 
     // Meant to be a little simpler to call when you don't want to calculate a bunch of lengths for the function above
     // using device info. NOTE: This function does not return the name used as that is part of the secureFileInfo -TJE
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_NULL_TERM_STRING(4)
@@ -53,13 +52,13 @@ extern "C"
     M_NULL_TERM_STRING(6)
     M_PARAM_RO(6)
     OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
-        const tDevice*           device,
-        secureFileInfo**         file,                    /*required*/
-        eLogFileNamingConvention logFileNamingConvention, /*required*/
-        const char* logPath, // optional /*requested path to output to. Will be checked for security. If NULL,
-                             // current directory will be used*/
-        const char* logName, // optional /*name of the log file from the drive, FARM, DST, etc*/
-        const char* logExt   // optional /*extension for the log file. If NULL, set to .bin*/
+        const tDevice* M_NONNULL                device,
+        secureFileInfo * M_NONNULL * M_NULLABLE file,                    /*required*/
+        eLogFileNamingConvention                logFileNamingConvention, /*required*/
+        const char* M_NULLABLE logPath, // optional /*requested path to output to. Will be checked for security. If
+                                        // NULL, current directory will be used*/
+        const char* M_NULLABLE logName, // optional /*name of the log file from the drive, FARM, DST, etc*/
+        const char* M_NULLABLE logExt   // optional /*extension for the log file. If NULL, set to .bin*/
     );
 
     //-----------------------------------------------------------------------------
@@ -84,11 +83,13 @@ extern "C"
     //!   went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues
-    get_ATA_Log_Size(const tDevice* device, uint8_t logAddress, uint32_t* logFileSize, bool gpl, bool smart);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log_Size(const tDevice* M_NONNULL device,
+                                                          uint8_t                  logAddress,
+                                                          uint32_t* M_NONNULL      logFileSize,
+                                                          bool                     gpl,
+                                                          bool                     smart);
 
     //-----------------------------------------------------------------------------
     //
@@ -111,13 +112,12 @@ extern "C"
     //!                     but determining the length was not possible due to a likely firmware bug in the device.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 4)
     M_PARAM_RO(1)
     M_PARAM_WO(4)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(const tDevice* device,
-                                                           uint8_t        logPage,
-                                                           uint8_t        logSubPage,
-                                                           uint32_t*      logFileSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(const tDevice* M_NONNULL device,
+                                                           uint8_t                  logPage,
+                                                           uint8_t                  logSubPage,
+                                                           uint32_t* M_NONNULL      logFileSize);
 
     //-----------------------------------------------------------------------------
     //
@@ -136,16 +136,14 @@ extern "C"
     //!   went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD_Page_Size(const tDevice* device,
-                                                                uint8_t        vpdPage,
-                                                                uint32_t*      vpdPageSize);
-
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD_Page_Size(const tDevice* M_NONNULL device,
+                                                                uint8_t                  vpdPage,
+                                                                uint32_t* M_NONNULL      vpdPageSize);
     //-----------------------------------------------------------------------------
     //
-    //! get_ATA_Log( tDevice * device )
+    //! get_ATA_Log( tDevice* M_NONNULL device )
     //
     //! \brief   generic function to pull an ATA log and save it to a file
     //
@@ -167,7 +165,6 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(3)
     M_PARAM_RO(3)
@@ -177,18 +174,18 @@ extern "C"
     M_PARAM_WO_SIZE(8, 9)
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(const tDevice* device,
-                                                     uint8_t        logAddress,
-                                                     const char*    logName,
-                                                     const char*    fileExtension,
-                                                     bool           GPL,
-                                                     bool           SMART,
-                                                     bool           toBuffer,
-                                                     uint8_t*       myBuf,
-                                                     uint32_t       bufSize,
-                                                     const char*    filePath,
-                                                     uint32_t       transferSizeBytes,
-                                                     uint16_t       featureRegister);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(const tDevice* M_NONNULL device,
+                                                     uint8_t                  logAddress,
+                                                     const char* M_NULLABLE   logName,
+                                                     const char* M_NULLABLE   fileExtension,
+                                                     bool                     GPL,
+                                                     bool                     SMART,
+                                                     bool                     toBuffer,
+                                                     uint8_t* M_NULLABLE      myBuf,
+                                                     uint32_t                 bufSize,
+                                                     const char* M_NULLABLE   filePath,
+                                                     uint32_t                 transferSizeBytes,
+                                                     uint16_t                 featureRegister);
 
     //-----------------------------------------------------------------------------
     //
@@ -211,7 +208,6 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(4)
     M_PARAM_RO(4)
@@ -221,16 +217,15 @@ extern "C"
     M_PARAM_WO_SIZE(7, 8)
     M_NULL_TERM_STRING(9)
     M_PARAM_RO(9)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(const tDevice* device,
-                                                      uint8_t        logAddress,
-                                                      uint8_t        subpage,
-                                                      const char*    logName,
-                                                      const char*    fileExtension,
-                                                      bool           toBuffer,
-                                                      uint8_t*       myBuf,
-                                                      uint32_t       bufSize,
-                                                      const char*    filePath);
-
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(const tDevice* M_NONNULL device,
+                                                      uint8_t                  logAddress,
+                                                      uint8_t                  subpage,
+                                                      const char* M_NULLABLE   logName,
+                                                      const char* M_NULLABLE   fileExtension,
+                                                      bool                     toBuffer,
+                                                      uint8_t* M_NULLABLE      myBuf,
+                                                      uint32_t                 bufSize,
+                                                      const char* M_NULLABLE   filePath);
     //-----------------------------------------------------------------------------
     //
     //! get_SCSI_VPD(const tDevice *device, uint8_t pageCode, const char *logName, const char *fileExtension, bool
@@ -252,7 +247,6 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(3)
     M_PARAM_RO(3)
@@ -262,18 +256,17 @@ extern "C"
     M_PARAM_WO_SIZE(6, 7)
     M_NULL_TERM_STRING(8)
     M_PARAM_RO(8)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(const tDevice* device,
-                                                      uint8_t        pageCode,
-                                                      const char*    logName,
-                                                      const char*    fileExtension,
-                                                      bool           toBuffer,
-                                                      uint8_t*       myBuf,
-                                                      uint32_t       bufSize,
-                                                      const char*    filePath);
-
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(const tDevice* M_NONNULL device,
+                                                      uint8_t                  pageCode,
+                                                      const char* M_NULLABLE   logName,
+                                                      const char* M_NULLABLE   fileExtension,
+                                                      bool                     toBuffer,
+                                                      uint8_t* M_NULLABLE      myBuf,
+                                                      uint32_t                 bufSize,
+                                                      const char* M_NULLABLE   filePath);
     //-----------------------------------------------------------------------------
     //
-    //! get_Device_Statistics_Log( tDevice * device )
+    //! get_Device_Statistics_Log( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the Device Statistics log
     //
@@ -285,15 +278,15 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(const tDevice* device, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(const tDevice* M_NONNULL device,
+                                                                   const char* M_NULLABLE   filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_EPC_log( tDevice * device )
+    //! get_EPC_log( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the Power Conditions log/VPD page
     //
@@ -305,10 +298,10 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(const tDevice* device, const char* filePath);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(const tDevice* M_NONNULL device, const char* M_NULLABLE filePath);
 
 #define TELEMETRY_LOG_SMALL_DATA_SET  1
 #define TELEMETRY_LOG_MEDIUM_DATA_SET 2
@@ -342,24 +335,23 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(5, 6)
     M_PARAM_WO_SIZE(5, 6)
     M_NULL_TERM_STRING(7)
     M_PARAM_RO(7)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(const tDevice* device,
-                                                            bool           currentOrSaved,
-                                                            uint8_t        islDataSet,
-                                                            bool           saveToFile,
-                                                            uint8_t*       ptrData,
-                                                            uint32_t       dataSize,
-                                                            const char*    filePath,
-                                                            uint32_t       transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(const tDevice* M_NONNULL device,
+                                                            bool                     currentOrSaved,
+                                                            uint8_t                  islDataSet,
+                                                            bool                     saveToFile,
+                                                            uint8_t* M_NULLABLE      ptrData,
+                                                            uint32_t                 dataSize,
+                                                            const char* M_NULLABLE   filePath,
+                                                            uint32_t                 transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_Pending_Defect_List( tDevice * device )
+    //! get_Pending_Defect_List( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the ACS4/SBC4 Pending Defects log
     //
@@ -371,15 +363,15 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(const tDevice* device, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(const tDevice* M_NONNULL device,
+                                                                 const char* M_NULLABLE   filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_SMART_Extended_Comprehensive_Error_Log( tDevice * device )
+    //! get_SMART_Extended_Comprehensive_Error_Log( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the SMART Extended Comprehensive Error Log. ATA Only
     //
@@ -391,16 +383,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(const tDevice* device,
-                                                                                    const char*    filePath);
-
+    OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(const tDevice* M_NONNULL device,
+                                                                                    const char* M_NULLABLE   filePath);
     //-----------------------------------------------------------------------------
     //
-    //! get_ATA_DST_Log( tDevice * device )
+    //! get_ATA_DST_Log( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the DST log from an ATA drive. (SMART or GPL log)
     //
@@ -414,15 +404,16 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(3)
     M_PARAM_RO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(const tDevice* device, bool extLog, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(const tDevice* M_NONNULL device,
+                                                         bool                     extLog,
+                                                         const char* M_NULLABLE   filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_DST_Log( tDevice * device )
+    //! get_DST_Log( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the DST log from an ATA or SCSI device.
     //
@@ -434,14 +425,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(const tDevice* device, const char* filePath);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(const tDevice* M_NONNULL device, const char* M_NULLABLE filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_Identify_Device_Data_Log( tDevice * device )
+    //! get_Identify_Device_Data_Log( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the ATA Identify Device Data Log
     //
@@ -453,15 +444,15 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(const tDevice* device, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(const tDevice* M_NONNULL device,
+                                                                      const char* M_NULLABLE   filePath);
 
     //-----------------------------------------------------------------------------
     //
-    //! get_SATA_Phy_Event_Counters_Log( tDevice * device )
+    //! get_SATA_Phy_Event_Counters_Log( tDevice* M_NONNULL device )
     //
     //! \brief   Pulls the SATA Phy Event Counters Log
     //
@@ -473,11 +464,11 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(const tDevice* device, const char* filePath);
+    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(const tDevice* M_NONNULL device,
+                                                                         const char* M_NULLABLE   filePath);
 
     //-----------------------------------------------------------------------------
     //
@@ -496,21 +487,20 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_DEPRECATED_REASON("Use pull_SCSI_Defect_List() instead to handle both Grown and Primary defect lists and select "
                         "a different address descriptor type")
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(const tDevice* device, const char* filePath);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(const tDevice* M_NONNULL device,
+                                                          const char* M_NULLABLE   filePath);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(5)
     M_PARAM_RO(5)
-    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Defect_List(const tDevice*          device,
-                                                               eSCSIAddressDescriptors format,
-                                                               bool                    primaryList,
-                                                               bool                    grownList,
-                                                               const char*             filePath);
-
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Defect_List(const tDevice* M_NONNULL device,
+                                                               eSCSIAddressDescriptors  format,
+                                                               bool                     primaryList,
+                                                               bool                     grownList,
+                                                               const char* M_NULLABLE   filePath);
     //-----------------------------------------------------------------------------
     //
     //  pull_SCSI_Informational_Exceptions_Log(const tDevice *device)
@@ -525,13 +515,11 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(const tDevice* device,
-                                                                                const char*    filePath);
-
+    OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(const tDevice* M_NONNULL device,
+                                                                                const char* M_NULLABLE   filePath);
     //-----------------------------------------------------------------------------
     //
     //  print_Supported_Logs()
@@ -545,8 +533,8 @@ extern "C"
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_Logs(const tDevice* device, uint64_t flags);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_Logs(const tDevice* M_NONNULL device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -561,9 +549,8 @@ extern "C"
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Logs(const tDevice* device, uint64_t flags);
-
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Logs(const tDevice* M_NONNULL device, uint64_t flags);
     //-----------------------------------------------------------------------------
     //
     //  print_Supported_ATA_Logs()
@@ -577,8 +564,8 @@ extern "C"
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_ATA_Logs(const tDevice* M_NONNULL device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -593,8 +580,8 @@ extern "C"
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(const tDevice* device, uint64_t flags);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(const tDevice* M_NONNULL device, uint64_t flags);
 
     //-----------------------------------------------------------------------------
     //
@@ -614,27 +601,26 @@ extern "C"
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(5)
     M_PARAM_RO(5)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(const tDevice* device,
-                                                          uint8_t        logNum,
-                                                          uint8_t        subpage,
-                                                          eLogPullMode   mode,
-                                                          const char*    filePath,
-                                                          uint32_t       transferSizeBytes,
-                                                          uint32_t       logLengthOverride);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(const tDevice* M_NONNULL device,
+                                                          uint8_t                  logNum,
+                                                          uint8_t                  subpage,
+                                                          eLogPullMode             mode,
+                                                          const char* M_NULLABLE   filePath,
+                                                          uint32_t                 transferSizeBytes,
+                                                          uint32_t                 logLengthOverride);
 
-    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(4)
     M_PARAM_RO(4)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(const tDevice* device,
-                                                                    uint8_t        bufferID,
-                                                                    eLogPullMode   mode,
-                                                                    const char*    filePath,
-                                                                    uint32_t       transferSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(const tDevice* M_NONNULL device,
+                                                                    uint8_t                  bufferID,
+                                                                    eLogPullMode             mode,
+                                                                    const char* M_NULLABLE   filePath,
+                                                                    uint32_t                 transferSizeBytes);
 
     //-----------------------------------------------------------------------------
     //
@@ -649,15 +635,14 @@ extern "C"
     //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(const tDevice* device,
-                                                                                       uint64_t       flags);
+    OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(const tDevice* M_NONNULL device,
+                                                                                       uint64_t                 flags);
 
-    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API bool is_SCSI_Read_Buffer_16_Supported(
-        const tDevice* device); // use for determining how to use this command to pull error history
+        const tDevice* M_NONNULL device); // use for determining how to use this command to pull error history
 
     // Error history is formatted in vendor specific mannors.
     // Only exception is the current/saved internal status data. This should be pulled using the
@@ -682,14 +667,13 @@ extern "C"
     //!   went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History_Size(const tDevice* device,
-                                                                     uint8_t        bufferID,
-                                                                     uint32_t*      errorHistorySize,
-                                                                     bool           createNewSnapshot,
-                                                                     bool           useReadBuffer16);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History_Size(const tDevice* M_NONNULL device,
+                                                                     uint8_t                  bufferID,
+                                                                     uint32_t* M_NONNULL      errorHistorySize,
+                                                                     bool                     createNewSnapshot,
+                                                                     bool                     useReadBuffer16);
 
     //-----------------------------------------------------------------------------
     //
@@ -714,7 +698,6 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(3)
     M_PARAM_RO(3)
@@ -725,25 +708,24 @@ extern "C"
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
     M_PARAM_WO(12)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(const tDevice* device,
-                                                                uint8_t        bufferID,
-                                                                const char*    logName,
-                                                                bool           createNewSnapshot,
-                                                                bool           useReadBuffer16,
-                                                                const char*    fileExtension,
-                                                                bool           toBuffer,
-                                                                uint8_t*       myBuf,
-                                                                uint32_t       bufSize,
-                                                                const char*    filePath,
-                                                                uint32_t       transferSizeBytes,
-                                                                char*          fileNameUsed);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(const tDevice* M_NONNULL device,
+                                                                uint8_t                  bufferID,
+                                                                const char* M_NULLABLE   logName,
+                                                                bool                     createNewSnapshot,
+                                                                bool                     useReadBuffer16,
+                                                                const char* M_NULLABLE   fileExtension,
+                                                                bool                     toBuffer,
+                                                                uint8_t* M_NULLABLE      myBuf,
+                                                                uint32_t                 bufSize,
+                                                                const char* M_NULLABLE   filePath,
+                                                                uint32_t                 transferSizeBytes,
+                                                                char* M_NULLABLE         fileNameUsed);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice*           device,
-                                                           const char*              filePath,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL device,
+                                                           const char* M_NULLABLE   filePath,
                                                            uint32_t                 transferSizeBytes,
                                                            uint32_t                 issueFactory,
                                                            uint16_t                 logPage,
@@ -771,12 +753,11 @@ extern "C"
     //!   \return SUCCESS = everything worked, !SUCCESS means something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice*           device,
-                                                       const char*              filePath,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL device,
+                                                       const char* M_NULLABLE   filePath,
                                                        uint32_t                 transferSizeBytes,
                                                        uint32_t                 issueFactory,
                                                        uint8_t                  logAddress,
@@ -795,7 +776,7 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
@@ -809,8 +790,7 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
@@ -824,8 +804,7 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
@@ -839,8 +818,7 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
@@ -854,17 +832,15 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice*       device,
-                                                                 eScsiModePageControl mpc,
-                                                                 uint8_t              modePage,
-                                                                 uint8_t              subpage,
-                                                                 uint32_t*            modePageSize);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice* M_NONNULL device,
+                                                                 eScsiModePageControl     mpc,
+                                                                 uint8_t                  modePage,
+                                                                 uint8_t                  subpage,
+                                                                 uint32_t* M_NONNULL      modePageSize);
 
 // if using this and not sure if the 6byte or 10 byte command will be used, use this length when allocating your buffer:
 // SCSI_MODE_PAGE_MIN_HEADER_LENGTH + length of mode page from standard This is only needed if not calling the
@@ -873,7 +849,6 @@ extern "C"
     (M_Max(MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN,                                               \
            MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN))
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(5)
     M_PARAM_RO(5)
@@ -884,17 +859,17 @@ extern "C"
     M_NULL_TERM_STRING(10)
     M_PARAM_RO(10)
     M_PARAM_WO(11)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice*       device,
-                                                            eScsiModePageControl mpc,
-                                                            uint8_t              modePage,
-                                                            uint8_t              subpage,
-                                                            const char*          logName,
-                                                            const char*          fileExtension,
-                                                            bool                 toBuffer,
-                                                            uint8_t*             myBuf,
-                                                            uint32_t             bufSize,
-                                                            const char*          filePath,
-                                                            bool*                used6ByteCmd);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice* M_NONNULL device,
+                                                            eScsiModePageControl     mpc,
+                                                            uint8_t                  modePage,
+                                                            uint8_t                  subpage,
+                                                            const char* M_NULLABLE   logName,
+                                                            const char* M_NULLABLE   fileExtension,
+                                                            bool                     toBuffer,
+                                                            uint8_t* M_NULLABLE      myBuf,
+                                                            uint32_t                 bufSize,
+                                                            const char* M_NULLABLE   filePath,
+                                                            bool* M_NULLABLE         used6ByteCmd);
 
     typedef struct s_ModifyScsiBlkDescFields
     {
@@ -912,23 +887,22 @@ extern "C"
     // Handles any necessary retries for corner cases and detects when a change is not made (such as changing maxlba)
     // endingBlockDescriptor is optional if you want to know the results of the change after it completes. NOTE: This is
     // only populated when the mode select and final mode sense complete without error
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues modify_SCSI_Block_Descriptor(const tDevice*           device,
-                                                                      modifyScsiBlkDescFields  modifications,
-                                                                      modifyScsiBlkDescFields* endingBlockDescriptor);
+    OPENSEA_OPERATIONS_API eReturnValues
+    modify_SCSI_Block_Descriptor(const tDevice* M_NONNULL            device,
+                                 modifyScsiBlkDescFields             modifications,
+                                 modifyScsiBlkDescFields* M_NULLABLE endingBlockDescriptor);
 
     // This nvme log pull needs lots of proper updates to be more like the SCSI and ATA functions. nvmeLogSizeBytes
     // should be passed as 0 unless you know the length you want to pull.
     //  nvmeLogSizeBytes is used since there is not a way to look up the length of most NVMe logs like you can with ATA
     //  and SCSI
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(const tDevice* device,
-                                                                  uint8_t        logNum,
-                                                                  eLogPullMode   mode,
-                                                                  uint32_t       nvmeLogSizeBytes);
+    OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(const tDevice* M_NONNULL device,
+                                                                  uint8_t                  logNum,
+                                                                  eLogPullMode             mode,
+                                                                  uint32_t                 nvmeLogSizeBytes);
 
 #if defined(__cplusplus)
 }

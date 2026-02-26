@@ -684,7 +684,7 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
         if (is_Seagate_Family(device) == SEAGATE)
         {
             ret = SUCCESS;
-            DISABLE_NONNULL_COMPARE
+
             if (supported != M_NULLPTR)
             {
                 // BIT8 for older products with this feature. EX: ST10000NM*
@@ -715,7 +715,6 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
                     *enabled = false;
                 }
             }
-            RESTORE_NONNULL_COMPARE
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -731,12 +730,12 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
             {
                 // If this page is supported, we're calling power balance on SAS not supported.
                 // Note: This may need changing in the future, but right now this is still accurate - TJE
-                DISABLE_NONNULL_COMPARE
+
                 if (supported != M_NULLPTR)
                 {
                     *supported = false;
                 }
-                RESTORE_NONNULL_COMPARE
+
                 return SUCCESS;
             }
             uint8_t* pcModePage =
@@ -759,12 +758,12 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
                     (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
                 {
                     // If in here, this is an old drive since it doesn't allow setting the active power mode.
-                    DISABLE_NONNULL_COMPARE
+
                     if (supported != M_NULLPTR)
                     {
                         *supported = true;
                     }
-                    RESTORE_NONNULL_COMPARE
+
                     // read current values to get enabled/disabled
                     safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16,
@@ -772,13 +771,13 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
                     {
                         // check the active level to make sure it is zero
                         uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                        DISABLE_NONNULL_COMPARE
+
                         if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1 &&
                             enabled != M_NULLPTR)
                         {
                             *enabled = true;
                         }
-                        RESTORE_NONNULL_COMPARE
+
                         ret = SUCCESS;
                     }
                 }
@@ -788,12 +787,12 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
                     // if in here, this is a new drive which only allows this change via the active mode field.
                     // On these drives, we can check to make sure the changable fields apply to the active mode field,
                     // but NOT the power condition identifier.
-                    DISABLE_NONNULL_COMPARE
+
                     if (supported != M_NULLPTR)
                     {
                         *supported = true;
                     }
-                    RESTORE_NONNULL_COMPARE
+
                     // read current values to get enabled/disabled
                     safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16,
@@ -801,7 +800,7 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
                     {
                         // check the active level to make sure it is zero
                         uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                        DISABLE_NONNULL_COMPARE
+
                         if (activeLevel == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 &&
                             enabled != M_NULLPTR)
                         {
@@ -818,7 +817,7 @@ eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, 
                         //     // I guess say it's off???
                         //     *enabled = false;
                         // }
-                        RESTORE_NONNULL_COMPARE
+
                         ret = SUCCESS;
                     }
                 }
@@ -1101,7 +1100,7 @@ eReturnValues get_IDD_Status(const tDevice* device, uint8_t* status)
 // NOTE: If IDD is ever supported on NVMe, this may need updates.
 void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool justRanDST)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (translatedString != M_NULLPTR)
     {
         safe_memset(translatedString, MAX_DST_STATUS_STRING_LENGTH, 0, MAX_DST_STATUS_STRING_LENGTH);
@@ -1220,7 +1219,6 @@ void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool
                                 status);
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 static eReturnValues start_IDD_Operation(const tDevice* device, eIDDTests iddOperation, bool captiveForeground)
@@ -1598,12 +1596,12 @@ eReturnValues request_Power_Measurement(const tDevice*                    device
 eReturnValues get_Power_Telemetry_Data(const tDevice* device, ptrSeagatePwrTelemetry pwrTelData)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (pwrTelData == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     uint32_t powerTelemetryLogSize = UINT32_C(0);
     uint8_t* powerTelemetryLog     = M_NULLPTR;
     // first, determine how much data there is, allocate memory, then read it all into that buffer
@@ -1711,7 +1709,7 @@ eReturnValues get_Power_Telemetry_Data(const tDevice* device, ptrSeagatePwrTelem
 
 void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (pwrTelData != M_NULLPTR)
     {
         // doubles for end statistics of measurement
@@ -1732,12 +1730,14 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         if (pwrTelData->totalMeasurementTimeRequested == 0)
         {
             print_str("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
-            printf("\tDrive Timestamp When The Log Was Retrieved (seconds): %.6f\n", C_CAST(double, pwrTelData->driveTimeStampWhenTheLogWasRetrieved) / 1000000.0);
+            printf("\tDrive Timestamp When The Log Was Retrieved (seconds): %.6f\n",
+                   C_CAST(double, pwrTelData->driveTimeStampWhenTheLogWasRetrieved) / 1000000.0);
         }
         else
         {
             printf("\tMeasurement Time (seconds): %" PRIu16 "\n", pwrTelData->totalMeasurementTimeRequested);
-            printf("\tDrive Timestamp For Host Requested Measurement (seconds): %.6f\n", C_CAST(double, pwrTelData->driveTimeStampForHostRequestedMeasurement) / 1000000.0);
+            printf("\tDrive Timestamp For Host Requested Measurement (seconds): %.6f\n",
+                   C_CAST(double, pwrTelData->driveTimeStampForHostRequestedMeasurement) / 1000000.0);
         }
         printf("\tMeasurement Window (ms): %" PRIu16 "\n", pwrTelData->measurementWindowTimeMilliseconds);
 
@@ -1813,7 +1813,6 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             print_str("NOTE: All power measurements are for the full device, not individual logical units.\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 bool is_Seagate_Quick_Format_Supported(const tDevice* device)
@@ -2891,12 +2890,12 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(const tDevice*           
 eReturnValues get_Seagate_DeviceStatistics(const tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (seagateDeviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         return get_Seagate_ATA_DeviceStatistics(device, seagateDeviceStats);
@@ -3302,12 +3301,12 @@ void print_Seagate_DeviceStatistics(const tDevice* device, ptrSeagateDeviceStati
 eReturnValues get_Seagate_SCSI_Firmware_Numbers(const tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (fwNumbers == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == SCSI_DRIVE && SEAGATE == is_Seagate_Family(device))
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareNumbersPage, 60);

@@ -52,11 +52,11 @@ typedef struct s_scsiDefectDataOut
     uint16_t                generationCode;
 } scsiDefectDataOut;
 
-M_NONNULL_PARAM_LIST(2)
-M_PARAM_RW(2) static eReturnValues get_SCSI_Defect_Data(scsiDefectDataIn paramsIn, scsiDefectDataOut* paramsOut)
+M_PARAM_RW(2)
+static eReturnValues get_SCSI_Defect_Data(scsiDefectDataIn paramsIn, scsiDefectDataOut* M_NONNULL paramsOut)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (paramsOut == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -71,7 +71,7 @@ M_PARAM_RW(2) static eReturnValues get_SCSI_Defect_Data(scsiDefectDataIn paramsI
         paramsOut->returnedDefectListFormat  = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
         paramsOut->generationCode            = UINT16_C(0);
     }
-    RESTORE_NONNULL_COMPARE
+
     // SCSI 2 has read defect data 12 available for optical devices, but not listed for block devices.
     // So assuming that we are talking to a block device, it needs to at least be newer than SCSI 2 for the 12B command
     if (paramsIn.device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 && paramsOut->tenByte == false)
@@ -125,12 +125,11 @@ typedef struct s_DefectListSizeInfo
     uint32_t increment;
 } defectListSizeInfo;
 
-M_NONNULL_PARAM_LIST(2)
 M_PARAM_WO(2)
-static eReturnValues get_Defect_List_Size_Info(scsiDefectDataOut defectResult, defectListSizeInfo* sizeInfo)
+static eReturnValues get_Defect_List_Size_Info(scsiDefectDataOut defectResult, defectListSizeInfo* M_NONNULL sizeInfo)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (sizeInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -141,7 +140,7 @@ static eReturnValues get_Defect_List_Size_Info(scsiDefectDataOut defectResult, d
         sizeInfo->numberOfElements = UINT32_C(0);
         sizeInfo->increment        = UINT32_C(0);
     }
-    RESTORE_NONNULL_COMPARE
+
     // get the defect list length and
     switch (defectResult.returnedDefectListFormat)
     {
@@ -178,10 +177,10 @@ static eReturnValues get_Defect_List_Size_Info(scsiDefectDataOut defectResult, d
 M_NONNULL_PARAM_LIST(1, 3)
 M_PARAM_WO(1)
 M_PARAM_RO_SIZE(3, 4)
-static M_INLINE void fill_block_address(blockFormatAddress*     address,
-                                        eSCSIAddressDescriptors type,
-                                        uint8_t*                dataPtr,
-                                        uint32_t                datalength)
+static M_INLINE void fill_block_address(blockFormatAddress* M_NONNULL address,
+                                        eSCSIAddressDescriptors       type,
+                                        uint8_t* M_NONNULL            dataPtr,
+                                        uint32_t                      datalength)
 {
     switch (type)
     {
@@ -211,10 +210,10 @@ static M_INLINE void fill_block_address(blockFormatAddress*     address,
 M_NONNULL_PARAM_LIST(1, 3)
 M_PARAM_WO(1)
 M_PARAM_RO_SIZE(3, 4)
-static M_INLINE void fill_bfi_address(bytesFromIndexAddress*  address,
-                                      eSCSIAddressDescriptors type,
-                                      uint8_t*                dataPtr,
-                                      uint32_t                datalength)
+static M_INLINE void fill_bfi_address(bytesFromIndexAddress* M_NONNULL address,
+                                      eSCSIAddressDescriptors          type,
+                                      uint8_t*                         dataPtr,
+                                      uint32_t                         datalength)
 {
     if (datalength >= AD_LEN_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR)
     {
@@ -247,10 +246,10 @@ static M_INLINE void fill_bfi_address(bytesFromIndexAddress*  address,
 M_NONNULL_PARAM_LIST(1, 3)
 M_PARAM_WO(1)
 M_PARAM_RO_SIZE(3, 4)
-static M_INLINE void fill_physical_address(physicalSectorAddress*  address,
-                                           eSCSIAddressDescriptors type,
-                                           uint8_t*                dataPtr,
-                                           uint32_t                datalength)
+static M_INLINE void fill_physical_address(physicalSectorAddress* M_NONNULL address,
+                                           eSCSIAddressDescriptors          type,
+                                           uint8_t* M_NONNULL               dataPtr,
+                                           uint32_t                         datalength)
 {
     if (datalength >= AD_LEN_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR)
     {
@@ -280,12 +279,12 @@ static M_INLINE void fill_physical_address(physicalSectorAddress*  address,
     }
 }
 
-static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
-                                      scsiDefectDataIn  defectRequest,
-                                      scsiDefectDataOut defectResult,
-                                      uint32_t*         elementID,
-                                      uint32_t          headerLength,
-                                      uint32_t          increment)
+static eReturnValues fill_Defect_List(ptrSCSIDefectList M_NONNULL ptrDefects,
+                                      scsiDefectDataIn            defectRequest,
+                                      scsiDefectDataOut           defectResult,
+                                      uint32_t*                   elementID,
+                                      uint32_t                    headerLength,
+                                      uint32_t                    increment)
 {
     eReturnValues ret = SUCCESS;
     if (ptrDefects != M_NULLPTR)
@@ -303,17 +302,17 @@ static eReturnValues fill_Defect_List(ptrSCSIDefectList ptrDefects,
             {
             case AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR:
-                fill_block_address(&ptrDefects->block[*elementID], defectResult.returnedDefectListFormat,
+                fill_block_address(&ptrDefects->defect[*elementID].block, defectResult.returnedDefectListFormat,
                                    &defectRequest.defectData[offset], (defectRequest.dataLength) - offset);
                 break;
             case AD_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_EXTENDED_BYTES_FROM_INDEX_FORMAT_ADDRESS_DESCRIPTOR:
-                fill_bfi_address(&ptrDefects->bfi[*elementID], defectResult.returnedDefectListFormat,
+                fill_bfi_address(&ptrDefects->defect[*elementID].bfi, defectResult.returnedDefectListFormat,
                                  &defectRequest.defectData[offset], (defectRequest.dataLength) - offset);
                 break;
             case AD_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
             case AD_EXTENDED_PHYSICAL_SECTOR_FORMAT_ADDRESS_DESCRIPTOR:
-                fill_physical_address(&ptrDefects->physical[*elementID], defectResult.returnedDefectListFormat,
+                fill_physical_address(&ptrDefects->defect[*elementID].physical, defectResult.returnedDefectListFormat,
                                       &defectRequest.defectData[offset], (defectRequest.dataLength) - offset);
                 break;
             case AD_VENDOR_SPECIFIC:
@@ -751,7 +750,7 @@ static void print_SCSI_Defect_Short_Block(ptrSCSIDefectList defects)
         printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
         for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
         {
-            printf("%" PRIu32 "\n", defects->block[iter].shortBlockAddress);
+            printf("%" PRIu32 "\n", defects->defect[iter].block.shortBlockAddress);
         }
     }
     else
@@ -768,7 +767,7 @@ static void print_SCSI_Defect_Long_Block(ptrSCSIDefectList defects)
         printf("Total Defects in list: %" PRIu32 "\n", defects->numberOfElements);
         for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
         {
-            printf("%" PRIu64 "\n", defects->block[iter].longBlockAddress);
+            printf("%" PRIu64 "\n", defects->defect[iter].block.longBlockAddress);
         }
     }
     else
@@ -789,7 +788,7 @@ static void print_SCSI_Defect_XCHS(ptrSCSIDefectList defects)
         {
             char multi          = ' ';
             bool switchMultiOff = false;
-            if (defects->physical[iter].multiAddressDescriptorStart)
+            if (defects->defect[iter].physical.multiAddressDescriptorStart)
             {
                 multiBit = true;
                 multi    = '+';
@@ -801,15 +800,16 @@ static void print_SCSI_Defect_XCHS(ptrSCSIDefectList defects)
                 multi          = '+';
                 switchMultiOff = true;
             }
-            if (defects->physical[iter].sectorNumber == MAX_28BIT)
+            if (defects->defect[iter].physical.sectorNumber == MAX_28BIT)
             {
-                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10s\n", multi, defects->physical[iter].cylinderNumber,
-                       defects->physical[iter].headNumber, "Full Track");
+                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10s\n", multi, defects->defect[iter].physical.cylinderNumber,
+                       defects->defect[iter].physical.headNumber, "Full Track");
             }
             else
             {
-                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 " \n", multi, defects->physical[iter].cylinderNumber,
-                       defects->physical[iter].headNumber, defects->physical[iter].sectorNumber);
+                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 " \n", multi,
+                       defects->defect[iter].physical.cylinderNumber, defects->defect[iter].physical.headNumber,
+                       defects->defect[iter].physical.sectorNumber);
             }
             if (switchMultiOff)
             {
@@ -833,15 +833,15 @@ static void print_SCSI_Defect_CHS(ptrSCSIDefectList defects)
         printf("  %-8s  %-3s  %10s \n", "Cylinder", "Head", "Sector");
         for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
         {
-            if (defects->physical[iter].sectorNumber == UINT32_MAX)
+            if (defects->defect[iter].physical.sectorNumber == UINT32_MAX)
             {
-                printf("  %8" PRIu32 "  %3" PRIu8 "  %10s\n", defects->physical[iter].cylinderNumber,
-                       defects->physical[iter].headNumber, "Full Track");
+                printf("  %8" PRIu32 "  %3" PRIu8 "  %10s\n", defects->defect[iter].physical.cylinderNumber,
+                       defects->defect[iter].physical.headNumber, "Full Track");
             }
             else
             {
-                printf("  %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 "\n", defects->physical[iter].cylinderNumber,
-                       defects->physical[iter].headNumber, defects->physical[iter].sectorNumber);
+                printf("  %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 "\n", defects->defect[iter].physical.cylinderNumber,
+                       defects->defect[iter].physical.headNumber, defects->defect[iter].physical.sectorNumber);
             }
         }
     }
@@ -863,7 +863,7 @@ static void print_SCSI_Defect_XBFI(ptrSCSIDefectList defects)
         {
             char multi          = ' ';
             bool switchMultiOff = false;
-            if (defects->bfi[iter].multiAddressDescriptorStart)
+            if (defects->defect[iter].bfi.multiAddressDescriptorStart)
             {
                 multiBit = true;
                 multi    = '+';
@@ -874,15 +874,16 @@ static void print_SCSI_Defect_XBFI(ptrSCSIDefectList defects)
                 multi          = '+';
                 switchMultiOff = true;
             }
-            if (defects->bfi[iter].bytesFromIndex == MAX_28BIT)
+            if (defects->defect[iter].bfi.bytesFromIndex == MAX_28BIT)
             {
-                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10s\n", multi, defects->bfi[iter].cylinderNumber,
-                       defects->bfi[iter].headNumber, "Full Track");
+                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10s\n", multi, defects->defect[iter].bfi.cylinderNumber,
+                       defects->defect[iter].bfi.headNumber, "Full Track");
             }
             else
             {
-                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 " \n", multi, defects->bfi[iter].cylinderNumber,
-                       defects->bfi[iter].headNumber, defects->bfi[iter].bytesFromIndex);
+                printf("%c %8" PRIu32 "  %3" PRIu8 "  %10" PRIu32 " \n", multi,
+                       defects->defect[iter].bfi.cylinderNumber, defects->defect[iter].bfi.headNumber,
+                       defects->defect[iter].bfi.bytesFromIndex);
             }
             if (switchMultiOff)
             {
@@ -906,15 +907,15 @@ static void print_SCSI_Defect_BFI(ptrSCSIDefectList defects)
         printf("  %-8s  %-3s  %16s \n", "Cylinder", "Head", "Bytes From Index");
         for (uint64_t iter = UINT64_C(0); iter < defects->numberOfElements; ++iter)
         {
-            if (defects->bfi[iter].bytesFromIndex == UINT32_MAX)
+            if (defects->defect[iter].bfi.bytesFromIndex == UINT32_MAX)
             {
-                printf("  %8" PRIu32 "  %3" PRIu8 "  %16s\n", defects->bfi[iter].cylinderNumber,
-                       defects->bfi[iter].headNumber, "Full Track");
+                printf("  %8" PRIu32 "  %3" PRIu8 "  %16s\n", defects->defect[iter].bfi.cylinderNumber,
+                       defects->defect[iter].bfi.headNumber, "Full Track");
             }
             else
             {
-                printf("  %8" PRIu32 "  %3" PRIu8 "  %16" PRIu32 "\n", defects->bfi[iter].cylinderNumber,
-                       defects->bfi[iter].headNumber, defects->bfi[iter].bytesFromIndex);
+                printf("  %8" PRIu32 "  %3" PRIu8 "  %16" PRIu32 "\n", defects->defect[iter].bfi.cylinderNumber,
+                       defects->defect[iter].bfi.headNumber, defects->defect[iter].bfi.bytesFromIndex);
             }
         }
     }
@@ -926,7 +927,7 @@ static void print_SCSI_Defect_BFI(ptrSCSIDefectList defects)
 
 void print_SCSI_Defect_List(ptrSCSIDefectList defects)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (defects != M_NULLPTR)
     {
         print_str("===SCSI Defect List===\n");
@@ -972,7 +973,6 @@ void print_SCSI_Defect_List(ptrSCSIDefectList defects)
             break;
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues create_Random_Uncorrectables(const tDevice* device,
@@ -1337,8 +1337,8 @@ static eReturnValues scsi_corrupt_LBA_Read_Write_Long(const tDevice* device,
     }
     senseDataFields senseFields;
     safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
-    uint16_t dataLength = C_CAST(uint16_t, device->drive_info.deviceBlockSize *
-                                               logicalPerPhysicalBlocks); // start with this size for now...
+    uint16_t dataLength = C_CAST(
+        uint16_t, device->drive_info.deviceBlockSize* logicalPerPhysicalBlocks); // start with this size for now...
     uint8_t* dataBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (device->drive_info.deviceMaxLba > UINT32_MAX)
@@ -1538,12 +1538,12 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevice*   device,
                                               uint32_t*        numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     *numberOfDefects              = UINT32_C(0); // set to zero since it will be incremented as we read in the bad LBAs
     uint32_t totalPendingReported = UINT32_C(0);
     bool     validPendingReportedCount = false;
@@ -1643,12 +1643,12 @@ eReturnValues get_LBAs_From_ATA_Pending_List(const tDevice*   device,
                                              uint32_t*        numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     *numberOfDefects              = UINT32_C(0); // set to zero since it will be incremented as we read in the bad LBAs
     uint32_t totalPendingReported = UINT32_C(0);
     bool     validPendingReportedCount = false;
@@ -1743,12 +1743,12 @@ eReturnValues get_SCSI_Background_Scan_Results(const tDevice*       device,
                                                uint16_t*            numberOfResults)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (results == M_NULLPTR || numberOfResults == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     *numberOfResults                     = UINT32_C(0);
     uint32_t backgroundScanResultsLength = UINT32_C(0);
     if (SUCCESS == get_SCSI_Log_Size(device, LP_BACKGROUND_SCAN_RESULTS, 0, &backgroundScanResultsLength))
@@ -1820,12 +1820,12 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(const tDevice*   device,
                                                      uint32_t*        numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         return ret;
@@ -1859,12 +1859,12 @@ eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(const tDevice*   device,
 eReturnValues get_LBAs_From_DST_Log(const tDevice* device, ptrPendingDefect defectList, uint32_t* numberOfDefects)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (defectList == M_NULLPTR || numberOfDefects == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     *numberOfDefects = UINT32_C(0);
     dstLogEntries dstEntries;
     safe_memset(&dstEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));

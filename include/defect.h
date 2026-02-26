@@ -125,24 +125,24 @@ extern "C"
         //! \var deviceHasMultipleLogicalUnits
         //! \brief Set to true when the device has multiple logical units (actuators) which may be in this list
         bool deviceHasMultipleLogicalUnits;
-        union
+        M_COUNTED_BY(numberOfElements) M_STRICT_FLEX_ARRAY_AUTO union
         {
             //! \var block
             //! \brief list of reported block defects
             //! \see \a blockFormatAddress
-            blockFormatAddress block[1];
+            blockFormatAddress block;
             //! \var bfi
             //! \brief list of reported bytes from index defects
             //! \see \a bytesFromIndexAddress
-            bytesFromIndexAddress bfi[1];
+            bytesFromIndexAddress bfi;
             //! \var physical
             //! \brief list of reported physical cylinder-head-sector defects
             //! \see \a physicalSectorAddress
-            physicalSectorAddress physical[1];
-        };
+            physicalSectorAddress physical;
+        } defect[FLEX_ARRAY];
     } scsiDefectList, *ptrSCSIDefectList;
 
-    //! \fn eReturnValues get_SCSI_Defect_List(tDevice*           device,
+    //! \fn eReturnValues get_SCSI_Defect_List(tDevice* M_NONNULL device,
     //!                                                           eSCSIAddressDescriptors defectListFormat,
     //!                                                           bool                    grownList,
     //!                                                           bool                    primaryList,
@@ -165,14 +165,13 @@ extern "C"
     //! \return SUCCESS = successfully read the requested defect list. Other values may indicate an unsupported
     //! list or list format or that the device does not support returning the defect list. May fail if
     //! a failure occurs while trying to read the defect list
-    M_NONNULL_PARAM_LIST(1, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List(const tDevice*          device,
-                                                              eSCSIAddressDescriptors defectListFormat,
-                                                              bool                    grownList,
-                                                              bool                    primaryList,
-                                                              scsiDefectList**        defects);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List(const tDevice* M_NONNULL                device,
+                                                              eSCSIAddressDescriptors                 defectListFormat,
+                                                              bool                                    grownList,
+                                                              bool                                    primaryList,
+                                                              scsiDefectList * M_NONNULL * M_NULLABLE defects);
 
 //! \def SCSI_DEFECT_LIST_2_VERSION
 //! \brief Version number for the \a scsiDefectList2Params structure
@@ -182,20 +181,23 @@ extern "C"
     //! \brief Parameter structure for \a get_SCSI_Defect_List_2()
     typedef struct
     {
-        size_t         sizeOfStruct; //!< size of this structure. Set to sizeof(scsiDefectList2Params)
-        int            version;      //!< version of this structure. Set to \a SCSI_DEFECT_LIST_2_VERSION
-        const tDevice* device;       //!< pointer to the device structure with the device to read the defect list from
+        size_t sizeOfStruct; //!< size of this structure. Set to sizeof(scsiDefectList2Params)
+        int    version;      //!< version of this structure. Set to \a SCSI_DEFECT_LIST_2_VERSION
+        const tDevice* M_NONNULL
+            device; //!< pointer to the device structure with the device to read the defect list from
         eSCSIAddressDescriptors
-                         defectListFormat; //!< requested format of the defect list. See \a eSCSIAddressDescriptors
-        bool             grownList;        //!< set to true to include the grown defect list in the output
-        bool             primaryList;      //!< set to true to include the primary defect list in the output
-        scsiDefectList** defects; //!< pointer for the defect list. The list will be allocated for you if this is a
-                                  //!< non-null pointer. If you do not want the list allocated, set this to M_NULLPTR
-        bool saveToFile; //!< set to true to save the defect list to a file
+             defectListFormat; //!< requested format of the defect list. See \a eSCSIAddressDescriptors
+        bool grownList;        //!< set to true to include the grown defect list in the output
+        bool primaryList;      //!< set to true to include the primary defect list in the output
+        scsiDefectList * M_NULLABLE *
+            M_NULLABLE defects; //!< pointer for the defect list. The list will be allocated for you if this is a
+                                //!< non-null pointer. If you do not want the list allocated, set this to M_NULLPTR
+        bool saveToFile;        //!< set to true to save the defect list to a file
         bool fileOpened; //!< recommend setting to false before calling unless you want a specific name for the file
-        const char*
+        const char* M_NULLABLE
             filePath; //!< path to the file where the defect list will be saved. Use M_NULLPTR for current directory
-        secureFileInfo* defectListFile; //!< secure file info structure for the defect list file if saveToFile is true
+        secureFileInfo* M_NULLABLE
+            defectListFile; //!< secure file info structure for the defect list file if saveToFile is true
     } scsiDefectList2Params;
 
     //! \fn eReturnValues get_SCSI_Defect_List_2(scsiDefectList2Params * params)
@@ -207,23 +209,22 @@ extern "C"
     //! \return SUCCESS = successfully read the requested defect list. Other values may indicate an unsupported
     //! list or list format or that the device does not support returning the defect list. May fail if
     //! a failure occurs while trying to read the defect list
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RW(1)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List_2(scsiDefectList2Params* params);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List_2(scsiDefectList2Params* M_NONNULL params);
 
     //! \fn void free_Defect_List(scsiDefectList** defects)
     //! \brief frees the SCSI defect list allocated by \a get_SCSI_Defect_List()
     //! \param[inout] defects double pointer to the defect list. Once free'd, this will be set to a NULL pointer
     //! \return void
-    OPENSEA_OPERATIONS_API void free_Defect_List(scsiDefectList** defects);
+    OPENSEA_OPERATIONS_API void free_Defect_List(scsiDefectList * M_NULLABLE * M_NULLABLE defects);
 
     //! \fn void print_SCSI_Defect_List(ptrSCSIDefectList defects)
     //! \brief prints the defect list provided to stdout
     //! \param[in] defects pointer to the defect list to print out
     //! \return void
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SCSI_Defect_List(ptrSCSIDefectList defects);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SCSI_Defect_List(ptrSCSIDefectList M_NONNULL defects);
 
-    //! \fn eReturnValues create_Random_Uncorrectables(tDevice*      device,
+    //! \fn eReturnValues create_Random_Uncorrectables(tDevice* M_NONNULL device,
     //!                                                              uint16_t      numberOfRandomLBAs,
     //!                                                              bool          readUncorrectables,
     //!                                                              bool          flaggedErrors,
@@ -240,16 +241,15 @@ extern "C"
     //! \param updateFunction unused
     //! \param updateData unused
     //! \return SUCCESS if defects successfully created otherwise an error code for the failure.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues create_Random_Uncorrectables(const tDevice* device,
-                                                                      uint16_t       numberOfRandomLBAs,
-                                                                      bool           readUncorrectables,
-                                                                      bool           flaggedErrors,
-                                                                      custom_Update  updateFunction,
-                                                                      void*          updateData);
+    OPENSEA_OPERATIONS_API eReturnValues create_Random_Uncorrectables(const tDevice* M_NONNULL device,
+                                                                      uint16_t                 numberOfRandomLBAs,
+                                                                      bool                     readUncorrectables,
+                                                                      bool                     flaggedErrors,
+                                                                      custom_Update M_NULLABLE updateFunction,
+                                                                      void* M_NULLABLE         updateData);
 
-    //! \fn eReturnValues create_Uncorrectables(tDevice*      device,
+    //! \fn eReturnValues create_Uncorrectables(tDevice* M_NONNULL device,
     //!                                                       uint64_t      startingLBA,
     //!                                                       uint64_t      range,
     //!                                                       bool          readUncorrectables,
@@ -265,16 +265,15 @@ extern "C"
     //! \param updateFunction unused
     //! \param updateData unused
     //! \return SUCCESS if defects successfully created otherwise an error code for the failure.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues create_Uncorrectables(const tDevice* device,
-                                                               uint64_t       startingLBA,
-                                                               uint64_t       range,
-                                                               bool           readUncorrectables,
-                                                               custom_Update  updateFunction,
-                                                               void*          updateData);
+    OPENSEA_OPERATIONS_API eReturnValues create_Uncorrectables(const tDevice* M_NONNULL device,
+                                                               uint64_t                 startingLBA,
+                                                               uint64_t                 range,
+                                                               bool                     readUncorrectables,
+                                                               custom_Update M_NULLABLE updateFunction,
+                                                               void* M_NULLABLE         updateData);
 
-    //! \fn eReturnValues flag_Uncorrectables(tDevice*        device,
+    //! \fn eReturnValues flag_Uncorrectables(tDevice* M_NONNULL device,
     //!                                                       uint64_t      startingLBA,
     //!                                                       uint64_t      range,
     //!                                                       custom_Update updateFunction,
@@ -287,15 +286,13 @@ extern "C"
     //! \param updateFunction unused
     //! \param updateData unused
     //! \return SUCCESS if defects successfully created otherwise an error code for the failure.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues flag_Uncorrectables(const tDevice* device,
-                                                             uint64_t       startingLBA,
-                                                             uint64_t       range,
-                                                             custom_Update  updateFunction,
-                                                             void*          updateData);
-
-    //! \fn bool is_Read_Long_Write_Long_Supported(tDevice* device)
+    OPENSEA_OPERATIONS_API eReturnValues flag_Uncorrectables(const tDevice* M_NONNULL device,
+                                                             uint64_t                 startingLBA,
+                                                             uint64_t                 range,
+                                                             custom_Update M_NULLABLE updateFunction,
+                                                             void* M_NULLABLE         updateData);
+    //! \fn bool is_Read_Long_Write_Long_Supported(tDevice* M_NONNULL device)
     //! \brief Checks if the legacy read long/write long commands are supported for creating errors
     //! \details These commands are obsolete and have been for years, but a device may still support them.
     //! These work by reading the sector data and ECC data to the host. Then it can be modified and written
@@ -303,10 +300,9 @@ extern "C"
     //! marking a sector with an uncorrectable defect.
     //! \param[in] device pointer to the device structure
     //! \return true = supported, false = not supported
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Long_Write_Long_Supported(const tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Read_Long_Write_Long_Supported(const tDevice* M_NONNULL device);
 
-    //! \fn eReturnValues corrupt_LBA_Read_Write_Long(tDevice* device,
+    //! \fn eReturnValues corrupt_LBA_Read_Write_Long(tDevice* M_NONNULL device,
     //!                                               uint64_t corruptLBA,
     //!                                               uint16_t numberOfBytesToCorrupt)
     //! \brief Uses the read long/write long commands to modify a single physical sector
@@ -318,13 +314,12 @@ extern "C"
     //! \param[in] numberOfBytesToCorrupt how many bytes in the physical sector to modify
     //! \return SUCCESS if the modification worked. NOT_SUPPORTED if the device does not support these commands,
     //! any other error for a failure may be returned.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBA_Read_Write_Long(const tDevice* device,
-                                                                     uint64_t       corruptLBA,
-                                                                     uint16_t       numberOfBytesToCorrupt);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBA_Read_Write_Long(const tDevice* M_NONNULL device,
+                                                                     uint64_t                 corruptLBA,
+                                                                     uint16_t                 numberOfBytesToCorrupt);
 
-    //! \fn eReturnValues corrupt_LBAs(tDevice* device,
+    //! \fn eReturnValues corrupt_LBAs(tDevice* M_NONNULL device,
     //!                                uint64_t      startingLBA,
     //!                                uint64_t      range,
     //!                                bool          readCorruptedLBAs,
@@ -345,17 +340,16 @@ extern "C"
     //! \param updateData unused
     //! \return SUCCESS if the modification worked. NOT_SUPPORTED if the device does not support these commands,
     //! any other error for a failure may be returned.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBAs(const tDevice* device,
-                                                      uint64_t       startingLBA,
-                                                      uint64_t       range,
-                                                      bool           readCorruptedLBAs,
-                                                      uint16_t       numberOfBytesToCorrupt,
-                                                      custom_Update  updateFunction,
-                                                      void*          updateData);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_LBAs(const tDevice* M_NONNULL device,
+                                                      uint64_t                 startingLBA,
+                                                      uint64_t                 range,
+                                                      bool                     readCorruptedLBAs,
+                                                      uint16_t                 numberOfBytesToCorrupt,
+                                                      custom_Update M_NULLABLE updateFunction,
+                                                      void* M_NULLABLE         updateData);
 
-    //! \fn eReturnValues corrupt_Random_LBAs(tDevice* device,
+    //! \fn eReturnValues corrupt_Random_LBAs(tDevice* M_NONNULL device,
     //!                                       uint16_t      numberOfRandomLBAs,
     //!                                       bool          readCorruptedLBAs,
     //!                                       uint16_t      numberOfBytesToCorrupt,
@@ -375,14 +369,13 @@ extern "C"
     //! \param updateData unused
     //! \return SUCCESS if the modification worked. NOT_SUPPORTED if the device does not support these commands,
     //! any other error for a failure may be returned.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues corrupt_Random_LBAs(const tDevice* device,
-                                                             uint16_t       numberOfRandomLBAs,
-                                                             bool           readCorruptedLBAs,
-                                                             uint16_t       numberOfBytesToCorrupt,
-                                                             custom_Update  updateFunction,
-                                                             void*          updateData);
+    OPENSEA_OPERATIONS_API eReturnValues corrupt_Random_LBAs(const tDevice* M_NONNULL device,
+                                                             uint16_t                 numberOfRandomLBAs,
+                                                             bool                     readCorruptedLBAs,
+                                                             uint16_t                 numberOfBytesToCorrupt,
+                                                             custom_Update M_NULLABLE updateFunction,
+                                                             void* M_NULLABLE         updateData);
 
     //! \struct pendingDefect
     //! \brief Holds the LBA with a pending defect and the power on hours at which
@@ -400,7 +393,7 @@ extern "C"
     //! \fn void safe_free_pending_defect(pendingDefect** defect)
     //! \brief helper function to safely free and set to null the defect list when
     //! it is done being used.
-    static M_INLINE void safe_free_pending_defect(pendingDefect** defect)
+    static M_INLINE void safe_free_pending_defect(pendingDefect * M_NULLABLE * M_NULLABLE defect)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, defect));
     }
@@ -410,7 +403,7 @@ extern "C"
     //! \note Using ACS standard maximum reportable count
 #define MAX_PLIST_ENTRIES UINT16_C(65534)
 
-    //! \fn eReturnValues get_LBAs_From_ATA_Pending_List(tDevice*         device,
+    //! \fn eReturnValues get_LBAs_From_ATA_Pending_List(tDevice* M_NONNULL device,
     //!                                                                   ptrPendingDefect defectList,
     //!                                                                   uint32_t*        numberOfDefects)
     //! \brief Reads the pending defect list from an ATA drive if the list is supported
@@ -420,15 +413,14 @@ extern "C"
     //! \param[out] numberOfDefects will be set to the number of defects actually read from the device's list
     //! \return SUCCESS = successfully read the pending defect list. NOT_SUPPORTED = log not supported by the device,
     //! any other error = failure to read pending defect list.
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(const tDevice*   device,
-                                                                        ptrPendingDefect defectList,
-                                                                        uint32_t*        numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_ATA_Pending_List(const tDevice* M_NONNULL   device,
+                                                                        ptrPendingDefect M_NONNULL defectList,
+                                                                        uint32_t* M_NONNULL        numberOfDefects);
 
-    //! \fn eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice*         device,
+    //! \fn eReturnValues get_LBAs_From_SCSI_Pending_List(tDevice* M_NONNULL device,
     //!                                                                    ptrPendingDefect defectList,
     //!                                                                    uint32_t*        numberOfDefects)
     //! \brief Reads the pending defect list from an SCSI drive if the list is supported
@@ -438,15 +430,14 @@ extern "C"
     //! \param[out] numberOfDefects will be set to the number of defects actually read from the device's list
     //! \return SUCCESS = successfully read the pending defect list. NOT_SUPPORTED = log not supported by the device,
     //! any other error = failure to read pending defect list.
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevice*   device,
-                                                                         ptrPendingDefect defectList,
-                                                                         uint32_t*        numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevice* M_NONNULL   device,
+                                                                         ptrPendingDefect M_NONNULL defectList,
+                                                                         uint32_t* M_NONNULL        numberOfDefects);
 
-    //! \fn eReturnValues get_LBAs_From_Pending_List(tDevice*         device,
+    //! \fn eReturnValues get_LBAs_From_Pending_List(tDevice* M_NONNULL device,
     //!                                                               ptrPendingDefect defectList,
     //!                                                               uint32_t*        numberOfDefects)
     //! \brief Reads the pending defect list from a SCSI or ATA drive if the list is supported
@@ -456,24 +447,23 @@ extern "C"
     //! \param[out] numberOfDefects will be set to the number of defects actually read from the device's list
     //! \return SUCCESS = successfully read the pending defect list. NOT_SUPPORTED = log not supported by the device,
     //! any other error = failure to read pending defect list.
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(const tDevice*   device,
-                                                                    ptrPendingDefect defectList,
-                                                                    uint32_t*        numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_Pending_List(const tDevice* M_NONNULL   device,
+                                                                    ptrPendingDefect M_NONNULL defectList,
+                                                                    uint32_t* M_NONNULL        numberOfDefects);
 
     //! \fn void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList)
     //! \brief writes the provided pending defect list to stdout
     //! \param[in] pendingList pointer to the pending list
     //! \param[in] numberOfItemsInPendingList number of defects in the \a pendingList
     //! \return void
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API void show_Pending_List(ptrPendingDefect pendingList, uint32_t numberOfItemsInPendingList);
+    OPENSEA_OPERATIONS_API void show_Pending_List(ptrPendingDefect M_NONNULL pendingList,
+                                                  uint32_t                   numberOfItemsInPendingList);
 
-    //! \fn eReturnValues get_LBAs_From_DST_Log(tDevice*         device,
+    //! \fn eReturnValues get_LBAs_From_DST_Log(tDevice* M_NONNULL device,
     //!                                                          ptrPendingDefect defectList,
     //!                                                          uint32_t*        numberOfDefects)
     //! \brief reads a list of LBAs logged as read failures in the device self-test log
@@ -483,13 +473,12 @@ extern "C"
     //! \param[out] numberOfDefects will be set to the number of defects actually read from the device's list
     //! \return SUCCESS = successfully read the dst log. NOT_SUPPORTED = log not supported by the device,
     //! any other error = failure to read dst log
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_DST_Log(const tDevice*   device,
-                                                               ptrPendingDefect defectList,
-                                                               uint32_t*        numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_DST_Log(const tDevice* M_NONNULL   device,
+                                                               ptrPendingDefect M_NONNULL defectList,
+                                                               uint32_t* M_NONNULL        numberOfDefects);
 
 //! \def MAX_BACKGROUND_SCAN_RESULTS
 //! \brief the maximum number of background scan results supported on a SCSI device
@@ -522,12 +511,12 @@ extern "C"
 
     //! \fn void safe_free_background_results(backgroundResults** bg)
     //! \brief helper function to free the background scan results list
-    static M_INLINE void safe_free_background_results(backgroundResults** bg)
+    static M_INLINE void safe_free_background_results(backgroundResults * M_NULLABLE * M_NULLABLE bg)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, bg));
     }
 
-    //! \fn eReturnValues get_SCSI_Background_Scan_Results(tDevice*             device,
+    //! \fn eReturnValues get_SCSI_Background_Scan_Results(tDevice* M_NONNULL device,
     //!                                                                         ptrBackgroundResults results,
     //!                                                                         uint16_t*            numberOfResults)
     //! \brief Reads the SCSI background scan results log into a list
@@ -537,15 +526,14 @@ extern "C"
     //! \param[out] numberOfResults holds the number of results read from the device
     //! \return SUCCESS = successfully read the bms log. NOT_SUPPORTED = log not supported by the device,
     //! any other error = failure to read bms log
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(const tDevice*       device,
-                                                                          ptrBackgroundResults results,
-                                                                          uint16_t*            numberOfResults);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Background_Scan_Results(const tDevice* M_NONNULL       device,
+                                                                          ptrBackgroundResults M_NONNULL results,
+                                                                          uint16_t* M_NONNULL numberOfResults);
 
-    //! \fn eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice*         device,
+    //! \fn eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(tDevice* M_NONNULL device,
     //!                                                                           ptrPendingDefect defectList,
     //!                                                                           uint32_t*        numberOfDefects)
     //! \brief Reads a list of LBAs from the background scan results log to review for additional defects
@@ -555,13 +543,12 @@ extern "C"
     //! \param[out] numberOfResults holds the number of defects read from the device
     //! \return SUCCESS = successfully read the bms log. NOT_SUPPORTED = log not supported by the device,
     //! any other error = failure to read bms log
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(const tDevice*   device,
-                                                                                ptrPendingDefect defectList,
-                                                                                uint32_t*        numberOfDefects);
+    OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Background_Scan_Log(const tDevice* M_NONNULL   device,
+                                                                                ptrPendingDefect M_NONNULL defectList,
+                                                                                uint32_t* M_NONNULL numberOfDefects);
 
 #if defined(__cplusplus)
 }

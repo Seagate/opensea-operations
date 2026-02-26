@@ -109,7 +109,7 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
         {
             supported = true;
         }
-        DISABLE_NONNULL_COMPARE
+
         if (M_NULLPTR != maxTrimOrUnmapBlockDescriptors)
         {
             if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word105)))
@@ -124,13 +124,13 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
                     64; // assume 1 512B block is supported since we didn't get a valid value otherwise.
             }
         }
-        RESTORE_NONNULL_COMPARE
+
         break;
     case NVME_DRIVE:
         if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT2)
         {
             supported = true;
-            DISABLE_NONNULL_COMPARE
+
             if (maxTrimOrUnmapBlockDescriptors != M_NULLPTR && maxLBACount != M_NULLPTR)
             {
 #if defined(_WIN32)
@@ -170,7 +170,6 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
                 *maxLBACount                    = UINT32_MAX;
 #endif
             }
-            RESTORE_NONNULL_COMPARE
         }
         break;
     case SCSI_DRIVE:
@@ -193,7 +192,7 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
             }
         }
         safe_free_aligned(&lbpPage);
-        DISABLE_NONNULL_COMPARE
+
         if (supported == true && M_NULLPTR != maxTrimOrUnmapBlockDescriptors && M_NULLPTR != maxLBACount)
         {
             uint8_t* blockLimits = C_CAST(
@@ -211,7 +210,6 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
             }
             safe_free_aligned(&blockLimits);
         }
-        RESTORE_NONNULL_COMPARE
     }
     break;
     default:

@@ -39,7 +39,7 @@
 // returning unknown
 const char* get_Drive_ID_For_Logfile_Name(const tDevice* device)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (device != M_NULLPTR)
     {
         // Try SN first
@@ -62,7 +62,6 @@ const char* get_Drive_ID_For_Logfile_Name(const tDevice* device)
     {
         return M_NULLPTR;
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
@@ -104,7 +103,7 @@ eReturnValues get_ATA_Log_Size(const tDevice* device, uint8_t logAddress, uint32
         // first, check to see if the log is in the GPL directory.
         if (send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DIRECTORY, 0, logBuffer, LEGACY_DRIVE_SEC_SIZE, 0) == SUCCESS)
         {
-            *logFileSize = get_ATA_Log_Size_From_Directory(logBuffer, LEGACY_DRIVE_SEC_SIZE, logAddress);
+            *logFileSize = get_ATA_Log_Size_From_Directory(logBuffer, logAddress);
             if (*logFileSize > 0)
             {
                 ret        = SUCCESS;
@@ -133,7 +132,7 @@ eReturnValues get_ATA_Log_Size(const tDevice* device, uint8_t logAddress, uint32
         }
         if (ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
         {
-            *logFileSize = get_ATA_Log_Size_From_Directory(logBuffer, LEGACY_DRIVE_SEC_SIZE, logAddress);
+            *logFileSize = get_ATA_Log_Size_From_Directory(logBuffer, logAddress);
             if (*logFileSize > UINT32_C(0))
             {
                 ret = SUCCESS;
@@ -1204,12 +1203,12 @@ eReturnValues get_SCSI_Error_History_Size(const tDevice* device,
                                           bool           useReadBuffer16)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (errorHistorySize == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     uint8_t* errorHistoryDirectory =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_ERROR_HISTORY_DIRECTORY_LEN, sizeof(uint8_t),
                                                          device->os_info.minimumAlignment));
@@ -2295,7 +2294,7 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* device,
             // saved
             islLogToPull = ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG;
         }
-        if (get_ATA_Log_Size_From_Directory(dataBuffer, ATA_LOG_PAGE_LEN_BYTES, islLogToPull) > UINT32_C(0))
+        if (get_ATA_Log_Size_From_Directory(dataBuffer, islLogToPull) > UINT32_C(0))
         {
             if (saveToFile)
             {
@@ -3412,11 +3411,11 @@ eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags)
             smartLogSize = UINT32_C(0);
             if (gplLogBuffer)
             {
-                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, log);
             }
             if (smartLogBuffer)
             {
-                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, log);
             }
             else if (legacyDriveNoLogDir)
             {
@@ -3520,11 +3519,11 @@ eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags)
             smartLogSize = UINT32_C(0);
             if (gplLogBuffer != M_NULLPTR)
             {
-                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, log);
             }
             if (smartLogBuffer != M_NULLPTR)
             {
-                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, log);
             }
             if (smartLogSize > UINT16_C(0) || gplLogSize > UINT16_C(0))
             {
@@ -3542,11 +3541,11 @@ eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags)
             smartLogSize = UINT32_C(0);
             if (gplLogBuffer != M_NULLPTR)
             {
-                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, log);
             }
             if (smartLogBuffer != M_NULLPTR)
             {
-                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, log);
             }
             if (smartLogSize > UINT16_C(0) || gplLogSize > UINT16_C(0))
             {
@@ -3562,11 +3561,11 @@ eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags)
             smartLogSize = UINT32_C(0);
             if (gplLogBuffer != M_NULLPTR)
             {
-                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                gplLogSize = get_ATA_Log_Size_From_Directory(gplLogBuffer, log);
             }
             if (smartLogBuffer != M_NULLPTR)
             {
-                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, ATA_LOG_PAGE_LEN_BYTES, log);
+                smartLogSize = get_ATA_Log_Size_From_Directory(smartLogBuffer, log);
             }
             if (smartLogSize > UINT16_C(0) || gplLogSize > UINT16_C(0))
             {

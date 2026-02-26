@@ -399,27 +399,25 @@ extern "C"
         };
     } deviceStatistics, *ptrDeviceStatistics;
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats);
+    OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                                              ptrDeviceStatistics M_NONNULL deviceStats);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats);
+    OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                                                ptrDeviceStatistics M_NONNULL deviceStats);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    bool is_Timestamp_Supported(const tDevice* device);
+    bool is_Timestamp_Supported(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    eReturnValues set_Date_And_Time_Timestamp(const tDevice* device);
+    eReturnValues set_Date_And_Time_Timestamp(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* device, eDeviceStatisticsLog reinitializeRequest);
+    eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* M_NONNULL device,
+                                                     eDeviceStatisticsLog     reinitializeRequest);
 
 #if defined(__cplusplus)
 }

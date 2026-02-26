@@ -183,7 +183,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
 #endif
 
     // first verify the provided structure info to make sure it is compatible.
-    DISABLE_NONNULL_COMPARE
+
     if (options != M_NULLPTR && options->version >= FIRMWARE_UPDATE_DATA_VERSION_V1 &&
         options->size >= sizeof(firmwareUpdateDataV1))
     {
@@ -366,8 +366,9 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
-                               "deferred download.\n");
+                        print_str(
+                            "\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
+                            "deferred download.\n");
                         print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
                 }
@@ -378,8 +379,9 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
                     {
-                        printf("\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
-                               "deferred download.\n");
+                        print_str(
+                            "\nWARNING: This controller is known to filter the SCSI write-buffer command and block "
+                            "deferred download.\n");
                         print_str("         If the firmware update fails, try using segmented download instead.\n\n");
                     }
                 }
@@ -469,8 +471,9 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                             downloadMode    = DL_FW_SEGMENTED;
                             if (device->deviceVerbosity > VERBOSITY_QUIET)
                             {
-                                printf("\nAutomatic deferred download failed. Either the drive does not support this "
-                                       "mode\n");
+                                print_str(
+                                    "\nAutomatic deferred download failed. Either the drive does not support this "
+                                    "mode\n");
                                 print_str("or this is an invalid firmware image for this device.\n");
                                 print_str("Retrying the download with segmented download mode to verify.\n");
                                 flush_stdout();
@@ -485,8 +488,8 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                                 downloadMode    = DL_FW_SEGMENTED;
                                 if (device->deviceVerbosity > VERBOSITY_QUIET)
                                 {
-                                    printf("\nAutomatic deferred download failed. Either the drive does not support "
-                                           "this mode\n");
+                                    print_str("\nAutomatic deferred download failed. Either the drive does not support "
+                                              "this mode\n");
                                     print_str("or this is an invalid firmware image for this device.\n");
                                     print_str("Retrying the download with segmented download mode to verify.\n");
                                     flush_stdout();
@@ -668,7 +671,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
     {
         ret = BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
 #ifdef _DEBUG
     printf("<-- %s (%d)\n", __FUNCTION__, ret);
 #endif
@@ -1479,7 +1482,7 @@ static eReturnValues set_Recommended_FWDL_Mode(const tDevice* device, ptrSupport
 eReturnValues get_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (supportedModes != M_NULLPTR && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
         supportedModes->size >= sizeof(supportedDLModesV1))
     {
@@ -1504,13 +1507,13 @@ eReturnValues get_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLMode
     {
         ret = BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 
 void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (supportedModes != M_NULLPTR && device != M_NULLPTR &&
         supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
         supportedModes->size >= sizeof(supportedDLModesV1))
@@ -1674,7 +1677,6 @@ void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes suppor
         }
         print_str("\n");
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 uint16_t get_fwdl_segment_size(const tDevice* device, uint16_t requestedSize, supportedDLModes fwdlSupport)

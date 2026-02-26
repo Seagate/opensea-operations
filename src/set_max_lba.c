@@ -679,7 +679,7 @@ void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModel
 
 void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (capModelMapping != M_NULLPTR)
     {
         print_str("---Capacity model number mapping---\n");
@@ -691,5 +691,4 @@ void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelM
                    capModelMapping->descriptor[descriptorCounter].modelNumber);
         }
     }
-    RESTORE_NONNULL_COMPARE
 }

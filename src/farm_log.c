@@ -108,8 +108,7 @@ static void addDataSetEntry(int32_t   subPageType,
     *farmContentField |= M_BitN(subPageType);
 }
 
-M_NONNULL_PARAM_LIST(1)
-M_PARAM_RW(1) static void updateDataSetEntryOffset(uint8_t* dataSetHeader, uint32_t dataSetOffset)
+M_PARAM_RW(1) static void updateDataSetEntryOffset(uint8_t* M_NONNULL dataSetHeader, uint32_t dataSetOffset)
 {
     safe_memcpy(dataSetHeader + 8, FARMC_LOG_DATA_SET_HEADER_LENGTH - 8, &dataSetOffset, sizeof(uint32_t));
 }
@@ -1852,7 +1851,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
 // NOTE: Make a function to handle string extraction from various fields after this function has run.-TJE
 static farmGenericPage* generic_SATA_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, farmGenericPage* farmStruct)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (ptrData != M_NULLPTR && dataLength >= FARM_PAGE_LEN && farmStruct != M_NULLPTR)
     {
         // qwordptr since all fields are qwords
@@ -1869,7 +1868,7 @@ static farmGenericPage* generic_SATA_Read_FARM_Log(uint8_t* ptrData, uint32_t da
             farmStruct->fields[fieldIter] = le64_to_host(qwordptr[2 + fieldIter]);
         }
     }
-    RESTORE_NONNULL_COMPARE
+
     return farmStruct;
 }
 
@@ -2352,7 +2351,7 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
 //       drive info)
 static farmLogData* sas_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, farmLogData* farmdata)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (ptrData != M_NULLPTR && farmdata != M_NULLPTR)
     {
         // First verify page/subpage codes
@@ -2425,13 +2424,13 @@ static farmLogData* sas_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, far
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
+
     return farmdata;
 }
 
 static farmLogData* sata_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, farmLogData* farmdata)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (ptrData != M_NULLPTR && farmdata != M_NULLPTR)
     {
         // for each 16KB page, call the generic SATA read function. A bit simpler than the SAS implementation :) - TJE
@@ -2467,7 +2466,7 @@ static farmLogData* sata_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, fa
             generic_SATA_Read_FARM_Log(&ptrData[offset], FARM_PAGE_LEN, genpage);
         }
     }
-    RESTORE_NONNULL_COMPARE
+
     return farmdata;
 }
 
@@ -3083,12 +3082,10 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
                                                      driveInfo->maxAvailableSectorsForReassignment);
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus,
                                                    "Data Protect", "No Data Protect");
-            print_Stat_If_Supported_And_Valid_Time("POH of Most Recent FARM TS Frame",
-                                                   driveInfo->pohOfMostRecentTimeseriesFrame,
-                                                   MICRO_SECONDS_PER_MILLI_SECONDS);
-            print_Stat_If_Supported_And_Valid_Time("POH of 2nd Most Recent FARM TS Frame",
-                                                   driveInfo->pohOfSecondMostRecentTimeseriesFrame,
-                                                   MICRO_SECONDS_PER_MILLI_SECONDS);
+            print_Stat_If_Supported_And_Valid_Uint64("POH of Most Recent FARM TS Frame",
+                                                   driveInfo->pohOfMostRecentTimeseriesFrame);
+            print_Stat_If_Supported_And_Valid_Uint64("POH of 2nd Most Recent FARM TS Frame",
+                                                   driveInfo->pohOfSecondMostRecentTimeseriesFrame);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "Seq or Before Req for Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);
@@ -3935,7 +3932,7 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
 
 void print_FARM_Data(farmLogData* farmdata)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (farmdata != M_NULLPTR)
     {
         // TODO: Validate signature
@@ -3971,5 +3968,4 @@ void print_FARM_Data(farmLogData* farmdata)
         print_FARM_Environment_Info(&farmdata->environment, timeRestrictedRangeMS, farminterface);
         print_FARM_Reliability_Info(&farmdata->reliability, headcnt, farminterface, timeRestrictedRangeMS);
     }
-    RESTORE_NONNULL_COMPARE
 }

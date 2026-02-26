@@ -805,12 +805,11 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
 eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1116,12 +1115,11 @@ static eReturnValues config_SCSI_CDL_Settings(const tDevice* device, tCDLSetting
 eReturnValues config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -1541,12 +1539,11 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
 eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (cdlSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
 
     if (device->drive_info.drive_type == ATA_DRIVE)
     {

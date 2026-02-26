@@ -55,15 +55,15 @@ extern "C"
 
     typedef struct s_firmwareUpdateData
     {
-        size_t              size;      // set to sizeof(firmwareUpdateData)
-        uint32_t            version;   // set to FIRMWARE_UPDATE_DATA_VERSION
-        eFirmwareUpdateMode dlMode;    // Use mode in new enum above. Should be backwards compatible, but recommend
-                                       // migrating to this new one instead!
-        uint16_t segmentSize;          // size of segments to use when doing segmented. If 0, will use 64.
-        uint8_t* firmwareFileMem;      // pointer to the firmware file read into memory to send to the drive.
-        uint32_t firmwareMemoryLength; // length of the memory the firmware file was read into. This should be a
-                                       // multiple of 512B sizes...
-        uint64_t avgSegmentDlTime;     // stores the average segment time for the download
+        size_t              size;        // set to sizeof(firmwareUpdateData)
+        uint32_t            version;     // set to FIRMWARE_UPDATE_DATA_VERSION
+        eFirmwareUpdateMode dlMode;      // Use mode in new enum above. Should be backwards compatible, but recommend
+                                         // migrating to this new one instead!
+        uint16_t            segmentSize; // size of segments to use when doing segmented. If 0, will use 64.
+        uint8_t* M_NULLABLE firmwareFileMem; // pointer to the firmware file read into memory to send to the drive.
+        uint32_t firmwareMemoryLength;       // length of the memory the firmware file was read into. This should be a
+                                             // multiple of 512B sizes...
+        uint64_t avgSegmentDlTime;           // stores the average segment time for the download
         uint64_t activateFWTime; // stores the amount of time it took to issue the last segment and activate the new
                                  // code (on segmented). On deferred this is only the time to activate.
         union
@@ -95,10 +95,10 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* options);
+    OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL      device,
+                                                           firmwareUpdateData* M_NONNULL options);
 
     // See extended inquiry VPD page in SPC spec for details
     typedef enum eSCSIMicrocodeActivationEnum
@@ -178,11 +178,10 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(const tDevice*      device,
-                                                                  ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                                  ptrSupportedDLModes M_NONNULL supportedModes);
 
     //-----------------------------------------------------------------------------
     //
@@ -198,10 +197,10 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                          ptrSupportedDLModes M_NONNULL supportedModes);
 
     //-----------------------------------------------------------------------------
     //
@@ -221,9 +220,9 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice*   device,
-                                                          uint16_t         requestedSize,
-                                                          supportedDLModes fwdlSupport);
+    OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice* M_NONNULL device,
+                                                          uint16_t                 requestedSize,
+                                                          supportedDLModes         fwdlSupport);
 #if defined(__cplusplus)
 }
 #endif

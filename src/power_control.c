@@ -491,7 +491,7 @@ eReturnValues transition_Power_State(const tDevice* device, ePowerConditionID ne
 eReturnValues get_NVMe_Power_States(const tDevice* device, ptrNVMeSupportedPowerStates nvmps)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (device != M_NULLPTR && device->drive_info.drive_type == NVME_DRIVE && nvmps != M_NULLPTR)
     {
         ret = SUCCESS;
@@ -578,7 +578,7 @@ eReturnValues get_NVMe_Power_States(const tDevice* device, ptrNVMeSupportedPower
         // finish by reading which is the current power state that the device is operating in
         get_Power_State(device, &nvmps->activePowerState, CURRENT_VALUE);
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 
@@ -695,7 +695,7 @@ static const char* convert_NVM_Latency_To_HR_Time_Str(uint64_t timeInNanoSeconds
 #define NVM_POWER_WATTS_MAX_STR_LEN 10
 void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (nvmps != M_NULLPTR)
     {
         print_str("\nSupported NVMe Power States\n");
@@ -708,8 +708,8 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
         print_str("\t\tRRL = Relative Read Latency\n");
         print_str("\t\tRWT = Relative Write Throughput\n");
         print_str("\t\tRWL = Relative Write Latency\n");
-        printf("\t\tRead/Write throughput and latency values are scaled from 0 - 100%%.\n");
-        printf("\t100%% = max performance, 0%% = minimum relative performance.\n");
+        print_str("\t\tRead/Write throughput and latency values are scaled from 0 - 100%.\n");
+        print_str("\t100% = max performance, 0% = minimum relative performance.\n");
         // flags | # | max power | idle power | active power | latencies and throughputs (can be N/A when not reported)
         print_str("\n   #  Max Power: Idle Power: Active Power: RRT: RRL: RWT: RWL: Entry Time: Exit Time:\n");
         print_str("-------------------------------------------------------------------------------------\n");
@@ -791,7 +791,6 @@ void print_NVM_Power_States(ptrNVMeSupportedPowerStates nvmps)
                    entryTime, exitTime);
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues transition_NVM_Power_State(const tDevice* device, uint8_t newState)
@@ -822,12 +821,12 @@ static eReturnValues ata_Set_EPC_Power_Mode(const tDevice*            device,
                                             bool                      saveChanges)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (powerConditionSettings == M_NULLPTR || powerCondition == PWR_CND_ACTIVE)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (powerConditionSettings->powerConditionValid)
     {
         if (powerConditionSettings->restoreToDefault)
@@ -914,12 +913,12 @@ eReturnValues scsi_Set_Power_Conditions(const tDevice*          device,
     }
     else
     {
-        DISABLE_NONNULL_COMPARE
+
         if (powerConditions == M_NULLPTR)
         {
             return BAD_PARAMETER;
         }
-        RESTORE_NONNULL_COMPARE
+
         // Check if anything in the incoming list is requesting default values so we can allocate and read the defaults
         // for those conditions before sending to the drive.
         if ((powerConditions->idle_a.powerConditionValid && powerConditions->idle_a.restoreToDefault) ||
@@ -1749,7 +1748,7 @@ static void ata_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifie
 
 static void scsi_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (identifiers != M_NULLPTR)
     {
         if (identifiers->numberOfPCIdentifiers > 0)
@@ -1890,7 +1889,6 @@ static void scsi_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifi
             print_str(" default ]\n"); // always allow default so that we can restore back to original settings
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 void print_Power_Consumption_Identifiers(const tDevice* device, ptrPowerConsumptionIdentifiers identifiers)
@@ -2039,7 +2037,7 @@ eReturnValues map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* devi
 
     if (ret == SUCCESS)
     {
-        if (identifiers.numberOfPCIdentifiers == 0) //to handle case when no descriptors are available
+        if (identifiers.numberOfPCIdentifiers == 0) // to handle case when no descriptors are available
             return BAD_PARAMETER;
 
         // ctc one line code change follows
@@ -2251,12 +2249,12 @@ eReturnValues get_APM_Level(const tDevice* device, uint8_t* apmLevel)
 static eReturnValues ata_Get_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (epcSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     uint32_t epcLogSize = LEGACY_DRIVE_SEC_SIZE * 2; // from ATA Spec
     // get_ATA_Log_Size(device, ATA_LOG_POWER_CONDITIONS, &epcLogSize, true, false) //uncomment this line to ask the
     // drive for the EPC log size rather than use the hard coded value above.
@@ -2348,12 +2346,12 @@ static eReturnValues ata_Get_EPC_Settings(const tDevice* device, ptrEpcSettings 
 static eReturnValues scsi_Get_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (epcSettings == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     bool powerConditionVPDsupported = true;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, epcVPDPage, VPD_POWER_CONDITION_LEN);
     if (SUCCESS == get_SCSI_VPD(device, POWER_CONDITION, M_NULLPTR, M_NULLPTR, true, epcVPDPage,
@@ -2655,12 +2653,12 @@ static void print_Power_Condition(ptrPowerConditionInfo condition, const char* c
 
 void print_EPC_Settings(const tDevice* device, ptrEpcSettings epcSettings)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (epcSettings == M_NULLPTR)
     {
         return;
     }
-    RESTORE_NONNULL_COMPARE
+
     M_USE_UNUSED(device);
     print_str("\n===EPC Settings===\n");
     print_str("\t* = timer is enabled\n");
@@ -2880,7 +2878,7 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(const 
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
-        DISABLE_NONNULL_COMPARE
+
         if (supported != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word078)) &&
@@ -2905,7 +2903,6 @@ eReturnValues sata_Get_Device_Initiated_Interface_Power_State_Transitions(const 
                 *enabled = false;
             }
         }
-        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }
@@ -2949,7 +2946,7 @@ eReturnValues sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(const tD
     if ((device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE) && is_SATA(device))
     {
         ret = SUCCESS;
-        DISABLE_NONNULL_COMPARE
+
         if (supported != M_NULLPTR)
         {
             if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
@@ -2974,7 +2971,6 @@ eReturnValues sata_Get_Device_Automatic_Partial_To_Slumber_Transtisions(const tD
                 *enabled = false;
             }
         }
-        RESTORE_NONNULL_COMPARE
     }
     return ret;
 }
@@ -3274,16 +3270,16 @@ eReturnValues scsi_Set_Partial_Slumber(const tDevice* device,
 eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(const tDevice* device, uint8_t* phyCount)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (phyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     uint16_t enhPhyControlLength = UINT16_C(8); // only need 8 bytes to get the number of phys
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
-                                      sizeof(uint8_t), device->os_info.minimumAlignment));
+                                         sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -3320,18 +3316,18 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(const tDevic
 {
     eReturnValues ret = SUCCESS;
     // make sure the structure that will be filled in makes sense at a quick check
-    DISABLE_NONNULL_COMPARE
+
     if (enhPhyControlData == M_NULLPTR || enhPhyControlDataSize == 0 ||
         enhPhyControlDataSize % sizeof(sasEnhPhyControl))
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     bool     gotFullPageLength   = false;
     uint16_t enhPhyControlLength = UINT16_C(0);
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
-                                      sizeof(uint8_t), device->os_info.minimumAlignment));
+                                         sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -3433,13 +3429,13 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
     {
         return; // nothing that matters was requested to be shown
     }
-    DISABLE_NONNULL_COMPARE
+
     if (enhPhyControlData == M_NULLPTR || enhPhyControlDataSize == UINT32_C(0) ||
         enhPhyControlDataSize % sizeof(sasEnhPhyControl))
     {
         return; // bad parameter that could cause breakage
     }
-    RESTORE_NONNULL_COMPARE
+
     uint32_t totalPhys = enhPhyControlDataSize / sizeof(sasEnhPhyControl);
     // Print a format header
     print_str("Phy#");
@@ -3485,12 +3481,12 @@ void show_SAS_Enh_Phy_Control_Partial_Slumber(ptrSasEnhPhyControl enhPhyControlD
 eReturnValues get_PUIS_Info(const tDevice* device, ptrPuisInfo info)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (info == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         ret = SUCCESS;

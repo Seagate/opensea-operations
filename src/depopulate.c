@@ -31,6 +31,17 @@
 #include "platform_helper.h"
 #include "seagate_operations.h" //Including this so we can read the Seagate vendos specific version stuff and mask it to look like ACS4/SBC4
 
+static bool is_Possible_Invalid_Depop_Time_Value(uint64_t depopTime)
+{
+    // according to the ACS4/SBC4 spec, valid depop times are 0x00000001 to 0xFFFFFFFE
+    // 0 means "time not reported" and 0xFFFFFFFF means "depopulation not supported"
+    if (depopTime == UINT64_MAX || depopTime == UINT32_MAX || depopTime == 0 || depopTime == UINT16_MAX)
+    {
+        return true;
+    }
+    return false;
+}
+
 bool is_Depopulation_Feature_Supported(const tDevice* device, uint64_t* depopulationTime)
 {
     bool supported = false;
@@ -129,12 +140,12 @@ bool is_Depopulation_Feature_Supported(const tDevice* device, uint64_t* depopula
 eReturnValues get_Number_Of_Descriptors(const tDevice* device, uint32_t* numberOfDescriptors)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (numberOfDescriptors == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     DECLARE_ZERO_INIT_ARRAY(uint8_t, getPhysicalElementCount, LEGACY_DRIVE_SEC_SIZE);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -168,12 +179,12 @@ eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
     // NOTE: Seagate legacy method uses head numbers starting at zero, but STD spec starts at 1. Add 1 to anything from
     // Seagate legacy method
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (elementList == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     // This should be a number of 512B blocks based on how many physical elements are supported by the drive.
     // NOTE: If this ever starts requesting a LOT of data, then this may need to be broken into multiple commands. - TJE
     uint32_t getPhysicalElementsDataSize =
@@ -194,7 +205,7 @@ eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
                 // Fill in the struct here since ATA is little endian
                 numberOfDescriptorsReturned = M_BytesTo4ByteValue(getPhysicalElements[7], getPhysicalElements[6],
                                                                   getPhysicalElements[5], getPhysicalElements[4]);
-                DISABLE_NONNULL_COMPARE
+
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[11], getPhysicalElements[10],
@@ -208,7 +219,7 @@ eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
                 {
                     *currentDepopulatedElements = M_BytesTo2ByteValue(getPhysicalElements[15], getPhysicalElements[14]);
                 }
-                RESTORE_NONNULL_COMPARE
+
                 if (numberOfElementsExpected != numberOfDescriptorsReturned)
                 {
                     if (device->deviceVerbosity >= VERBOSITY_DEFAULT)
@@ -228,7 +239,7 @@ eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
                 // Fill in the struct here since SCSI is big endian
                 numberOfDescriptorsReturned = M_BytesTo4ByteValue(getPhysicalElements[4], getPhysicalElements[5],
                                                                   getPhysicalElements[6], getPhysicalElements[7]);
-                DISABLE_NONNULL_COMPARE
+
                 if (depopElementID != M_NULLPTR)
                 {
                     *depopElementID = M_BytesTo4ByteValue(getPhysicalElements[8], getPhysicalElements[9],
@@ -242,7 +253,7 @@ eReturnValues get_Physical_Element_Descriptors_2(const tDevice*     device,
                 {
                     *currentDepopulatedElements = M_BytesTo2ByteValue(getPhysicalElements[14], getPhysicalElements[15]);
                 }
-                RESTORE_NONNULL_COMPARE
+
                 if (numberOfElementsExpected != numberOfDescriptorsReturned)
                 {
                     printf("WARNING: Drive returned %" PRIu32 " elements, but %" PRIu32 " were expected\n",
@@ -312,7 +323,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
     print_str("\t S - storage element\n");
 
     print_str("\nApproximate time to depopulate: ");
-    if (depopulateTime > UINT64_C(0) && depopulateTime < UINT64_MAX)
+    if (is_Possible_Invalid_Depop_Time_Value(depopulateTime) == false)
     {
         uint16_t days    = UINT16_C(0);
         uint8_t  hours   = UINT8_C(0);
@@ -324,7 +335,7 @@ void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
     }
     else
     {
-        print_str("Not reported.\n");
+        printf("Not reported or possible invalid time reported: %" PRIu64 ".\n", depopulateTime);
     }
     if (depopElementID > 0)
     {
@@ -547,7 +558,7 @@ static eReturnValues ata_get_Depopulate_Progress(const tDevice* device, eDepopSt
             ret = getDescirptors;
         }
     }
-    DISABLE_NONNULL_COMPARE
+
     if (progress != M_NULLPTR)
     {
         if (*depopStatus == DEPOP_REPOP_IN_PROGRESS)
@@ -559,7 +570,7 @@ static eReturnValues ata_get_Depopulate_Progress(const tDevice* device, eDepopSt
             *progress = 0.0;
         }
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 
@@ -618,7 +629,7 @@ static eReturnValues scsi_get_Depopulate_Progress(const tDevice* device, eDepopS
         // If this failed, there is likely a bigger problem! But we can try getting physical element status
         ret = FAILURE;
     }
-    DISABLE_NONNULL_COMPARE
+
     if (progress != M_NULLPTR)
     {
         if (*depopStatus == DEPOP_REPOP_IN_PROGRESS)
@@ -639,7 +650,7 @@ static eReturnValues scsi_get_Depopulate_Progress(const tDevice* device, eDepopS
             *progress = 0.0;
         }
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 
@@ -649,12 +660,12 @@ static eReturnValues scsi_get_Depopulate_Progress(const tDevice* device, eDepopS
 eReturnValues get_Depopulate_Progress(const tDevice* device, eDepopStatus* depopStatus, double* progress)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (depopStatus == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     *depopStatus = DEPOP_NOT_IN_PROGRESS;
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -732,7 +743,7 @@ eReturnValues show_Depop_Repop_Progress(const tDevice* device)
 
 static M_INLINE void print_Depop_Start(uint64_t depopTime, const char* operation)
 {
-    if (depopTime == UINT64_MAX || depopTime == 0)
+    if (is_Possible_Invalid_Depop_Time_Value(depopTime))
     {
         printf("Starting %s. Approximate time until completion is not available.\n", operation);
     }
@@ -751,14 +762,13 @@ static M_INLINE void print_Depop_Start(uint64_t depopTime, const char* operation
     print_str("the drive unusable or require performing this command again!!\n");
 }
 
-M_NONNULL_PARAM_LIST(1)
 M_NULL_TERM_STRING(3)
 M_PARAM_RO(3)
-static eReturnValues determine_Depop_Failure_Reason(const tDevice*      device,
-                                                    eReturnValues ret,
-                                                    const char*   operation,
-                                                    uint32_t      elementDescriptorID,
-                                                    uint64_t      requestedMaxLBA)
+static eReturnValues determine_Depop_Failure_Reason(const tDevice* M_NONNULL device,
+                                                    eReturnValues            ret,
+                                                    const char*              operation,
+                                                    uint32_t                 elementDescriptorID,
+                                                    uint64_t                 requestedMaxLBA)
 {
     bool invalidElement             = false;
     bool invalidMaxLBA              = false;
@@ -857,14 +867,13 @@ static eReturnValues determine_Depop_Failure_Reason(const tDevice*      device,
     return ret;
 }
 
-M_NONNULL_PARAM_LIST(1)
 M_NULL_TERM_STRING(3)
 M_PARAM_RO(3)
-static eReturnValues check_Depop_Command_Result_SCSI(const tDevice*      device,
-                                                     eReturnValues ret,
-                                                     const char*   operation,
-                                                     uint32_t      elementDescriptorID,
-                                                     uint64_t      requestedMaxLBA)
+static eReturnValues check_Depop_Command_Result_SCSI(const tDevice* M_NONNULL device,
+                                                     eReturnValues            ret,
+                                                     const char*              operation,
+                                                     uint32_t                 elementDescriptorID,
+                                                     uint64_t                 requestedMaxLBA)
 {
     // On SAS, we'll have sense data, on ATA we can attempt to request sense, but some systems/controllers
     // do this for us and make this impossible to retrieve...so we need to work around this
@@ -893,14 +902,13 @@ static eReturnValues check_Depop_Command_Result_SCSI(const tDevice*      device,
     return ret;
 }
 
-M_NONNULL_PARAM_LIST(1, 3)
 M_NULL_TERM_STRING(3)
 M_PARAM_RO(3)
-static eReturnValues check_Depop_Command_Result_ATA(const tDevice*      device,
-                                                    eReturnValues ret,
-                                                    const char*   operation,
-                                                    uint32_t      elementDescriptorID,
-                                                    uint64_t      requestedMaxLBA)
+static eReturnValues check_Depop_Command_Result_ATA(const tDevice* M_NONNULL device,
+                                                    eReturnValues            ret,
+                                                    const char* M_NONNULL    operation,
+                                                    uint32_t                 elementDescriptorID,
+                                                    uint64_t                 requestedMaxLBA)
 {
     bool    workaroundIncompleteSense = false;
     uint8_t senseKey                  = UINT8_C(0);
@@ -972,8 +980,8 @@ static eReturnValues check_Depop_Command_Result_ATA(const tDevice*      device,
     return ret;
 }
 
-M_NONNULL_PARAM_LIST(1, 2)
-M_NULL_TERM_STRING(2) M_PARAM_RO(2) static eReturnValues poll_Depop_Progress(const tDevice* device, const char* operation)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2) static eReturnValues poll_Depop_Progress(const tDevice* M_NONNULL device, const char* M_NONNULL operation)
 {
     eReturnValues ret = SUCCESS;
     // SCSI and ATA will be handled differently.
@@ -1361,23 +1369,22 @@ eReturnValues get_Number_Of_LBA_Status_Descriptors(const tDevice* device, uint64
     DECLARE_ZERO_INIT_ARRAY(uint8_t, sectorBuffer, LEGACY_DRIVE_SEC_SIZE);
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
-        uint32_t      logSize = UINT32_C(0);
-        ret = get_ATA_Log_Size(device, ATA_LOG_LBA_STATUS, &logSize, true, false);
+        uint32_t logSize = UINT32_C(0);
+        ret              = get_ATA_Log_Size(device, ATA_LOG_LBA_STATUS, &logSize, true, false);
         if (ret == SUCCESS)
         {
-            ret = get_ATA_Log(device, ATA_LOG_LBA_STATUS, M_NULLPTR, M_NULLPTR, true, false, true,
-                              sectorBuffer, LEGACY_DRIVE_SEC_SIZE, M_NULLPTR, 0, 0);
-            *numberOfDescriptors = M_BytesTo8ByteValue(sectorBuffer[7], sectorBuffer[6],
-                                                       sectorBuffer[5], sectorBuffer[4],
-                                                       sectorBuffer[3], sectorBuffer[2],
-                                                       sectorBuffer[1], sectorBuffer[0]);
+            ret = get_ATA_Log(device, ATA_LOG_LBA_STATUS, M_NULLPTR, M_NULLPTR, true, false, true, sectorBuffer,
+                              LEGACY_DRIVE_SEC_SIZE, M_NULLPTR, 0, 0);
+            *numberOfDescriptors =
+                M_BytesTo8ByteValue(sectorBuffer[7], sectorBuffer[6], sectorBuffer[5], sectorBuffer[4], sectorBuffer[3],
+                                    sectorBuffer[2], sectorBuffer[1], sectorBuffer[0]);
         }
         else
         {
             *numberOfDescriptors = 0;
         }
     }
-    else //if (device->drive_info.drive_type == SCSI_DRIVE)
+    else // if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         *numberOfDescriptors = 0;
         ret                  = NOT_SUPPORTED;
@@ -1385,8 +1392,8 @@ eReturnValues get_Number_Of_LBA_Status_Descriptors(const tDevice* device, uint64
     return ret;
 }
 
-eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
-                                         uint64_t       numberOfDescriptorsExpected,
+eReturnValues get_LBA_Status_Descriptors(const tDevice*         device,
+                                         uint64_t               numberOfDescriptorsExpected,
                                          ptrLbaStatusDescriptor descriptorList)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -1406,19 +1413,20 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
     if (getLbaStatusDataSize > LEGACY_DRIVE_SEC_SIZE * UINT16_MAX)
     {
         printf("WARNING: Drive expected %" PRIu64 " elements which exceed max page count.\n",
-            numberOfDescriptorsExpected);
+               numberOfDescriptorsExpected);
         getLbaStatusDataSize = LEGACY_DRIVE_SEC_SIZE * UINT16_MAX;
     }
     // Note we read not only descriptors but also page 0 which is header
-    uint8_t* descriptorBuffer = C_CAST(
-        uint8_t*, safe_calloc_aligned(getLbaStatusDataSize + LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* descriptorBuffer =
+        C_CAST(uint8_t*, safe_calloc_aligned(getLbaStatusDataSize + LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t),
+                                             device->os_info.minimumAlignment));
     if (descriptorBuffer != M_NULLPTR)
     {
         uint64_t numberOfDescriptorsReturned = UINT64_C(0);
         if (device->drive_info.drive_type == ATA_DRIVE)
         {
-            ret = get_ATA_Log(device, ATA_LOG_LBA_STATUS, M_NULLPTR, M_NULLPTR, true, false, true,
-                              descriptorBuffer, getLbaStatusDataSize + LEGACY_DRIVE_SEC_SIZE, M_NULLPTR, 0, 0);
+            ret = get_ATA_Log(device, ATA_LOG_LBA_STATUS, M_NULLPTR, M_NULLPTR, true, false, true, descriptorBuffer,
+                              getLbaStatusDataSize + LEGACY_DRIVE_SEC_SIZE, M_NULLPTR, 0, 0);
             if (ret == SUCCESS)
             {
                 // parse out the descriptors
@@ -1427,7 +1435,7 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
                     for (uint16_t pageOffset = 16; pageOffset < LEGACY_DRIVE_SEC_SIZE;
                          pageOffset += 16 /*bytes per descriptor*/)
                     {
-                        uint64_t bufferOffset = (((uint64_t) page * LEGACY_DRIVE_SEC_SIZE) + pageOffset);
+                        uint64_t bufferOffset = (((uint64_t)page * LEGACY_DRIVE_SEC_SIZE) + pageOffset);
                         if (numberOfDescriptorsReturned < numberOfDescriptorsExpected)
                         {
                             descriptorList[numberOfDescriptorsReturned].startLba = M_BytesTo8ByteValue(
@@ -1444,11 +1452,14 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
                                                                                  descriptorBuffer[bufferOffset + 12]),
                                                              4, 1));
                             descriptorList[numberOfDescriptorsReturned].trimStatus =
-                                M_ToBool(M_BytesTo2ByteValue(descriptorBuffer[bufferOffset + 13], descriptorBuffer[bufferOffset + 12]) & BIT0);
+                                M_ToBool(M_BytesTo2ByteValue(descriptorBuffer[bufferOffset + 13],
+                                                             descriptorBuffer[bufferOffset + 12]) &
+                                         BIT0);
                             if (descriptorList[numberOfDescriptorsReturned].numberOfLbas == 0)
                             {
-                                printf("WARNING: Drive expected %" PRIu64 " elements, but empty descriptor was returned\n",
-                                    numberOfDescriptorsExpected);
+                                printf("WARNING: Drive expected %" PRIu64
+                                       " elements, but empty descriptor was returned\n",
+                                       numberOfDescriptorsExpected);
                                 break;
                             }
                             ++numberOfDescriptorsReturned;
@@ -1456,7 +1467,7 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
                         else
                         {
                             printf("WARNING: Drive expected %" PRIu64 " elements, but extra were returned\n",
-                                numberOfDescriptorsExpected);
+                                   numberOfDescriptorsExpected);
                             break;
                         }
                     }
@@ -1464,7 +1475,7 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
                 ret = SUCCESS;
             }
         }
-        else //if (device->drive_info.drive_type == SCSI_DRIVE)
+        else // if (device->drive_info.drive_type == SCSI_DRIVE)
         {
             ret = NOT_SUPPORTED;
         }
@@ -1477,8 +1488,7 @@ eReturnValues get_LBA_Status_Descriptors(const tDevice* device,
     return ret;
 }
 
-void show_LBA_Status_Descriptors(uint64_t numberOfDescriptors,
-                                 ptrLbaStatusDescriptor elementList)
+void show_LBA_Status_Descriptors(uint64_t numberOfDescriptors, ptrLbaStatusDescriptor elementList)
 {
     print_str("\nStart LBA\tNo. of LBA\tLBA Accessibility             \tTrim Status\n");
     print_str("---------------------------------------------------------------------------\n");
@@ -1497,28 +1507,21 @@ void show_LBA_Status_Descriptors(uint64_t numberOfDescriptors,
                                 "Unable to be read or written");
             break;
         case LBA_ACCESSIBILITY_READ_ONLY:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
-                                "Read-only");
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Read-only");
             break;
         case LBA_ACCESSIBILITY_WITH_RISK:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
-                                "At risk of inaccessible");
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "At risk of inaccessible");
             break;
         case LBA_ACCESSIBILITY_READ_ONLY_WITH_RISK:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
-                                "Read-Only With Risk");
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Read-Only With Risk");
             break;
         default:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
-                                "Unknown (%u)", elementList[descriptorIter].lbaAccessibility);
+            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Unknown (%u)",
+                                elementList[descriptorIter].lbaAccessibility);
             break;
         }
         char trimStatusChar = elementList[descriptorIter].trimStatus ? 'Y' : 'N';
-        printf("%12" PRIu64 "\t%10" PRIu32 " \t%-30s\t%c\n",
-               elementList[descriptorIter].startLba,
-               elementList[descriptorIter].numberOfLbas,
-               lbaAccessibilityString,
-               trimStatusChar
-            );
+        printf("%12" PRIu64 "\t%10" PRIu32 " \t%-30s\t%c\n", elementList[descriptorIter].startLba,
+               elementList[descriptorIter].numberOfLbas, lbaAccessibilityString, trimStatusChar);
     }
 }

@@ -124,12 +124,12 @@ eReturnValues get_Persistent_Reservations_Capabilities(const tDevice*           
 {
     // note: some older drives don't support report capabilities...need to figure out what to do about those - TJE
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (prCapabilities == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (!(prCapabilities->version >= PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 &&
           prCapabilities->size >= sizeof(persistentReservationCapabilitiesV1)))
     {
@@ -447,7 +447,7 @@ static void show_Allowed_Commands_Value(eAllowedCommandDetail value)
 
 void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (prCapabilities == M_NULLPTR)
     {
         if ((prCapabilities->version >= PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 &&
@@ -587,18 +587,17 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
             print_str("Error: Incorrect reservations capabilities structure version or bad structure size.\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues get_Registration_Key_Count(const tDevice* device, uint16_t* keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (keyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, readKeyCount, 8);
@@ -639,12 +638,12 @@ eReturnValues get_Registration_Keys(const tDevice* device, uint16_t numberOfKeys
 {
     // get only registration keys
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (keys == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (!(keys->version >= REGISTRATION_KEY_DATA_VERSION_V1) && !(keys->size >= sizeof(registrationKeysDataV1)))
     {
         return BAD_PARAMETER;
@@ -715,7 +714,7 @@ eReturnValues get_Registration_Keys(const tDevice* device, uint16_t numberOfKeys
 
 void show_Registration_Keys(ptrRegistrationKeysData keys)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (keys != M_NULLPTR && keys->version >= REGISTRATION_KEY_DATA_VERSION_V1 &&
         keys->size >= sizeof(registrationKeysDataV1))
     {
@@ -732,7 +731,6 @@ void show_Registration_Keys(ptrRegistrationKeysData keys)
             print_str("No registration keys to report.\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 // If supporting "extents", multiple can be reported, but this capability is obsolete, so this will likely return 1 or 0
@@ -740,12 +738,12 @@ eReturnValues get_Reservation_Count(const tDevice* device, uint16_t* reservation
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (reservationKeyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, reservationKeys, 8);
@@ -802,19 +800,19 @@ eReturnValues get_Reservations(const tDevice* device, uint16_t numberReservation
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (reservations == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (!(reservations->version >= RESERVATION_DATA_VERSION_V1) && !(reservations->size >= sizeof(reservationsDataV1)))
     {
         return BAD_PARAMETER;
     }
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        uint16_t reservationsLength = C_CAST(uint16_t, numberReservations * UINT16_C(16) + UINT16_C(8));
+        uint16_t reservationsLength = C_CAST(uint16_t, numberReservations* UINT16_C(16) + UINT16_C(8));
         uint8_t* reservationKeys    = C_CAST(
             uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
         if (reservationKeys == M_NULLPTR)
@@ -1059,12 +1057,12 @@ void show_Reservations(ptrReservationsData reservations)
 eReturnValues get_Full_Status_Key_Count(const tDevice* device, uint16_t* keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (keyCount == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     *keyCount = UINT16_C(0);
     if (device->drive_info.drive_type == SCSI_DRIVE)
     {
@@ -1163,12 +1161,12 @@ eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrF
     // If older SPC, use the get_Registrations and get_Reservations functions to get all the data we need to collect. -
     // TJE
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (fullReservation == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (!(fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1) &&
         !(fullReservation->size >= sizeof(fullReservationInfoV1)))
     {
@@ -1463,7 +1461,7 @@ eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrF
 
 void show_Full_Status(ptrFullReservationInfo fullReservation)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (fullReservation != M_NULLPTR && fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1 &&
         fullReservation->size >= sizeof(fullReservationInfoV1))
     {
@@ -1573,7 +1571,6 @@ void show_Full_Status(ptrFullReservationInfo fullReservation)
     {
         print_str("ERROR: Invalid full status structure version or size.\n");
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 typedef struct s_persistentReserveOutBasic
@@ -1591,12 +1588,13 @@ typedef struct s_persistentReserveOutBasic
 } persistentReserveOutBasic, *ptrPersistentReserveOutBasic;
 
 #define PR_OUT_BASIC_MIN_LENGTH 24
-M_NONNULL_PARAM_LIST(3)
 M_NONNULL_IF_NONZERO_PARAM(1, 2)
 M_PARAM_RW_SIZE(1, 2)
-static void format_Basic_Info(uint8_t* ptrData, uint32_t dataLength, ptrPersistentReserveOutBasic basicInfo)
+static void format_Basic_Info(uint8_t* M_NULLABLE                    ptrData,
+                              uint32_t                               dataLength,
+                              ptrPersistentReserveOutBasic M_NONNULL basicInfo)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (ptrData != M_NULLPTR && dataLength >= PR_OUT_BASIC_MIN_LENGTH &&
         basicInfo != M_NULLPTR) // 24 is minimum length for this buffer
     {
@@ -1656,7 +1654,6 @@ static void format_Basic_Info(uint8_t* ptrData, uint32_t dataLength, ptrPersiste
                         M_Min(dataLength - 28, basicInfo->transportIDLength));
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 eReturnValues register_Key(const tDevice* device,
