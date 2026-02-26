@@ -11640,7 +11640,7 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
         // Parse error field bits
         if (error & ATA_ERROR_BIT_ABORT)
         {
-            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Abort");
+            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Abort");
         }
         if (error & ATA_ERROR_BIT_INTERFACE_CRC) // abort bit will also be set to 1 if this is set to 1
         {
@@ -11686,27 +11686,13 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
         {
             if (is_Possible_Recalibrate_Command(commandOpCodeThatCausedError))
             {
-                if (safe_strlen(errorMessage) > 0)
-                {
-                    safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
-                }
-                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "(Likely) Track Zero Not Found");
+                snprintf_err_handle(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "(Likely) Track Zero Not Found");
             }
             else
             {
-                if (safe_strlen(errorMessage) > 0)
-                {
-                    safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
-                }
                 // unknown error, possibly recalibrate command + track zero not found....
-                char*   dup    = M_NULLPTR;
-                errno_t duperr = safe_strdup(&dup, errorMessage);
-                if (duperr == 0 && dup != M_NULLPTR)
-                {
-                    snprintf_err_handle(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH,
-                                        "%sUnknown Error Condition (%02" PRIX8 "h)", dup, error);
-                    safe_free(&dup);
-                }
+                snprintf_err_handle(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH,
+                                    "Unknown Error Condition (%02" PRIX8 "h)", error);
             }
         }
     }
