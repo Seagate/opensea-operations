@@ -3441,7 +3441,7 @@ eReturnValues set_Write_Read_Verify(const tDevice* device, bool all, bool vendor
                 // this math is rounding up.
                 // If someone selected a value not evenly divisible by 1024, they likely want at LEAST that many
                 // sectors being verified rather than not enough, so rounding up here makes the most sense -TJE
-                count = C_CAST(uint8_t, uint32_round_up_generic(wrvSectorCount, WRV_USER_MULTIPLIER));
+                count = C_CAST(uint8_t, uint32_round_up_power2(wrvSectorCount, WRV_USER_MULTIPLIER));
             }
             ret = ata_SF_Write_Read_Verify(device, ATA_SF_ENABLE, ATA_WRV_MODE_USER, count);
         }
