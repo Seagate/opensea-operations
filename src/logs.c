@@ -35,6 +35,18 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 
+// Helper function to safely calculate remaining buffer size and check bounds
+// Returns the remaining size if offset is valid, or 0 if offset exceeds totalSize
+static inline size_t calculate_safe_remaining_size(size_t offset, size_t totalSize)
+{
+    // Prevent integer underflow when offset >= totalSize
+    if (offset >= totalSize)
+    {
+        return 0;  // Indicates error condition
+    }
+    return totalSize - offset;
+}
+
 // Idea: Try to recursively call this with identify commands to retry up to 5 times to get a valid SN or ID before
 // returning unknown
 const char* get_Drive_ID_For_Logfile_Name(const tDevice* device)
@@ -2480,8 +2492,10 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* device,
                         }
                         else
                         {
-                            if (0 != safe_memcpy(&ptrData[uint16_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE],
-                                                 dataSize - (uint16_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE),
+                            size_t memcpyOffset = uint16_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE;
+                            size_t remainingSize = calculate_safe_remaining_size(memcpyOffset, dataSize);
+                            if (remainingSize == 0 || 0 != safe_memcpy(&ptrData[memcpyOffset],
+                                                 remainingSize,
                                                  dataBuffer, uint32_to_sizet(pullChunkSize)))
                             {
                                 safe_free_aligned(&dataBuffer);
@@ -2823,8 +2837,10 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* device,
                         }
                         else
                         {
-                            if (0 != safe_memcpy(&ptrData[uint32_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE],
-                                                 dataSize - (uint32_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE),
+                            size_t memcpyOffset = uint32_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE;
+                            size_t remainingSize = calculate_safe_remaining_size(memcpyOffset, dataSize);
+                            if (remainingSize == 0 || 0 != safe_memcpy(&ptrData[memcpyOffset],
+                                                 remainingSize,
                                                  dataBuffer, uint32_to_sizet(pullChunkSize)))
                             {
                                 safe_free_aligned(&dataBuffer);
@@ -3117,8 +3133,10 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* device,
                         }
                         else
                         {
-                            if (0 != safe_memcpy(&ptrData[uint32_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE],
-                                                 dataSize - (uint32_to_sizet(pageNumber) * LEGACY_DRIVE_SEC_SIZE),
+                            size_t memcpyOffset = uint32_to_sizet(pageNumber) * M_STATIC_CAST(size_t, LEGACY_DRIVE_SEC_SIZE);
+                            size_t remainingSize = calculate_safe_remaining_size(memcpyOffset, dataSize);
+                            if (remainingSize == 0 || 0 != safe_memcpy(&ptrData[memcpyOffset],
+                                                 remainingSize,
                                                  dataBuffer, uint32_to_sizet(pullChunkSize)))
                             {
                                 safe_free_aligned(&dataBuffer);
