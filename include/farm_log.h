@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,7 @@
 
 #pragma once
 #include "operations_Common.h"
+#include "secure_file.h"
 
 #include <stddef.h> //offset of macro
 
@@ -31,7 +32,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  pull_FARM_Combined_Log(tDevice *device, const char * const filePath);
+    //  pull_FARM_Combined_Log(const tDevice *device, const char * const filePath);
     //
     //! \brief   Description: This function pulls the Seagate Combined FARM log. This Log is a combination of all
     //!						  FARM Log Subpages.
@@ -45,13 +46,12 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
 
-    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(tDevice*                 device,
-                                                                const char* const        filePath,
+    OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(const tDevice* M_NONNULL device,
+                                                                const char* M_NULLABLE   filePath,
                                                                 uint32_t                 transferSizeBytes,
                                                                 int                      sataFarmCopyType,
                                                                 eLogFileNamingConvention fileNameType);
@@ -285,7 +285,7 @@ extern "C"
 #define FARM_FLED_EVENTS                 8
 #define FARM_RW_RETRY_EVENTS             8
 #define FARM_RESERVED2_CNT               17
-#define FARM_RESERVED3_CNT               23
+#define FARM_RESERVED3_CNT               15
 #define FARM_SATA_PFA_CNT                2
 #define FARM_SATA_PFA1_ATTR_01H_TRIP_BIT BIT0
 #define FARM_SATA_PFA1_ATTR_03H_TRIP_BIT BIT1
@@ -363,7 +363,8 @@ extern "C"
         uint64_t totalFlashLEDEventsActuator1;                  // on SAS in by actuator param 51h or 61h
         uint64_t lastFLEDIndexActuator1; // FLED array wraps so this points to most recent entry // on SAS in by
                                          // actuator param 51h or 61h
-        uint64_t last8FLEDEventsActuator1[FARM_FLED_EVENTS]; // on SAS in by actuator param 51h or 61h
+        uint64_t last8FLEDEventsActuator1[FARM_FLED_EVENTS];               // on SAS in by actuator param 51h or 61h
+        uint64_t last8ReadWriteRetryEventsActuator1[FARM_RW_RETRY_EVENTS]; // on SAS in by actuator param 51h or 61h
         uint64_t reserved3[FARM_RESERVED3_CNT];
         uint64_t timestampOfLast8FLEDsActuator1[FARM_FLED_EVENTS];  // on SAS in by actuator param 51h or 61h
         uint64_t powerCycleOfLast8FLEDsActuator1[FARM_FLED_EVENTS]; // on SAS in by actuator param 51h or 61h
@@ -404,7 +405,7 @@ extern "C"
     M_STATIC_ASSERT(offsetof(farmErrorStatistics, numberOfReallocatedSectorsActuator1) == 952,
                     farm_error_realloc_sector_act1_wrong_offset);
 
-    M_STATIC_ASSERT(offsetof(farmErrorStatistics, reserved3) == 1048, farm_error_reserved3_wrong_offset);
+    M_STATIC_ASSERT(offsetof(farmErrorStatistics, reserved3) == 1112, farm_error_reserved3_wrong_offset);
     M_STATIC_ASSERT(offsetof(farmErrorStatistics, satareserved4) == 1824, farm_error_reserved4_wrong_offset);
 
     M_STATIC_ASSERT(sizeof(farmErrorStatistics) == FARM_PAGE_LEN, farm_error_stats_stuct_is_not_16kib);
@@ -570,9 +571,9 @@ extern "C"
     } farmLogData;
 
     // TODO: Option to select which FARM data between current, saved, factory
-    eReturnValues read_FARM_Data(tDevice* device, farmLogData* farmdata);
+    eReturnValues read_FARM_Data(const tDevice* M_NONNULL device, farmLogData* M_NONNULL farmdata);
 
-    void print_FARM_Data(farmLogData* farmdata);
+    void print_FARM_Data(farmLogData* M_NONNULL farmdata);
 
 #if defined(__cplusplus)
 }

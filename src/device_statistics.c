@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,8 +28,8 @@
 #include "device_statistics.h"
 #include "logs.h"
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_general_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                  uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsGeneralOffsets, byteOffsetOnPage))
@@ -74,8 +74,8 @@ static M_INLINE statistic* dev_stat_general_offset_map(ptrDeviceStatistics devic
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_freefall_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                   uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsFreeFallOffset, byteOffsetOnPage))
@@ -90,8 +90,8 @@ static M_INLINE statistic* dev_stat_freefall_offset_map(ptrDeviceStatistics devi
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_rotating_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                   uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsRotatingOffset, byteOffsetOnPage))
@@ -124,8 +124,8 @@ static M_INLINE statistic* dev_stat_rotating_offset_map(ptrDeviceStatistics devi
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_generallerror_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                        uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsGeneralErrorOffset, byteOffsetOnPage))
@@ -143,8 +143,8 @@ static M_INLINE statistic* dev_stat_generallerror_offset_map(ptrDeviceStatistics
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_temperature_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                      uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsTemperatureOffset, byteOffsetOnPage))
@@ -192,8 +192,8 @@ static M_INLINE statistic* dev_stat_temperature_offset_map(ptrDeviceStatistics d
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_transport_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                    uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsTransportOffset, byteOffsetOnPage))
@@ -211,8 +211,8 @@ static M_INLINE statistic* dev_stat_transport_offset_map(ptrDeviceStatistics dev
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_ssd_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                              uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsSSDOffset, byteOffsetOnPage))
@@ -224,8 +224,8 @@ static M_INLINE statistic* dev_stat_ssd_offset_map(ptrDeviceStatistics deviceSta
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1)
-static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_zoned_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsZonedOffset, byteOffsetOnPage))
@@ -270,7 +270,8 @@ static M_INLINE statistic* dev_stat_zoned_offset_map(ptrDeviceStatistics deviceS
     return stat;
 }
 
-static statistic* dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                  uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsCDL_0_1_Offset, byteOffsetOnPage))
@@ -457,7 +458,8 @@ static statistic* dev_stat_cdl_0_1_offset_map(ptrDeviceStatistics deviceStats, u
     return stat;
 }
 
-static statistic* dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics deviceStats, uint16_t byteOffsetOnPage)
+static M_INLINE statistic* M_NULLABLE dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                                  uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDevStatsCDL_2_3_Offset, byteOffsetOnPage))
@@ -642,10 +644,9 @@ static statistic* dev_stat_cdl_2_3_offset_map(ptrDeviceStatistics deviceStats, u
 
 // this is ued to determine which device statistic is being talked about by the DSN log on ata
 // TODO: Make enum of all stat offsets on each page so it is easy to make sure all cases are handled correctly
-M_NONNULL_PARAM_LIST(1)
-static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
-                                           uint8_t             ataDevStatPage,
-                                           uint16_t            byteOffsetOnPage)
+static statistic* M_NULLABLE dev_stat_page_offset_map(ptrDeviceStatistics M_NONNULL deviceStats,
+                                                      uint8_t                       ataDevStatPage,
+                                                      uint16_t                      byteOffsetOnPage)
 {
     statistic* stat = M_NULLPTR;
     switch (M_STATIC_CAST(eDeviceStatisticsLog, ataDevStatPage))
@@ -690,9 +691,9 @@ static statistic* dev_stat_page_offset_map(ptrDeviceStatistics deviceStats,
     return stat;
 }
 
-M_NONNULL_PARAM_LIST(1) M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* ptrStatistic); // prototype
+M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* M_NONNULL ptrStatistic); // prototype
 
-static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic* stat)
+static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic* M_NONNULL stat)
 {
     if (stat != M_NULLPTR)
     {
@@ -725,7 +726,7 @@ static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, stat
 
 // NOTE: call le64 to host on qword when passing in to keep this simpler!
 M_PARAM_WO(2)
-static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* stat)
+static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* M_NONNULL stat)
 {
     bool statisticPopulated = false;
     if (stat != M_NULLPTR)
@@ -749,7 +750,8 @@ static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* stat)
     return statisticPopulated;
 }
 
-static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_ATA_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                              ptrDeviceStatistics M_NONNULL deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (deviceStats == M_NULLPTR)
@@ -989,7 +991,8 @@ static eReturnValues get_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatisti
     return ret;
 }
 
-static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                               ptrDeviceStatistics M_NONNULL deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (deviceStats == M_NULLPTR)
@@ -8226,10 +8229,10 @@ static eReturnValues get_SCSI_DeviceStatistics(tDevice* device, ptrDeviceStatist
     return ret;
 }
 
-eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (deviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -8242,13 +8245,13 @@ eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceSt
     {
         return get_SCSI_DeviceStatistics(device, deviceStats);
     }
-    RESTORE_NONNULL_COMPARE
+
     return ret;
 }
 
 void scsi_Threshold_Comparison(statistic* ptrStatistic)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (ptrStatistic != M_NULLPTR)
     {
         if (ptrStatistic->isThresholdValid && ptrStatistic->thresholdNotificationEnabled &&
@@ -8281,7 +8284,6 @@ void scsi_Threshold_Comparison(statistic* ptrStatistic)
             }
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 #define DEVICE_STATISTIC_FLAGS_LEN 4
@@ -8379,9 +8381,9 @@ static void print_Count_Statistic(statistic theStatistic, const char* statisticN
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8438,14 +8440,14 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, const c
             }
             else
             {
-                printf(">655.34%%");
+                print_str(">655.34%");
             }
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8502,7 +8504,7 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const
             case 0: // valid
                 if (utilizationUsageRate == 255)
                 {
-                    printf(">254%%");
+                    print_str(">254%");
                 }
                 else
                 {
@@ -8511,13 +8513,13 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const
                 switch (rateBasis)
                 {
                 case 0: // since manufacture
-                    printf(" since manufacture");
+                    print_str(" since manufacture");
                     break;
                 case 4: // since power on reset
-                    printf(" since power on reset");
+                    print_str(" since power on reset");
                     break;
                 case 8: // power on hours
-                    printf(" for POH");
+                    print_str(" for POH");
                     break;
                 case 0xF: // undetermined
                 default:
@@ -8525,22 +8527,22 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const
                 }
                 break;
             case 0x10: // invalid due to insufficient info
-                printf("Invalid - insufficient info collected");
+                print_str("Invalid - insufficient info collected");
                 break;
             case 0x81: // unreasonable due to date and time timestamp
-                printf("Unreasonable due to date and time timestamp");
+                print_str("Unreasonable due to date and time timestamp");
                 break;
             case 0xFF:
             default: // invalid for unknown reason
-                printf("Invalid for unknown reason");
+                print_str("Invalid for unknown reason");
                 break;
             }
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8594,9 +8596,9 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, const 
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8657,9 +8659,9 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8711,13 +8713,13 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char
             switch (theStatistic.statisticValue)
             {
             case 0:
-                printf("Volatile");
+                print_str("Volatile");
                 break;
             case 1:
-                printf("Nonvolatile for unknown time");
+                print_str("Nonvolatile for unknown time");
                 break;
             case 0xFFFFFF:
-                printf("Nonvolatile indefinitely");
+                print_str("Nonvolatile indefinitely");
                 break;
             default: // time in minutes
                 printf("Nonvolatile for %" PRIu64 "m", theStatistic.statisticValue);
@@ -8726,9 +8728,9 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8781,9 +8783,9 @@ static void print_Temperature_Statistic(statistic theStatistic, const char* stat
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8843,7 +8845,7 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
             }
             else
             {
-                printf("Error converting time\n");
+                print_str("Error converting time\n");
             }
             set_Constraint_Handler(handler);
         }
@@ -8855,9 +8857,9 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 // the statistic value must be a time in minutes for this function
@@ -8920,14 +8922,14 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, const char* sta
             }
             else
             {
-                printf(" 0 minutes");
+                print_str(" 0 minutes");
             }
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -8980,9 +8982,9 @@ static void print_Time_Microseconds_Statistic(statistic theStatistic, const char
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -9044,7 +9046,7 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, const char* statis
             week[2] = '\0';
             if (strcmp(year, "    ") == 0 && strcmp(week, "  ") == 0)
             {
-                printf("Not set");
+                print_str("Not set");
             }
             else
             {
@@ -9053,9 +9055,9 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, const char* statis
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -9113,39 +9115,39 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const cha
             switch (exponent)
             {
             case 1: // deci
-                printf("deci seconds");
+                print_str("deci seconds");
                 break;
             case 2: // centi
-                printf("centi seconds");
+                print_str("centi seconds");
                 break;
             case 3: // milli
-                printf("milli seconds");
+                print_str("milli seconds");
                 break;
             case 6: // micro
-                printf("micro seconds");
+                print_str("micro seconds");
                 break;
             case 9: // nano
-                printf("nano seconds");
+                print_str("nano seconds");
                 break;
             case 12: // pico
-                printf("pico seconds");
+                print_str("pico seconds");
                 break;
             case 15: // femto
-                printf("femto seconds");
+                print_str("femto seconds");
                 break;
             case 18: // atto
-                printf("atto seconds");
+                print_str("atto seconds");
                 break;
             default:
-                printf("Error: Unknown exponent value\n");
+                print_str("Error: Unknown exponent value\n");
                 break;
             }
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -9200,11 +9202,11 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, co
             {
                 if (isLimit)
                 {
-                    printf("No Temperature Limit");
+                    print_str("No Temperature Limit");
                 }
                 else
                 {
-                    printf("No Valid Temperature");
+                    print_str("No Valid Temperature");
                 }
             }
             else
@@ -9214,9 +9216,9 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, co
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -9273,27 +9275,27 @@ static void print_Humidity_Statistic(statistic theStatistic, const char* statist
             {
                 if (isLimit)
                 {
-                    printf("No relative humidity limit");
+                    print_str("No relative humidity limit");
                 }
                 else
                 {
-                    printf("No valid relative humidity");
+                    print_str("No valid relative humidity");
                 }
             }
             else
             {
-                printf("Reserved value reported");
+                print_str("Reserved value reported");
             }
         }
         else
         {
-            printf("Invalid");
+            print_str("Invalid");
         }
-        printf("\n");
+        print_str("\n");
     }
 }
 
-static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_ATA_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = SUCCESS;
     if (deviceStats == M_NULLPTR)
@@ -9302,15 +9304,15 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     }
     DECLARE_ZERO_INIT_ARRAY(char, flagPad, DEVICE_STATISTIC_FLAGS_LEN + 1);
     safe_memset(flagPad, DEVICE_STATISTIC_FLAGS_LEN + 1, ' ', DEVICE_STATISTIC_FLAGS_LEN);
-    printf("===Device Statistics===\n");
-    printf("\t* = condition monitored with threshold (DSN Feature)\n");
-    printf("\t! = monitored condition met\n");
-    printf("\t- = supports notification (DSN Feature)\n");
-    printf("\t^ = supports reinitialization/reset\n");
+    print_str("===Device Statistics===\n");
+    print_str("\t* = condition monitored with threshold (DSN Feature)\n");
+    print_str("\t! = monitored condition met\n");
+    print_str("\t- = supports notification (DSN Feature)\n");
+    print_str("\t^ = supports reinitialization/reset\n");
     printf("%s%-60s %-16s %-16s\n", flagPad, "Statistic Name:", "Threshold:", "Value:");
     if (deviceStats->sataStatistics.generalStatisticsSupported)
     {
-        printf("\n---General Statistics---\n");
+        print_str("\n---General Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.lifetimePoweronResets, "LifeTime Power-On Resets", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.powerOnHours, "Power-On Hours", "hours");
         print_Count_Statistic(deviceStats->sataStatistics.logicalSectorsWritten, "Logical Sectors Written", M_NULLPTR);
@@ -9330,14 +9332,14 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     }
     if (deviceStats->sataStatistics.freeFallStatisticsSupported)
     {
-        printf("\n---Free Fall Statistics---\n");
+        print_str("\n---Free Fall Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.numberOfFreeFallEventsDetected,
                               "Number Of Free-Fall Events Detected", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.overlimitShockEvents, "Overlimit Shock Events", M_NULLPTR);
     }
     if (deviceStats->sataStatistics.rotatingMediaStatisticsSupported)
     {
-        printf("\n---Rotating Media Statistics---\n");
+        print_str("\n---Rotating Media Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.spindleMotorPoweronHours, "Spindle Motor Power-On Hours",
                               "hours");
         print_Count_Statistic(deviceStats->sataStatistics.headFlyingHours, "Head Flying Hours", "hours");
@@ -9355,7 +9357,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     }
     if (deviceStats->sataStatistics.generalErrorsStatisticsSupported)
     {
-        printf("\n---General Errors Statistics---\n");
+        print_str("\n---General Errors Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.numberOfReportedUncorrectableErrors,
                               "Number Of Reported Uncorrectable Errors", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.numberOfResetsBetweenCommandAcceptanceAndCommandCompletion,
@@ -9365,7 +9367,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     }
     if (deviceStats->sataStatistics.temperatureStatisticsSupported)
     {
-        printf("\n---Temperature Statistics---\n");
+        print_str("\n---Temperature Statistics---\n");
         print_Temperature_Statistic(deviceStats->sataStatistics.currentTemperature, "Current Temperature");
         print_Temperature_Statistic(deviceStats->sataStatistics.averageShortTermTemperature,
                                     "Average Short Term Temperature");
@@ -9390,7 +9392,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     }
     if (deviceStats->sataStatistics.transportStatisticsSupported)
     {
-        printf("\n---Transport Statistics---\n");
+        print_str("\n---Transport Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.numberOfHardwareResets, "Number Of Hardware Resets",
                               M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.numberOfASREvents, "Number Of ASR Events", M_NULLPTR);
@@ -9399,12 +9401,12 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     }
     if (deviceStats->sataStatistics.ssdStatisticsSupported)
     {
-        printf("\n---Solid State Device Statistics---\n");
+        print_str("\n---Solid State Device Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.percentageUsedIndicator, "Percent Used Indicator", "%");
     }
     if (deviceStats->sataStatistics.zonedDeviceStatisticsSupported)
     {
-        printf("\n---Zoned Device Statistics---\n");
+        print_str("\n---Zoned Device Statistics---\n");
         print_Count_Statistic(deviceStats->sataStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR);
         print_Count_Statistic(deviceStats->sataStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones",
                               M_NULLPTR);
@@ -9426,7 +9428,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     }
     if (deviceStats->sataStatistics.cdlStatisticsSupported)
     {
-        printf("\n---Command Duration Limit Statistics---\n");
+        print_str("\n---Command Duration Limit Statistics---\n");
         print_Time_Microseconds_Statistic(deviceStats->sataStatistics.lowestAchievableCommandDuration,
                                           "Lowest Achievable Command Duration");
         // These are a bit more complicated of a structure, so printing is handled differently
@@ -9490,11 +9492,11 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     {
         if (SEAGATE == is_Seagate_Family(device))
         {
-            printf("\n---Seagate Specific Statistics---\n");
+            print_str("\n---Seagate Specific Statistics---\n");
         }
         else
         {
-            printf("\n---Vendor Specific Statistics---\n");
+            print_str("\n---Vendor Specific Statistics---\n");
         }
         for (uint8_t vendorSpecificIter = UINT8_C(0), statisticsFound = UINT8_C(0);
              vendorSpecificIter < UINT8_C(64) &&
@@ -9549,7 +9551,7 @@ static eReturnValues print_ATA_DeviceStatistics(tDevice* device, ptrDeviceStatis
     return ret;
 }
 
-static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, ptrDeviceStatistics deviceStats)
+static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = SUCCESS;
     if (deviceStats == M_NULLPTR)
@@ -9557,14 +9559,14 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
         return MEMORY_FAILURE;
     }
     ret = SUCCESS;
-    printf("===Device Statistics===\n");
-    printf("\t* = condition monitored with threshold (RLEC Feature)\n");
-    printf("\t! = monitored condition met (Requires Threshold to be set and comparison enabled)\n");
-    printf("\t- = supports notification (requires log page thresholds to be supported)\n");
+    print_str("===Device Statistics===\n");
+    print_str("\t* = condition monitored with threshold (RLEC Feature)\n");
+    print_str("\t! = monitored condition met (Requires Threshold to be set and comparison enabled)\n");
+    print_str("\t- = supports notification (requires log page thresholds to be supported)\n");
     printf(" %-60s %-16s %-16s\n", "Statistic Name:", "Threshold:", "Value:");
     if (deviceStats->sasStatistics.writeErrorCountersSupported)
     {
-        printf("\n---Write Error Counters---\n");
+        print_str("\n---Write Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithoutSubstantialDelay,
                               "Write Errors Corrected Without Substantial Delay", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.writeErrorsCorrectedWithPossibleDelays,
@@ -9580,7 +9582,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.readErrorCountersSupported)
     {
-        printf("\n---Read Error Counters---\n");
+        print_str("\n---Read Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.readErrorsCorrectedWithPossibleDelays,
                               "Read Errors Corrected With Possible Delay", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.readTotalRereads, "Read Total Rereads", M_NULLPTR);
@@ -9594,7 +9596,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.readReverseErrorCountersSupported)
     {
-        printf("\n---Read Reverse Error Counters---\n");
+        print_str("\n---Read Reverse Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithoutSubstantialDelay,
                               "Read Reverse Errors Corrected Without Substantial Delay", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.readReverseErrorsCorrectedWithPossibleDelays,
@@ -9612,7 +9614,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.verifyErrorCountersSupported)
     {
-        printf("\n---Verify Error Counters---\n");
+        print_str("\n---Verify Error Counters---\n");
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithoutSubstantialDelay,
                               "Verify Errors Corrected Without Substantial Delay", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.verifyErrorsCorrectedWithPossibleDelays,
@@ -9628,12 +9630,12 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.nonMediumErrorSupported)
     {
-        printf("\n---Non Medium Error---\n");
+        print_str("\n---Non Medium Error---\n");
         print_Count_Statistic(deviceStats->sasStatistics.nonMediumErrorCount, "Non-Medium Error Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.formatStatusSupported)
     {
-        printf("\n---Format Status---\n");
+        print_str("\n---Format Status---\n");
         print_Count_Statistic(deviceStats->sasStatistics.grownDefectsDuringCertification,
                               "Grown Defects During Certification", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.totalBlocksReassignedDuringFormat,
@@ -9645,7 +9647,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.logicalBlockProvisioningSupported)
     {
-        printf("\n---Logical Block Provisioning---\n");
+        print_str("\n---Logical Block Provisioning---\n");
         print_Count_Statistic(deviceStats->sasStatistics.availableLBAMappingresourceCount,
                               "Available LBA Mapping Resource Count", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.usedLBAMappingResourceCount, "Used LBA Mapping Resource Count",
@@ -9661,13 +9663,13 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.temperatureSupported)
     {
-        printf("\n---Temperature---\n");
+        print_str("\n---Temperature---\n");
         print_Temperature_Statistic(deviceStats->sasStatistics.temperature, "Temperature");
         print_Temperature_Statistic(deviceStats->sasStatistics.referenceTemperature, "Reference Temperature");
     }
     if (deviceStats->sasStatistics.environmentReportingSupported)
     {
-        printf("\n---Environmental Reporting---\n");
+        print_str("\n---Environmental Reporting---\n");
         print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.currentTemperature, "Temperature", false);
         print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.lifetimeMaximumTemperature,
                                                   "Lifetime Maximum Temperature", false);
@@ -9697,7 +9699,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.environmentReportingSupported)
     {
-        printf("\n---Environmental Limits---\n");
+        print_str("\n---Environmental Limits---\n");
         print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitTrigger,
                                                   "High Critical Temperature Limit Trigger", true);
         print_Environmental_Temperature_Statistic(deviceStats->sasStatistics.highCriticalTemperatureLimitReset,
@@ -9733,7 +9735,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.startStopCycleCounterSupported)
     {
-        printf("\n---Start-Stop Cycle Counter---\n");
+        print_str("\n---Start-Stop Cycle Counter---\n");
         print_SCSI_Date_Statistic(deviceStats->sasStatistics.dateOfManufacture, "Date Of Manufacture");
         print_SCSI_Date_Statistic(deviceStats->sasStatistics.accountingDate, "Accounting Date");
         print_Count_Statistic(deviceStats->sasStatistics.specifiedCycleCountOverDeviceLifetime,
@@ -9747,7 +9749,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.powerConditionTransitionsSupported)
     {
-        printf("\n---Power Condition Transitions---\n");
+        print_str("\n---Power Condition Transitions---\n");
         print_Count_Statistic(deviceStats->sasStatistics.transitionsToActive, "Accumulated Transitions to Active",
                               M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.transitionsToIdleA, "Accumulated Transitions to Idle A",
@@ -9763,19 +9765,19 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.utilizationSupported)
     {
-        printf("\n---Utilization---\n");
+        print_str("\n---Utilization---\n");
         print_Workload_Utilization_Statistic(deviceStats->sasStatistics.workloadUtilization, "Workload Utilization");
         print_Utilization_Usage_Rate_Statistic(deviceStats->sasStatistics.utilizationUsageRateBasedOnDateAndTime,
                                                "Utilization Usage Rate");
     }
     if (deviceStats->sasStatistics.solidStateMediaSupported)
     {
-        printf("\n---Solid State Media---\n");
+        print_str("\n---Solid State Media---\n");
         print_Count_Statistic(deviceStats->sasStatistics.percentUsedEndurance, "Percent Used Endurance", "%");
     }
     if (deviceStats->sasStatistics.backgroundScanResultsSupported)
     {
-        printf("\n---Background Scan Results---\n");
+        print_str("\n---Background Scan Results---\n");
         print_Count_Statistic(deviceStats->sasStatistics.accumulatedPowerOnMinutes, "Accumulated Power On Minutes",
                               "minutes");
         print_Count_Statistic(deviceStats->sasStatistics.numberOfBackgroundScansPerformed,
@@ -9785,23 +9787,23 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.defectStatisticsSupported)
     {
-        printf("\n---Defect Statistics---\n");
+        print_str("\n---Defect Statistics---\n");
         print_Count_Statistic(deviceStats->sasStatistics.grownDefects, "Grown Defects", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.primaryDefects, "Primary Defects", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.pendingDefectsSupported)
     {
-        printf("\n---Pending Defects---\n");
+        print_str("\n---Pending Defects---\n");
         print_Count_Statistic(deviceStats->sasStatistics.pendingDefectCount, "Pending Defect Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.lpsMisalignmentSupported)
     {
-        printf("\n---LPS Misalignment---\n");
+        print_str("\n---LPS Misalignment---\n");
         print_Count_Statistic(deviceStats->sasStatistics.lpsMisalignmentCount, "LPS Misalignment Count", M_NULLPTR);
     }
     if (deviceStats->sasStatistics.nvCacheSupported)
     {
-        printf("\n---Non-Volatile Cache---\n");
+        print_str("\n---Non-Volatile Cache---\n");
         print_Non_Volatile_Time_Statistic(deviceStats->sasStatistics.remainingNonvolatileTime,
                                           "Remaining Non-Volatile Time");
         print_Non_Volatile_Time_Statistic(deviceStats->sasStatistics.maximumNonvolatileTime,
@@ -9809,7 +9811,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.generalStatisticsAndPerformanceSupported)
     {
-        printf("\n---General Statistics And Performance---\n");
+        print_str("\n---General Statistics And Performance---\n");
         print_Count_Statistic(deviceStats->sasStatistics.numberOfReadCommands, "Number Of Read Commands", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.numberOfWriteCommands, "Number Of Write Commands", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.numberOfLogicalBlocksReceived,
@@ -9846,7 +9848,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.cacheMemoryStatisticsSupported)
     {
-        printf("\n---Cache Memory Statistics---\n");
+        print_str("\n---Cache Memory Statistics---\n");
         print_Count_Statistic(deviceStats->sasStatistics.readCacheMemoryHits, "Read Cache Memory Hits", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.readsToCacheMemory, "Reads To Cache Memory", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.writeCacheMemoryHits, "Write Cache Memory Hits", M_NULLPTR);
@@ -9856,13 +9858,13 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     }
     if (deviceStats->sasStatistics.timeStampSupported)
     {
-        printf("\n---Timestamp---\n");
+        print_str("\n---Timestamp---\n");
         print_Date_And_Time_Timestamp_Statistic(deviceStats->sasStatistics.dateAndTimeTimestamp,
                                                 "Date And Time Timestamp");
     }
     if (deviceStats->sasStatistics.zonedDeviceStatisticsSupported)
     {
-        printf("\n---Zoned Device Statistics---\n");
+        print_str("\n---Zoned Device Statistics---\n");
         print_Count_Statistic(deviceStats->sasStatistics.maximumOpenZones, "Maximum Open Zones", M_NULLPTR);
         print_Count_Statistic(deviceStats->sasStatistics.maximumExplicitlyOpenZones, "Maximum Explicitly Open Zones",
                               M_NULLPTR);
@@ -9886,7 +9888,7 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     {
         if (deviceStats->sasStatistics.protocolStatisticsType == STAT_PROT_SAS)
         {
-            printf("\n---SAS Protocol Statistics---\n");
+            print_str("\n---SAS Protocol Statistics---\n");
             // SAS protocol can have multiple ports and multiple phys per port
             // So this needs to loop and output which port ID and phy ID each statistic is for
             for (uint16_t portIter = UINT16_C(0);
@@ -9934,15 +9936,15 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED tDevice* device, 
     return ret;
 }
 
-eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats)
+eReturnValues print_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (deviceStats == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
-    RESTORE_NONNULL_COMPARE
+
     // as I write this I'm going to try and keep ATA and SCSI having the same printout format, but that may need to
     // change...-TJE
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -9956,7 +9958,7 @@ eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics device
     return ret;
 }
 
-static M_INLINE bool is_ATA_Timestamp_Supported(tDevice* device)
+static M_INLINE bool is_ATA_Timestamp_Supported(const tDevice* device)
 {
     bool supported = false;
     // This command is supported when the date and time timestamp statistic is supported
@@ -9998,7 +10000,7 @@ static M_INLINE bool is_ATA_Timestamp_Supported(tDevice* device)
     return supported;
 }
 
-static M_INLINE bool is_SCSI_Timestamp_Supported(tDevice* device)
+static M_INLINE bool is_SCSI_Timestamp_Supported(const tDevice* device)
 {
     bool     supported = false;
     uint32_t ctrlexLen = UINT32_C(0);
@@ -10028,7 +10030,7 @@ static M_INLINE bool is_SCSI_Timestamp_Supported(tDevice* device)
     return supported;
 }
 
-bool is_Timestamp_Supported(tDevice* device)
+bool is_Timestamp_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -10049,7 +10051,7 @@ bool is_Timestamp_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues set_Date_And_Time_Timestamp(tDevice* device)
+eReturnValues set_Date_And_Time_Timestamp(const tDevice* device)
 {
     eReturnValues ret  = NOT_SUPPORTED;
     uint64_t      time = get_Milliseconds_Since_Unix_Epoch();
@@ -10102,7 +10104,7 @@ eReturnValues set_Date_And_Time_Timestamp(tDevice* device)
 // Next enhancement: Compare the values read during reinitialization to reading again afterwards. Determine which
 // statistics were reset to provide a list to share with the user
 // NOTE: While this log can be read with smart read log, it can only be reinitialized with read log ext commands - TJE
-eReturnValues ata_Device_Statistics_Reinitialize(tDevice* device, eDeviceStatisticsLog reinitializeRequest)
+eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* device, eDeviceStatisticsLog reinitializeRequest)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)

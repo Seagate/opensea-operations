@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2023-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2023-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -82,7 +82,7 @@ extern "C"
         // MBR type unique fields?
     } mbrData, *ptrMBRData;
 
-    static M_INLINE void safe_free_mbrdata(mbrData** mbr)
+    static M_INLINE void safe_free_mbrdata(mbrData* M_NULLABLE* M_NULLABLE mbr)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, mbr));
     }
@@ -397,7 +397,7 @@ extern "C"
         apmPartitionEntry partition[APM_MAX_PARTITIONS];
     } apmData, *ptrAPMData;
 
-    static M_INLINE void safe_free_apmdata(apmData** apm)
+    static M_INLINE void safe_free_apmdata(apmData* M_NULLABLE* M_NULLABLE apm)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, apm));
     }
@@ -522,9 +522,9 @@ extern "C"
 
     typedef struct s_gptPartitionTypeName
     {
-        gptGUID           guid;
-        eGPTPartitionType partition;
-        const char*       name;
+        gptGUID               guid;
+        eGPTPartitionType     partition;
+        const char* M_NONNULL name;
     } gptPartitionTypeName;
 
     typedef struct s_gptPartitionEntry
@@ -560,12 +560,14 @@ extern "C"
                              // primary copy...which will likely be false since the primary was not the data source
         uint32_t partitionDataAvailable; // number of partitions that were successfully read into the following
                                          // partition entires
-        gptPartitionEntry
-            partition[1]; // NOTE: This must be allocated based on how many partitions are actually available! ex:
-                          // malloc(sizeof(gptData) + (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
+        M_COUNTED_BY(partitionDataAvailable)
+        M_STRICT_FLEX_ARRAY_AUTO
+        gptPartitionEntry partition[FLEX_ARRAY]; // NOTE: This must be allocated based on how many partitions are
+                                                 // actually available! ex: malloc(sizeof(gptData) +
+                                                 // (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
     } gptData, *ptrGPTData;
 
-    static M_INLINE void safe_free_gptdata(gptData** gpt)
+    static M_INLINE void safe_free_gptdata(gptData* M_NULLABLE* M_NULLABLE gpt)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, gpt));
     }
@@ -579,24 +581,24 @@ extern "C"
         uint32_t       diskBlockSize; // In bytes. 512B, 4096B, etc
         union
         {
-            ptrMBRData mbrTable;
-            ptrAPMData apmTable;
-            ptrGPTData gptTable;
+            ptrMBRData M_NULLABLE mbrTable;
+            ptrAPMData M_NULLABLE apmTable;
+            ptrGPTData M_NULLABLE gptTable;
         };
     } partitionInfo, *ptrPartitionInfo;
 
-    static M_INLINE void safe_free_partition_info(partitionInfo** info)
+    static M_INLINE void safe_free_partition_info(partitionInfo* M_NULLABLE* M_NULLABLE info)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, info));
     }
 
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API ptrPartitionInfo get_Partition_Info(tDevice* device);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API ptrPartitionInfo M_NULLABLE get_Partition_Info(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Partition_Info(ptrPartitionInfo partitionTable);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Partition_Info(ptrPartitionInfo M_NONNULL partitionTable);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RW(1) OPENSEA_OPERATIONS_API ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo);
+    M_PARAM_RW(1)
+    OPENSEA_OPERATIONS_API ptrPartitionInfo M_NULLABLE delete_Partition_Info(ptrPartitionInfo M_NULLABLE partInfo);
 
 #if defined(__cpluspluc)
 }

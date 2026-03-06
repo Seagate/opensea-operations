@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@
 #include "platform_helper.h"
 #include "trim_unmap.h"
 
-static bool is_ATA_Data_Set_Management_XL_Supported(tDevice* device)
+static bool is_ATA_Data_Set_Management_XL_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
@@ -98,7 +98,7 @@ static bool is_ATA_Data_Set_Management_XL_Supported(tDevice* device)
     return supported;
 }
 
-bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDescriptors, uint32_t* maxLBACount)
+bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapBlockDescriptors, uint32_t* maxLBACount)
 {
     bool supported = false;
     switch (device->drive_info.drive_type)
@@ -109,7 +109,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
         {
             supported = true;
         }
-        DISABLE_NONNULL_COMPARE
+
         if (M_NULLPTR != maxTrimOrUnmapBlockDescriptors)
         {
             if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word105)))
@@ -124,13 +124,13 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
                     64; // assume 1 512B block is supported since we didn't get a valid value otherwise.
             }
         }
-        RESTORE_NONNULL_COMPARE
+
         break;
     case NVME_DRIVE:
         if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT2)
         {
             supported = true;
-            DISABLE_NONNULL_COMPARE
+
             if (maxTrimOrUnmapBlockDescriptors != M_NULLPTR && maxLBACount != M_NULLPTR)
             {
 #if defined(_WIN32)
@@ -170,7 +170,6 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
                 *maxLBACount                    = UINT32_MAX;
 #endif
             }
-            RESTORE_NONNULL_COMPARE
         }
         break;
     case SCSI_DRIVE:
@@ -193,7 +192,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
             }
         }
         safe_free_aligned(&lbpPage);
-        DISABLE_NONNULL_COMPARE
+
         if (supported == true && M_NULLPTR != maxTrimOrUnmapBlockDescriptors && M_NULLPTR != maxLBACount)
         {
             uint8_t* blockLimits = C_CAST(
@@ -211,7 +210,6 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
             }
             safe_free_aligned(&blockLimits);
         }
-        RESTORE_NONNULL_COMPARE
     }
     break;
     default:
@@ -220,7 +218,7 @@ bool is_Trim_Or_Unmap_Supported(tDevice* device, uint32_t* maxTrimOrUnmapBlockDe
     return supported;
 }
 
-eReturnValues trim_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues trim_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret = UNKNOWN;
     switch (device->drive_info.drive_type)
@@ -241,7 +239,7 @@ eReturnValues trim_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t rang
     return ret;
 }
 
-eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues nvme_Deallocate_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -293,7 +291,10 @@ eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t
         ret = nvme_Dataset_Management(device, C_CAST(uint8_t, NVME_0_BASED_ADJUST(descriptorCount)), true, false, false,
                                       deallocate, 4096);
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
+        if (ret == SUCCESS)
+        {
+            os_Update_File_System_Cache(device);
+        }
     }
     else
     {
@@ -302,7 +303,7 @@ eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t
     return ret;
 }
 
-eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues ata_Trim_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -334,7 +335,7 @@ eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range)
             C_CAST(uint16_t, (((trimBufferLen / LEGACY_DRIVE_SEC_SIZE) + maxTRIMdataBlocks) - 1) / maxTRIMdataBlocks);
         uint32_t trimCommandLen =
             C_CAST(uint32_t, M_Min(C_CAST(uint64_t, maxTRIMdataBlocks) * LEGACY_DRIVE_SEC_SIZE, trimBufferLen));
-        if (trimBuffer != M_NULLPTR)
+        if (trimBuffer == M_NULLPTR)
         {
             perror("calloc failure!");
             return MEMORY_FAILURE;
@@ -408,7 +409,10 @@ eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range)
             trimOffset += trimCommandLen;
         }
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
+        if (ret == SUCCESS)
+        {
+            os_Update_File_System_Cache(device);
+        }
 #if defined(_DEBUG)
         printf("TRIM Offset: %" PRIu32 "\n", trimOffset);
 #endif
@@ -421,7 +425,7 @@ eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range)
     return ret;
 }
 
-eReturnValues scsi_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range)
+eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -567,7 +571,10 @@ eReturnValues scsi_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t rang
             safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen);
         }
         os_Unlock_Device(device);
-        os_Update_File_System_Cache(device);
+        if (ret == SUCCESS)
+        {
+            os_Update_File_System_Cache(device);
+        }
 #if defined(_DEBUG)
         printf("UNMAP offset: %" PRIu32 "\n", unmapOffset);
 #endif

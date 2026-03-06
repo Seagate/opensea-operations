@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2023-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2023-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  bool is_DCO_Supported(tDevice* device, bool* dmaSupport)
+    //  bool is_DCO_Supported(const tDevice* M_NONNULL device, bool* dmaSupport)
     //
     //! \brief   Description:  Check if the drive supports the device configuration overlay (DCO) feature
     //
@@ -36,12 +36,13 @@ extern "C"
     //!   \return true = supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API bool is_DCO_Supported(tDevice* device, bool* dmaSupport);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API bool is_DCO_Supported(const tDevice* M_NONNULL device, bool* M_NULLABLE dmaSupport);
 
     //-----------------------------------------------------------------------------
     //
-    //  eReturnValues dco_Restore(tDevice* device)
+    //  eReturnValues dco_Restore(const tDevice* M_NONNULL device)
     //
     //! \brief   Description:  Issue the DCO restore command. NOTE: This will only succeed if no HPA is established and
     //! not DCO frozen
@@ -54,11 +55,11 @@ extern "C"
     //!   Error issuing command or HPA is established
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Restore(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Restore(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  eReturnValues dco_Freeze_Lock(tDevice* device)
+    //  eReturnValues dco_Freeze_Lock(const tDevice* M_NONNULL device)
     //
     //! \brief   Description:  Issue the DCO freeze lock command to block other DCO commands from processing
     //
@@ -70,7 +71,7 @@ extern "C"
     //!   unknown reason.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Freeze_Lock(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Freeze_Lock(const tDevice* M_NONNULL device);
 
     // NOTE: This structure only supports the few words defined in the ACS and ACS-2 specs.
     //       Since many were reserved, those are not supported in here at this time.
@@ -138,7 +139,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  eReturnValues dco_Identify(tDevice* device, ptrDcoData data)
+    //  eReturnValues dco_Identify(const tDevice* M_NONNULL device, ptrDcoData data)
     //
     //! \brief   Description:  Issue DCO identify and populate the output data structure. The output data indicated
     //! which features can be changed/disabled/blocked
@@ -152,8 +153,9 @@ extern "C"
     //!   = command aborted by the device. Possible HPA feature error due to HPA established
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues dco_Identify(tDevice* device, ptrDcoData data);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues dco_Identify(const tDevice* M_NONNULL device, ptrDcoData M_NONNULL data);
 
     //-----------------------------------------------------------------------------
     //
@@ -168,11 +170,11 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_DCO_Identify_Data(ptrDcoData data);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_DCO_Identify_Data(const ptrDcoData M_NONNULL data);
 
     //-----------------------------------------------------------------------------
     //
-    //  eReturnValues dco_Set(tDevice* device, ptrDcoData data)
+    //  eReturnValues dco_Set(const tDevice* M_NONNULL device, ptrDcoData data)
     //
     //! \brief   Description: Takes the DCO data structure and turns and fields set to "false" to 0's in the data to
     //! disable the feature.
@@ -192,8 +194,9 @@ extern "C"
     //    ABORTED/FAILURE = command aborted. Possible HPA established blocking DCO command from completing.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues dco_Set(tDevice* device, ptrDcoData data);
+    M_PARAM_RO(1)
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API eReturnValues dco_Set(const tDevice* M_NONNULL device, const ptrDcoData M_NONNULL data);
 
 #if defined(__cplusplus)
 }

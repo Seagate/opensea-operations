@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,7 +38,7 @@
 #include "vendor/seagate/seagate_ata_types.h"
 #include "vendor/seagate/seagate_scsi_types.h"
 
-eReturnValues seagate_ata_SCT_SATA_phy_speed(tDevice* device, uint8_t speedGen)
+eReturnValues seagate_ata_SCT_SATA_phy_speed(const tDevice* device, uint8_t speedGen)
 {
     eReturnValues ret             = UNKNOWN;
     uint8_t*      sctSATAPhySpeed = M_REINTERPRET_CAST(
@@ -96,7 +96,7 @@ typedef enum eSASPhySpeedsEnum
 } eSASPhySpeeds;
 
 // valid phySpeedGen values are 1 - 5. This will need to be modified if SAS get's higher link rates than 22.5Gb/s
-eReturnValues scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber)
+eReturnValues scsi_Set_Phy_Speed(const tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyNumber)
 {
     eReturnValues ret = SUCCESS;
     if (phySpeedGen > SET_PHY_SPEED_MAX_GENERATION)
@@ -234,7 +234,7 @@ eReturnValues scsi_Set_Phy_Speed(tDevice* device, uint8_t phySpeedGen, bool allP
     return ret;
 }
 
-eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyIdentifier)
+eReturnValues set_phy_speed(const tDevice* device, uint8_t phySpeedGen, bool allPhys, uint8_t phyIdentifier)
 {
     eReturnValues ret = UNKNOWN;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -249,7 +249,7 @@ eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, 
                     // error, invalid input
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("Invalid PHY generation speed input. Please use 0 - 3.\n");
+                        print_str("Invalid PHY generation speed input. Please use 0 - 3.\n");
                     }
                     return BAD_PARAMETER;
                 }
@@ -264,7 +264,7 @@ eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, 
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Setting the PHY speed of a device is only available on Seagate Drives.\n");
+                print_str("Setting the PHY speed of a device is only available on Seagate Drives.\n");
             }
             ret = NOT_SUPPORTED;
         }
@@ -281,7 +281,7 @@ eReturnValues set_phy_speed(tDevice* device, uint8_t phySpeedGen, bool allPhys, 
     return ret;
 }
 
-bool is_SCT_Low_Current_Spinup_Supported(tDevice* device)
+bool is_SCT_Low_Current_Spinup_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
@@ -302,7 +302,7 @@ bool is_SCT_Low_Current_Spinup_Supported(tDevice* device)
     return supported;
 }
 
-int is_Low_Current_Spin_Up_Enabled(tDevice* device, bool sctCommandSupported)
+int is_Low_Current_Spin_Up_Enabled(const tDevice* device, bool sctCommandSupported)
 {
     int lowPowerSpinUpEnabled = 0;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
@@ -335,7 +335,7 @@ int is_Low_Current_Spin_Up_Enabled(tDevice* device, bool sctCommandSupported)
     return lowPowerSpinUpEnabled;
 }
 
-eReturnValues seagate_SCT_Low_Current_Spinup(tDevice* device, eSeagateLCSpinLevel spinupLevel)
+eReturnValues seagate_SCT_Low_Current_Spinup(const tDevice* device, eSeagateLCSpinLevel spinupLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word206)) &&
@@ -354,7 +354,7 @@ eReturnValues seagate_SCT_Low_Current_Spinup(tDevice* device, eSeagateLCSpinLeve
     return ret;
 }
 
-eReturnValues set_Low_Current_Spin_Up(tDevice* device, bool useSCTCommand, eSeagateLCSpinLevel state)
+eReturnValues set_Low_Current_Spin_Up(const tDevice* device, bool useSCTCommand, eSeagateLCSpinLevel state)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE && is_Seagate_Family(device) == SEAGATE)
@@ -390,7 +390,7 @@ eReturnValues set_Low_Current_Spin_Up(tDevice* device, bool useSCTCommand, eSeag
     return ret;
 }
 
-eReturnValues set_SSC_Feature_SATA(tDevice* device, eSSCFeatureState mode)
+eReturnValues set_SSC_Feature_SATA(const tDevice* device, eSSCFeatureState mode)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -418,7 +418,7 @@ eReturnValues set_SSC_Feature_SATA(tDevice* device, eSSCFeatureState mode)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Setting the SSC feature of a device is only available on Seagate Drives.\n");
+                print_str("Setting the SSC feature of a device is only available on Seagate Drives.\n");
             }
             ret = NOT_SUPPORTED;
         }
@@ -426,7 +426,7 @@ eReturnValues set_SSC_Feature_SATA(tDevice* device, eSSCFeatureState mode)
     return ret;
 }
 
-eReturnValues get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode)
+eReturnValues get_SSC_Feature_SATA(const tDevice* device, eSSCFeatureState* mode)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -455,7 +455,7 @@ eReturnValues get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode)
         {
             if (VERBOSITY_QUIET < device->deviceVerbosity)
             {
-                printf("Getting the SSC feature of a device is only available on Seagate Drives.\n");
+                print_str("Getting the SSC feature of a device is only available on Seagate Drives.\n");
             }
             ret = NOT_SUPPORTED;
         }
@@ -463,7 +463,7 @@ eReturnValues get_SSC_Feature_SATA(tDevice* device, eSSCFeatureState* mode)
     return ret;
 }
 
-static eReturnValues seagate_SAS_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes)
+static eReturnValues seagate_SAS_Get_JIT_Modes(const tDevice* device, ptrSeagateJITModes jitModes)
 {
     eReturnValues  ret    = NOT_SUPPORTED;
     eSeagateFamily family = is_Seagate_Family(device);
@@ -528,7 +528,7 @@ static eReturnValues seagate_SAS_Get_JIT_Modes(tDevice* device, ptrSeagateJITMod
     return ret;
 }
 
-eReturnValues seagate_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes)
+eReturnValues seagate_Get_JIT_Modes(const tDevice* device, ptrSeagateJITModes jitModes)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -538,11 +538,11 @@ eReturnValues seagate_Get_JIT_Modes(tDevice* device, ptrSeagateJITModes jitModes
     return ret;
 }
 
-static eReturnValues seagate_SAS_Set_JIT_Modes(tDevice* device,
-                                               bool     disableVjit,
-                                               uint8_t  jitMode,
-                                               bool     revertToDefaults,
-                                               bool     nonvolatile)
+static eReturnValues seagate_SAS_Set_JIT_Modes(const tDevice* device,
+                                               bool           disableVjit,
+                                               uint8_t        jitMode,
+                                               bool           revertToDefaults,
+                                               bool           nonvolatile)
 {
     eReturnValues  ret    = NOT_SUPPORTED;
     eSeagateFamily family = is_Seagate_Family(device);
@@ -662,11 +662,11 @@ static eReturnValues seagate_SAS_Set_JIT_Modes(tDevice* device,
     return ret;
 }
 
-eReturnValues seagate_Set_JIT_Modes(tDevice* device,
-                                    bool     disableVjit,
-                                    uint8_t  jitMode,
-                                    bool     revertToDefaults,
-                                    bool     nonvolatile)
+eReturnValues seagate_Set_JIT_Modes(const tDevice* device,
+                                    bool           disableVjit,
+                                    uint8_t        jitMode,
+                                    bool           revertToDefaults,
+                                    bool           nonvolatile)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -676,7 +676,7 @@ eReturnValues seagate_Set_JIT_Modes(tDevice* device,
     return ret;
 }
 
-eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* enabled)
+eReturnValues seagate_Get_Power_Balance(const tDevice* device, bool* supported, bool* enabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -684,7 +684,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
         if (is_Seagate_Family(device) == SEAGATE)
         {
             ret = SUCCESS;
-            DISABLE_NONNULL_COMPARE
+
             if (supported != M_NULLPTR)
             {
                 // BIT8 for older products with this feature. EX: ST10000NM*
@@ -715,7 +715,6 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     *enabled = false;
                 }
             }
-            RESTORE_NONNULL_COMPARE
         }
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
@@ -731,12 +730,12 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
             {
                 // If this page is supported, we're calling power balance on SAS not supported.
                 // Note: This may need changing in the future, but right now this is still accurate - TJE
-                DISABLE_NONNULL_COMPARE
+
                 if (supported != M_NULLPTR)
                 {
                     *supported = false;
                 }
-                RESTORE_NONNULL_COMPARE
+
                 return SUCCESS;
             }
             uint8_t* pcModePage =
@@ -759,12 +758,12 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     (get_bit_range_uint8(pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6], 2, 0) == 0))
                 {
                     // If in here, this is an old drive since it doesn't allow setting the active power mode.
-                    DISABLE_NONNULL_COMPARE
+
                     if (supported != M_NULLPTR)
                     {
                         *supported = true;
                     }
-                    RESTORE_NONNULL_COMPARE
+
                     // read current values to get enabled/disabled
                     safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16,
@@ -772,13 +771,13 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     {
                         // check the active level to make sure it is zero
                         uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                        DISABLE_NONNULL_COMPARE
+
                         if (activeLevel == 0 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 1 &&
                             enabled != M_NULLPTR)
                         {
                             *enabled = true;
                         }
-                        RESTORE_NONNULL_COMPARE
+
                         ret = SUCCESS;
                     }
                 }
@@ -788,12 +787,12 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     // if in here, this is a new drive which only allows this change via the active mode field.
                     // On these drives, we can check to make sure the changable fields apply to the active mode field,
                     // but NOT the power condition identifier.
-                    DISABLE_NONNULL_COMPARE
+
                     if (supported != M_NULLPTR)
                     {
                         *supported = true;
                     }
-                    RESTORE_NONNULL_COMPARE
+
                     // read current values to get enabled/disabled
                     safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16,
@@ -801,7 +800,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                     {
                         // check the active level to make sure it is zero
                         uint8_t activeLevel = pcModePage[MODE_PARAMETER_HEADER_10_LEN + 6] & 0x07;
-                        DISABLE_NONNULL_COMPARE
+
                         if (activeLevel == 3 && pcModePage[MODE_PARAMETER_HEADER_10_LEN + 7] == 0 &&
                             enabled != M_NULLPTR)
                         {
@@ -818,7 +817,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
                         //     // I guess say it's off???
                         //     *enabled = false;
                         // }
-                        RESTORE_NONNULL_COMPARE
+
                         ret = SUCCESS;
                     }
                 }
@@ -829,7 +828,7 @@ eReturnValues seagate_Get_Power_Balance(tDevice* device, bool* supported, bool* 
     return ret;
 }
 
-eReturnValues seagate_Set_Power_Balance(tDevice* device, ePowerBalanceMode powerMode)
+eReturnValues seagate_Set_Power_Balance(const tDevice* device, ePowerBalanceMode powerMode)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -910,7 +909,7 @@ eReturnValues seagate_Set_Power_Balance(tDevice* device, ePowerBalanceMode power
     return ret;
 }
 
-eReturnValues get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSupport)
+eReturnValues get_IDD_Support(const tDevice* device, ptrIDDSupportedFeatures iddSupport)
 {
     eReturnValues ret = NOT_SUPPORTED;
     // IDD is only on ATA drives
@@ -970,7 +969,7 @@ eReturnValues get_IDD_Support(tDevice* device, ptrIDDSupportedFeatures iddSuppor
 
 #define IDD_READY_TIME_SECONDS 120
 
-eReturnValues get_Approximate_IDD_Time(tDevice* device, eIDDTests iddTest, uint64_t* timeInSeconds)
+eReturnValues get_Approximate_IDD_Time(const tDevice* device, eIDDTests iddTest, uint64_t* timeInSeconds)
 {
     eReturnValues ret = NOT_SUPPORTED;
     *timeInSeconds    = 0;
@@ -1040,7 +1039,7 @@ eReturnValues get_Approximate_IDD_Time(tDevice* device, eIDDTests iddTest, uint6
     return ret;
 }
 
-eReturnValues get_IDD_Status(tDevice* device, uint8_t* status)
+eReturnValues get_IDD_Status(const tDevice* device, uint8_t* status)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1057,7 +1056,8 @@ eReturnValues get_IDD_Status(tDevice* device, uint8_t* status)
         {
             // do not use the return value from this since IDD can return a few different sense codes with unit
             // attention, that we may otherwise call an error
-            ret = scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage, 15);
+            ret = scsi_Receive_Diagnostic_Results(device, true, SEAGATE_DIAG_IN_DRIVE_DIAGNOSTICS, 12, iddDiagPage,
+                                                  DEFAULT_COMMAND_TIMEOUT);
             if (ret != SUCCESS)
             {
                 uint8_t senseKey = UINT8_C(0);
@@ -1100,7 +1100,7 @@ eReturnValues get_IDD_Status(tDevice* device, uint8_t* status)
 // NOTE: If IDD is ever supported on NVMe, this may need updates.
 void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool justRanDST)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (translatedString != M_NULLPTR)
     {
         safe_memset(translatedString, MAX_DST_STATUS_STRING_LENGTH, 0, MAX_DST_STATUS_STRING_LENGTH);
@@ -1219,10 +1219,9 @@ void translate_IDD_Status_To_String(uint8_t status, char* translatedString, bool
                                 status);
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
-static eReturnValues start_IDD_Operation(tDevice* device, eIDDTests iddOperation, bool captiveForeground)
+static eReturnValues start_IDD_Operation(const tDevice* device, eIDDTests iddOperation, bool captiveForeground)
 {
     eReturnValues ret = NOT_SUPPORTED;
     os_Lock_Device(device);
@@ -1355,7 +1354,7 @@ static eReturnValues start_IDD_Operation(tDevice* device, eIDDTests iddOperation
 }
 
 // this is a seagate drive specific feature. Will now work on other drives
-eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, bool captive)
+eReturnValues run_IDD(const tDevice* device, eIDDTests IDDtest, bool pollForProgress, bool captive)
 {
     eReturnValues result = UNKNOWN;
     if (is_Seagate_Family(device) != NON_SEAGATE)
@@ -1442,12 +1441,12 @@ eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, 
                         ret = get_IDD_Status(device, &status);
                         if (VERBOSITY_QUIET < device->deviceVerbosity)
                         {
-                            printf("\n    IDD test is still in progress...please wait");
+                            print_str("\n    IDD test is still in progress...please wait");
                             flush_stdout();
                         }
                         delay_Seconds(5); // 5 second delay between progress checks
                     }
-                    printf("\n\n");
+                    print_str("\n\n");
                     if (status == 0 && ret == SUCCESS)
                     {
                         result = SUCCESS; // we passed.
@@ -1473,7 +1472,7 @@ eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, 
                 {
                     if (VERBOSITY_QUIET < device->deviceVerbosity)
                     {
-                        printf("An error occured while trying to start an IDD test.\n");
+                        print_str("An error occured while trying to start an IDD test.\n");
                     }
                     result = FAILURE;
                 }
@@ -1496,7 +1495,7 @@ eReturnValues run_IDD(tDevice* device, eIDDTests IDDtest, bool pollForProgress, 
     return result;
 }
 
-bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice* device)
+bool is_Seagate_Power_Telemetry_Feature_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1532,7 +1531,7 @@ bool is_Seagate_Power_Telemetry_Feature_Supported(tDevice* device)
 #define SCSI_POWER_TELEMETRY_LOG_SIZE_BYTES UINT16_C(6240)
 
 // This can be used to save this log to a binary file to be read later.
-eReturnValues pull_Power_Telemetry_Log(tDevice* device, const char* filePath, uint32_t transferSizeBytes)
+eReturnValues pull_Power_Telemetry_Log(const tDevice* device, const char* filePath, uint32_t transferSizeBytes)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -1549,7 +1548,7 @@ eReturnValues pull_Power_Telemetry_Log(tDevice* device, const char* filePath, ui
     return ret;
 }
 
-eReturnValues request_Power_Measurement(tDevice*                          device,
+eReturnValues request_Power_Measurement(const tDevice*                    device,
                                         uint16_t                          timeMeasurementSeconds,
                                         ePowerTelemetryMeasurementOptions measurementOption)
 {
@@ -1589,20 +1588,20 @@ eReturnValues request_Power_Measurement(tDevice*                          device
         pwrTelDiagPg[14] = RESERVED;
         pwrTelDiagPg[15] = RESERVED;
         // send diagnostic command
-        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 16, pwrTelDiagPg, 16, 15);
+        ret = scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 16, pwrTelDiagPg, 16, DEFAULT_COMMAND_TIMEOUT);
     }
     return ret;
 }
 
-eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry pwrTelData)
+eReturnValues get_Power_Telemetry_Data(const tDevice* device, ptrSeagatePwrTelemetry pwrTelData)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (pwrTelData == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     uint32_t powerTelemetryLogSize = UINT32_C(0);
     uint8_t* powerTelemetryLog     = M_NULLPTR;
     // first, determine how much data there is, allocate memory, then read it all into that buffer
@@ -1710,7 +1709,7 @@ eReturnValues get_Power_Telemetry_Data(tDevice* device, ptrSeagatePwrTelemetry p
 
 void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (pwrTelData != M_NULLPTR)
     {
         // doubles for end statistics of measurement
@@ -1722,25 +1721,29 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         double max12v   = DBL_MIN;
         double stepTime = pwrTelData->measurementWindowTimeMilliseconds;
 
-        printf("Power Telemetry\n");
+        print_str("Power Telemetry\n");
         printf("\tSerial Number: %s\n", pwrTelData->serialNumber);
         printf("\tRevision: %" PRIu8 ".%" PRIu8 "\n", pwrTelData->majorRevision, pwrTelData->minorRevision);
         printf("\tTemperature (C): %" PRIu8 "\n", pwrTelData->temperatureCelcius);
         printf("\tPower Cycle Count: %" PRIu16 "\n", pwrTelData->powerCycleCount);
-        // printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
+        printf("\tNumber Of Measurements: %" PRIu16 "\n", pwrTelData->numberOfMeasurements);
         if (pwrTelData->totalMeasurementTimeRequested == 0)
         {
-            printf("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
+            print_str("\tMeasurement Time (seconds): 600\t (No previous request. Free-running mode)\n");
+            printf("\tDrive Timestamp When The Log Was Retrieved (seconds): %.6f\n",
+                   C_CAST(double, pwrTelData->driveTimeStampWhenTheLogWasRetrieved) / 1000000.0);
         }
         else
         {
             printf("\tMeasurement Time (seconds): %" PRIu16 "\n", pwrTelData->totalMeasurementTimeRequested);
+            printf("\tDrive Timestamp For Host Requested Measurement (seconds): %.6f\n",
+                   C_CAST(double, pwrTelData->driveTimeStampForHostRequestedMeasurement) / 1000000.0);
         }
         printf("\tMeasurement Window (ms): %" PRIu16 "\n", pwrTelData->measurementWindowTimeMilliseconds);
 
-        printf("\nIndividual Power Measurements\n");
+        print_str("\nIndividual Power Measurements\n");
         // Note, while the spacing may not make much sense, it definitely works with the widths below.
-        printf("    #\t     Time       \t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
+        print_str("    #\t  Time (sec)\t  5V Pwr (W)\t  12V Pwr (W)\t  Total (W)\n");
         uint16_t measurementCounter = UINT16_C(0);
         for (uint16_t measurementNumber = UINT16_C(0); measurementNumber < pwrTelData->numberOfMeasurements &&
                                                        measurementNumber < POWER_TELEMETRY_MAXIMUM_MEASUREMENTS;
@@ -1748,15 +1751,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         {
             double power5VWatts    = pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts / 1000.0;
             double power12VWatts   = pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts / 1000.0;
-            double measurementTime = measurementNumber * stepTime;
-            if (pwrTelData->totalMeasurementTimeRequested == 0)
-            {
-                measurementTime += C_CAST(double, pwrTelData->driveTimeStampWhenTheLogWasRetrieved);
-            }
-            else
-            {
-                measurementTime += C_CAST(double, pwrTelData->driveTimeStampForHostRequestedMeasurement);
-            }
+            double measurementTime = measurementNumber * stepTime / 1000.0;
             if (pwrTelData->measurement[measurementNumber].fiveVoltMilliWatts == 0 &&
                 pwrTelData->measurement[measurementNumber].twelveVoltMilliWatts == 0)
             {
@@ -1765,17 +1760,17 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
             // NOTE: Original format was 10.6, 6.3, 6.3, 6.3. Trying to widen to match the header
             if (pwrTelData->measurementFormat == 5)
             {
-                printf("%5" PRIu16 "\t%16.6f\t%12.3f\t%13s\t%11.3f\n", measurementNumber, measurementTime, power5VWatts,
+                printf("%5" PRIu16 "\t%12.3f\t%12.3f\t%13s\t%11.3f\n", measurementNumber, measurementTime, power5VWatts,
                        "N/A", power5VWatts);
             }
             else if (pwrTelData->measurementFormat == 12)
             {
-                printf("%5" PRIu16 "\t%16.6f\t%12s\t%13.3f\t%11.3f\n", measurementNumber, measurementTime, "N/A",
+                printf("%5" PRIu16 "\t%12.3f\t%12s\t%13.3f\t%11.3f\n", measurementNumber, measurementTime, "N/A",
                        power12VWatts, power12VWatts);
             }
             else
             {
-                printf("%5" PRIu16 "\t%16.6f\t%12.3f\t%13.3f\t%11.3f\n", measurementNumber, measurementTime,
+                printf("%5" PRIu16 "\t%12.3f\t%12.3f\t%13.3f\t%11.3f\n", measurementNumber, measurementTime,
                        power5VWatts, power12VWatts, power5VWatts + power12VWatts);
             }
             // update min/max values
@@ -1801,7 +1796,7 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         }
         if (measurementCounter > 0)
         {
-            printf("\n");
+            print_str("\n");
             if (pwrTelData->measurementFormat == 0 || pwrTelData->measurementFormat == 5)
             {
                 printf(" 5 Volt Power (W):\tAverage: %6.3f \tMinimum: %6.3f \tMaximum: %6.3f\n",
@@ -1815,13 +1810,12 @@ void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry pwrTelData)
         }
         if (pwrTelData->multipleLogicalUnits)
         {
-            printf("NOTE: All power measurements are for the full device, not individual logical units.\n");
+            print_str("NOTE: All power measurements are for the full device, not individual logical units.\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
-bool is_Seagate_Quick_Format_Supported(tDevice* device)
+bool is_Seagate_Quick_Format_Supported(const tDevice* device)
 {
     bool supported = false;
     if (device->drive_info.drive_type == ATA_DRIVE) // This is only available on SATA drives.
@@ -1829,17 +1823,14 @@ bool is_Seagate_Quick_Format_Supported(tDevice* device)
         eSeagateFamily family = is_Seagate_Family(device);
         if (family == SEAGATE)
         {
-            if (device->drive_info.drive_type == ATA_DRIVE)
+            if (is_SMART_Enabled(device))
             {
-                if (is_SMART_Enabled(device))
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
+                if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
                 {
-                    DECLARE_ZERO_INIT_ARRAY(uint8_t, smartData, LEGACY_DRIVE_SEC_SIZE);
-                    if (SUCCESS == ata_SMART_Read_Data(device, smartData, LEGACY_DRIVE_SEC_SIZE))
+                    if (smartData[0x1EE] & BIT3)
                     {
-                        if (smartData[0x1EE] & BIT3)
-                        {
-                            supported = true;
-                        }
+                        supported = true;
                     }
                 }
             }
@@ -1860,7 +1851,7 @@ bool is_Seagate_Quick_Format_Supported(tDevice* device)
     return supported;
 }
 
-eReturnValues seagate_Quick_Format(tDevice* device)
+eReturnValues seagate_Quick_Format(const tDevice* device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -2182,7 +2173,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         printf("%-40s", print_ext_smart_id(attr.AttributeNumber));
         printf("%-15d", attr.AttributeNumber);
         printf(" 0x%016" PRIX64 "", smart_attribute_vs(verNo, attr));
-        printf("\n");
+        print_str("\n");
     }
 
     if (lastAttr == 1)
@@ -2197,7 +2188,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "",
                             msbGbErased, lsbGbErased);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
@@ -2208,7 +2199,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
                             msbLifWrtToFlash, lsbLifWrtToFlash);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
@@ -2219,7 +2210,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
                             msbLifWrtFrmHost, lsbLifWrtFrmHost);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
@@ -2230,7 +2221,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
                             msbLifRdToHost, lsbLifRdToHost);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
 
         snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
                             (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
@@ -2240,7 +2231,7 @@ void print_smart_log(uint16_t verNo, SmartVendorSpecific attr, int lastAttr)
         snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt,
                             lsbTrimCnt);
         printf(" %s", buf);
-        printf("\n");
+        print_str("\n");
     }
 }
 
@@ -2248,46 +2239,46 @@ void print_smart_log_CF(fb_log_page_CF* pLogPageCF)
 {
     uint64_t currentTemp = UINT64_C(0);
     uint64_t maxTemp     = UINT64_C(0);
-    printf("\n\nSeagate DRAM Supercap SMART Attributes :\n");
+    print_str("\n\nSeagate DRAM Supercap SMART Attributes :\n");
     printf("%-39s %-19s \n", "Description", "Supercap Attributes");
 
     printf("%-40s", "Super-cap current temperature");
     currentTemp = le16_to_host(pLogPageCF->AttrCF.SuperCapCurrentTemperature);
     /*currentTemp = currentTemp ? currentTemp - 273 : 0;*/
     printf(" 0x%016" PRIX64 "", currentTemp);
-    printf("\n");
+    print_str("\n");
 
     maxTemp = le16_to_host(pLogPageCF->AttrCF.SuperCapMaximumTemperature);
     /*maxTemp = maxTemp ? maxTemp - 273 : 0;*/
     printf("%-40s", "Super-cap maximum temperature");
     printf(" 0x%016" PRIX64 "", maxTemp);
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "Super-cap status");
     printf(" 0x%016" PRIX64 "", C_CAST(uint64_t, pLogPageCF->AttrCF.SuperCapStatus));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "Data units read to DRAM namespace");
     printf(" 0x%016" PRIX64 "%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DataUnitsReadToDramNamespace.MSU64),
            le64_to_host(pLogPageCF->AttrCF.DataUnitsReadToDramNamespace.LSU64));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "Data units written to DRAM namespace");
     printf(" 0x%016" PRIX64 "%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DataUnitsWrittenToDramNamespace.MSU64),
            le64_to_host(pLogPageCF->AttrCF.DataUnitsWrittenToDramNamespace.LSU64));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "DRAM correctable error count");
     printf(" 0x%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DramCorrectableErrorCount));
-    printf("\n");
+    print_str("\n");
 
     printf("%-40s", "DRAM uncorrectable error count");
     printf(" 0x%016" PRIX64 "", le64_to_host(pLogPageCF->AttrCF.DramUncorrectableErrorCount));
-    printf("\n");
+    print_str("\n");
 }
 
 // Seagate Unique...
-eReturnValues get_Ext_Smrt_Log(tDevice* device) //, nvmeGetLogPageCmdOpts * getLogPageCmdOpts)
+eReturnValues get_Ext_Smrt_Log(const tDevice* device) //, nvmeGetLogPageCmdOpts * getLogPageCmdOpts)
 {
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
@@ -2303,8 +2294,8 @@ eReturnValues get_Ext_Smrt_Log(tDevice* device) //, nvmeGetLogPageCmdOpts * getL
         {
             printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
             for (index = 0; index < 80; index++)
-                printf("-");
-            printf("\n");
+                print_str("-");
+            print_str("\n");
             for (index = 0; index < NUMBER_EXTENDED_SMART_ATTRIBUTES; index++)
                 print_smart_log(ExtdSMARTInfo.Version, ExtdSMARTInfo.vendorData[index],
                                 index == (NUMBER_EXTENDED_SMART_ATTRIBUTES - 1));
@@ -2317,7 +2308,7 @@ eReturnValues get_Ext_Smrt_Log(tDevice* device) //, nvmeGetLogPageCmdOpts * getL
     }
 }
 
-eReturnValues clr_Pcie_Correctable_Errs(tDevice* device)
+eReturnValues clr_Pcie_Correctable_Errs(const tDevice* device)
 {
     if (is_Seagate_Family(device) == SEAGATE_VENDOR_SSD_PJ)
     {
@@ -2346,7 +2337,7 @@ typedef enum eATAMaxSupportLogEntriesEnum
     SUPPORTED_MAX_ENTRIES_VERSION_2 = 22
 } eATAMaxSupportLogEntries;
 
-bool is_Seagate_DeviceStatistics_Supported(tDevice* device)
+bool is_Seagate_DeviceStatistics_Supported(const tDevice* device)
 {
     bool     supported = false;
     uint32_t logSize   = UINT32_C(0);
@@ -2366,7 +2357,7 @@ bool is_Seagate_DeviceStatistics_Supported(tDevice* device)
 #if defined(_DEBUG)
     else
     {
-        printf("\nSeagate Device Statistics logs not supported.\n");
+        print_str("\nSeagate Device Statistics logs not supported.\n");
     }
 #endif
     // NOLINTEND(bugprone-branch-clone)
@@ -2374,7 +2365,8 @@ bool is_Seagate_DeviceStatistics_Supported(tDevice* device)
     return supported;
 }
 
-static eReturnValues get_Seagate_ATA_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice*             device,
+                                                      ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (seagateDeviceStats == M_NULLPTR)
@@ -2789,7 +2781,8 @@ typedef enum eSeagateSMARTStatusLogPageParamCodeEnum
     ERASE_SECURITY_FILE_FAILURES     = 0x0050,
 } eSeagateSMARTStatusLogPageParamCode;
 
-static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+static eReturnValues get_Seagate_SCSI_DeviceStatistics(const tDevice*             device,
+                                                       ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (seagateDeviceStats == M_NULLPTR)
@@ -2894,15 +2887,15 @@ static eReturnValues get_Seagate_SCSI_DeviceStatistics(tDevice* device, ptrSeaga
     return ret;
 }
 
-eReturnValues get_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+eReturnValues get_Seagate_DeviceStatistics(const tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (seagateDeviceStats == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         return get_Seagate_ATA_DeviceStatistics(device, seagateDeviceStats);
@@ -2921,8 +2914,8 @@ static void print_Count_Statistics(const char* statisticsName, seagateStatistic 
     if (statistics.isValueValid)
         printf("%" PRIu32, statistics.statisticsDataValue);
     else
-        printf("Not Available");
-    printf("\n");
+        print_str("Not Available");
+    print_str("\n");
 }
 
 static void print_TimeStamp_Statistics(const char* statisticsName, seagateStatistic statistics)
@@ -2936,15 +2929,15 @@ static void print_TimeStamp_Statistics(const char* statisticsName, seagateStatis
         printf("%" PRIu64 " minutes", timeInMinutes);
     }
     else
-        printf("Not Available");
-    printf("\n");
+        print_str("Not Available");
+    print_str("\n");
 }
 
 static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     if (seagateDeviceStats != M_NULLPTR)
     {
-        printf("===Seagate Device Statistics===\n");
+        print_str("===Seagate Device Statistics===\n");
         printf(" %-60s %-16s\n", "Statistic Name:", "Value:");
         uint8_t maxLogEntries = seagateDeviceStats->sataStatistics.version;
         for (uint8_t logEntry = UINT8_C(0); logEntry < maxLogEntries; ++logEntry)
@@ -3067,7 +3060,7 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
                 break;
             }
         }
-        printf("\n\n");
+        print_str("\n\n");
 
         // latest result for Sanitize Crypto
         if (seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isValueValid &&
@@ -3095,17 +3088,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last Sanitize Crypto Erase Passed.\n");
+                    print_str("Last Sanitize Crypto Erase Passed.\n");
                 else
-                    printf("Last Sanitize Crypto Erase Failed.\n");
+                    print_str("Last Sanitize Crypto Erase Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isValueValid)
-            printf("Last Sanitize Crypto Erase Passed.\n");
+            print_str("Last Sanitize Crypto Erase Passed.\n");
         else if (seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isValueValid)
-            printf("Last Sanitize Crypto Erase Failed.\n");
+            print_str("Last Sanitize Crypto Erase Failed.\n");
 
         // latest result for Sanitize Overwrite
         if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid &&
@@ -3133,17 +3126,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last Sanitize Overwrite Erase Passed.\n");
+                    print_str("Last Sanitize Overwrite Erase Passed.\n");
                 else
-                    printf("Last Sanitize Overwrite Erase Failed.\n");
+                    print_str("Last Sanitize Overwrite Erase Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isValueValid)
-            printf("Last Sanitize Overwrite Erase Passed.\n");
+            print_str("Last Sanitize Overwrite Erase Passed.\n");
         else if (seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isValueValid)
-            printf("Last Sanitize Overwrite Erase Failed.\n");
+            print_str("Last Sanitize Overwrite Erase Failed.\n");
 
         // latest result for Sanitize Block
         if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid &&
@@ -3171,17 +3164,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last Sanitize Block Erase Passed.\n");
+                    print_str("Last Sanitize Block Erase Passed.\n");
                 else
-                    printf("Last Sanitize Block Erase Failed.\n");
+                    print_str("Last Sanitize Block Erase Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isValueValid)
-            printf("Last Sanitize Block Erase Passed.\n");
+            print_str("Last Sanitize Block Erase Passed.\n");
         else if (seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isValueValid)
-            printf("Last Sanitize Block Erase Failed.\n");
+            print_str("Last Sanitize Block Erase Failed.\n");
 
         // latest result for Ata Security Erase Unit
         if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid &&
@@ -3209,17 +3202,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != UINT64_C(0) && timestampInMinutesForFail != UINT64_C(0))
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last ATA Security Erase Unit Passed.\n");
+                    print_str("Last ATA Security Erase Unit Passed.\n");
                 else
-                    printf("Last ATA Security Erase Unit Failed.\n");
+                    print_str("Last ATA Security Erase Unit Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Passed.\n");
+            print_str("Last ATA Security Erase Unit Passed.\n");
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Failed.\n");
+            print_str("Last ATA Security Erase Unit Failed.\n");
 
         // latest result for Ata Security Erase Unit Enhanced
         if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid &&
@@ -3251,17 +3244,17 @@ static void print_Seagate_ATA_DeviceStatistics(ptrSeagateDeviceStatistics seagat
             if (timestampInMinutesForPass != 0 && timestampInMinutesForFail != 0)
             {
                 if (timestampInMinutesForPass > timestampInMinutesForFail)
-                    printf("Last ATA Security Erase Unit Enhanced Passed.\n");
+                    print_str("Last ATA Security Erase Unit Enhanced Passed.\n");
                 else
-                    printf("Last ATA Security Erase Unit Enhanced Failed.\n");
+                    print_str("Last ATA Security Erase Unit Enhanced Failed.\n");
             }
         }
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Enhanced Passed.\n");
+            print_str("Last ATA Security Erase Unit Enhanced Passed.\n");
         else if (seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isValueValid &&
                  seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isValueValid)
-            printf("Last ATA Security Erase Unit Enhanced Failed.\n");
+            print_str("Last ATA Security Erase Unit Enhanced Failed.\n");
     }
 }
 
@@ -3269,7 +3262,7 @@ static void print_Seagate_SCSI_DeviceStatistics(ptrSeagateDeviceStatistics seaga
 {
     if (seagateDeviceStats != M_NULLPTR)
     {
-        printf("\n\n===Seagate Device Statistics===\n");
+        print_str("\n\n===Seagate Device Statistics===\n");
 
         printf(" %-60s %-16s\n", "Statistic Name:", "Value:");
         print_Count_Statistics("Sanitize Crypo Erase Count",
@@ -3293,7 +3286,7 @@ static void print_Seagate_SCSI_DeviceStatistics(ptrSeagateDeviceStatistics seaga
     }
 }
 
-void print_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
+void print_Seagate_DeviceStatistics(const tDevice* device, ptrSeagateDeviceStatistics seagateDeviceStats)
 {
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
@@ -3305,15 +3298,15 @@ void print_Seagate_DeviceStatistics(tDevice* device, ptrSeagateDeviceStatistics 
     }
 }
 
-eReturnValues get_Seagate_SCSI_Firmware_Numbers(tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
+eReturnValues get_Seagate_SCSI_Firmware_Numbers(const tDevice* device, ptrSeagateSCSIFWNumbers fwNumbers)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (fwNumbers == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == SCSI_DRIVE && SEAGATE == is_Seagate_Family(device))
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, firmwareNumbersPage, 60);

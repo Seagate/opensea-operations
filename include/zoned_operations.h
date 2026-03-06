@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,13 +26,12 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1, 4)
     M_PARAM_RO(1)
     M_PARAM_WO(4)
-    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Zones(tDevice*              device,
-                                                             eZoneReportingOptions reportingOptions,
-                                                             uint64_t              startingLBA,
-                                                             uint32_t*             numberOfMatchingZones);
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Zones(const tDevice* M_NONNULL device,
+                                                             eZoneReportingOptions    reportingOptions,
+                                                             uint64_t                 startingLBA,
+                                                             uint32_t* M_NONNULL      numberOfMatchingZones);
 
     typedef enum eZoneTypeEnum
     {
@@ -48,8 +47,10 @@ extern "C"
     {
         ZONE_CONDITION_NOT_WRITE_POINTER  = 0,
         ZONE_CONDITION_EMPTY              = 1,
-        ZONE_CONDITION_IMLICITLY_OPENED   = 2,
-        ZONE_CONDITION_EXPLICITYLE_OPENED = 3,
+        ZONE_CONDITION_IMLICITLY_OPENED   = 2, // Typo fixed: IMPLICITLY
+        ZONE_CONDITION_IMPLICITLY_OPENED  = 2,
+        ZONE_CONDITION_EXPLICITYLE_OPENED = 3, // Typo fixed: EXPLICITLY
+        ZONE_CONDITION_EXPLICITLY_OPENED  = 3,
         ZONE_CONDITION_CLOSED             = 4,
         ZONE_CONDITION_INACTIVE           = 5,
         ZONE_CONDITION_READ_ONLY          = 0xD,
@@ -70,27 +71,25 @@ extern "C"
         uint64_t       writePointerLBA;
     } zoneDescriptor, *ptrZoneDescriptor;
 
-    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor** zd)
+    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor* M_NULLABLE* M_NULLABLE zd)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, zd));
     }
 
-    M_NONNULL_PARAM_LIST(1, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(tDevice*              device,
-                                                              eZoneReportingOptions reportingOptions,
-                                                              uint64_t              startingLBA,
-                                                              uint32_t              numberOfZoneDescriptors,
-                                                              ptrZoneDescriptor     zoneDescriptors);
+    OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(const tDevice* M_NONNULL    device,
+                                                              eZoneReportingOptions       reportingOptions,
+                                                              uint64_t                    startingLBA,
+                                                              uint32_t                    numberOfZoneDescriptors,
+                                                              ptrZoneDescriptor M_NONNULL zoneDescriptors);
 
     // eZoneReportingOptions reportingOptions is used to print the header saying which zones we are showing (all, some,
     // etc)
-    M_NONNULL_PARAM_LIST(3)
     M_PARAM_RO(3)
-    OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
-                                                       uint32_t              numberOfZoneDescriptors,
-                                                       ptrZoneDescriptor     zoneDescriptors);
+    OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       reportingOptions,
+                                                       uint32_t                    numberOfZoneDescriptors,
+                                                       ptrZoneDescriptor M_NONNULL zoneDescriptors);
 
 #if defined(__cplusplus)
 }

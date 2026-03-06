@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2024-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2024-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -69,19 +69,17 @@ extern "C"
         phyEventCounter counters[MAX_PHY_EVENT_COUNTERS];
     } sataPhyEventCounters, *ptrSATAPhyEventCounters;
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters);
+    OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters(const tDevice* M_NONNULL          device,
+                                                                     ptrSATAPhyEventCounters M_NONNULL counters);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters M_NONNULL counters);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API
-    eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice*                device,
-                                                       ptrSATAPhyEventCounters counters /* optional */);
+    eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice* M_NONNULL           device,
+                                                       ptrSATAPhyEventCounters M_NULLABLE counters /* optional */);
 
 #if defined(__cplusplus)
 }

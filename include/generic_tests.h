@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,15 +49,14 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_NONNULL_IF_NONZERO_PARAM(4, 5)
     M_PARAM_RW_SIZE(4, 5)
-    OPENSEA_OPERATIONS_API eReturnValues read_Write_Seek_Command(tDevice*        device,
-                                                                 eRWVCommandType rwvCommand,
-                                                                 uint64_t        lba,
-                                                                 uint8_t*        ptrData,
-                                                                 uint32_t        dataSize);
+    OPENSEA_OPERATIONS_API eReturnValues read_Write_Seek_Command(const tDevice* M_NONNULL device,
+                                                                 eRWVCommandType          rwvCommand,
+                                                                 uint64_t                 lba,
+                                                                 uint8_t* M_NULLABLE      ptrData,
+                                                                 uint32_t                 dataSize);
 
     //-----------------------------------------------------------------------------
     //
@@ -81,18 +80,17 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 6)
     M_PARAM_RO(1)
     M_PARAM_WO(6)
-    OPENSEA_OPERATIONS_API eReturnValues sequential_RWV(tDevice*        device,
-                                                        eRWVCommandType rwvCommand,
-                                                        uint64_t        startingLBA,
-                                                        uint64_t        range,
-                                                        uint64_t        sectorCount,
-                                                        uint64_t*       failingLBA,
-                                                        custom_Update   updateFunction,
-                                                        void*           updateData,
-                                                        bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues sequential_RWV(const tDevice* M_NONNULL device,
+                                                        eRWVCommandType          rwvCommand,
+                                                        uint64_t                 startingLBA,
+                                                        uint64_t                 range,
+                                                        uint64_t                 sectorCount,
+                                                        uint64_t* M_NONNULL      failingLBA,
+                                                        custom_Update M_NULLABLE updateFunction,
+                                                        void* M_NULLABLE         updateData,
+                                                        bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -115,17 +113,16 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues sequential_Write(tDevice*      device,
-                                                          uint64_t      startingLBA,
-                                                          uint64_t      range,
-                                                          uint64_t      sectorCount,
-                                                          uint64_t*     failingLBA,
-                                                          custom_Update updateFunction,
-                                                          void*         updateData,
-                                                          bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues sequential_Write(const tDevice* M_NONNULL device,
+                                                          uint64_t                 startingLBA,
+                                                          uint64_t                 range,
+                                                          uint64_t                 sectorCount,
+                                                          uint64_t* M_NONNULL      failingLBA,
+                                                          custom_Update M_NULLABLE updateFunction,
+                                                          void* M_NULLABLE         updateData,
+                                                          bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -148,17 +145,16 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues sequential_Verify(tDevice*      device,
-                                                           uint64_t      startingLBA,
-                                                           uint64_t      range,
-                                                           uint64_t      sectorCount,
-                                                           uint64_t*     failingLBA,
-                                                           custom_Update updateFunction,
-                                                           void*         updateData,
-                                                           bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues sequential_Verify(const tDevice* M_NONNULL device,
+                                                           uint64_t                 startingLBA,
+                                                           uint64_t                 range,
+                                                           uint64_t                 sectorCount,
+                                                           uint64_t* M_NONNULL      failingLBA,
+                                                           custom_Update M_NULLABLE updateFunction,
+                                                           void* M_NULLABLE         updateData,
+                                                           bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -181,17 +177,16 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues sequential_Read(tDevice*      device,
-                                                         uint64_t      startingLBA,
-                                                         uint64_t      range,
-                                                         uint64_t      sectorCount,
-                                                         uint64_t*     failingLBA,
-                                                         custom_Update updateFunction,
-                                                         void*         updateData,
-                                                         bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues sequential_Read(const tDevice* M_NONNULL device,
+                                                         uint64_t                 startingLBA,
+                                                         uint64_t                 range,
+                                                         uint64_t                 sectorCount,
+                                                         uint64_t* M_NONNULL      failingLBA,
+                                                         custom_Update M_NULLABLE updateFunction,
+                                                         void* M_NULLABLE         updateData,
+                                                         bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -210,12 +205,11 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Read_Test(tDevice*      device,
-                                                                 custom_Update updateFunction,
-                                                                 void*         updateData,
-                                                                 bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Read_Test(const tDevice* M_NONNULL device,
+                                                                 custom_Update M_NULLABLE updateFunction,
+                                                                 void* M_NULLABLE         updateData,
+                                                                 bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -234,12 +228,11 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Verify_Test(tDevice*      device,
-                                                                   custom_Update updateFunction,
-                                                                   void*         updateData,
-                                                                   bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Verify_Test(const tDevice* M_NONNULL device,
+                                                                   custom_Update M_NULLABLE updateFunction,
+                                                                   void* M_NULLABLE         updateData,
+                                                                   bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -258,12 +251,11 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Write_Test(tDevice*      device,
-                                                                  custom_Update updateFunction,
-                                                                  void*         updateData,
-                                                                  bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Write_Test(const tDevice* M_NONNULL device,
+                                                                  custom_Update M_NULLABLE updateFunction,
+                                                                  void* M_NULLABLE         updateData,
+                                                                  bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -283,13 +275,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(tDevice*        device,
-                                                            eRWVCommandType rwvCommand,
-                                                            custom_Update   updateFunction,
-                                                            void*           updateData,
-                                                            bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL device,
+                                                            eRWVCommandType          rwvCommand,
+                                                            custom_Update M_NULLABLE updateFunction,
+                                                            void* M_NULLABLE         updateData,
+                                                            bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -308,12 +299,11 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Read_Test(tDevice*      device,
-                                                                      custom_Update updateFunction,
-                                                                      void*         updateData,
-                                                                      bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Read_Test(const tDevice* M_NONNULL device,
+                                                                      custom_Update M_NULLABLE updateFunction,
+                                                                      void* M_NULLABLE         updateData,
+                                                                      bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -332,12 +322,11 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Write_Test(tDevice*      device,
-                                                                       custom_Update updateFunction,
-                                                                       void*         updateData,
-                                                                       bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Write_Test(const tDevice* M_NONNULL device,
+                                                                       custom_Update M_NULLABLE updateFunction,
+                                                                       void* M_NULLABLE         updateData,
+                                                                       bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -356,12 +345,11 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Verify_Test(tDevice*      device,
-                                                                        custom_Update updateFunction,
-                                                                        void*         updateData,
-                                                                        bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Verify_Test(const tDevice* M_NONNULL device,
+                                                                        custom_Update M_NULLABLE updateFunction,
+                                                                        void* M_NULLABLE         updateData,
+                                                                        bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -381,13 +369,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(tDevice*        device,
-                                                                 eRWVCommandType rwvCommand,
-                                                                 custom_Update   updateFunction,
-                                                                 void*           updateData,
-                                                                 bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NONNULL device,
+                                                                 eRWVCommandType          rwvCommand,
+                                                                 custom_Update M_NULLABLE updateFunction,
+                                                                 void* M_NULLABLE         updateData,
+                                                                 bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -413,16 +400,15 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Read_Test(tDevice*      device,
-                                                                uint16_t      errorLimit,
-                                                                bool          stopOnError,
-                                                                bool          repairOnTheFly,
-                                                                bool          repairAtEnd,
-                                                                custom_Update updateFunction,
-                                                                void*         updateData,
-                                                                bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Read_Test(const tDevice* M_NONNULL device,
+                                                                uint16_t                 errorLimit,
+                                                                bool                     stopOnError,
+                                                                bool                     repairOnTheFly,
+                                                                bool                     repairAtEnd,
+                                                                custom_Update M_NULLABLE updateFunction,
+                                                                void* M_NULLABLE         updateData,
+                                                                bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -448,16 +434,15 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Write_Test(tDevice*      device,
-                                                                 uint16_t      errorLimit,
-                                                                 bool          stopOnError,
-                                                                 bool          repairOnTheFly,
-                                                                 bool          repairAtEnd,
-                                                                 custom_Update updateFunction,
-                                                                 void*         updateData,
-                                                                 bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Write_Test(const tDevice* M_NONNULL device,
+                                                                 uint16_t                 errorLimit,
+                                                                 bool                     stopOnError,
+                                                                 bool                     repairOnTheFly,
+                                                                 bool                     repairAtEnd,
+                                                                 custom_Update M_NULLABLE updateFunction,
+                                                                 void* M_NULLABLE         updateData,
+                                                                 bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -483,16 +468,15 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Verify_Test(tDevice*      device,
-                                                                  uint16_t      errorLimit,
-                                                                  bool          stopOnError,
-                                                                  bool          repairOnTheFly,
-                                                                  bool          repairAtEnd,
-                                                                  custom_Update updateFunction,
-                                                                  void*         updateData,
-                                                                  bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Verify_Test(const tDevice* M_NONNULL device,
+                                                                  uint16_t                 errorLimit,
+                                                                  bool                     stopOnError,
+                                                                  bool                     repairOnTheFly,
+                                                                  bool                     repairAtEnd,
+                                                                  custom_Update M_NULLABLE updateFunction,
+                                                                  void* M_NULLABLE         updateData,
+                                                                  bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -519,17 +503,16 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Test(tDevice*        device,
-                                                           eRWVCommandType rwvCommand,
-                                                           uint16_t        errorLimit,
-                                                           bool            stopOnError,
-                                                           bool            repairOnTheFly,
-                                                           bool            repairAtEnd,
-                                                           custom_Update   updateFunction,
-                                                           void*           updateData,
-                                                           bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues long_Generic_Test(const tDevice* M_NONNULL device,
+                                                           eRWVCommandType          rwvCommand,
+                                                           uint16_t                 errorLimit,
+                                                           bool                     stopOnError,
+                                                           bool                     repairOnTheFly,
+                                                           bool                     repairAtEnd,
+                                                           custom_Update M_NULLABLE updateFunction,
+                                                           void* M_NULLABLE         updateData,
+                                                           bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -558,18 +541,17 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Read_Test(tDevice*      device,
-                                                                   uint64_t      startingLBA,
-                                                                   uint64_t      range,
-                                                                   uint16_t      errorLimit,
-                                                                   bool          stopOnError,
-                                                                   bool          repairOnTheFly,
-                                                                   bool          repairAtEnd,
-                                                                   custom_Update updateFunction,
-                                                                   void*         updateData,
-                                                                   bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Read_Test(const tDevice* M_NONNULL device,
+                                                                   uint64_t                 startingLBA,
+                                                                   uint64_t                 range,
+                                                                   uint16_t                 errorLimit,
+                                                                   bool                     stopOnError,
+                                                                   bool                     repairOnTheFly,
+                                                                   bool                     repairAtEnd,
+                                                                   custom_Update M_NULLABLE updateFunction,
+                                                                   void* M_NULLABLE         updateData,
+                                                                   bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -598,18 +580,17 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Write_Test(tDevice*      device,
-                                                                    uint64_t      startingLBA,
-                                                                    uint64_t      range,
-                                                                    uint16_t      errorLimit,
-                                                                    bool          stopOnError,
-                                                                    bool          repairOnTheFly,
-                                                                    bool          repairAtEnd,
-                                                                    custom_Update updateFunction,
-                                                                    void*         updateData,
-                                                                    bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Write_Test(const tDevice* M_NONNULL device,
+                                                                    uint64_t                 startingLBA,
+                                                                    uint64_t                 range,
+                                                                    uint16_t                 errorLimit,
+                                                                    bool                     stopOnError,
+                                                                    bool                     repairOnTheFly,
+                                                                    bool                     repairAtEnd,
+                                                                    custom_Update M_NULLABLE updateFunction,
+                                                                    void* M_NULLABLE         updateData,
+                                                                    bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -638,18 +619,17 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Verify_Test(tDevice*      device,
-                                                                     uint64_t      startingLBA,
-                                                                     uint64_t      range,
-                                                                     uint16_t      errorLimit,
-                                                                     bool          stopOnError,
-                                                                     bool          repairOnTheFly,
-                                                                     bool          repairAtEnd,
-                                                                     custom_Update updateFunction,
-                                                                     void*         updateData,
-                                                                     bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Verify_Test(const tDevice* M_NONNULL device,
+                                                                     uint64_t                 startingLBA,
+                                                                     uint64_t                 range,
+                                                                     uint16_t                 errorLimit,
+                                                                     bool                     stopOnError,
+                                                                     bool                     repairOnTheFly,
+                                                                     bool                     repairAtEnd,
+                                                                     custom_Update M_NULLABLE updateFunction,
+                                                                     void* M_NULLABLE         updateData,
+                                                                     bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -679,19 +659,18 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Test(tDevice*        device,
-                                                              eRWVCommandType rwvCommand,
-                                                              uint64_t        startingLBA,
-                                                              uint64_t        range,
-                                                              uint16_t        errorLimit,
-                                                              bool            stopOnError,
-                                                              bool            repairOnTheFly,
-                                                              bool            repairAtEnd,
-                                                              custom_Update   updateFunction,
-                                                              void*           updateData,
-                                                              bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Test(const tDevice* M_NONNULL device,
+                                                              eRWVCommandType          rwvCommand,
+                                                              uint64_t                 startingLBA,
+                                                              uint64_t                 range,
+                                                              uint16_t                 errorLimit,
+                                                              bool                     stopOnError,
+                                                              bool                     repairOnTheFly,
+                                                              bool                     repairAtEnd,
+                                                              custom_Update M_NULLABLE updateFunction,
+                                                              void* M_NULLABLE         updateData,
+                                                              bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -711,13 +690,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues butterfly_Read_Test(tDevice*      device,
-                                                             uint64_t      timeLimitSeconds,
-                                                             custom_Update updateFunction,
-                                                             void*         updateData,
-                                                             bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Read_Test(const tDevice* M_NONNULL device,
+                                                             uint64_t                 timeLimitSeconds,
+                                                             custom_Update M_NULLABLE updateFunction,
+                                                             void* M_NULLABLE         updateData,
+                                                             bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -737,13 +715,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues butterfly_Write_Test(tDevice*      device,
-                                                              uint64_t      timeLimitSeconds,
-                                                              custom_Update updateFunction,
-                                                              void*         updateData,
-                                                              bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Write_Test(const tDevice* M_NONNULL device,
+                                                              uint64_t                 timeLimitSeconds,
+                                                              custom_Update M_NULLABLE updateFunction,
+                                                              void* M_NULLABLE         updateData,
+                                                              bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -763,13 +740,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues butterfly_Verify_Test(tDevice*      device,
-                                                               uint64_t      timeLimitSeconds,
-                                                               custom_Update updateFunction,
-                                                               void*         updateData,
-                                                               bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Verify_Test(const tDevice* M_NONNULL device,
+                                                               uint64_t                 timeLimitSeconds,
+                                                               custom_Update M_NULLABLE updateFunction,
+                                                               void* M_NULLABLE         updateData,
+                                                               bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -790,12 +766,13 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API eReturnValues butterfly_Test(tDevice*        device,
-                                                        eRWVCommandType rwvcommand,
-                                                        uint64_t        timeLimitSeconds,
-                                                        custom_Update   updateFunction,
-                                                        void*           updateData,
-                                                        bool            hideLBACounter);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Test(const tDevice* M_NONNULL device,
+                                                        eRWVCommandType          rwvcommand,
+                                                        uint64_t                 timeLimitSeconds,
+                                                        custom_Update M_NULLABLE updateFunction,
+                                                        void* M_NULLABLE         updateData,
+                                                        bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -815,13 +792,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues random_Read_Test(tDevice*      device,
-                                                          uint64_t      timeLimitSeconds,
-                                                          custom_Update updateFunction,
-                                                          void*         updateData,
-                                                          bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues random_Read_Test(const tDevice* M_NONNULL device,
+                                                          uint64_t                 timeLimitSeconds,
+                                                          custom_Update M_NULLABLE updateFunction,
+                                                          void* M_NULLABLE         updateData,
+                                                          bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -841,13 +817,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues random_Write_Test(tDevice*      device,
-                                                           uint64_t      timeLimitSeconds,
-                                                           custom_Update updateFunction,
-                                                           void*         updateData,
-                                                           bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues random_Write_Test(const tDevice* M_NONNULL device,
+                                                           uint64_t                 timeLimitSeconds,
+                                                           custom_Update M_NULLABLE updateFunction,
+                                                           void* M_NULLABLE         updateData,
+                                                           bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -867,13 +842,12 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues random_Verify_Test(tDevice*      device,
-                                                            uint64_t      timeLimitSeconds,
-                                                            custom_Update updateFunction,
-                                                            void*         updateData,
-                                                            bool          hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues random_Verify_Test(const tDevice* M_NONNULL device,
+                                                            uint64_t                 timeLimitSeconds,
+                                                            custom_Update M_NULLABLE updateFunction,
+                                                            void* M_NULLABLE         updateData,
+                                                            bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -894,14 +868,13 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues random_Test(tDevice*        device,
-                                                     eRWVCommandType rwvcommand,
-                                                     uint64_t        timeLimitSeconds,
-                                                     custom_Update   updateFunction,
-                                                     void*           updateData,
-                                                     bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues random_Test(const tDevice* M_NONNULL device,
+                                                     eRWVCommandType          rwvcommand,
+                                                     uint64_t                 timeLimitSeconds,
+                                                     custom_Update M_NULLABLE updateFunction,
+                                                     void* M_NULLABLE         updateData,
+                                                     bool                     hideLBACounter);
 
     //-----------------------------------------------------------------------------
     //
@@ -919,67 +892,64 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues sweep_Test(tDevice* device, eRWVCommandType rwvcommand, uint32_t sweepCount);
+    OPENSEA_OPERATIONS_API eReturnValues sweep_Test(const tDevice* M_NONNULL device,
+                                                    eRWVCommandType          rwvcommand,
+                                                    uint32_t                 sweepCount);
 
     // will do a read, write, or verify timed test. Each test runs at OD, ID, random, and butterfly for the time
     // specified
-    M_NONNULL_PARAM_LIST(1, 4, 5)
     M_PARAM_RO(1)
     M_PARAM_WO(4)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(tDevice*        device,
-                                                                         eRWVCommandType testMode,
-                                                                         uint32_t        timePerTestSeconds,
-                                                                         uint16_t*       numberOfCommandTimeouts,
-                                                                         uint16_t*       numberOfCommandFailures,
-                                                                         custom_Update   updateFunction,
-                                                                         void*           updateData);
+    OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(const tDevice* M_NONNULL device,
+                                                                         eRWVCommandType          testMode,
+                                                                         uint32_t                 timePerTestSeconds,
+                                                                         uint16_t* M_NONNULL numberOfCommandTimeouts,
+                                                                         uint16_t* M_NONNULL numberOfCommandFailures,
+                                                                         custom_Update M_NULLABLE updateFunction,
+                                                                         void* M_NULLABLE         updateData);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Range(tDevice*        device,
-                                                             eRWVCommandType testMode,
-                                                             bool            outer,
-                                                             bool            middle,
-                                                             bool            inner,
-                                                             uint64_t        numberOfLBAs,
-                                                             uint16_t        errorLimit,
-                                                             bool            stopOnError,
-                                                             bool            repairOnTheFly,
-                                                             bool            repairAtEnd,
-                                                             custom_Update   updateFunction,
-                                                             void*           updateData,
-                                                             bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Range(const tDevice* M_NONNULL device,
+                                                             eRWVCommandType          testMode,
+                                                             bool                     outer,
+                                                             bool                     middle,
+                                                             bool                     inner,
+                                                             uint64_t                 numberOfLBAs,
+                                                             uint16_t                 errorLimit,
+                                                             bool                     stopOnError,
+                                                             bool                     repairOnTheFly,
+                                                             bool                     repairAtEnd,
+                                                             custom_Update M_NULLABLE updateFunction,
+                                                             void* M_NULLABLE         updateData,
+                                                             bool                     hideLBACounter);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Time(tDevice*        device,
-                                                            eRWVCommandType testMode,
-                                                            bool            outer,
-                                                            bool            middle,
-                                                            bool            inner,
-                                                            uint64_t        timeInSecondsPerDiameter,
-                                                            uint16_t        errorLimit,
-                                                            bool            stopOnError,
-                                                            bool            repairOnTheFly,
-                                                            bool            repairAtEnd,
-                                                            bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Time(const tDevice* M_NONNULL device,
+                                                            eRWVCommandType          testMode,
+                                                            bool                     outer,
+                                                            bool                     middle,
+                                                            bool                     inner,
+                                                            uint64_t                 timeInSecondsPerDiameter,
+                                                            uint16_t                 errorLimit,
+                                                            bool                     stopOnError,
+                                                            bool                     repairOnTheFly,
+                                                            bool                     repairAtEnd,
+                                                            bool                     hideLBACounter);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues user_Timed_Test(tDevice*        device,
-                                                         eRWVCommandType rwvCommand,
-                                                         uint64_t        startingLBA,
-                                                         uint64_t        timeInSeconds,
-                                                         uint16_t        errorLimit,
-                                                         bool            stopOnError,
-                                                         bool            repairOnTheFly,
-                                                         bool            repairAtEnd,
-                                                         custom_Update   updateFunction,
-                                                         void*           updateData,
-                                                         bool            hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues user_Timed_Test(const tDevice* M_NONNULL device,
+                                                         eRWVCommandType          rwvCommand,
+                                                         uint64_t                 startingLBA,
+                                                         uint64_t                 timeInSeconds,
+                                                         uint16_t                 errorLimit,
+                                                         bool                     stopOnError,
+                                                         bool                     repairOnTheFly,
+                                                         bool                     repairAtEnd,
+                                                         custom_Update M_NULLABLE updateFunction,
+                                                         void* M_NULLABLE         updateData,
+                                                         bool                     hideLBACounter);
 
     typedef enum eZeroVerifyTestTypeEnum
     {
@@ -1004,17 +974,16 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues zero_Verify_Test(tDevice*            device,
-                                                          eZeroVerifyTestType zeroVerifyTestType,
-                                                          bool                hideLBACounter);
+    OPENSEA_OPERATIONS_API eReturnValues zero_Verify_Test(const tDevice* M_NONNULL device,
+                                                          eZeroVerifyTestType      zeroVerifyTestType,
+                                                          bool                     hideLBACounter);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues full_Zero_Verify_Test(tDevice* device, bool hideLBACounter);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues full_Zero_Verify_Test(const tDevice* M_NONNULL device, bool hideLBACounter);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues quick_Zero_Verify_Test(tDevice* device, bool hideLBACounter);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues quick_Zero_Verify_Test(const tDevice* M_NONNULL device, bool hideLBACounter);
 
 #if defined(__cplusplus)
 }

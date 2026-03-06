@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2021-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,8 +22,7 @@ extern "C"
 {
 #endif
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Persistent_Reservations_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Persistent_Reservations_Supported(const tDevice* M_NONNULL device);
 
     // The enum below can be used to specify which type of reservation is used. NOTE: These are not defined to values
     // for NVMe or SCSI since they are different so that they can be translated as necessary for the device type.
@@ -120,52 +119,51 @@ extern "C"
         reservationTypesSupported reservationsCapabilities;
     } persistentReservationCapabilities, *ptrPersistentReservationCapabilities;
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API eReturnValues
-    get_Persistent_Reservations_Capabilities(tDevice* device, ptrPersistentReservationCapabilities prCapabilities);
+    get_Persistent_Reservations_Capabilities(const tDevice* M_NONNULL                       device,
+                                             ptrPersistentReservationCapabilities M_NONNULL prCapabilities);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API
-    void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities);
+    void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities M_NONNULL prCapabilities);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Registration_Key_Count(tDevice* device, uint16_t* keyCount);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Registration_Key_Count(const tDevice* M_NONNULL device,
+                                                                    uint16_t* M_NONNULL      keyCount);
 
 #define REGISTRATION_KEY_DATA_VERSION 1
 
     typedef struct s_registrationKeysData
     {
-        size_t   size;
-        uint32_t version;
-        uint32_t generation;         // counter that updates each time new registration is added or removed
-        uint16_t numberOfKeys;       // number of keys reported below
-        uint64_t registrationKey[1]; // This is variable sized depending on how many are requested to be read and how
-                                     // many are filled in when read.
+        size_t                   size;
+        uint32_t                 version;
+        uint32_t                 generation;   // counter that updates each time new registration is added or removed
+        uint16_t                 numberOfKeys; // number of keys reported below
+        M_STRICT_FLEX_ARRAY_AUTO M_COUNTED_BY(numberOfKeys) uint64_t
+            registrationKey[FLEX_ARRAY]; // This is variable sized depending on how many are requested to be read and
+                                         // how many are filled in when read.
     } registrationKeysData, *ptrRegistrationKeysData;
 
-    static M_INLINE void safe_free_registration_key_data(registrationKeysData** regKeyData)
+    static M_INLINE void safe_free_registration_key_data(registrationKeysData* M_NULLABLE* M_NULLABLE regKeyData)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, regKeyData));
     }
 
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_Registration_Keys(tDevice*                device,
-                                                               uint16_t                numberOfKeys,
-                                                               ptrRegistrationKeysData keys);
+    OPENSEA_OPERATIONS_API eReturnValues get_Registration_Keys(const tDevice* M_NONNULL          device,
+                                                               uint16_t                          numberOfKeys,
+                                                               ptrRegistrationKeysData M_NONNULL keys);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Registration_Keys(ptrRegistrationKeysData keys);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Registration_Keys(ptrRegistrationKeysData M_NONNULL keys);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Reservation_Count(tDevice* device, uint16_t* reservationKeyCount);
+    OPENSEA_OPERATIONS_API eReturnValues get_Reservation_Count(const tDevice* M_NONNULL device,
+                                                               uint16_t* M_NONNULL      reservationKeyCount);
 
     typedef struct s_reservationInfo
     {
@@ -184,28 +182,32 @@ extern "C"
         uint32_t version;
         uint32_t generation;
         uint16_t numberOfReservations; // will most likely be 0 or 1 since element and extent types are obsolete.
-        reservationInfo
-            reservation[1]; // variable length depending on how it was allocated. Should always be AT LEAST one of these
+        M_STRICT_FLEX_ARRAY_AUTO M_COUNTED_BY(numberOfReservations)
+            reservationInfo reservation[FLEX_ARRAY]; // variable length depending on how it was allocated. Should always
+                                                     // be AT LEAST one of these
     } reservationsData, *ptrReservationsData;
 
-    static M_INLINE void safe_free_reservation_data(reservationsData** resData)
+    static M_INLINE void safe_free_reservation_data(reservationsData* M_NULLABLE* M_NULLABLE resData)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, resData));
     }
 
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_Reservations(tDevice*            device,
-                                                          uint16_t            numberReservations,
-                                                          ptrReservationsData reservations);
+    OPENSEA_OPERATIONS_API eReturnValues get_Reservations(const tDevice* M_NONNULL      device,
+                                                          uint16_t                      numberReservations,
+                                                          ptrReservationsData M_NONNULL reservations);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData reservations);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData M_NONNULL reservations);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Full_Status_Key_Count(tDevice* device, uint16_t* keyCount);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Full_Status_Key_Count(const tDevice* M_NONNULL device,
+                                                                   uint16_t* M_NONNULL      keyCount);
+
+// NOTE: This is 24 bytes as that is the common size. iSCSI is variable in size, so it
+// will be truncated in this case -TJE
+#define RESERVATION_KEY_TRANSPORT_ID_MAX_LEN 24
 
     typedef struct s_fullReservationKeyInfo
     {
@@ -216,64 +218,66 @@ extern "C"
         eReservationScope scope;
         eReservationType  type;
         uint32_t          transportIDLength;
-        uint8_t transportID[24]; // NOTE: This is 24 bytes as that is the common size. iSCSI is variable in size, so it
-                                 // will be truncated in this case -TJE
+        uint8_t           transportID[RESERVATION_KEY_TRANSPORT_ID_MAX_LEN];
     } fullReservationKeyInfo;
 
 #define FULL_RESERVATION_INFO_VERSION 1
 
     typedef struct s_fullReservationInfo
     {
-        size_t   size;
-        uint32_t version;
-        uint32_t generation;
-        uint16_t numberOfKeys;
-        fullReservationKeyInfo
-            reservationKey[1]; // Variable size depending on how many will be reported by the device at a given time.
+        size_t                   size;
+        uint32_t                 version;
+        uint32_t                 generation;
+        uint16_t                 numberOfKeys;
+        M_STRICT_FLEX_ARRAY_AUTO M_COUNTED_BY(numberOfKeys)
+            fullReservationKeyInfo reservationKey[FLEX_ARRAY]; // Variable size depending on how many will be reported
+                                                               // by the device at a given time.
     } fullReservationInfo, *ptrFullReservationInfo;
 
-    static M_INLINE void safe_free_full_reservation_info(fullReservationInfo** resInfo)
+    static M_INLINE void safe_free_full_reservation_info(fullReservationInfo* M_NULLABLE* M_NULLABLE resInfo)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, resInfo));
     }
 
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(tDevice*               device,
-                                                         uint16_t               numberOfKeys,
-                                                         ptrFullReservationInfo fullReservation);
+    OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(const tDevice* M_NONNULL         device,
+                                                         uint16_t                         numberOfKeys,
+                                                         ptrFullReservationInfo M_NONNULL fullReservation);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInfo fullReservation);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInfo M_NONNULL fullReservation);
 
     // note: ignore existing may not be supported on older devices.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues register_Key(tDevice* device,
-                                                      uint64_t registrationKey,
-                                                      bool     allTargetPorts,
-                                                      bool     persistThroughPowerLoss,
-                                                      bool     ignoreExisting);
+    OPENSEA_OPERATIONS_API eReturnValues register_Key(const tDevice* M_NONNULL device,
+                                                      uint64_t                 registrationKey,
+                                                      bool                     allTargetPorts,
+                                                      bool                     persistThroughPowerLoss,
+                                                      bool                     ignoreExisting);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues unregister_Key(tDevice* device, uint64_t currentRegistrationKey);
-
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues acquire_Reservation(tDevice* device, uint64_t key, eReservationType resType);
+    OPENSEA_OPERATIONS_API eReturnValues unregister_Key(const tDevice* M_NONNULL device,
+                                                        uint64_t                 currentRegistrationKey);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues release_Reservation(tDevice* device, uint64_t key, eReservationType resType);
+    OPENSEA_OPERATIONS_API eReturnValues acquire_Reservation(const tDevice* M_NONNULL device,
+                                                             uint64_t                 key,
+                                                             eReservationType         resType);
 
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues clear_Reservations(tDevice* device, uint64_t key);
-
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues
-    preempt_Reservation(tDevice* device, uint64_t key, uint64_t preemptKey, bool abort, eReservationType resType);
+    OPENSEA_OPERATIONS_API eReturnValues release_Reservation(const tDevice* M_NONNULL device,
+                                                             uint64_t                 key,
+                                                             eReservationType         resType);
+
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues clear_Reservations(const tDevice* M_NONNULL device, uint64_t key);
+
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues preempt_Reservation(const tDevice* M_NONNULL device,
+                                                             uint64_t                 key,
+                                                             uint64_t                 preemptKey,
+                                                             bool                     abort,
+                                                             eReservationType         resType);
 
 #if defined(__cplusplus)
 }

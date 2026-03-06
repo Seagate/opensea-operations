@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,18 +24,18 @@
 
 #include "zoned_operations.h"
 
-eReturnValues get_Number_Of_Zones(tDevice*              device,
+eReturnValues get_Number_Of_Zones(const tDevice*        device,
                                   eZoneReportingOptions reportingOptions,
                                   uint64_t              startingLBA,
                                   uint32_t*             numberOfMatchingZones)
 {
     eReturnValues ret = SUCCESS;
-    DISABLE_NONNULL_COMPARE
+
     if (numberOfMatchingZones == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     DECLARE_ZERO_INIT_ARRAY(uint8_t, reportZones, LEGACY_DRIVE_SEC_SIZE);
     uint32_t zoneListLength = UINT32_C(0);
     if (device->drive_info.drive_type == ATA_DRIVE)
@@ -60,7 +60,7 @@ eReturnValues get_Number_Of_Zones(tDevice*              device,
     return SUCCESS;
 }
 
-eReturnValues get_Zone_Descriptors(tDevice*              device,
+eReturnValues get_Zone_Descriptors(const tDevice*        device,
                                    eZoneReportingOptions reportingOptions,
                                    uint64_t              startingLBA,
                                    uint32_t              numberOfZoneDescriptors,
@@ -70,12 +70,12 @@ eReturnValues get_Zone_Descriptors(tDevice*              device,
     uint8_t*      reportZones        = M_NULLPTR;
     uint32_t      sectorCount        = get_Sector_Count_For_512B_Based_XFers(device);
     uint32_t      dataBytesToRequest = numberOfZoneDescriptors * UINT32_C(64);
-    DISABLE_NONNULL_COMPARE
+
     if (zoneDescriptors == M_NULLPTR || numberOfZoneDescriptors == UINT32_C(0))
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     reportZones = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE * uint32_to_sizet(sectorCount),
                                                                    sizeof(uint8_t), device->os_info.minimumAlignment));
     if (reportZones == M_NULLPTR)
@@ -268,19 +268,19 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
                             uint32_t              numberOfZoneDescriptors,
                             ptrZoneDescriptor     zoneDescriptors)
 {
-    printf("=======Key======\n");
-    printf("\tZone Type:\n");
-    printf("\t  CONV - Conventional\n");
-    printf("\t  SWP  - Sequential write preferred\n");
-    printf("\t  SWR  - Sequential write required\n");
-    printf("\t  SOBR - Sequential or before required\n");
-    printf("\t  GAP  - Gap\n");
-    printf("\t  RESV - Reserved\n");
-    printf("\tAttributes:\n");
-    printf("\t  R - RESET bit, RWP Recommended\n");
-    printf("\t  N - NON_SEQ bit, Non-Sequential Write Resources Active\n");
-    printf("\t  P - PREDICTED UNRECOVERED ERRORS bit, Predicted Unrecovered Errors Present\n");
-    printf("--------------------------------------------------------------------------------\n");
+    print_str("=======Key======\n");
+    print_str("\tZone Type:\n");
+    print_str("\t  CONV - Conventional\n");
+    print_str("\t  SWP  - Sequential write preferred\n");
+    print_str("\t  SWR  - Sequential write required\n");
+    print_str("\t  SOBR - Sequential or before required\n");
+    print_str("\t  GAP  - Gap\n");
+    print_str("\t  RESV - Reserved\n");
+    print_str("\tAttributes:\n");
+    print_str("\t  R - RESET bit, RWP Recommended\n");
+    print_str("\t  N - NON_SEQ bit, Non-Sequential Write Resources Active\n");
+    print_str("\t  P - PREDICTED UNRECOVERED ERRORS bit, Predicted Unrecovered Errors Present\n");
+    print_str("--------------------------------------------------------------------------------\n");
 #define SHOWING_ZONES_STRING_LENGTH 40
     DECLARE_ZERO_INIT_ARRAY(char, showingZones, SHOWING_ZONES_STRING_LENGTH);
     switch (reportingOptions)
@@ -322,13 +322,13 @@ void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
         snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
         break;
     }
-    DISABLE_NONNULL_COMPARE
+
     if (zoneDescriptors == M_NULLPTR)
     {
         perror("bad pointer to zoneDescriptors");
         return;
     }
-    RESTORE_NONNULL_COMPARE
+
     printf("\n===%s===\n", showingZones);
 
     printf("%-4s  %-17s  %-4s  %-15s  %-7s  %-15s\n", "Type", "Zone Condition", "Attr", "Start LBA", "Length",

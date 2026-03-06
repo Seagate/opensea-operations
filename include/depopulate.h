@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Depopulation_Feature_Supported(tDevice *device, uint64_t *depopulationTime)
+    //  is_Depopulation_Feature_Supported(const tDevice *device, uint64_t *depopulationTime)
     //
     //! \brief   Description: Check if the depopulate feature is supported
     //
@@ -36,14 +36,14 @@ extern "C"
     //!   \return true = depopulate supported, false = not supported.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API bool is_Depopulation_Feature_Supported(tDevice* device, uint64_t* depopulationTime);
+    OPENSEA_OPERATIONS_API bool is_Depopulation_Feature_Supported(const tDevice* M_NONNULL device,
+                                                                  uint64_t* M_NULLABLE     depopulationTime);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Number_Of_Descriptors(tDevice *device, uint32_t *numberOfDescriptors)
+    //  get_Number_Of_Descriptors(const tDevice *device, uint32_t *numberOfDescriptors)
     //
     //! \brief   Description: Get the number of physical element descriptors supported, to allocate memory before
     //! reading them
@@ -57,10 +57,10 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Descriptors(tDevice* device, uint32_t* numberOfDescriptors);
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Descriptors(const tDevice* M_NONNULL device,
+                                                                   uint32_t* M_NONNULL      numberOfDescriptors);
 
     typedef enum ePhysicalElementTypeEnum
     {
@@ -77,14 +77,14 @@ extern "C"
         bool restorationAllowed; // can run the Restore elements and rebuild and this element will return to use.
     } physicalElement, *ptrPhysicalElement;
 
-    static M_INLINE void safe_free_physical_element(physicalElement** pe)
+    static M_INLINE void safe_free_physical_element(physicalElement* M_NULLABLE* M_NULLABLE pe)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, pe));
     }
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Physical_Element_Descriptors(tDevice *device, uint32_t numberOfElementsExpected, ptrPhysicalElement
+    //  get_Physical_Element_Descriptors(const tDevice *device, uint32_t numberOfElementsExpected, ptrPhysicalElement
     //  elementList)
     //
     //! \brief   Description: Get the physical element descriptors from a drive
@@ -98,25 +98,24 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_Physical_Element_Descriptors(tDevice*           device,
-                                                                          uint32_t           numberOfElementsExpected,
-                                                                          ptrPhysicalElement elementList);
+    OPENSEA_OPERATIONS_API eReturnValues get_Physical_Element_Descriptors(const tDevice* M_NONNULL device,
+                                                                          uint32_t numberOfElementsExpected,
+                                                                          ptrPhysicalElement M_NONNULL elementList);
 
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_RW(3)
     M_PARAM_RW(4)
     M_PARAM_RW(5)
     M_PARAM_WO(6)
-    OPENSEA_OPERATIONS_API eReturnValues get_Physical_Element_Descriptors_2(tDevice*  device,
-                                                                            uint32_t  numberOfElementsExpected,
-                                                                            uint32_t* depopElementID,
-                                                                            uint16_t* maximumDepopulatedElements,
-                                                                            uint16_t* currentDepopulatedElements,
-                                                                            ptrPhysicalElement elementList);
+    OPENSEA_OPERATIONS_API eReturnValues
+    get_Physical_Element_Descriptors_2(const tDevice* M_NONNULL     device,
+                                       uint32_t                     numberOfElementsExpected,
+                                       uint32_t* M_NULLABLE         depopElementID,
+                                       uint16_t* M_NULLABLE         maximumDepopulatedElements,
+                                       uint16_t* M_NULLABLE         currentDepopulatedElements,
+                                       ptrPhysicalElement M_NONNULL elementList);
 
     //-----------------------------------------------------------------------------
     //
@@ -133,24 +132,22 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors(uint32_t           numberOfElements,
-                                                                  ptrPhysicalElement elementList,
-                                                                  uint64_t           depopulateTime);
+    OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors(uint32_t                     numberOfElements,
+                                                                  ptrPhysicalElement M_NONNULL elementList,
+                                                                  uint64_t                     depopulateTime);
 
-    M_NONNULL_PARAM_LIST(2)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors_2(uint32_t           numberOfElements,
-                                                                    ptrPhysicalElement elementList,
-                                                                    uint64_t           depopulateTime,
-                                                                    uint32_t           depopElementID,
-                                                                    uint16_t           maximumDepopulatedElements,
-                                                                    uint16_t           currentDepopulatedElements);
+    OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors_2(uint32_t                     numberOfElements,
+                                                                    ptrPhysicalElement M_NONNULL elementList,
+                                                                    uint64_t                     depopulateTime,
+                                                                    uint32_t                     depopElementID,
+                                                                    uint16_t maximumDepopulatedElements,
+                                                                    uint16_t currentDepopulatedElements);
 
     //-----------------------------------------------------------------------------
     //
-    //  depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
+    //  depopulate_Physical_Element(const tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA)
     //
     //! \brief   Description: Call this function to depopulate a physical element from use, optionally requesting a new
     //! max LBA
@@ -163,15 +160,14 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element(tDevice* device,
-                                                                     uint32_t elementDescriptorID,
-                                                                     uint64_t requestedMaxLBA);
+    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element(const tDevice* M_NONNULL device,
+                                                                     uint32_t                 elementDescriptorID,
+                                                                     uint64_t                 requestedMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Repopulate_Feature_Supported(tDevice *device, uint64_t *depopulationTime)
+    //  is_Repopulate_Feature_Supported(const tDevice *device, uint64_t *depopulationTime)
     //
     //! \brief   Description: Check if the Restore elements and rebuild commands are supported. Depopulation time is
     //! reported for time estimate if the pointer is valid
@@ -184,14 +180,14 @@ extern "C"
     //!   \return true = repopulate supported, false = not supported.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API bool is_Repopulate_Feature_Supported(tDevice* device, uint64_t* depopulationTime);
+    OPENSEA_OPERATIONS_API bool is_Repopulate_Feature_Supported(const tDevice* M_NONNULL device,
+                                                                uint64_t* M_NULLABLE     depopulationTime);
 
     //-----------------------------------------------------------------------------
     //
-    //  repopulate_Elements(tDevice *device)
+    //  repopulate_Elements(const tDevice *device)
     //
     //! \brief   Description: Call this function to repopulate (Restore elements and rebuild). NOTE: At least one
     //! element must be rebuildable or this will return an error
@@ -202,7 +198,7 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues repopulate_Elements(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues repopulate_Elements(const tDevice* M_NONNULL device);
 
     typedef enum eDepopStatusEnum
     {
@@ -217,7 +213,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Depopulate_Progress(tDevice *device, eDepopStatus *depopStatus, double *progress)
+    //  get_Depopulate_Progress(const tDevice *device, eDepopStatus *depopStatus, double *progress)
     //
     //! \brief   Description: Returns the depopulate status and progress info. Also used for repopulate.
     //
@@ -231,17 +227,16 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues get_Depopulate_Progress(tDevice*      device,
-                                                                 eDepopStatus* depopStatus,
-                                                                 double*       progress);
+    OPENSEA_OPERATIONS_API eReturnValues get_Depopulate_Progress(const tDevice* M_NONNULL device,
+                                                                 eDepopStatus* M_NONNULL  depopStatus,
+                                                                 double* M_NONNULL        progress);
 
     //-----------------------------------------------------------------------------
     //
-    //  show_Depop_Repop_Progress(tDevice *device)
+    //  show_Depop_Repop_Progress(const tDevice *device)
     //
     //! \brief   Description: Gets and shows the depop or repop status and progress to stdout
     //
@@ -251,13 +246,12 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Depop_Repop_Progress(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Depop_Repop_Progress(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  perform_Depopulate_Physical_Element(tDevice *device, uint32_t elementDescriptorID, uint64_t requestedMaxLBA,
-    //  bool pollForProgress)
+    //  perform_Depopulate_Physical_Element(const tDevice *device, uint32_t elementDescriptorID, uint64_t
+    //  requestedMaxLBA, bool pollForProgress)
     //
     //! \brief   Description: This function performs a full proccess of starting depopulation and checks to see if
     //! command was accepted or not and reasons for failure. Will also poll for progress until completed if specified.
@@ -272,14 +266,13 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element(tDevice* device,
+    OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element(const tDevice* M_NONNULL device,
                                                                              uint32_t elementDescriptorID,
                                                                              uint64_t requestedMaxLBA,
                                                                              bool     pollForProgress);
 
-    //! \fn eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
+    //! \fn eReturnValues perform_Depopulate_Physical_Element2(const tDevice* M_NONNULL device,
     //!                                                        uint32_t elementDescriptorID,
     //!                                                        uint64_t requestedMaxLBA,
     //!                                                        bool     pollForProgress,
@@ -296,9 +289,8 @@ extern "C"
     //! \param[in] modifyZones if true for a ZAC drive, this will run the remove and modify zones command instead of
     //!                        remove and truncate.
     //! \return SUCCESS = operation completed successfully. Any other code describes and error condition while running.
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element2(tDevice* device,
+    OPENSEA_OPERATIONS_API eReturnValues perform_Depopulate_Physical_Element2(const tDevice* M_NONNULL device,
                                                                               uint32_t elementDescriptorID,
                                                                               uint64_t requestedMaxLBA,
                                                                               bool     pollForProgress,
@@ -306,7 +298,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  perform_Repopulate_Physical_Element(tDevice *device, bool pollForProgress)
+    //  perform_Repopulate_Physical_Element(const tDevice *device, bool pollForProgress)
     //
     //! \brief   Description: This function performs a full start of repopulation and check to see if command was
     //! accepted or not and reasons for failure. Will also poll for progress until completed if specified.
@@ -319,20 +311,54 @@ extern "C"
     //!   \return SUCCESS = success, !SUCCESS = see error code, something went wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues perform_Repopulate_Physical_Element(tDevice* device, bool pollForProgress);
+    OPENSEA_OPERATIONS_API eReturnValues perform_Repopulate_Physical_Element(const tDevice* M_NONNULL device,
+                                                                             bool                     pollForProgress);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API bool is_Depopulate_And_Modify_Zones_Supported(tDevice* device, uint64_t* depopulationTime);
+    OPENSEA_OPERATIONS_API bool is_Depopulate_And_Modify_Zones_Supported(const tDevice* M_NONNULL device,
+                                                                         uint64_t* M_NULLABLE     depopulationTime);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element_And_Modify_Zones(tDevice* device,
+    OPENSEA_OPERATIONS_API eReturnValues depopulate_Physical_Element_And_Modify_Zones(const tDevice* M_NONNULL device,
                                                                                       uint32_t elementDescriptorID);
 
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_LBA_Status_Descriptors(const tDevice* M_NONNULL device,
+                                                                              uint64_t* M_NONNULL numberOfDescriptors);
+
+    typedef enum eLbaAccessibilityEnum
+    {
+        LBA_ACCESSIBILITY_NOT_REPORTED        = 0,
+        LBA_ACCESSIBILITY_UNACCESSIBLE        = 1,
+        LBA_ACCESSIBILITY_READ_ONLY           = 2,
+        LBA_ACCESSIBILITY_WITH_RISK           = 3,
+        LBA_ACCESSIBILITY_READ_ONLY_WITH_RISK = 4,
+    } eLbaAccessibility;
+
+    typedef struct s_lbaStatusDescriptor
+    {
+        uint64_t          startLba;
+        uint32_t          numberOfLbas;
+        eLbaAccessibility lbaAccessibility;
+        bool              trimStatus;
+    } lbaStatusDescriptor, *ptrLbaStatusDescriptor;
+
+    static M_INLINE void safe_free_lba_status(lbaStatusDescriptor* M_NULLABLE* M_NULLABLE ls)
+    {
+        safe_free_core(M_REINTERPRET_CAST(void**, ls));
+    }
+
+    M_PARAM_RO(1)
+    M_PARAM_WO(3)
+    OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M_NONNULL device,
+                                                                    uint64_t numberOfDescriptorsExpected,
+                                                                    ptrLbaStatusDescriptor M_NONNULL descriptorList);
+    M_PARAM_RO(2)
+    OPENSEA_OPERATIONS_API void show_LBA_Status_Descriptors(uint64_t                         numberOfDescriptors,
+                                                            ptrLbaStatusDescriptor M_NONNULL elementList);
 #if defined(__cplusplus)
 }
 #endif

@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -399,27 +399,25 @@ extern "C"
         };
     } deviceStatistics, *ptrDeviceStatistics;
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
+    OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                                              ptrDeviceStatistics M_NONNULL deviceStats);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(tDevice* device, ptrDeviceStatistics deviceStats);
+    OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                                                ptrDeviceStatistics M_NONNULL deviceStats);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    bool is_Timestamp_Supported(tDevice* device);
+    bool is_Timestamp_Supported(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    eReturnValues set_Date_And_Time_Timestamp(tDevice* device);
+    eReturnValues set_Date_And_Time_Timestamp(const tDevice* M_NONNULL device);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    eReturnValues ata_Device_Statistics_Reinitialize(tDevice* device, eDeviceStatisticsLog reinitializeRequest);
+    eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* M_NONNULL device,
+                                                     eDeviceStatisticsLog     reinitializeRequest);
 
 #if defined(__cplusplus)
 }

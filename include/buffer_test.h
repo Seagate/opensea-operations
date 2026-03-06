@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,7 +56,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  perform_Cable_Test(tDevice *device, ptrCableTestResults testResults)
+    //  perform_Cable_Test(const tDevice *device, ptrCableTestResults testResults)
     //
     //! \brief   Description: Perform a cable/buffer test using read/write buffer commands to check for mismatches and
     //! other bus errors
@@ -69,8 +69,9 @@ extern "C"
     //!   \return SUCCESS = pass, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
-    M_PARAM_RO(1) M_PARAM_WO(2) eReturnValues perform_Cable_Test(tDevice* device, ptrCableTestResults testResults);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    eReturnValues perform_Cable_Test(const tDevice* M_NONNULL device, ptrCableTestResults M_NONNULL testResults);
 
     //-----------------------------------------------------------------------------
     //
@@ -84,7 +85,7 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    void print_Cable_Test_Results(cableTestResults testResults);
+    OPENSEA_OPERATIONS_API void print_Cable_Test_Results(cableTestResults testResults);
 
 #if defined(__cplusplus)
 }

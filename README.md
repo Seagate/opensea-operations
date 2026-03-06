@@ -2,7 +2,7 @@
 
 ## Cross platform library for storage device operations across various interfaces and device types.
 
-### Copyright (c) 2014-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+### Copyright (c) 2014-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 
 Welcome to opensea-operations, part of the openSeaChest open source project!
 You can find the openSeaChest project [here](https://github.com/Seagate/openSeaChest).

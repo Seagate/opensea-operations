@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
+    //  ata_Get_Native_Max_LBA(const tDevice *device, uint64_t *nativeMaxLBA)
     //
     //! \brief   Gets the native maxLBA from an ATA device with the HPA or AMA feature set
     //
@@ -37,13 +37,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues ata_Get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues ata_Get_Native_Max_LBA(const tDevice* M_NONNULL device,
+                                                                uint64_t* M_NONNULL      nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Get_Native_Max_LBA(tDevice *device, uint64_t *nativeMaxLBA)
+    //  ata_Get_Native_Max_LBA(const tDevice *device, uint64_t *nativeMaxLBA)
     //
     //! \brief   Gets the native maxLBA for the specified device.
     //
@@ -56,13 +57,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_WO(2) OPENSEA_OPERATIONS_API eReturnValues get_Native_Max_LBA(tDevice* device, uint64_t* nativeMaxLBA);
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues get_Native_Max_LBA(const tDevice* M_NONNULL device,
+                                                            uint64_t* M_NONNULL      nativeMaxLBA);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Set_Max_LBA_2( tDevice * device )
+    //  scsi_Set_Max_LBA_2( tDevice* M_NONNULL device )
     //
     //! \brief   Sets the maxLBA of the selected device using SCSI methods
     //
@@ -77,22 +79,22 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA_2(tDevice* device,
-                                                            uint64_t newMaxLBA,
-                                                            bool     reset,
-                                                            bool     changeId);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA_2(const tDevice* M_NONNULL device,
+                                                            uint64_t                 newMaxLBA,
+                                                            bool                     reset,
+                                                            bool                     changeId);
 
     // deprecated wrapper for scsi_Set_Max_LBA_2
     // TODO: remove me when next major version bump
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA(const tDevice* M_NONNULL device,
+                                                          uint64_t                 newMaxLBA,
+                                                          bool                     reset);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Set_Max_LBA_2( tDevice * device )
+    //  ata_Set_Max_LBA_2( tDevice* M_NONNULL device )
     //
     //! \brief   Sets the maxLBA of the selected device using HPA or AMA feature sets
     //
@@ -107,21 +109,22 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA_2(tDevice* device,
-                                                           uint64_t newMaxLBA,
-                                                           bool     reset,
-                                                           bool     changeId);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA_2(const tDevice* M_NONNULL device,
+                                                           uint64_t                 newMaxLBA,
+                                                           bool                     reset,
+                                                           bool                     changeId);
 
     // deprecated wrapper for ata_Set_Max_LBA_2
     // TODO: remove me when next major version bump
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues ata_Set_Max_LBA(const tDevice* M_NONNULL device,
+                                                         uint64_t                 newMaxLBA,
+                                                         bool                     reset);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_Max_LBA_2( tDevice * device )
+    //  set_Max_LBA_2( tDevice* M_NONNULL device )
     //
     //! \brief   Sets the maxLBA of the selected device. This will work with new and old methods.
     //!          If ATA, we have only implemented the legacy method for 48bit drives
@@ -137,18 +140,20 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA_2(tDevice* device, uint64_t newMaxLBA, bool reset, bool changeId);
+    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA_2(const tDevice* M_NONNULL device,
+                                                       uint64_t                 newMaxLBA,
+                                                       bool                     reset,
+                                                       bool                     changeId);
 
     // deprecated wrapper for set_Max_LBA_2
     // TODO: remove me when next major version bump
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA(tDevice* device, uint64_t newMaxLBA, bool reset);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_Max_LBA(const tDevice* M_NONNULL device, uint64_t newMaxLBA, bool reset);
 
     //-----------------------------------------------------------------------------
     //
-    //  restore_Max_LBA_For_Erase(tDevice* device)
+    //  restore_Max_LBA_For_Erase(const tDevice* M_NONNULL device)
     //
     //! \brief   This function is specifically named since it has a main purpose: restoring max LBA to erase a drive as
     //! much as possible
@@ -164,12 +169,11 @@ extern "C"
     //!   maxLBA
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues restore_Max_LBA_For_Erase(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues restore_Max_LBA_For_Erase(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device)
+    //  bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(const tDevice* M_NONNULL device)
     //
     //! \brief   This function checks if the adapter and device are reporting the same maxLBA to the host.
     //!          SATA drives behind USB adapters or SAS HBAs work through a SATL (translator) that may not be in sync
@@ -188,9 +192,9 @@ extern "C"
     //!   knowledge of the device.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(tDevice* device, bool issueReset);
+    OPENSEA_OPERATIONS_API bool is_Max_LBA_In_Sync_With_Adapter_Or_Driver(const tDevice* M_NONNULL device,
+                                                                          bool                     issueReset);
 
     typedef struct s_capacityModelDescriptor
     {
@@ -198,23 +202,23 @@ extern "C"
         char     modelNumber[MODEL_NUM_LEN + 1]; // Null terminated
     } capacityModelDescriptor, *ptrDriveCapacityModelDescriptor;
 
+    // NOTE: This must be allocated based on how many descriptors are actually available!
+    // ex: malloc(sizeof(capacityModelNumberMapping) +
+    // (get_capacityModelDescriptor_Count() * sizeof(capacityModelDescriptor)));
     typedef struct s_capacityModelNumberMapping
     {
-        uint32_t numberOfDescriptors;
-        capacityModelDescriptor
-            descriptor[1]; // NOTE: This must be allocated based on how many descriptors are actually available! ex:
-                           // malloc(sizeof(capacityModelNumberMapping) + (get_capacityModelDescriptor_Count() *
-                           // sizeof(capacityModelDescriptor)));
+        uint32_t                 numberOfDescriptors;
+        M_STRICT_FLEX_ARRAY_AUTO M_COUNTED_BY(numberOfDescriptors) capacityModelDescriptor descriptor[FLEX_ARRAY];
     } capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
 
-    static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping** mnmap)
+    static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping* M_NULLABLE* M_NULLABLE mnmap)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, mnmap));
     }
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Change_Identify_String_Supported(tDevice *device)
+    //  is_Change_Identify_String_Supported(const tDevice *device)
     //
     //! \brief   Description:  Checks if the device supports Change ID Strings.
     //
@@ -225,12 +229,11 @@ extern "C"
     //!   \return true = changing sector size supported, false = not supported
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Change_Identify_String_Supported(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Change_Identify_String_Supported(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Capacity_Model_Number_Mapping(tDevice* device)
+    //  get_Capacity_Model_Number_Mapping(const tDevice* M_NONNULL device)
     //
     //! \brief   Description:  This function fills in Capacity/Product Mapping
     //
@@ -241,10 +244,9 @@ extern "C"
     //!   \return SUCCESS = pointer to the struct to fill in with Capacity/Product Mapping, FAILURE = M_NULLPTR.
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(tDevice* device);
-
+    OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping M_NULLABLE
+    get_Capacity_Model_Number_Mapping(const tDevice* M_NONNULL device);
     //-----------------------------------------------------------------------------
     //
     //  delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping)
@@ -257,14 +259,13 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_WO(1)
-    OPENSEA_OPERATIONS_API void delete_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
+    OPENSEA_OPERATIONS_API void delete_Capacity_Model_Number_Mapping(
+        ptrcapacityModelNumberMapping M_NONNULL capModelMapping);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API void print_Capacity_Model_Number_Mapping(ptrcapacityModelNumberMapping capModelMapping);
-
+    OPENSEA_OPERATIONS_API void print_Capacity_Model_Number_Mapping(
+        ptrcapacityModelNumberMapping M_NONNULL capModelMapping);
 #if defined(__cplusplus)
 }
 #endif

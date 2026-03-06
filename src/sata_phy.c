@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2024-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2024-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,13 +28,12 @@
 #include "ata_helper_func.h"
 #include "sata_phy.h"
 
-M_NONNULL_PARAM_LIST(1, 2)
 M_PARAM_WO(1)
-static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters counters,
-                                                       uint8_t*                phyEventLog,
-                                                       uint32_t                dataLength)
+static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters M_NONNULL counters,
+                                                       uint8_t* M_NONNULL                phyEventLog,
+                                                       uint32_t                          dataLength)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (counters != M_NULLPTR && phyEventLog != M_NULLPTR && dataLength >= ATA_LOG_PAGE_LEN_BYTES)
     {
         uint32_t firstInvalidSector = UINT32_C(0);
@@ -107,18 +106,18 @@ static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters c
             counters->numberOfCounters += 1;
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters /* optional */)
+eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          device,
+                                                   ptrSATAPhyEventCounters counters /* optional */)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (device == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
@@ -140,15 +139,15 @@ eReturnValues reinitialize_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEv
     return ret;
 }
 
-eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounters counters)
+eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEventCounters counters)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    DISABLE_NONNULL_COMPARE
+
     if (device == M_NULLPTR || counters == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
-    RESTORE_NONNULL_COMPARE
+
     if (device->drive_info.drive_type == ATA_DRIVE)
     {
         // check the ID bits that show this is supported, then just read the page.
@@ -171,17 +170,17 @@ eReturnValues get_SATA_Phy_Event_Counters(tDevice* device, ptrSATAPhyEventCounte
 
 void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
 {
-    DISABLE_NONNULL_COMPARE
+
     if (counters != M_NULLPTR && counters->valid)
     {
-        printf("\n====SATA Phy Event Counters====\n");
-        printf("V = Vendor Unique event tracker\n");
-        printf("M = Counter maximum value reached\n");
-        printf("D2H = Device to Host\n");
-        printf("H2D = Host to Device\n");
+        print_str("\n====SATA Phy Event Counters====\n");
+        print_str("V = Vendor Unique event tracker\n");
+        print_str("M = Counter maximum value reached\n");
+        print_str("D2H = Device to Host\n");
+        print_str("H2D = Host to Device\n");
         // Figure out how to keep names of each event short before printing them out. -TJE
 
-        printf("    ID                Value Description\n");
+        print_str("    ID                Value Description\n");
         for (uint16_t iter = UINT16_C(0); iter < counters->numberOfCounters; ++iter)
         {
             char vendorEvent = ' ';
@@ -286,8 +285,7 @@ void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
         }
         if (!counters->validChecksumReceived)
         {
-            printf("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
+            print_str("\nWARNING: Invalid checksum was received. Data may not be accurate!\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }

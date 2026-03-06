@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -41,19 +41,29 @@ extern "C"
         FWDL_UPDATE_MODE_AUTOMATIC = 0xFF // This will look up the best possible mode for you!
     } eFirmwareUpdateMode;
 
+//! \def FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO
+//! \brief automatically chooses the size for you based on drive reporting and
+//! known OS limitations
+#define FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO (0)
+
+//! \def DEFAULT_FWDL_SEGMENT_SIZE
+//! \brief the default segment size used if \a FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO
+//! is specified. This is 32k per segment.
+#define DEFAULT_FWDL_SEGMENT_SIZE    (64)
+
 #define FIRMWARE_UPDATE_DATA_VERSION 3
 
     typedef struct s_firmwareUpdateData
     {
-        size_t              size;      // set to sizeof(firmwareUpdateData)
-        uint32_t            version;   // set to FIRMWARE_UPDATE_DATA_VERSION
-        eFirmwareUpdateMode dlMode;    // Use mode in new enum above. Should be backwards compatible, but recommend
-                                       // migrating to this new one instead!
-        uint16_t segmentSize;          // size of segments to use when doing segmented. If 0, will use 64.
-        uint8_t* firmwareFileMem;      // pointer to the firmware file read into memory to send to the drive.
-        uint32_t firmwareMemoryLength; // length of the memory the firmware file was read into. This should be a
-                                       // multiple of 512B sizes...
-        uint64_t avgSegmentDlTime;     // stores the average segment time for the download
+        size_t              size;        // set to sizeof(firmwareUpdateData)
+        uint32_t            version;     // set to FIRMWARE_UPDATE_DATA_VERSION
+        eFirmwareUpdateMode dlMode;      // Use mode in new enum above. Should be backwards compatible, but recommend
+                                         // migrating to this new one instead!
+        uint16_t            segmentSize; // size of segments to use when doing segmented. If 0, will use 64.
+        uint8_t* M_NULLABLE firmwareFileMem; // pointer to the firmware file read into memory to send to the drive.
+        uint32_t firmwareMemoryLength;       // length of the memory the firmware file was read into. This should be a
+                                             // multiple of 512B sizes...
+        uint64_t avgSegmentDlTime;           // stores the average segment time for the download
         uint64_t activateFWTime; // stores the amount of time it took to issue the last segment and activate the new
                                  // code (on segmented). On deferred this is only the time to activate.
         union
@@ -61,7 +71,7 @@ extern "C"
             uint8_t firmwareSlot; // NVMe
             uint8_t bufferID;     // SCSI
         };
-        bool existingFirmwareImage; // set to true means you are activiting an existing firmware image in the specified
+        bool existingFirmwareImage; // set to true means you are activating an existing firmware image in the specified
                                     // slot. - NVMe only
         bool ignoreStatusOfFinalSegment; // This is a legacy compatibility option. Some old drives do not return status
                                          // on the last segment, but the download is successful and this ignores the
@@ -85,9 +95,10 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
-    M_PARAM_RO(2) OPENSEA_OPERATIONS_API eReturnValues firmware_Download(tDevice* device, firmwareUpdateData* options);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL      device,
+                                                           firmwareUpdateData* M_NONNULL options);
 
     // See extended inquiry VPD page in SPC spec for details
     typedef enum eSCSIMicrocodeActivationEnum
@@ -151,7 +162,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  get_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
+    //  get_Supported_FWDL_Modes(const tDevice *device, ptrSupportedDLModes supportedModes)
     //
     //! \brief   Description:  This function will print out the supported firmware information reported by the drive.
     //!          Note: For SAS, this may not be accurate on older products that don't support the "report supported
@@ -167,14 +178,14 @@ extern "C"
     //!   \return SUCCESS on successful completion, FAILURE = fail
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RW(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                                  ptrSupportedDLModes M_NONNULL supportedModes);
 
     //-----------------------------------------------------------------------------
     //
-    //  show_Supported_FWDL_Modes(tDevice *device, ptrSupportedDLModes supportedModes)
+    //  show_Supported_FWDL_Modes(const tDevice *device, ptrSupportedDLModes supportedModes)
     //
     //! \brief   Description:  This function will print out the supported firmware information reported by the drive.
     //
@@ -186,11 +197,32 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(tDevice* device, ptrSupportedDLModes supportedModes);
+    OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                          ptrSupportedDLModes M_NONNULL supportedModes);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_fwdl_segment_size()
+    //
+    //! \brief   Description:  This function takes a device handle, requestedSize, and fwdlSupport, and finds the
+    //! firmware download segment size
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] requestedSize = request size
+    //!   \param[in] supportedModes = supported DL modes structure that will be filled in with valid
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_NONNULL_PARAM_LIST(1)
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice* M_NONNULL device,
+                                                          uint16_t                 requestedSize,
+                                                          supportedDLModes         fwdlSupport);
 #if defined(__cplusplus)
 }
 #endif

@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -95,7 +95,7 @@ extern "C"
                    /*!< CDL Time Field Reserved Unit. */
                    CDL_TIME_FIELD_UNIT_TYPE_RESERVED = 7);
 
-    typedef struct _tCDLDescriptor
+    typedef struct s_tCDLDescriptor
     {
         eCDLTimeFieldUnitType timeFieldUnitType;
         uint8_t               inactiveTimePolicy;
@@ -114,7 +114,7 @@ extern "C"
         };
     } tCDLDescriptor;
 
-    typedef struct _tATACDLSettings
+    typedef struct s_tATACDLSettings
     {
         bool           isCommandDurationGuidelineSupported;
         uint32_t       minimumTimeLimit;
@@ -127,14 +127,14 @@ extern "C"
         tCDLDescriptor cdlWriteDescriptor[MAX_CDL_WRITE_DESCRIPTOR];
     } tATACDLSettings;
 
-    typedef struct _tSCSICDLSettings
+    typedef struct s_tSCSICDLSettings
     {
         uint8_t        performanceVsCommandDurationGuidelines;
         tCDLDescriptor cdlT2ADescriptor[MAX_CDL_T2A_DESCRIPTOR];
         tCDLDescriptor cdlT2BDescriptor[MAX_CDL_T2B_DESCRIPTOR];
     } tSCSICDLSettings;
 
-    typedef struct _tCDLSettings
+    typedef struct s_tCDLSettings
     {
         bool isSupported;
         bool isEnabled;
@@ -145,44 +145,41 @@ extern "C"
         };
     } tCDLSettings;
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(tDevice* device, eCDLFeatureSet countField);
+    OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(const tDevice* M_NONNULL device,
+                                                                    eCDLFeatureSet           countField);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(const tDevice* M_NONNULL device,
+                                                          tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(const tDevice* M_NONNULL device,
+                                                            tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(const tDevice* M_NONNULL device,
+                                                             tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(tDevice* device, tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                      tCDLSettings* M_NONNULL  cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API bool is_Total_Time_Policy_Type_Supported(tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API bool is_Total_Time_Policy_Type_Supported(tCDLSettings* M_NONNULL cdlSettings);
 
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* cdlSettings);
+    OPENSEA_OPERATIONS_API bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* M_NONNULL cdlSettings);
 
-    M_NONNULL_PARAM_LIST(4)
     M_PARAM_RW(4)
-    OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType     driveType,
-                                                            eCDLPolicyType policyType,
-                                                            uint16_t       policySupportedDescriptor,
-                                                            char*          policyString);
+    OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType      driveType,
+                                                            eCDLPolicyType  policyType,
+                                                            uint16_t        policySupportedDescriptor,
+                                                            char* M_NONNULL policyString);
 
     OPENSEA_OPERATIONS_API uint32_t convert_CDL_TimeField_To_Microseconds(eCDLTimeFieldUnitType unitType,
                                                                           uint32_t              value);

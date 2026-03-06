@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,7 +25,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  is_Trim_Or_Unmap_Supported( tDevice * device )
+    //  is_Trim_Or_Unmap_Supported( tDevice* M_NONNULL device )
     //
     //! \brief   Get whether a device supports TRIM (ATA) or UNMAP (SCSI) commands. Can also tell you how many
     //! descriptors can be specified in the command.
@@ -42,17 +42,16 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 2, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API bool is_Trim_Or_Unmap_Supported(tDevice*  device,
-                                                           uint32_t* maxTrimOrUnmapBlockDescriptors,
-                                                           uint32_t* maxLBACount);
+    OPENSEA_OPERATIONS_API bool is_Trim_Or_Unmap_Supported(const tDevice* M_NONNULL device,
+                                                           uint32_t* M_NONNULL      maxTrimOrUnmapBlockDescriptors,
+                                                           uint32_t* M_NONNULL      maxLBACount);
 
     //-----------------------------------------------------------------------------
     //
-    //  trim_unmap_range( tDevice * device )
+    //  trim_unmap_range( tDevice* M_NONNULL device )
     //
     //! \brief   TRIM or UNMAP a range of LBAs from a starting LBA until the end of the range. This will auto detect ATA
     //! vs SCSI to send the appropriate command
@@ -66,13 +65,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(const tDevice* M_NONNULL device,
+                                                          uint64_t                 startLBA,
+                                                          uint64_t                 range);
 
     //-----------------------------------------------------------------------------
     //
-    //  scsi_Unmap_Range( tDevice * device )
+    //  scsi_Unmap_Range( tDevice* M_NONNULL device )
     //
     //! \brief   UNMAP a range of LBAs from a starting LBA until the end of the range. This will send the SCSI unmap
     //! command, possibly multiple times depending on the range. A SAT driver or interface may translate this to an ATA
@@ -87,13 +87,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(const tDevice* M_NONNULL device,
+                                                          uint64_t                 startLBA,
+                                                          uint64_t                 range);
 
     //-----------------------------------------------------------------------------
     //
-    //  ata_Trim_Range( tDevice * device )
+    //  ata_Trim_Range( tDevice* M_NONNULL device )
     //
     //! \brief   TRIM a range of LBAs from a starting LBA until the end of the range. This will send the ATA data set
     //! management command with the TRIM bit set, possibly multiple times depending on the range.
@@ -107,13 +108,14 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(const tDevice* M_NONNULL device,
+                                                        uint64_t                 startLBA,
+                                                        uint64_t                 range);
 
     //-----------------------------------------------------------------------------
     //
-    //  nvme_Deallocate_Range( tDevice * device )
+    //  nvme_Deallocate_Range( tDevice* M_NONNULL device )
     //
     //! \brief   Deallocate a range of LBAs from a starting LBA until the end of the range. This will send the NVMe data
     //! set management command with the deallocate bit set. Currently, this will only issue a single command. NOTE:
@@ -128,9 +130,10 @@ extern "C"
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(tDevice* device, uint64_t startLBA, uint64_t range);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(const tDevice* M_NONNULL device,
+                                                               uint64_t                 startLBA,
+                                                               uint64_t                 range);
 
 #if defined(__cplusplus)
 }

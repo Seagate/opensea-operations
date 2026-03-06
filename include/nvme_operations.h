@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -35,9 +35,9 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_ERROR_Log_Page(tDevice* device, uint64_t numOfErrToPrint);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_ERROR_Log_Page(const tDevice* M_NONNULL device,
+                                                                   uint64_t                 numOfErrToPrint);
 
     //-----------------------------------------------------------------------------
     //
@@ -52,8 +52,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
@@ -68,8 +67,7 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_CmdSptEfft_Log_Page(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_CmdSptEfft_Log_Page(const tDevice* M_NONNULL device);
 
     OPENSEA_OPERATIONS_API void show_effects_log_human(uint32_t effect);
 
@@ -86,11 +84,9 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_DevSelfTest_Log_Page(tDevice* device);
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_DevSelfTest_Log_Page(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
-    //
     //  nvme_Print_Feature_Identifiers_Help
     //
     //! \brief   Description:  Function to print Help info for Feature Identifiers
@@ -117,9 +113,8 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tDevice* M_NONNULL device,
                                                                             eNvmeFeaturesSelectValue selectType,
                                                                             bool listOnlySupportedFeatures);
 
@@ -138,18 +133,16 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1)
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Feature_Details(tDevice*                 device,
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Feature_Details(const tDevice* M_NONNULL device,
                                                                     uint8_t                  featureID,
                                                                     eNvmeFeaturesSelectValue selectType);
 
-    // \fn print_Nvme_Ctrl_Regs(tDevice * device)
+    // \fn print_Nvme_Ctrl_Regs(const tDevice* M_NONNULL device)
     // \brief Prints the controller registers.
     // \param[in] device struture
     // \return SUCCESS - pass, !SUCCESS fail or something went wrong
-    M_NONNULL_PARAM_LIST(1) M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Nvme_Ctrl_Regs(tDevice* device);
-
+    M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Nvme_Ctrl_Regs(const tDevice* M_NONNULL device);
     //-----------------------------------------------------------------------------
     //
     //  nvme_Get_Log_Size
@@ -166,10 +159,11 @@ extern "C"
     //!   \return SUCCESS = pass, !SUCCESS = something when wrong
     //
     //-----------------------------------------------------------------------------
-    M_NONNULL_PARAM_LIST(1, 3)
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_Log_Size(tDevice* device, uint8_t logPageId, uint64_t* logSize);
+    OPENSEA_OPERATIONS_API eReturnValues nvme_Get_Log_Size(const tDevice* M_NONNULL device,
+                                                           uint8_t                  logPageId,
+                                                           uint64_t* M_NONNULL      logSize);
 
 #if defined(__cplusplus)
 }

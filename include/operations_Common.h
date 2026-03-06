@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,10 +32,10 @@ extern "C"
 {
 #endif
 
-// This is a bunch of stuff for creating opensea-transport as a dynamic library (DLL in Windows or shared object in
+// This is a bunch of stuff for creating opensea-operations as a dynamic library (DLL in Windows or shared object in
 // linux)
 #if defined(OPENSEA_OPERATIONS_API)
-#    undef(OPENSEA_OPERATIONS_API)
+#    undef OPENSEA_OPERATIONS_API
 #endif
 
 #if defined(EXPORT_OPENSEA_OPERATIONS) && defined(STATIC_OPENSEA_OPERATIONS)
