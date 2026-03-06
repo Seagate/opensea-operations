@@ -71,7 +71,7 @@ extern "C"
         uint64_t       writePointerLBA;
     } zoneDescriptor, *ptrZoneDescriptor;
 
-    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor * M_NULLABLE * M_NULLABLE zd)
+    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor* M_NULLABLE* M_NULLABLE zd)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, zd));
     }

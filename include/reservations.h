@@ -147,7 +147,7 @@ extern "C"
                                          // how many are filled in when read.
     } registrationKeysData, *ptrRegistrationKeysData;
 
-    static M_INLINE void safe_free_registration_key_data(registrationKeysData * M_NULLABLE * M_NULLABLE regKeyData)
+    static M_INLINE void safe_free_registration_key_data(registrationKeysData* M_NULLABLE* M_NULLABLE regKeyData)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, regKeyData));
     }
@@ -187,7 +187,7 @@ extern "C"
                                                      // be AT LEAST one of these
     } reservationsData, *ptrReservationsData;
 
-    static M_INLINE void safe_free_reservation_data(reservationsData * M_NULLABLE * M_NULLABLE resData)
+    static M_INLINE void safe_free_reservation_data(reservationsData* M_NULLABLE* M_NULLABLE resData)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, resData));
     }
@@ -234,7 +234,7 @@ extern "C"
                                                                // by the device at a given time.
     } fullReservationInfo, *ptrFullReservationInfo;
 
-    static M_INLINE void safe_free_full_reservation_info(fullReservationInfo * M_NULLABLE * M_NULLABLE resInfo)
+    static M_INLINE void safe_free_full_reservation_info(fullReservationInfo* M_NULLABLE* M_NULLABLE resInfo)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, resInfo));
     }

@@ -32,7 +32,7 @@ extern "C"
         } attributes;
     } smartLogData;
 
-    static M_INLINE void safe_free_smart_log_data(smartLogData * M_NULLABLE * M_NULLABLE smart)
+    static M_INLINE void safe_free_smart_log_data(smartLogData* M_NULLABLE* M_NULLABLE smart)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, smart));
     }
@@ -231,7 +231,7 @@ extern "C"
     );
     // clang-format on
 
-    static M_INLINE void safe_free_ata_smart_analyzed_data(ataSMARTAnalyzedData * M_NULLABLE * M_NULLABLE smartData)
+    static M_INLINE void safe_free_ata_smart_analyzed_data(ataSMARTAnalyzedData* M_NULLABLE* M_NULLABLE smartData)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, smartData));
     }

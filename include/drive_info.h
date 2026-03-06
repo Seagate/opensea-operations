@@ -404,7 +404,7 @@ extern "C"
         };
     } driveInformation, *ptrDriveInformation;
 
-    static M_INLINE void safe_free_drive_info(driveInformation * M_NULLABLE * M_NULLABLE info)
+    static M_INLINE void safe_free_drive_info(driveInformation* M_NULLABLE* M_NULLABLE info)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, info));
     }

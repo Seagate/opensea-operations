@@ -354,7 +354,7 @@ extern "C"
         sectorSize sectorSizes[MAX_SECTOR_SIZES_ARRAY];
     } supportedFormats, *ptrSupportedFormats;
 
-    static M_INLINE void safe_free_supported_formats(supportedFormats * M_NULLABLE * M_NULLABLE formats)
+    static M_INLINE void safe_free_supported_formats(supportedFormats* M_NULLABLE* M_NULLABLE formats)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, formats));
     }

@@ -52,9 +52,9 @@ extern "C"
     M_NULL_TERM_STRING(6)
     M_PARAM_RO(6)
     OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
-        const tDevice* M_NONNULL                device,
-        secureFileInfo * M_NONNULL * M_NULLABLE file,                    /*required*/
-        eLogFileNamingConvention                logFileNamingConvention, /*required*/
+        const tDevice* M_NONNULL              device,
+        secureFileInfo* M_NONNULL* M_NULLABLE file,                    /*required*/
+        eLogFileNamingConvention              logFileNamingConvention, /*required*/
         const char* M_NULLABLE logPath, // optional /*requested path to output to. Will be checked for security. If
                                         // NULL, current directory will be used*/
         const char* M_NULLABLE logName, // optional /*name of the log file from the drive, FARM, DST, etc*/

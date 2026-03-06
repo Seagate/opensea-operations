@@ -1645,23 +1645,21 @@ static bool is_ATA_Zero_Ext_Supported_For_MBR_Erase(const tDevice* device)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, idDataLogSupportedCapabilities, LEGACY_DRIVE_SEC_SIZE);
     if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
-                                                ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities,
-                                                LEGACY_DRIVE_SEC_SIZE, 0))
+                                             ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, idDataLogSupportedCapabilities,
+                                             LEGACY_DRIVE_SEC_SIZE, 0))
     {
         uint64_t qword0 = M_BytesTo8ByteValue(idDataLogSupportedCapabilities[7], idDataLogSupportedCapabilities[6],
-                                                idDataLogSupportedCapabilities[5], idDataLogSupportedCapabilities[4],
-                                                idDataLogSupportedCapabilities[3], idDataLogSupportedCapabilities[2],
-                                                idDataLogSupportedCapabilities[1], idDataLogSupportedCapabilities[0]);
-        if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES &&
-            M_Word0(qword0) >= 0x0001)
+                                              idDataLogSupportedCapabilities[5], idDataLogSupportedCapabilities[4],
+                                              idDataLogSupportedCapabilities[3], idDataLogSupportedCapabilities[2],
+                                              idDataLogSupportedCapabilities[1], idDataLogSupportedCapabilities[0]);
+        if (qword0 & BIT63 && M_Byte2(qword0) == ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES && M_Word0(qword0) >= 0x0001)
         {
             uint64_t supportedCapabilitiesQWord =
                 M_BytesTo8ByteValue(idDataLogSupportedCapabilities[15], idDataLogSupportedCapabilities[14],
                                     idDataLogSupportedCapabilities[13], idDataLogSupportedCapabilities[12],
                                     idDataLogSupportedCapabilities[11], idDataLogSupportedCapabilities[10],
                                     idDataLogSupportedCapabilities[9], idDataLogSupportedCapabilities[8]);
-            if (supportedCapabilitiesQWord & BIT63 &&
-                supportedCapabilitiesQWord & BIT48)
+            if (supportedCapabilitiesQWord & BIT63 && supportedCapabilitiesQWord & BIT48)
             {
                 return true;
             }
@@ -1682,15 +1680,15 @@ static bool is_ATA_Zero_Ext_Supported_For_MBR_Erase(const tDevice* device)
 // correctly
 static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* device)
 {
-    eReturnValues ret = SUCCESS;
-    uint32_t    eraseBlockSize = device->drive_info.deviceBlockSize;
-    uint64_t devMaxLBA = device->drive_info.deviceMaxLba;
-    uint32_t maxLBARange = 1;
+    eReturnValues ret            = SUCCESS;
+    uint32_t      eraseBlockSize = device->drive_info.deviceBlockSize;
+    uint64_t      devMaxLBA      = device->drive_info.deviceMaxLba;
+    uint32_t      maxLBARange    = 1;
     if (device->drive_info.bridge_info.isValid)
     {
         if (device->drive_info.bridge_info.childDeviceMaxLba > devMaxLBA)
         {
-            devMaxLBA = device->drive_info.bridge_info.childDeviceMaxLba - 1;
+            devMaxLBA   = device->drive_info.bridge_info.childDeviceMaxLba - 1;
             maxLBARange = 2;
         }
         eraseBlockSize = device->drive_info.bridge_info.childDeviceBlockSize;
@@ -1707,20 +1705,20 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* device)
     if (ret != SUCCESS && is_Write_Same_Supported(device, 0, maxLBARange, M_NULLPTR))
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, zeroPattern, 4);
-        ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, 0,
-                                        maxLBARange, zeroPattern, SIZE_OF_STACK_ARRAY(zeroPattern));
+        ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, 0, maxLBARange, zeroPattern,
+                                      SIZE_OF_STACK_ARRAY(zeroPattern));
         if (ret == SUCCESS)
         {
-            ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, devMaxLBA,
-                                        maxLBARange, zeroPattern, SIZE_OF_STACK_ARRAY(zeroPattern));
+            ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, devMaxLBA, maxLBARange,
+                                          zeroPattern, SIZE_OF_STACK_ARRAY(zeroPattern));
         }
     }
     if (ret != SUCCESS)
     {
         // fallback to passthrough write
-        uint8_t *eraseMBR =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange,
-                                                                 sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* eraseMBR =
+            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange, sizeof(uint8_t),
+                                                             device->os_info.minimumAlignment));
         ret = ata_Write(device, 0, false, eraseMBR, eraseBlockSize * maxLBARange);
         if (ret == SUCCESS)
         {
@@ -1733,15 +1731,15 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* device)
 
 static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* device)
 {
-    eReturnValues ret = SUCCESS;
-    uint32_t    eraseBlockSize = device->drive_info.deviceBlockSize;
-    uint64_t devMaxLBA = device->drive_info.deviceMaxLba;
-    uint32_t maxLBARange = 1;
+    eReturnValues ret            = SUCCESS;
+    uint32_t      eraseBlockSize = device->drive_info.deviceBlockSize;
+    uint64_t      devMaxLBA      = device->drive_info.deviceMaxLba;
+    uint32_t      maxLBARange    = 1;
     if (device->drive_info.bridge_info.isValid)
     {
         if (device->drive_info.bridge_info.childDeviceMaxLba > devMaxLBA)
         {
-            devMaxLBA = device->drive_info.bridge_info.childDeviceMaxLba - 1;
+            devMaxLBA   = device->drive_info.bridge_info.childDeviceMaxLba - 1;
             maxLBARange = 2;
         }
         eraseBlockSize = device->drive_info.bridge_info.childDeviceBlockSize;
@@ -1758,13 +1756,14 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* device)
 
     if (ret != SUCCESS)
     {
-        uint8_t *eraseMBR =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange,
-                                                                sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* eraseMBR =
+            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange, sizeof(uint8_t),
+                                                             device->os_info.minimumAlignment));
         ret = nvme_Write(device, 0, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
         if (ret == SUCCESS)
         {
-            ret = nvme_Write(device, devMaxLBA, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
+            ret =
+                nvme_Write(device, devMaxLBA, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
         }
         safe_free_aligned(&eraseMBR);
     }
@@ -1776,10 +1775,10 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* device)
 // If those fail, will have to do passthrough write.
 static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* device)
 {
-    eReturnValues ret = NOT_SUPPORTED;
-    eDriveType temp = device->drive_info.drive_type;
+    eReturnValues ret                                     = NOT_SUPPORTED;
+    eDriveType    temp                                    = device->drive_info.drive_type;
     M_CONST_CAST(tDevice*, device)->drive_info.drive_type = SCSI_DRIVE; // force SCSI drive type for these calls
-    ret = write_Same(device, 0, 1, M_NULLPTR);
+    ret                                                   = write_Same(device, 0, 1, M_NULLPTR);
     if (ret == SUCCESS)
     {
         ret = write_Same(device, device->drive_info.deviceMaxLba, 1, M_NULLPTR);
@@ -1787,9 +1786,9 @@ static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* device)
     if (ret != SUCCESS) // purposely not an else in case one or both write-same's fail
     {
         // fallback to passthrough write
-        uint8_t *eraseMBR =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize,
-                                                                 sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* eraseMBR =
+            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
+                                                             device->os_info.minimumAlignment));
         ret = scsi_Write(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
         if (ret == SUCCESS)
         {
@@ -1810,7 +1809,7 @@ static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* device)
 // This option already requires a confirmation of data deletion to run, so this should be safe enough. -TJE
 static eReturnValues passthrough_Erase_MBR(const tDevice* device)
 {
-    eReturnValues ret             = NOT_SUPPORTED;
+    eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.deviceBlockSize > 0)
     {
         if (device->drive_info.drive_type == ATA_DRIVE)

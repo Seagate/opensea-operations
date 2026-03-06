@@ -42,7 +42,7 @@ extern "C"
 
     typedef const errorLBA* constPtrErrorLBA;
 
-    static M_INLINE void safe_free_error_lba(errorLBA * M_NULLABLE * M_NULLABLE errlba)
+    static M_INLINE void safe_free_error_lba(errorLBA* M_NULLABLE* M_NULLABLE errlba)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, errlba));
     }

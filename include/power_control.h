@@ -370,7 +370,7 @@ extern "C"
         bool    enableSlumber;
     } sasEnhPhyControl, *ptrSasEnhPhyControl;
 
-    static M_INLINE void safe_free_sasEnhPhyControl(sasEnhPhyControl * M_NULLABLE * M_NULLABLE mem)
+    static M_INLINE void safe_free_sasEnhPhyControl(sasEnhPhyControl* M_NULLABLE* M_NULLABLE mem)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, mem));
     }

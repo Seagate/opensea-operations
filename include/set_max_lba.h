@@ -211,7 +211,7 @@ extern "C"
         M_STRICT_FLEX_ARRAY_AUTO M_COUNTED_BY(numberOfDescriptors) capacityModelDescriptor descriptor[FLEX_ARRAY];
     } capacityModelNumberMapping, *ptrcapacityModelNumberMapping;
 
-    static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping * M_NULLABLE * M_NULLABLE mnmap)
+    static M_INLINE void safe_free_cap_mn_map(capacityModelNumberMapping* M_NULLABLE* M_NULLABLE mnmap)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, mnmap));
     }
