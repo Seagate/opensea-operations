@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ extern "C"
 #define COMBINE_OPERATION_VERSIONS(x, y, z)  COMBINE_OPERATION_VERSIONS_(x, y, z)
 
 #define OPENSEA_OPERATION_MAJOR_VERSION      9
-#define OPENSEA_OPERATION_MINOR_VERSION      3
+#define OPENSEA_OPERATION_MINOR_VERSION      4
 #define OPENSEA_OPERATION_PATCH_VERSION      0
 
 #define OPENSEA_OPERATION_VERSION                                                                                      \

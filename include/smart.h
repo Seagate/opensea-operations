@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,7 +32,7 @@ extern "C"
         } attributes;
     } smartLogData;
 
-    static M_INLINE void safe_free_smart_log_data(smartLogData * M_NULLABLE * M_NULLABLE smart)
+    static M_INLINE void safe_free_smart_log_data(smartLogData* M_NULLABLE* M_NULLABLE smart)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, smart));
     }
@@ -231,7 +231,7 @@ extern "C"
     );
     // clang-format on
 
-    static M_INLINE void safe_free_ata_smart_analyzed_data(ataSMARTAnalyzedData * M_NULLABLE * M_NULLABLE smartData)
+    static M_INLINE void safe_free_ata_smart_analyzed_data(ataSMARTAnalyzedData* M_NULLABLE* M_NULLABLE smartData)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, smartData));
     }

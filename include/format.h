@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -354,7 +354,7 @@ extern "C"
         sectorSize sectorSizes[MAX_SECTOR_SIZES_ARRAY];
     } supportedFormats, *ptrSupportedFormats;
 
-    static M_INLINE void safe_free_supported_formats(supportedFormats * M_NULLABLE * M_NULLABLE formats)
+    static M_INLINE void safe_free_supported_formats(supportedFormats* M_NULLABLE* M_NULLABLE formats)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, formats));
     }

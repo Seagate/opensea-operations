@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -77,7 +77,7 @@ extern "C"
         bool restorationAllowed; // can run the Restore elements and rebuild and this element will return to use.
     } physicalElement, *ptrPhysicalElement;
 
-    static M_INLINE void safe_free_physical_element(physicalElement * M_NULLABLE * M_NULLABLE pe)
+    static M_INLINE void safe_free_physical_element(physicalElement* M_NULLABLE* M_NULLABLE pe)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, pe));
     }
@@ -346,7 +346,7 @@ extern "C"
         bool              trimStatus;
     } lbaStatusDescriptor, *ptrLbaStatusDescriptor;
 
-    static M_INLINE void safe_free_lba_status(lbaStatusDescriptor * M_NULLABLE * M_NULLABLE ls)
+    static M_INLINE void safe_free_lba_status(lbaStatusDescriptor* M_NULLABLE* M_NULLABLE ls)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, ls));
     }

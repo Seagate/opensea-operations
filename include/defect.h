@@ -5,7 +5,7 @@
 //! ATA, SCSI, and NVMe storage devices
 //! Do NOT modify or remove this copyright and license
 //!
-//! Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+//! Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //!
 //! This software is subject to the terms of the Mozilla Public License, v. 2.0.
 //! If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -167,11 +167,11 @@ extern "C"
     //! a failure occurs while trying to read the defect list
     M_PARAM_RO(1)
     M_PARAM_WO(5)
-    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List(const tDevice* M_NONNULL                device,
-                                                              eSCSIAddressDescriptors                 defectListFormat,
-                                                              bool                                    grownList,
-                                                              bool                                    primaryList,
-                                                              scsiDefectList * M_NONNULL * M_NULLABLE defects);
+    OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Defect_List(const tDevice* M_NONNULL              device,
+                                                              eSCSIAddressDescriptors               defectListFormat,
+                                                              bool                                  grownList,
+                                                              bool                                  primaryList,
+                                                              scsiDefectList* M_NONNULL* M_NULLABLE defects);
 
 //! \def SCSI_DEFECT_LIST_2_VERSION
 //! \brief Version number for the \a scsiDefectList2Params structure
@@ -189,10 +189,10 @@ extern "C"
              defectListFormat; //!< requested format of the defect list. See \a eSCSIAddressDescriptors
         bool grownList;        //!< set to true to include the grown defect list in the output
         bool primaryList;      //!< set to true to include the primary defect list in the output
-        scsiDefectList * M_NULLABLE *
-            M_NULLABLE defects; //!< pointer for the defect list. The list will be allocated for you if this is a
-                                //!< non-null pointer. If you do not want the list allocated, set this to M_NULLPTR
-        bool saveToFile;        //!< set to true to save the defect list to a file
+        scsiDefectList* M_NULLABLE* M_NULLABLE
+            defects;     //!< pointer for the defect list. The list will be allocated for you if this is a
+                         //!< non-null pointer. If you do not want the list allocated, set this to M_NULLPTR
+        bool saveToFile; //!< set to true to save the defect list to a file
         bool fileOpened; //!< recommend setting to false before calling unless you want a specific name for the file
         const char* M_NULLABLE
             filePath; //!< path to the file where the defect list will be saved. Use M_NULLPTR for current directory
@@ -216,7 +216,7 @@ extern "C"
     //! \brief frees the SCSI defect list allocated by \a get_SCSI_Defect_List()
     //! \param[inout] defects double pointer to the defect list. Once free'd, this will be set to a NULL pointer
     //! \return void
-    OPENSEA_OPERATIONS_API void free_Defect_List(scsiDefectList * M_NULLABLE * M_NULLABLE defects);
+    OPENSEA_OPERATIONS_API void free_Defect_List(scsiDefectList* M_NULLABLE* M_NULLABLE defects);
 
     //! \fn void print_SCSI_Defect_List(ptrSCSIDefectList defects)
     //! \brief prints the defect list provided to stdout
@@ -393,7 +393,7 @@ extern "C"
     //! \fn void safe_free_pending_defect(pendingDefect** defect)
     //! \brief helper function to safely free and set to null the defect list when
     //! it is done being used.
-    static M_INLINE void safe_free_pending_defect(pendingDefect * M_NULLABLE * M_NULLABLE defect)
+    static M_INLINE void safe_free_pending_defect(pendingDefect* M_NULLABLE* M_NULLABLE defect)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, defect));
     }
@@ -511,7 +511,7 @@ extern "C"
 
     //! \fn void safe_free_background_results(backgroundResults** bg)
     //! \brief helper function to free the background scan results list
-    static M_INLINE void safe_free_background_results(backgroundResults * M_NULLABLE * M_NULLABLE bg)
+    static M_INLINE void safe_free_background_results(backgroundResults* M_NULLABLE* M_NULLABLE bg)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, bg));
     }

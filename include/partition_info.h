@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2023-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2023-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -82,7 +82,7 @@ extern "C"
         // MBR type unique fields?
     } mbrData, *ptrMBRData;
 
-    static M_INLINE void safe_free_mbrdata(mbrData * M_NULLABLE * M_NULLABLE mbr)
+    static M_INLINE void safe_free_mbrdata(mbrData* M_NULLABLE* M_NULLABLE mbr)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, mbr));
     }
@@ -397,7 +397,7 @@ extern "C"
         apmPartitionEntry partition[APM_MAX_PARTITIONS];
     } apmData, *ptrAPMData;
 
-    static M_INLINE void safe_free_apmdata(apmData * M_NULLABLE * M_NULLABLE apm)
+    static M_INLINE void safe_free_apmdata(apmData* M_NULLABLE* M_NULLABLE apm)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, apm));
     }
@@ -567,7 +567,7 @@ extern "C"
                                                  // (get_GPT_Partition_Count() * sizeof(gptPartitionEntry)));
     } gptData, *ptrGPTData;
 
-    static M_INLINE void safe_free_gptdata(gptData * M_NULLABLE * M_NULLABLE gpt)
+    static M_INLINE void safe_free_gptdata(gptData* M_NULLABLE* M_NULLABLE gpt)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, gpt));
     }
@@ -587,7 +587,7 @@ extern "C"
         };
     } partitionInfo, *ptrPartitionInfo;
 
-    static M_INLINE void safe_free_partition_info(partitionInfo * M_NULLABLE * M_NULLABLE info)
+    static M_INLINE void safe_free_partition_info(partitionInfo* M_NULLABLE* M_NULLABLE info)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, info));
     }

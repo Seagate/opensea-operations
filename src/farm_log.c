@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -3083,9 +3083,9 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
             print_Stat_If_Supported_And_Valid_Bool("HAMR Data Protect Status", driveInfo->hamrDataProtectStatus,
                                                    "Data Protect", "No Data Protect");
             print_Stat_If_Supported_And_Valid_Uint64("POH of Most Recent FARM TS Frame",
-                                                   driveInfo->pohOfMostRecentTimeseriesFrame);
+                                                     driveInfo->pohOfMostRecentTimeseriesFrame);
             print_Stat_If_Supported_And_Valid_Uint64("POH of 2nd Most Recent FARM TS Frame",
-                                                   driveInfo->pohOfSecondMostRecentTimeseriesFrame);
+                                                     driveInfo->pohOfSecondMostRecentTimeseriesFrame);
             print_Stat_If_Supported_And_Valid_Uint64(
                 "Seq or Before Req for Active Zone Config",
                 driveInfo->sequentialOrBeforeWriteRequiredForActiveZoneConfiguration);

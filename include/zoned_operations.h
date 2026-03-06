@@ -2,7 +2,7 @@
 //
 // Do NOT modify or remove this copyright and license
 //
-// Copyright (c) 2012-2025 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
+// Copyright (c) 2012-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
 //
 // This software is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -71,7 +71,7 @@ extern "C"
         uint64_t       writePointerLBA;
     } zoneDescriptor, *ptrZoneDescriptor;
 
-    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor * M_NULLABLE * M_NULLABLE zd)
+    static M_INLINE void safe_free_zone_descriptor(zoneDescriptor* M_NULLABLE* M_NULLABLE zd)
     {
         safe_free_core(M_REINTERPRET_CAST(void**, zd));
     }
