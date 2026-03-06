@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
-project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.3.0', default_options: ['warning_level=2', 'default_library=static'])
+project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.4.0', default_options: ['warning_level=2', 'default_library=static'])
 
 c = meson.get_compiler('c')
 
