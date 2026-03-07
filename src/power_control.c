@@ -1707,41 +1707,41 @@ static void ata_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifie
                     break;
                 }
             }
-
-            // show a list of the values supported (in watts). If the value is less than 1 watt, exclude it
-            print_str("Supported Max Power Consumption Set Points");
-            if (identifiers->numberOfPCIdentifiers > 0)
-                print_str(" (Watts)");
-            print_str(": \n\t[");
-            uint8_t pcIter = UINT8_C(0);
-            for (; pcIter < identifiers->numberOfPCIdentifiers; pcIter++)
-            {
-                double watts = identifiers->identifiers[pcIter].value;
-                switch (identifiers->identifiers[pcIter].units)
-                {
-                case 3: // watts
-                    break;
-                case 4: // milliwatts
-                    // ctc properly round milliwatts values
-                    watts /= 1000.0;
-                    break;
-                case 5: // microwatts
-                    // ctc properly round milliwatts values
-                    watts /= 1000000.0;
-                    break;
-                default:
-                    continue; // continue the for loop
-                }
-                printf(" %g |", watts); // use %g to use shortest possible notation for the output. This keeps 12w 13.5w
-                                        // without extra zeros all over the place
-            }
-            // now print default, highest, lowest, and intermediate
-            print_str(" highest | intermediate | lowest | default ]\n");
         }
         else
         {
             print_str("Power Consumption Control feature is currently disabled on drive.\n");
         }
+
+        // show a list of the values supported (in watts). If the value is less than 1 watt, exclude it
+        print_str("Supported Max Power Consumption Set Points");
+        if (identifiers->numberOfPCIdentifiers > 0)
+            print_str(" (Watts)");
+        print_str(": \n\t[");
+        uint8_t pcIter = UINT8_C(0);
+        for (; pcIter < identifiers->numberOfPCIdentifiers; pcIter++)
+        {
+            double watts = identifiers->identifiers[pcIter].value;
+            switch (identifiers->identifiers[pcIter].units)
+            {
+            case 3: // watts
+                break;
+            case 4: // milliwatts
+                // ctc properly round milliwatts values
+                watts /= 1000.0;
+                break;
+            case 5: // microwatts
+                // ctc properly round milliwatts values
+                watts /= 1000000.0;
+                break;
+            default:
+                continue; // continue the for loop
+            }
+            printf(" %g |", watts); // use %g to use shortest possible notation for the output. This keeps 12w 13.5w
+                                    // without extra zeros all over the place
+        }
+        // now print default, highest, lowest, and intermediate
+        print_str(" highest | intermediate | lowest | default | disabled ]\n");
     }
     RESTORE_NONNULL_COMPARE
 }
@@ -1999,7 +1999,10 @@ eReturnValues set_Power_Consumption(const tDevice* device,
     }
     else if (device->drive_info.drive_type == SCSI_DRIVE)
     {
-        ret = scsi_Set_Power_Consumption(device, activeLevelField, powerConsumptionIdentifier, resetToDefault);
+        if (!disableFeature) // disable is not suppported on SAS
+        {
+            ret = scsi_Set_Power_Consumption(device, activeLevelField, powerConsumptionIdentifier, resetToDefault);
+        }
     }
     return ret;
 }
