@@ -1063,14 +1063,17 @@ static eReturnValues poll_DST_Progress(const tDevice* M_NONNULL device,
         }
         delay_Seconds(timing.pollingInterval);
     }
-    if (status == 0 && ret == SUCCESS && showProgress)
+    if (status == 0 && ret == SUCCESS)
     {
-        // printf 35 characters + width of warning message to clear the line before printing this final
-        // status update
-        printf("\r                                    %.*s", C_CAST(int, safe_strlen(overTimeWarningMessage)),
-               "                                                                        ");
-        print_str("\r    Test progress: 100% complete   ");
-        flush_stdout();
+        if (showProgress)
+        {
+            // printf 35 characters + width of warning message to clear the line before printing this final
+            // status update
+            printf("\r                                    %.*s", C_CAST(int, safe_strlen(overTimeWarningMessage)),
+                   "                                                                        ");
+            print_str("\r    Test progress: 100% complete   ");
+            flush_stdout();
+        }
     }
     else if (status == 0x01 || status == 0x02 || ret == ABORTED)
     {
