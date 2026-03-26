@@ -1636,7 +1636,6 @@ eReturnValues get_Power_Consumption_Identifiers(const tDevice* device, ptrPowerC
 
 static void ata_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
 {
-    DISABLE_NONNULL_COMPARE
     if (identifiers != M_NULLPTR)
     {
         if (identifiers->currentIdentifierValid)
@@ -1743,7 +1742,6 @@ static void ata_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifie
             print_str("Power Consumption Control feature is currently disabled on drive.\n");
         }
     }
-    RESTORE_NONNULL_COMPARE
 }
 
 static void scsi_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
