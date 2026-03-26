@@ -1331,8 +1331,22 @@ static eReturnValues nvme_Get_Supported_Formats(const tDevice* device, ptrSuppor
         }
     }
 
-    // set current format
-    formats->sectorSizes[M_Nibble0(device->drive_info.IdentifyData.nvme.ns.flbas)].currentFormat = true;
+    uint8_t  flbas  = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
+    if (NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) > 16)
+    {
+        // need to append 2 more bits to interpret this correctly since number of formats > 16
+        flbas |= get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 6, 5) << 4;
+    }
+
+    // This should not happen or trigger on a real valid device, but adding this to assist in debugging too.
+    assert(flbas < formats->numberOfSectorSizes && "Current LBA format out of range for number of device reported formats. Drive bug or malicious device detected.");
+
+    // Max formats in NVMe is 64 which is the same as this value, so it *should never* go out of bounds.
+    if (flbas < MAX_SECTOR_SIZES_ARRAY && flbas < formats->numberOfSectorSizes) M_LIKELY
+    {
+        // set current format
+        formats->sectorSizes[flbas].currentFormat = true;
+    }
     return SUCCESS;
 }
 
