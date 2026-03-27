@@ -90,12 +90,19 @@ extern "C"
         bool multiAddressDescriptorStart;
     } physicalSectorAddress;
 
+    //! \def SCSI_DEFECT_LIST_VERSION
+    //! \brief Version number for the \a scsiDefectList structure
+    #define SCSI_DEFECT_LIST_VERSION 1
+
     //! \struct scsiDefectList
     //! \brief Output structure holding the requested SCSI defect list from \a get_SCSI_Defect_List()
     //! \details This list gives you the format, how many defects were reported, and if the list is
     //! primary defects (factory defects), grown defects (reallocations), or a combination of both.
     typedef struct s_scsiDefectList
     {
+        //! \var version
+        //! \brief version of this structure. Set to \a SCSI_DEFECT_LIST_VERSION
+        uint32_t version;
         //! \var format
         //! \see eSCSIAddressDescriptors in opensea-transport/scsi_helper.h
         //! \see SCSI Block Commands (SBC) to read more about the differences.
@@ -105,6 +112,9 @@ extern "C"
         //! \brief how many entries are stored in the defect list at the end of this structure using the
         //! \a format above.
         uint32_t numberOfElements;
+        //! \var defectAlloc
+        //! \brief the number of bytes allocated for the defect list at the end of this structure.
+        size_t defectAlloc;
         //! \var containsPrimaryList
         //! \brief If true, the list of defects includes the primary (factory) defect list
         bool containsPrimaryList;
@@ -118,9 +128,10 @@ extern "C"
         uint16_t generation;
         //! \var overflow
         //! \brief if the defect list is too long to read, this is set to true.
-        //! \note If the defect list is too long for a single command or is larger than the OS supports reading in a
+        //! \details If the defect list is too long for a single command or is larger than the OS supports reading in a
         //! single command, this may be set to true. Many newer drives may support reading with offsets, but may set
-        //! this as well if an error is encountered trying to read the defect list.
+        //! this as well if an error is encountered trying to read the defect list or if it is not possible to
+        //! allocate enough memory with this API to read the entire defect list.
         bool overflow;
         //! \var deviceHasMultipleLogicalUnits
         //! \brief Set to true when the device has multiple logical units (actuators) which may be in this list
