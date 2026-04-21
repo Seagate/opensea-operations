@@ -576,6 +576,31 @@ eReturnValues repair_LBA(const tDevice* device,
     return ret;
 }
 
+char* get_Repair_Status_String(eRepairStatus status)
+{
+    char* statusString = M_NULLPTR;
+    switch (status)
+    {
+    case REPAIRED:
+        statusString = "Repaired";
+        break;
+    case REPAIR_FAILED:
+        statusString = "Repair Failed";
+        break;
+    case REPAIR_NOT_REQUIRED:
+        statusString = "Repair Not Required";
+        break;
+    case UNABLE_TO_REPAIR_ACCESS_DENIED:
+        statusString = "Access Denied";
+        break;
+    case NOT_REPAIRED:
+    default:
+        statusString = "Not Repaired";
+        break;
+    }
+    return statusString;
+}
+
 void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
 {
     // need to print out a list of the LBAs and their status
@@ -586,25 +611,10 @@ void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
     for (errorIter = 1; errorIter <= numberOfErrors; errorIter++)
     {
         const char* repairString = M_NULLPTR;
-        switch (LBAs[errorIter - 1].repairStatus)
+        repairString = get_Repair_Status_String(LBAs[errorIter - 1].repairStatus);
+        if (LBAs[errorIter - 1].repairStatus == UNABLE_TO_REPAIR_ACCESS_DENIED)
         {
-        case REPAIRED:
-            repairString = "Repaired";
-            break;
-        case REPAIR_FAILED:
-            repairString = "Repair Failed";
-            break;
-        case REPAIR_NOT_REQUIRED:
-            repairString = "Repair Not Required";
-            break;
-        case UNABLE_TO_REPAIR_ACCESS_DENIED:
             showAccessDeniedNote = true;
-            repairString         = "Access Denied";
-            break;
-        case NOT_REPAIRED:
-        default:
-            repairString = "Not Repaired";
-            break;
         }
         printf("%5" PRIu64 "                  %-20" PRIu64 "       %19s\n", errorIter, LBAs[errorIter - 1].errorAddress,
                repairString);

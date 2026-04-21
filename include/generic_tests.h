@@ -16,6 +16,7 @@
 #pragma once
 
 #include "operations_Common.h"
+#include "sector_repair.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -671,6 +672,53 @@ extern "C"
                                                               custom_Update M_NULLABLE updateFunction,
                                                               void* M_NULLABLE         updateData,
                                                               bool                     hideLBACounter);
+
+ //-----------------------------------------------------------------------------
+    //
+    //  user_Sequential_Test_LBA_Error_List()
+    //
+    //! \brief   Description:  This function performs a user defined generic read, write, or verify test from a starting
+    //! LBA for a range of LBAs and returns a list of all errors found during the test. The error limit is changeable to
+    //! whatever you wish. Stop on error can be set (removes need for error limit). This operation can issue repairs to
+    //! fix LBAs, this can be done on the fly (as they are found) or at the end of the scan. The caller is responsible
+    //! for freeing the error list using safe_free_error_lba() when done.
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] rwvCommand = enum value specifying which command type to issue
+    //!   \param[in] startingLBA = the LBA to start the read scan at
+    //!   \param[in] range = the range of LBAs to read during this test
+    //!   \param[in] errorLimit = the maximum number of allowed errors in this operation (0 = unlimited)
+    //!   \param[in] stopOnError = set to true to stop the test on the first error found
+    //!   \param[in] repairOnTheFly = set to true to issue repairs to LBAs as they are found to be bad. Mutually
+    //!   exclusive with repairAtEnd. Do not set both to true
+    //!   \param[in] repairAtEnd = set to true to issue repairs to LBAs upon completion of the scan or when the error
+    //!   limit is reached. Mutually exclusive with repairOnTheFly. Do not set both to true
+    //!   \param[in] updateFunction = callback function to update UI (optional, can be M_NULLPTR)
+    //!   \param[in] updateData = hidden data to pass to the callback function (optional, can be M_NULLPTR)
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!   \param[out] errorList = pointer to errorLBA pointer array. Function allocates memory for the error list.
+    //!   Caller must free using safe_free_error_lba()
+    //!   \param[out] errorListSize = pointer to uint16_t to receive the count of errors found
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE if errors were found
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice* M_NONNULL device,
+                                                              eRWVCommandType                     rwvCommand,
+                                                              uint64_t                            startingLBA,
+                                                              uint64_t                            range,
+                                                              uint16_t                            errorLimit,
+                                                              bool                                stopOnError,
+                                                              bool                                repairOnTheFly,
+                                                              bool                                repairAtEnd,
+                                                              custom_Update M_NULLABLE            updateFunction,
+                                                              void* M_NULLABLE                    updateData,
+                                                              bool                                hideLBACounter,
+                                                              errorLBA* M_NONNULL * M_NONNULL     errorList,
+                                                              uint16_t* M_NONNULL                 errorListSize);
 
     //-----------------------------------------------------------------------------
     //

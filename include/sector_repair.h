@@ -95,6 +95,21 @@ extern "C"
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API void print_LBA_Error_List(constPtrErrorLBA M_NONNULL LBAs, uint16_t numberOfErrors);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  get_Repair_Status_String()
+    //
+    //! \brief   Description:  This function converts an eRepairStatus enum value to a human-readable string.
+    //
+    //  Entry:
+    //!   \param[in] status = the repair status enum value to convert to a string
+    //!
+    //  Exit:
+    //!   \return pointer to a string representation of the repair status
+    //
+    //-----------------------------------------------------------------------------
+    OPENSEA_OPERATIONS_API char* get_Repair_Status_String(eRepairStatus status);
+
     M_PARAM_RO(1)
     M_PARAM_WO(2)
     M_PARAM_WO(3)
