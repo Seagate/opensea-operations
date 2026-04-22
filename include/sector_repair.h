@@ -108,7 +108,7 @@ extern "C"
     //!   \return pointer to a string representation of the repair status
     //
     //-----------------------------------------------------------------------------
-    OPENSEA_OPERATIONS_API char* get_Repair_Status_String(eRepairStatus status);
+    OPENSEA_OPERATIONS_API const char* get_Repair_Status_String(eRepairStatus status);
 
     M_PARAM_RO(1)
     M_PARAM_WO(2)

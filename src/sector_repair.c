@@ -576,9 +576,9 @@ eReturnValues repair_LBA(const tDevice* device,
     return ret;
 }
 
-char* get_Repair_Status_String(eRepairStatus status)
+const char* get_Repair_Status_String(eRepairStatus status)
 {
-    char* statusString = M_NULLPTR;
+    const char* statusString = M_NULLPTR;
     switch (status)
     {
     case REPAIRED:
