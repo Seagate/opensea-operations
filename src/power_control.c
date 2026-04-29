@@ -1746,7 +1746,6 @@ static void ata_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifie
 
 static void scsi_Print_Power_Consumption_Identifiers(ptrPowerConsumptionIdentifiers identifiers)
 {
-
     if (identifiers != M_NULLPTR)
     {
         if (identifiers->numberOfPCIdentifiers > 0)
@@ -3280,7 +3279,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Number_Of_Phys(const tDevice* device,
     uint16_t enhPhyControlLength = UINT16_C(8); // only need 8 bytes to get the number of phys
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
-                                         sizeof(uint8_t), device->os_info.minimumAlignment));
+                                      sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -3328,7 +3327,7 @@ eReturnValues get_SAS_Enhanced_Phy_Control_Partial_Slumber_Settings(const tDevic
     uint16_t enhPhyControlLength = UINT16_C(0);
     uint8_t* enhSasPhyControl    = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned((MODE_PARAMETER_HEADER_10_LEN + enhPhyControlLength) * sizeof(uint8_t),
-                                         sizeof(uint8_t), device->os_info.minimumAlignment));
+                                      sizeof(uint8_t), device->os_info.minimumAlignment));
     if (enhSasPhyControl == M_NULLPTR)
     {
         return MEMORY_FAILURE;
