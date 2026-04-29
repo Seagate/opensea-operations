@@ -1455,6 +1455,162 @@ eReturnValues user_Timed_Test(const tDevice*              device,
     return ret;
 }
 
+eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*     device,
+                                   eRWVCommandType                   rwvCommand,
+                                   uint64_t                          startingLBA,
+                                   uint64_t                          range,
+                                   uint16_t                          errorLimit,
+                                   bool                              stopOnError,
+                                   bool                              repairOnTheFly,
+                                   bool                              repairAtEnd,
+                                   M_ATTR_UNUSED custom_Update       updateFunction,
+                                   M_ATTR_UNUSED void*               updateData,
+                                   bool                              hideLBACounter,
+                                   errorLBA**                        errorList,
+                                   uint16_t*                         errorListSize)
+{
+    eReturnValues ret               = SUCCESS;
+    uint64_t      errorIndex        = UINT64_C(0);
+    bool          errorLimitReached = false;
+    uint32_t      sectorCount       = get_Sector_Count_For_Read_Write(device);
+
+    // only one of these flags should be set. If they are both set, this makes no sense
+    if ((repairAtEnd && repairOnTheFly) || (repairAtEnd && (errorLimit == 0)))
+    {
+        return BAD_PARAMETER;
+    }
+    if (stopOnError)
+    {
+        // disable the repair flags in this case since they don't make sense
+        repairAtEnd    = false;
+        repairOnTheFly = false;
+    }
+    if (errorLimit < 1)
+    {
+        // need to be able to store at least 1 error
+        *errorList = M_REINTERPRET_CAST(errorLBA*, safe_calloc(1 * sizeof(errorLBA), sizeof(errorLBA)));
+    }
+    else
+    {
+        *errorList = M_REINTERPRET_CAST(errorLBA*, safe_calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
+    }
+    if (*errorList == M_NULLPTR)
+    {
+        perror("calloc failure\n");
+        return MEMORY_FAILURE;
+    }
+    (*errorList)[0].errorAddress = UINT64_MAX;
+    
+    bool autoReadReassign  = false;
+    bool autoWriteReassign = false;
+    if (SUCCESS != get_Automatic_Reallocation_Support(device, &autoWriteReassign, &autoReadReassign))
+    {
+        autoWriteReassign = true; // just in case this fails, default to previous behavior
+    }
+    
+    // this is essentially a loop over the sequential read function
+    uint64_t endingLBA = startingLBA + range;
+    while (!errorLimitReached)
+    {
+        if (SUCCESS != sequential_RWV(device, rwvCommand, startingLBA, range, sectorCount,
+                                      &(*errorList)[errorIndex].errorAddress, updateFunction, updateData, hideLBACounter))
+        {
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                printf("\nError Found at LBA %" PRIu64 "", (*errorList)[errorIndex].errorAddress);
+                if (errorLimit != 0)
+                    print_str("\n");
+            }
+            // set a new start for next time through the loop to 1 lba past the last error LBA
+            startingLBA = (*errorList)[errorIndex].errorAddress + 1;
+            range       = endingLBA - startingLBA;
+            if (stopOnError || ((errorLimit != 0) && (errorIndex >= errorLimit)))
+            {
+                errorLimitReached = true;
+                ret               = FAILURE;
+            }
+            if (repairOnTheFly)
+            {
+                repair_LBA(device, &(*errorList)[errorIndex], false, autoWriteReassign,
+                           autoReadReassign); // This function will set the repair status for us. - TJE
+            }
+            if (errorLimit != 0)
+                errorIndex++;
+        }
+        else
+        {
+            break;
+        }
+    }
+    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    {
+        print_str("\n");
+    }
+    
+    if (repairAtEnd)
+    {
+        // go through and repair the LBAs
+        uint64_t errorIter       = UINT64_C(0);
+        uint64_t lastLBARepaired = UINT64_MAX;
+        uint16_t logicalPerPhysicalSectors =
+            C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
+        for (errorIter = 0; errorIter < errorIndex; errorIter++)
+        {
+            if (lastLBARepaired != UINT64_MAX)
+            {
+                // check if the LBA we want to repair is within the same physical sector as the last LBA
+                if ((lastLBARepaired + logicalPerPhysicalSectors) > (*errorList)[errorIter].errorAddress)
+                {
+                    // in this case, we have already repaired this LBA since the repair is issued to the physical
+                    // sector, so move on to the next thing in the list
+                    (*errorList)[errorIter].repairStatus = REPAIR_NOT_REQUIRED;
+                    continue;
+                }
+            }
+            if (SUCCESS == repair_LBA(device, &(*errorList)[errorIter], false, autoWriteReassign, autoReadReassign))
+            {
+                lastLBARepaired = (*errorList)[errorIter].errorAddress;
+            }
+        }
+    }
+    
+    if (stopOnError && (*errorList)[0].errorAddress != UINT64_MAX)
+    {
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            printf("\nError occured at LBA %" PRIu64 "\n", (*errorList)[0].errorAddress);
+        }
+    }
+    else
+    {
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            if ((*errorList)[0].errorAddress != UINT64_MAX)
+            {
+                if (errorLimit != 0)
+                {
+                    printf("\nFound %" PRIu64 " bad LBAs\n", errorIndex);
+                }
+                else
+                {
+                    print_str("One or more bad LBAs detected during read scan of device.\n");
+                    ret = FAILURE;
+                }
+            }
+            else
+            {
+                print_str("No bad LBAs detected during read scan of device.\n");
+            }
+        }
+    }
+    
+    // Populate output parameter with error count
+    // Caller is responsible for freeing the errorList using safe_free_error_lba()
+    *errorListSize = errorIndex;
+    
+    return ret;
+}
+
 eReturnValues butterfly_Read_Test(const tDevice* device,
                                   uint64_t       timeLimitSeconds,
                                   custom_Update  updateFunction,
