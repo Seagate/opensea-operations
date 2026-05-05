@@ -198,7 +198,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     OPENSEA_OPERATIONS_API void print_Power_Consumption_Identifiers(const tDevice* M_NONNULL device,
-                                                                    ptrPowerConsumptionIdentifiers M_NONNULL
+                                                                    const ptrPowerConsumptionIdentifiers M_NONNULL
                                                                         identifiers);
 
     typedef enum ePCActiveLevelEnum
@@ -307,7 +307,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     OPENSEA_OPERATIONS_API
-    void print_EPC_Settings(const tDevice* M_NONNULL device, ptrEpcSettings M_NONNULL epcSettings);
+    void print_EPC_Settings(const tDevice* M_NONNULL device, const ptrEpcSettings M_NONNULL epcSettings);
 
     M_PARAM_RO(1)
     M_PARAM_WO(2)

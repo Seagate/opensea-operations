@@ -693,6 +693,7 @@ static statistic* M_NULLABLE dev_stat_page_offset_map(ptrDeviceStatistics M_NONN
 
 M_PARAM_RW(1) void scsi_Threshold_Comparison(statistic* M_NONNULL ptrStatistic); // prototype
 
+M_PARAM_WO(2)
 static void set_ATA_Dev_Stat_Notification_Info(uint64_t statisticCondition, statistic* M_NONNULL stat)
 {
     if (stat != M_NULLPTR)
@@ -750,6 +751,8 @@ static bool set_ATA_Dev_Stat_Info(uint64_t qword, statistic* M_NONNULL stat)
     return statisticPopulated;
 }
 
+M_PARAM_RO(1)
+M_PARAM_WO(2)
 static eReturnValues get_ATA_DeviceStatistics(const tDevice* M_NONNULL      device,
                                               ptrDeviceStatistics M_NONNULL deviceStats)
 {
@@ -767,7 +770,7 @@ static eReturnValues get_ATA_DeviceStatistics(const tDevice* M_NONNULL      devi
         bool     dsnFeatureSupported = M_ToBool(le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT9);
         bool     dsnFeatureEnabled   = M_ToBool(le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT9);
         uint8_t* deviceStatsLog      = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(deviceStatsSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (deviceStatsLog == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -780,7 +783,7 @@ static eReturnValues get_ATA_DeviceStatistics(const tDevice* M_NONNULL      devi
         {
             uint8_t* devStatsNotificationsLog =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(deviceStatsNotificationsSize, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
+                                                                 get_Device_IO_Minimum_Alignment(device)));
             if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS_NOTIFICATION, M_NULLPTR, M_NULLPTR, true,
                                        false, true, devStatsNotificationsLog, deviceStatsNotificationsSize, M_NULLPTR,
                                        0, 0))
@@ -991,6 +994,8 @@ static eReturnValues get_ATA_DeviceStatistics(const tDevice* M_NONNULL      devi
     return ret;
 }
 
+M_PARAM_RO(1)
+M_PARAM_WO(2)
 static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      device,
                                                ptrDeviceStatistics M_NONNULL deviceStats)
 {
@@ -7881,7 +7886,7 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                     uint16_t protocolSpecificDataLength = UINT16_MAX;
                     uint8_t* protSpData =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(protocolSpecificDataLength, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (protSpData != M_NULLPTR)
                     {
                         if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES,
@@ -8091,7 +8096,8 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
     bool                    gotGrownDefectCount = false;
     eSCSIAddressDescriptors defectFormat        = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
     eReturnValues           defectRet           = SUCCESS;
-    if (device->drive_info.deviceMaxLba > UINT32_MAX)
+    uint64_t                devMaxLBA           = return_Device_MaxLba(device);
+    if (devMaxLBA > UINT32_MAX)
     {
         defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
     }
@@ -8155,7 +8161,7 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
     bool gotPrimaryDefectCount = false;
     defectFormat               = AD_SHORT_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
     defectRet                  = SUCCESS;
-    if (device->drive_info.deviceMaxLba > UINT32_MAX)
+    if (devMaxLBA > UINT32_MAX)
     {
         defectFormat = AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR;
     }
@@ -8229,7 +8235,10 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
     return ret;
 }
 
-eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                                          ptrDeviceStatistics M_NONNULL deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -8237,11 +8246,11 @@ eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics de
     {
         return BAD_PARAMETER;
     }
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return get_ATA_DeviceStatistics(device, deviceStats);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return get_SCSI_DeviceStatistics(device, deviceStats);
     }
@@ -8249,7 +8258,7 @@ eReturnValues get_DeviceStatistics(const tDevice* device, ptrDeviceStatistics de
     return ret;
 }
 
-void scsi_Threshold_Comparison(statistic* ptrStatistic)
+void scsi_Threshold_Comparison(statistic* M_NONNULL ptrStatistic)
 {
 
     if (ptrStatistic != M_NULLPTR)
@@ -8328,7 +8337,13 @@ static M_INLINE void print_Statistic_Flags(statistic theStatistic)
 
 #define DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH 30
 
-static void print_Count_Statistic(statistic theStatistic, const char* statisticName, const char* statisticUnit)
+M_PARAM_RO(2)
+M_PARAM_RO(3)
+M_NULL_TERM_STRING(2)
+M_NULL_TERM_STRING(3)
+static void print_Count_Statistic(statistic              theStatistic,
+                                  const char* M_NONNULL  statisticName,
+                                  const char* M_NULLABLE statisticUnit)
 {
     if (theStatistic.isSupported)
     {
@@ -8387,7 +8402,9 @@ static void print_Count_Statistic(statistic theStatistic, const char* statisticN
     }
 }
 
-static void print_Workload_Utilization_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Workload_Utilization_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8451,7 +8468,9 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, const c
     }
 }
 
-static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8546,7 +8565,9 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const
     }
 }
 
-static void print_Resource_Availability_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Resource_Availability_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8602,7 +8623,9 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, const 
     }
 }
 
-static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8665,7 +8688,9 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
     }
 }
 
-static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8734,7 +8759,9 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char
     }
 }
 
-static void print_Temperature_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Temperature_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8789,7 +8816,9 @@ static void print_Temperature_Statistic(statistic theStatistic, const char* stat
     }
 }
 
-static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8862,8 +8891,11 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
         print_str("\n");
     }
 }
+
 // the statistic value must be a time in minutes for this function
-static void print_Time_Minutes_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Time_Minutes_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8933,7 +8965,9 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, const char* sta
     }
 }
 
-static void print_Time_Microseconds_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Time_Microseconds_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -8989,7 +9023,9 @@ static void print_Time_Microseconds_Statistic(statistic theStatistic, const char
 }
 
 // for accounting date and date of manufacture
-static void print_SCSI_Date_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_SCSI_Date_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -9061,7 +9097,9 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, const char* statis
     }
 }
 
-static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const char* statisticName)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const char* M_NONNULL statisticName)
 {
     if (theStatistic.isSupported)
     {
@@ -9152,7 +9190,11 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const cha
 }
 
 // This is a different function to be more specific to SAS environmental limits/reporting pages
-static void print_Environmental_Temperature_Statistic(statistic theStatistic, const char* statisticName, bool isLimit)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Environmental_Temperature_Statistic(statistic             theStatistic,
+                                                      const char* M_NONNULL statisticName,
+                                                      bool                  isLimit)
 {
     if (theStatistic.isSupported)
     {
@@ -9222,7 +9264,9 @@ static void print_Environmental_Temperature_Statistic(statistic theStatistic, co
     }
 }
 
-static void print_Humidity_Statistic(statistic theStatistic, const char* statisticName, bool isLimit)
+M_PARAM_RO(2)
+M_NULL_TERM_STRING(2)
+static void print_Humidity_Statistic(statistic theStatistic, const char* M_NONNULL statisticName, bool isLimit)
 {
     if (theStatistic.isSupported)
     {
@@ -9295,7 +9339,10 @@ static void print_Humidity_Statistic(statistic theStatistic, const char* statist
     }
 }
 
-static eReturnValues print_ATA_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+static eReturnValues print_ATA_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                                ptrDeviceStatistics M_NONNULL deviceStats)
 {
     eReturnValues ret = SUCCESS;
     if (deviceStats == M_NULLPTR)
@@ -9551,7 +9598,10 @@ static eReturnValues print_ATA_DeviceStatistics(const tDevice* device, ptrDevice
     return ret;
 }
 
-static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED const tDevice* device, ptrDeviceStatistics deviceStats)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED const tDevice* M_NONNULL device,
+                                                 ptrDeviceStatistics M_NONNULL          deviceStats)
 {
     eReturnValues ret = SUCCESS;
     if (deviceStats == M_NULLPTR)
@@ -9936,7 +9986,10 @@ static eReturnValues print_SCSI_DeviceStatistics(M_ATTR_UNUSED const tDevice* de
     return ret;
 }
 
-eReturnValues print_DeviceStatistics(const tDevice* device, ptrDeviceStatistics deviceStats)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues print_DeviceStatistics(const tDevice* M_NONNULL      device,
+                                                            ptrDeviceStatistics M_NONNULL deviceStats)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -9947,18 +10000,18 @@ eReturnValues print_DeviceStatistics(const tDevice* device, ptrDeviceStatistics 
 
     // as I write this I'm going to try and keep ATA and SCSI having the same printout format, but that may need to
     // change...-TJE
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return print_ATA_DeviceStatistics(device, deviceStats);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return print_SCSI_DeviceStatistics(device, deviceStats);
     }
     return ret;
 }
 
-static M_INLINE bool is_ATA_Timestamp_Supported(const tDevice* device)
+static M_INLINE bool is_ATA_Timestamp_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     // This command is supported when the date and time timestamp statistic is supported
@@ -10000,14 +10053,14 @@ static M_INLINE bool is_ATA_Timestamp_Supported(const tDevice* device)
     return supported;
 }
 
-static M_INLINE bool is_SCSI_Timestamp_Supported(const tDevice* device)
+static M_INLINE bool is_SCSI_Timestamp_Supported(const tDevice* M_NONNULL device)
 {
     bool     supported = false;
     uint32_t ctrlexLen = UINT32_C(0);
     if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x01, &ctrlexLen))
     {
         uint8_t* mp = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(ctrlexLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(ctrlexLen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (mp != M_NULLPTR)
         {
             bool used6b = false;
@@ -10030,14 +10083,15 @@ static M_INLINE bool is_SCSI_Timestamp_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_Timestamp_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Timestamp_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         supported = is_ATA_Timestamp_Supported(device);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oncs) & BIT6)
         {
@@ -10051,18 +10105,19 @@ bool is_Timestamp_Supported(const tDevice* device)
     return supported;
 }
 
-eReturnValues set_Date_And_Time_Timestamp(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Date_And_Time_Timestamp(const tDevice* M_NONNULL device)
 {
     eReturnValues ret  = NOT_SUPPORTED;
     uint64_t      time = get_Milliseconds_Since_Unix_Epoch();
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (is_Timestamp_Supported(device))
         {
             ret = ata_Set_Date_And_Time(device, time);
         }
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         // NOTE: Requires scsip bit on control extension mode page to be set to 1, otherwise you get an error
         if (is_Timestamp_Supported(device))
@@ -10077,7 +10132,7 @@ eReturnValues set_Date_And_Time_Timestamp(const tDevice* device)
             ret               = scsi_Set_Timestamp(device, SIZE_OF_STACK_ARRAY(timestampParam), timestampParam);
         }
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         if (is_Timestamp_Supported(device))
         {
@@ -10104,10 +10159,12 @@ eReturnValues set_Date_And_Time_Timestamp(const tDevice* device)
 // Next enhancement: Compare the values read during reinitialization to reading again afterwards. Determine which
 // statistics were reset to provide a list to share with the user
 // NOTE: While this log can be read with smart read log, it can only be reinitialized with read log ext commands - TJE
-eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* device, eDeviceStatisticsLog reinitializeRequest)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* M_NONNULL device,
+                                                                        eDeviceStatisticsLog     reinitializeRequest)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = SUCCESS;
         if (reinitializeRequest == ATA_DEVICE_STATS_LOG_LIST)
@@ -10117,8 +10174,9 @@ eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* device, eDeviceS
             ret = get_ATA_Log_Size(device, ATA_LOG_DEVICE_STATISTICS, &devStatsFullLen, true, false);
             if (SUCCESS == ret)
             {
-                uint8_t* devStats = M_REINTERPRET_CAST(
-                    uint8_t*, calloc_aligned(devStatsFullLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* devStats =
+                    M_REINTERPRET_CAST(uint8_t*, calloc_aligned(devStatsFullLen, sizeof(uint8_t),
+                                                                get_Device_IO_Minimum_Alignment(device)));
                 if (devStats != M_NULLPTR)
                 {
                     ret =

@@ -389,7 +389,7 @@ extern "C"
         //
     } sasDeviceStatitics;
 
-    // access the proper stats in the union based on device->drive_info.drive_type
+    // access the proper stats in the union based on get_Device_DriveType(device)
     typedef struct s_deviceStatistics
     {
         union
@@ -410,14 +410,14 @@ extern "C"
                                                                 ptrDeviceStatistics M_NONNULL deviceStats);
 
     M_PARAM_RO(1)
-    bool is_Timestamp_Supported(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API bool is_Timestamp_Supported(const tDevice* M_NONNULL device);
 
     M_PARAM_RO(1)
-    eReturnValues set_Date_And_Time_Timestamp(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API eReturnValues set_Date_And_Time_Timestamp(const tDevice* M_NONNULL device);
 
     M_PARAM_RO(1)
-    eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* M_NONNULL device,
-                                                     eDeviceStatisticsLog     reinitializeRequest);
+    OPENSEA_OPERATIONS_API eReturnValues ata_Device_Statistics_Reinitialize(const tDevice* M_NONNULL device,
+                                                                            eDeviceStatisticsLog reinitializeRequest);
 
 #if defined(__cplusplus)
 }

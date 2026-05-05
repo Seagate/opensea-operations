@@ -470,7 +470,7 @@ extern "C"
     //! \param[in] pendingList pointer to the pending list
     //! \param[in] numberOfItemsInPendingList number of defects in the \a pendingList
     //! \return void
-    M_PARAM_RO(1)
+    M_PARAM_RO_SIZE(1, 2)
     OPENSEA_OPERATIONS_API void show_Pending_List(ptrPendingDefect M_NONNULL pendingList,
                                                   uint32_t                   numberOfItemsInPendingList);
 

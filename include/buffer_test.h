@@ -71,7 +71,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    eReturnValues perform_Cable_Test(const tDevice* M_NONNULL device, ptrCableTestResults M_NONNULL testResults);
+    OPENSEA_OPERATIONS_API eReturnValues perform_Cable_Test(const tDevice* M_NONNULL      device,
+                                                            ptrCableTestResults M_NONNULL testResults);
 
     //-----------------------------------------------------------------------------
     //

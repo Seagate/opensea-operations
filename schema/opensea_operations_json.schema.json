@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://seagate.example/schemas/opensea-operations-json-1.0.json",
+  "title": "Opensea Operations NDJSON Schema",
+  "description": "Schema v1.0 for single-line NDJSON messages emitted by opensea-operations (progress/status/error/step/custom).",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version string."
+    },
+    "operation_name": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "Human-readable operation identifier."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["progress", "error", "status", "step", "custom"],
+      "description": "Message classification."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional ISO-8601 timestamp (UTC recommended)."
+    },
+    "percent_complete": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Optional progress percentage (0-100)."
+    },
+    "lba": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional logical block address (unsigned integer)."
+    },
+    "bytes_read": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional number of bytes processed/read/written."
+    },
+    "total_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional total bytes for the operation (when known)."
+    },
+    "status_code": {
+      "type": "integer",
+      "description": "Optional numeric status or error code."
+    },
+    "unit": {
+      "type": "string",
+      "maxLength": 32,
+      "description": "Optional unit associated with percent or bytes (e.g., '%', 'MiB/s')."
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 256,
+      "description": "Optional human-facing message or step description."
+    },
+    "metadata": {
+      "description": "Optional additional metadata; either a JSON object or an opaque string (escaped).",
+      "oneOf": [
+        { "type": "object" },
+        { "type": "string" }
+      ]
+    },
+    "estimated_time_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional estimated remaining time in seconds."
+    }
+  },
+  "required": ["schema_version", "operation_name", "type"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schema_version": "1.0",
+      "operation_name": "ReadVerification",
+      "type": "progress",
+      "timestamp": "2026-02-13T12:34:56Z",
+      "percent_complete": 42.5,
+      "bytes_read": 45056,
+      "total_bytes": 102400,
+      "unit": "%",
+      "estimated_time_seconds": 120
+    },
+    {
+      "schema_version": "1.0",
+      "operation_name": "Format",
+      "type": "error",
+      "timestamp": "2026-02-13T12:40:01Z",
+      "status_code": 5,
+      "message": "Device reported media error",
+      "metadata": { "vendor": "Seagate", "model": "X123" }
+    }
+  ]
+}

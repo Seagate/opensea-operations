@@ -31,11 +31,11 @@
 #include "platform_helper.h"
 #include <ctype.h>
 
-bool sat_ATA_Security_Protocol_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool sat_ATA_Security_Protocol_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     // For non-ATA/IDE interfaces, we need to check if the translator (SATL) supports the ATA security protocol.
-    if (device->drive_info.interface_type != IDE_INTERFACE)
+    if (get_Device_InterfaceType(device) != IDE_INTERFACE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, securityBuf, LEGACY_DRIVE_SEC_SIZE);
         if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_INFORMATION, 0, false, LEGACY_DRIVE_SEC_SIZE,
@@ -73,7 +73,10 @@ bool sat_ATA_Security_Protocol_Supported(const tDevice* device)
     return supported;
 }
 
-static void get_ATA_Security_Info_From_SAT(const tDevice* device, ptrATASecurityStatus securityStatus)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void get_ATA_Security_Info_From_SAT(const tDevice* M_NONNULL       device,
+                                           ptrATASecurityStatus M_NONNULL securityStatus)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, ataSecurityInfo, 16);
     if (SUCCESS == scsi_SecurityProtocol_In(device, SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD,
@@ -126,7 +129,10 @@ static void get_ATA_Security_Info_From_SAT(const tDevice* device, ptrATASecurity
     }
 }
 
-static void get_ATA_Security_Info_Identify(const tDevice* device, ptrATASecurityStatus securityStatus)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void get_ATA_Security_Info_Identify(const tDevice* M_NONNULL       device,
+                                           ptrATASecurityStatus M_NONNULL securityStatus)
 {
     // word 128
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word128)) &&
@@ -226,7 +232,10 @@ static void get_ATA_Security_Info_Identify(const tDevice* device, ptrATASecurity
     }
 }
 
-static void get_ATA_Security_Info_ID_Data_Log(const tDevice* device, ptrATASecurityStatus securityStatus)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void get_ATA_Security_Info_ID_Data_Log(const tDevice* M_NONNULL       device,
+                                              ptrATASecurityStatus M_NONNULL securityStatus)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, securityPage, ATA_LOG_PAGE_LEN_BYTES);
     if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, 0, 0, securityPage, ATA_LOG_PAGE_LEN_BYTES, 0))
@@ -319,18 +328,21 @@ static void get_ATA_Security_State(ptrATASecurityStatus securityStatus)
     }
 }
 
-void get_ATA_Security_Info(const tDevice* device, ptrATASecurityStatus securityStatus, bool useSAT)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API
+void get_ATA_Security_Info(const tDevice* M_NONNULL device, ptrATASecurityStatus M_NONNULL securityStatus, bool useSAT)
 {
     if (useSAT) // if SAT ATA security supported, use it so the SATL manages the erase.
     {
         get_ATA_Security_Info_From_SAT(device, securityStatus);
     }
-    else if (device->drive_info.drive_type == ATA_DRIVE)
+    else if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         get_ATA_Security_Info_Identify(device, securityStatus);
     }
     // read ID data log page for security bits to get restrictedSanitizeOverridesSecurity bit
-    if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.ata_Options.generalPurposeLoggingSupported)
+    if (get_Device_DriveType(device) == ATA_DRIVE && device->drive_info.ata_Options.generalPurposeLoggingSupported)
     {
         get_ATA_Security_Info_ID_Data_Log(device, securityStatus);
     }
@@ -372,7 +384,9 @@ static void print_ATA_Security_Erase_Time(uint16_t eraseTime, bool extendedTimeF
     }
 }
 
-void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecurityProtocolSupported)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void print_ATA_Security_Info(ptrATASecurityStatus M_NONNULL securityStatus,
+                                                    bool                           satSecurityProtocolSupported)
 {
     print_str("\n====ATA Security Information====\n");
     if (securityStatus->securitySupported)
@@ -487,7 +501,7 @@ void print_ATA_Security_Info(ptrATASecurityStatus securityStatus, bool satSecuri
     }
 }
 
-static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
+static void print_ATA_Security_Password(ptrATASecurityPassword M_NONNULL ataPassword)
 {
     if (ataPassword != M_NULLPTR)
     {
@@ -542,11 +556,13 @@ static void print_ATA_Security_Password(ptrATASecurityPassword ataPassword)
     }
 }
 
-void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
-                                         ptrATASecurityPassword ataPassword,
-                                         bool                   setPassword,
-                                         bool                   eraseUnit,
-                                         bool                   useSAT)
+M_PARAM_WO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t* M_NONNULL               ptrData,
+                                                                ptrATASecurityPassword M_NONNULL ataPassword,
+                                                                bool                             setPassword,
+                                                                bool                             eraseUnit,
+                                                                bool                             useSAT)
 {
 
     if (ptrData != M_NULLPTR && ataPassword != M_NULLPTR)
@@ -605,7 +621,7 @@ void set_ATA_Security_Password_In_Buffer(uint8_t*               ptrData,
     }
 }
 
-uint16_t increment_Master_Password_Identifier(uint16_t masterPWID)
+OPENSEA_OPERATIONS_API uint16_t increment_Master_Password_Identifier(uint16_t masterPWID)
 {
     uint16_t newID = masterPWID;
     if (is_ATA_Identify_Word_Valid(newID))
@@ -624,6 +640,8 @@ uint16_t increment_Master_Password_Identifier(uint16_t masterPWID)
     return newID;
 }
 
+M_PARAM_RW(1)
+OPENSEA_OPERATIONS_API
 void set_ATA_Security_Erase_Type_In_Buffer(uint8_t               ptrData[M_NONNULL_ARRAY LEGACY_DRIVE_SEC_SIZE],
                                            eATASecurityEraseType eraseType,
                                            bool                  useSAT)
@@ -654,11 +672,14 @@ void set_ATA_Security_Erase_Type_In_Buffer(uint8_t               ptrData[M_NONNU
     RESTORE_NONNULL_COMPARE
 }
 
-eReturnValues set_ATA_Security_Password(const tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                               ataSecurityPassword      ataPassword,
+                                                               bool                     useSAT)
 {
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (securityPassword == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -679,11 +700,14 @@ eReturnValues set_ATA_Security_Password(const tDevice* device, ataSecurityPasswo
     return ret;
 }
 
-eReturnValues disable_ATA_Security_Password(const tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues disable_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                                   ataSecurityPassword      ataPassword,
+                                                                   bool                     useSAT)
 {
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (securityPassword == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -704,11 +728,14 @@ eReturnValues disable_ATA_Security_Password(const tDevice* device, ataSecurityPa
     return ret;
 }
 
-eReturnValues unlock_ATA_Security(const tDevice* device, ataSecurityPassword ataPassword, bool useSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues unlock_ATA_Security(const tDevice* M_NONNULL device,
+                                                         ataSecurityPassword      ataPassword,
+                                                         bool                     useSAT)
 {
     eReturnValues ret              = SUCCESS;
     uint8_t*      securityPassword = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (securityPassword == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -729,15 +756,16 @@ eReturnValues unlock_ATA_Security(const tDevice* device, ataSecurityPassword ata
     return ret;
 }
 
-eReturnValues start_ATA_Security_Erase(const tDevice*        device,
-                                       ataSecurityPassword   ataPassword,
-                                       eATASecurityEraseType eraseType,
-                                       uint32_t              timeout,
-                                       bool                  useSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues start_ATA_Security_Erase(const tDevice* M_NONNULL device,
+                                                              ataSecurityPassword      ataPassword,
+                                                              eATASecurityEraseType    eraseType,
+                                                              uint32_t                 timeout,
+                                                              bool                     useSAT)
 {
     eReturnValues ret           = SUCCESS;
     uint8_t*      securityErase = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (securityErase == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -776,10 +804,11 @@ eReturnValues start_ATA_Security_Erase(const tDevice*        device,
 
 // Attempts an unlock if needed
 // TODO: Check if security count expired!
-eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
-                                                ataSecurityPassword ataPassword,
-                                                bool                forceSATvalid,
-                                                bool                forceSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                                       ataSecurityPassword      ataPassword,
+                                                                       bool                     forceSATvalid,
+                                                                       bool                     forceSAT)
 {
     eReturnValues ret                     = UNKNOWN;
     bool          satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
@@ -787,7 +816,7 @@ eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
     {
         satATASecuritySupported = forceSAT;
     }
-    if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
+    if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
         safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
@@ -877,7 +906,10 @@ eReturnValues run_Disable_ATA_Security_Password(const tDevice*      device,
     return ret;
 }
 
-eReturnValues run_Freeze_ATA_Security(const tDevice* device, bool forceSATvalid, bool forceSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(const tDevice* M_NONNULL device,
+                                                             bool                     forceSATvalid,
+                                                             bool                     forceSAT)
 {
     eReturnValues ret                     = UNKNOWN;
     bool          satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
@@ -885,7 +917,7 @@ eReturnValues run_Freeze_ATA_Security(const tDevice* device, bool forceSATvalid,
     {
         satATASecuritySupported = forceSAT;
     }
-    if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
+    if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
         safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
@@ -921,10 +953,11 @@ eReturnValues run_Freeze_ATA_Security(const tDevice* device, bool forceSATvalid,
 
 // Will only unlock the drive
 // TODO: Check if security count expired!
-eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
-                                      ataSecurityPassword ataPassword,
-                                      bool                forceSATvalid,
-                                      bool                forceSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(const tDevice* M_NONNULL device,
+                                                             ataSecurityPassword      ataPassword,
+                                                             bool                     forceSATvalid,
+                                                             bool                     forceSAT)
 {
     eReturnValues ret                     = UNKNOWN;
     bool          satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
@@ -932,7 +965,7 @@ eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
     {
         satATASecuritySupported = forceSAT;
     }
-    if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
+    if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
         safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
@@ -1015,10 +1048,11 @@ eReturnValues run_Unlock_ATA_Security(const tDevice*      device,
     return ret;
 }
 
-eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
-                                            ataSecurityPassword ataPassword,
-                                            bool                forceSATvalid,
-                                            bool                forceSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(const tDevice* M_NONNULL device,
+                                                                   ataSecurityPassword      ataPassword,
+                                                                   bool                     forceSATvalid,
+                                                                   bool                     forceSAT)
 {
     eReturnValues ret                     = UNKNOWN;
     bool          satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);
@@ -1026,7 +1060,7 @@ eReturnValues run_Set_ATA_Security_Password(const tDevice*      device,
     {
         satATASecuritySupported = forceSAT;
     }
-    if (device->drive_info.drive_type == ATA_DRIVE || satATASecuritySupported)
+    if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
         safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
@@ -1148,7 +1182,10 @@ static void print_ATA_Security_Erase_Start_Info_To_Screen(eATASecurityEraseType 
     print_str("\tUpon erase completion, the password is automatically cleared.\n\n");
 }
 
-static bool did_host_reset_occur(const tDevice* device, bool satATASecuritySupported, eReturnValues ataEraseResult)
+M_PARAM_RO(1)
+static bool did_host_reset_occur(const tDevice* M_NONNULL device,
+                                 bool                     satATASecuritySupported,
+                                 eReturnValues            ataEraseResult)
 {
     bool hostResetDuringErase = false;
     if (!satATASecuritySupported) // Only do the code below if we aren't using the SAT security protocol to perform the
@@ -1165,7 +1202,7 @@ static bool did_host_reset_occur(const tDevice* device, bool satATASecuritySuppo
         }
     }
 #if defined(_WIN32) || defined(__FreeBSD__)
-    if (device->drive_info.interface_type != IDE_INTERFACE)
+    if (get_Device_InterfaceType(device) != IDE_INTERFACE)
 #endif
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, validateCompletion, SPC3_SENSE_LEN);
@@ -1206,12 +1243,13 @@ static bool did_host_reset_occur(const tDevice* device, bool satATASecuritySuppo
     return hostResetDuringErase;
 }
 
-static void clear_Password_After_Erase_Failure(const tDevice*      device,
-                                               ataSecurityStatus   securityStatus,
-                                               ataSecurityStatus   finalSecurityStatus,
-                                               ataSecurityPassword ataPassword,
-                                               bool                satATASecuritySupported,
-                                               bool                hostResetDuringErase)
+M_PARAM_RO(1)
+static void clear_Password_After_Erase_Failure(const tDevice* M_NONNULL device,
+                                               ataSecurityStatus        securityStatus,
+                                               ataSecurityStatus        finalSecurityStatus,
+                                               ataSecurityPassword      ataPassword,
+                                               bool                     satATASecuritySupported,
+                                               bool                     hostResetDuringErase)
 {
     // check the initial state to see if security was already enabled. If it was, do not try to clear the password.
     if (!securityStatus.securityEnabled)
@@ -1264,10 +1302,11 @@ static void clear_Password_After_Erase_Failure(const tDevice*      device,
     }
 }
 
-static eReturnValues ata_Security_Erase_Final_Results(const tDevice*    device,
-                                                      eReturnValues     ataEraseResult,
-                                                      ataSecurityStatus finalSecurityStatus,
-                                                      seatimer_t        ataSecureEraseTimer)
+M_PARAM_RO(1)
+static eReturnValues ata_Security_Erase_Final_Results(const tDevice* M_NONNULL device,
+                                                      eReturnValues            ataEraseResult,
+                                                      ataSecurityStatus        finalSecurityStatus,
+                                                      seatimer_t               ataSecureEraseTimer)
 {
     eReturnValues result = ataEraseResult;
     if (SUCCESS == ataEraseResult && !finalSecurityStatus.securityEnabled && !finalSecurityStatus.securityLocked)
@@ -1314,15 +1353,16 @@ static eReturnValues ata_Security_Erase_Final_Results(const tDevice*    device,
     return result;
 }
 
-eReturnValues run_ATA_Security_Erase(const tDevice*        device,
-                                     eATASecurityEraseType eraseType,
-                                     ataSecurityPassword   ataPassword,
-                                     bool                  forceSATvalid,
-                                     bool                  forceSAT)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(const tDevice* M_NONNULL device,
+                                                            eATASecurityEraseType    eraseType,
+                                                            ataSecurityPassword      ataPassword,
+                                                            bool                     forceSATvalid,
+                                                            bool                     forceSAT)
 {
     eReturnValues result                  = UNKNOWN;
     bool          satATASecuritySupported = false;
-    if (device->drive_info.drive_type != ATA_DRIVE)
+    if (get_Device_DriveType(device) != ATA_DRIVE)
     {
         // this will catch nvme drives that support this protocol (for some reason it was implemented by some vendors)
         satATASecuritySupported = sat_ATA_Security_Protocol_Supported(device);

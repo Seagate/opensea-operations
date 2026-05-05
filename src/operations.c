@@ -41,13 +41,15 @@
 #include "trim_unmap.h"
 #include "writesame.h"
 
-eReturnValues get_Ready_LED_State(const tDevice* device, bool* readyLEDOnOff)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Ready_LED_State(const tDevice* M_NONNULL device, bool* M_NONNULL readyLEDOnOff)
 {
     eReturnValues ret = UNKNOWN;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
-        uint8_t* modeSense =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeSense = M_REINTERPRET_CAST(
+            uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (modeSense == M_NULLPTR)
         {
             perror("calloc failure!");
@@ -79,13 +81,16 @@ eReturnValues get_Ready_LED_State(const tDevice* device, bool* readyLEDOnOff)
     return ret;
 }
 
-eReturnValues change_Ready_LED(const tDevice* device, bool readyLEDDefault, bool readyLEDOnOff)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues change_Ready_LED(const tDevice* M_NONNULL device,
+                                                      bool                     readyLEDDefault,
+                                                      bool                     readyLEDOnOff)
 {
     eReturnValues ret = UNKNOWN;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
-        uint8_t* modeSelect =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeSelect = M_REINTERPRET_CAST(
+            uint8_t*, safe_calloc_aligned(24, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (modeSelect == M_NULLPTR)
         {
             perror("calloc failure!");
@@ -144,18 +149,19 @@ eReturnValues change_Ready_LED(const tDevice* device, bool readyLEDDefault, bool
 }
 
 // SBC spec. Caching Mode Page NV_DIS
-eReturnValues scsi_Set_NV_DIS(const tDevice* device, bool nv_disEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Set_NV_DIS(const tDevice* M_NONNULL device, bool nv_disEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
 
-    if (device->drive_info.drive_type != SCSI_DRIVE)
+    if (get_Device_DriveType(device) != SCSI_DRIVE)
     {
         return NOT_SUPPORTED;
     }
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -205,13 +211,15 @@ eReturnValues scsi_Set_NV_DIS(const tDevice* device, bool nv_disEnableDisable)
     return ret;
 }
 
-eReturnValues scsi_Set_Read_Look_Ahead(const tDevice* device, bool readLookAheadEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Read_Look_Ahead(const tDevice* M_NONNULL device,
+                                                              bool                     readLookAheadEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -258,7 +266,9 @@ eReturnValues scsi_Set_Read_Look_Ahead(const tDevice* device, bool readLookAhead
     return ret;
 }
 
-eReturnValues ata_Set_Read_Look_Ahead(const tDevice* device, bool readLookAheadEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues ata_Set_Read_Look_Ahead(const tDevice* M_NONNULL device,
+                                                             bool                     readLookAheadEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     // on ata, we just send a set features command to change this
@@ -273,14 +283,16 @@ eReturnValues ata_Set_Read_Look_Ahead(const tDevice* device, bool readLookAheadE
     return ret;
 }
 
-eReturnValues set_Read_Look_Ahead(const tDevice* device, bool readLookAheadEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Read_Look_Ahead(const tDevice* M_NONNULL device,
+                                                         bool                     readLookAheadEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = scsi_Set_Read_Look_Ahead(device, readLookAheadEnableDisable);
     }
-    else if (device->drive_info.drive_type == ATA_DRIVE)
+    else if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = ata_Set_Read_Look_Ahead(device, readLookAheadEnableDisable);
     }
@@ -291,13 +303,14 @@ eReturnValues set_Read_Look_Ahead(const tDevice* device, bool readLookAheadEnabl
     return ret;
 }
 
-eReturnValues scsi_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Write_Cache(const tDevice* M_NONNULL device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -344,7 +357,8 @@ eReturnValues scsi_Set_Write_Cache(const tDevice* device, bool writeCacheEnableD
     return ret;
 }
 
-eReturnValues ata_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues ata_Set_Write_Cache(const tDevice* M_NONNULL device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     // on ata, we just send a set features command to change this
@@ -359,7 +373,8 @@ eReturnValues ata_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDi
     return ret;
 }
 
-eReturnValues nvme_Set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues nvme_Set_Write_Cache(const tDevice* M_NONNULL device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc &
@@ -379,10 +394,11 @@ eReturnValues nvme_Set_Write_Cache(const tDevice* device, bool writeCacheEnableD
     return ret;
 }
 
-eReturnValues set_Write_Cache(const tDevice* device, bool writeCacheEnableDisable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Write_Cache(const tDevice* M_NONNULL device, bool writeCacheEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case NVME_DRIVE:
         ret = nvme_Set_Write_Cache(device, writeCacheEnableDisable);
@@ -399,13 +415,14 @@ eReturnValues set_Write_Cache(const tDevice* device, bool writeCacheEnableDisabl
     return ret;
 }
 
-bool is_Read_Look_Ahead_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Supported(const tDevice* M_NONNULL device)
 {
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return scsi_Is_Read_Look_Ahead_Supported(device);
     }
-    else if (device->drive_info.drive_type == ATA_DRIVE)
+    else if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return ata_Is_Read_Look_Ahead_Supported(device);
     }
@@ -414,13 +431,14 @@ bool is_Read_Look_Ahead_Supported(const tDevice* device)
 
 // NOTE: this uses the RCD bit. Old drives do not support this bit. Checking the changable values to detect support
 // before trying to change it.
-bool scsi_Is_Read_Look_Ahead_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -452,7 +470,8 @@ bool scsi_Is_Read_Look_Ahead_Supported(const tDevice* device)
     return supported;
 }
 
-bool ata_Is_Read_Look_Ahead_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
@@ -463,9 +482,10 @@ bool ata_Is_Read_Look_Ahead_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_NV_Cache_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_NV_Cache_Enabled(const tDevice* M_NONNULL device)
 {
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return !scsi_is_NV_DIS_Bit_Set(device); // since this function returns when the bit is set to 1 (meaning cache
                                                 // disabled), then we need to flip that bit for this use.
@@ -474,13 +494,14 @@ bool is_NV_Cache_Enabled(const tDevice* device)
     return false;
 }
 
-bool is_Read_Look_Ahead_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Read_Look_Ahead_Enabled(const tDevice* M_NONNULL device)
 {
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return scsi_Is_Read_Look_Ahead_Enabled(device);
     }
-    else if (device->drive_info.drive_type == ATA_DRIVE)
+    else if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return ata_Is_Read_Look_Ahead_Enabled(device);
     }
@@ -488,7 +509,7 @@ bool is_Read_Look_Ahead_Enabled(const tDevice* device)
 }
 
 // SPC3 added this page, but the NV_DIS bit is on the caching mode page.
-bool scsi_Is_NV_Cache_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool scsi_Is_NV_Cache_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     // check the extended inquiry data for the NV_SUP bit
@@ -503,22 +524,23 @@ bool scsi_Is_NV_Cache_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_NV_Cache_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_NV_Cache_Supported(const tDevice* M_NONNULL device)
 {
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return scsi_Is_NV_Cache_Supported(device);
     }
     return false;
 }
 
-bool scsi_is_NV_DIS_Bit_Set(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_is_NV_DIS_Bit_Set(const tDevice* M_NONNULL device)
 {
     bool enabled = false;
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -543,13 +565,14 @@ bool scsi_is_NV_DIS_Bit_Set(const tDevice* device)
     return enabled;
 }
 
-bool scsi_Is_Read_Look_Ahead_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Enabled(const tDevice* M_NONNULL device)
 {
     bool enabled = false;
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -573,7 +596,8 @@ bool scsi_Is_Read_Look_Ahead_Enabled(const tDevice* device)
     return enabled;
 }
 
-bool ata_Is_Read_Look_Ahead_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool ata_Is_Read_Look_Ahead_Enabled(const tDevice* M_NONNULL device)
 {
     bool enabled = false;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
@@ -584,7 +608,8 @@ bool ata_Is_Read_Look_Ahead_Enabled(const tDevice* device)
     return enabled;
 }
 
-bool nvme_Is_Write_Cache_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc &
@@ -595,9 +620,9 @@ bool nvme_Is_Write_Cache_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_Write_Cache_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Write_Cache_Supported(const tDevice* M_NONNULL device)
 {
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case NVME_DRIVE:
         return nvme_Is_Write_Cache_Supported(device);
@@ -611,13 +636,14 @@ bool is_Write_Cache_Supported(const tDevice* device)
     return false;
 }
 
-bool scsi_Is_Write_Cache_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -649,7 +675,8 @@ bool scsi_Is_Write_Cache_Supported(const tDevice* device)
     return supported;
 }
 
-bool ata_Is_Write_Cache_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
@@ -660,7 +687,8 @@ bool ata_Is_Write_Cache_Supported(const tDevice* device)
     return supported;
 }
 
-bool nvme_Is_Write_Cache_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Enabled(const tDevice* M_NONNULL device)
 {
     bool enabled = false;
     if (device->drive_info.IdentifyData.nvme.ctrl.vwc &
@@ -679,9 +707,10 @@ bool nvme_Is_Write_Cache_Enabled(const tDevice* device)
     return enabled;
 }
 
-bool is_Write_Cache_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Write_Cache_Enabled(const tDevice* M_NONNULL device)
 {
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case NVME_DRIVE:
         return nvme_Is_Write_Cache_Enabled(device);
@@ -695,13 +724,14 @@ bool is_Write_Cache_Enabled(const tDevice* device)
     return false;
 }
 
-bool scsi_Is_Write_Cache_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Enabled(const tDevice* M_NONNULL device)
 {
     bool enabled = false;
     // on SAS we change this through a mode page
     uint8_t* cachingModePage =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (cachingModePage == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -725,7 +755,8 @@ bool scsi_Is_Write_Cache_Enabled(const tDevice* device)
     return enabled;
 }
 
-bool ata_Is_Write_Cache_Enabled(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool ata_Is_Write_Cache_Enabled(const tDevice* M_NONNULL device)
 {
     bool enabled = false;
     if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word085)) &&
@@ -736,11 +767,14 @@ bool ata_Is_Write_Cache_Enabled(const tDevice* device)
     return enabled;
 }
 
-eReturnValues is_Write_After_Erase_Required(const tDevice* device, ptrWriteAfterErase writeReq)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues is_Write_After_Erase_Required(const tDevice* M_NONNULL     device,
+                                                                   ptrWriteAfterErase M_NONNULL writeReq)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
-    if (device->drive_info.drive_type == SCSI_DRIVE && !device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
+    if (get_Device_DriveType(device) == SCSI_DRIVE && !device->drive_info.passThroughHacks.scsiHacks.noVPDPages)
     {
         ret = SUCCESS;
         if (writeReq == M_NULLPTR)
@@ -810,9 +844,13 @@ eReturnValues is_Write_After_Erase_Required(const tDevice* device, ptrWriteAfter
 }
 
 // erase weights are hard coded right now....-TJE
-eReturnValues get_Supported_Erase_Methods(const tDevice* device,
-                                          eraseMethod    eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-                                          uint32_t*      overwriteEraseTimeEstimateMinutes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues
+get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
+                            eraseMethod              eraseMethodList[M_NONNULL_ARRAY MAX_SUPPORTED_ERASE_METHODS],
+                            uint32_t* M_NULLABLE     overwriteEraseTimeEstimateMinutes)
 {
     eReturnValues             ret = SUCCESS;
     ataSecurityStatus         ataSecurityInfo;
@@ -822,7 +860,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
     uint64_t                  maxNumberOfLogicalBlocksPerCommand = UINT64_C(0);
     bool                      formatUnitAdded                    = false;
     bool                      nvmFormatAdded                     = false;
-    bool isWriteSameSupported  = is_Write_Same_Supported(device, 0, C_CAST(uint32_t, device->drive_info.deviceMaxLba),
+    bool isWriteSameSupported  = is_Write_Same_Supported(device, 0, C_CAST(uint32_t, return_Device_MaxLba(device)),
                                                          &maxNumberOfLogicalBlocksPerCommand);
     bool isFormatUnitSupported = is_Format_Unit_Supported(device, M_NULLPTR);
     eraseMethod* currentErase  = C_CAST(eraseMethod*, eraseMethodList);
@@ -878,7 +916,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
         snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Crypto Erase");
         snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
 #if defined(_WIN32)
-        if (device->drive_info.drive_type == NVME_DRIVE)
+        if (get_Device_DriveType(device) == NVME_DRIVE)
         {
             if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
             {
@@ -941,7 +979,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
         snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
 
 #if defined(_WIN32)
-        if (device->drive_info.drive_type == NVME_DRIVE)
+        if (get_Device_DriveType(device) == NVME_DRIVE)
         {
             if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
             {
@@ -976,7 +1014,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
     }
 
     // format on SAS SSD will take only a couple seconds since it basically does a unmap operation
-    if (isFormatUnitSupported && device->drive_info.drive_type == SCSI_DRIVE && !formatUnitAdded && is_SSD(device))
+    if (isFormatUnitSupported && get_Device_DriveType(device) == SCSI_DRIVE && !formatUnitAdded && is_SSD(device))
     {
         currentErase->eraseIdentifier = ERASE_FORMAT_UNIT;
         snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Format Unit");
@@ -990,7 +1028,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
         formatUnitAdded = true;
     }
 
-    if (device->drive_info.drive_type == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported)
+    if (get_Device_DriveType(device) == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported)
     {
         // next up for NVMe is to list the format with user and crypto erase support.
         if (nvmeFormatInfo.cryptographicEraseSupported)
@@ -1003,7 +1041,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
             // supported in linux : for all NVMe connected to PCIe slot it's supported, and USB - all except JM 0x0BC2 -
             // STX vendor
 #if defined(_WIN32)
-            if (device->drive_info.interface_type == USB_INTERFACE)
+            if (get_Device_InterfaceType(device) == USB_INTERFACE)
             {
                 if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
                 {
@@ -1026,7 +1064,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
                 currentErase->osSupported = false;
             }
 #else
-            if (device->drive_info.interface_type != USB_INTERFACE)
+            if (get_Device_InterfaceType(device) != USB_INTERFACE)
             {
                 currentErase->osSupported = true;
             }
@@ -1068,7 +1106,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
             snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
             currentErase->eraseWeight = 1;
 #if defined(_WIN32)
-            if (device->drive_info.interface_type == USB_INTERFACE)
+            if (get_Device_InterfaceType(device) == USB_INTERFACE)
             {
                 if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
                 {
@@ -1091,7 +1129,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
                 currentErase->osSupported = false;
             }
 #else
-            if (device->drive_info.interface_type != USB_INTERFACE)
+            if (get_Device_InterfaceType(device) != USB_INTERFACE)
             {
                 currentErase->osSupported = true;
             }
@@ -1170,7 +1208,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
                             "Cannot be stopped, even with a power cycle.");
 
 #if defined(_WIN32)
-        if (device->drive_info.drive_type == NVME_DRIVE)
+        if (get_Device_DriveType(device) == NVME_DRIVE)
         {
             if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
             {
@@ -1204,7 +1242,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
     }
 
     // format unit (I put this above write same since on SAS, we cannot get progress indication from write same)
-    if (isFormatUnitSupported && device->drive_info.drive_type == SCSI_DRIVE && !formatUnitAdded)
+    if (isFormatUnitSupported && get_Device_DriveType(device) == SCSI_DRIVE && !formatUnitAdded)
     {
         currentErase->eraseIdentifier = ERASE_FORMAT_UNIT;
         snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Format Unit");
@@ -1219,7 +1257,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
         formatUnitAdded = true;
     }
 
-    if (device->drive_info.drive_type == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported && !nvmFormatAdded)
+    if (get_Device_DriveType(device) == NVME_DRIVE && nvmeFormatInfo.formatCommandSupported && !nvmFormatAdded)
     {
         DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
         currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
@@ -1231,7 +1269,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
         // NVMe Format - in windows : some USB could support, and if drive is connected to PCIe slot, then not supported
         // in linux : for all NVMe connected to PCIe slot it's supported, and USB - all except JM 0x0BC2 - STX vendor
 #if defined(_WIN32)
-        if (device->drive_info.interface_type == USB_INTERFACE)
+        if (get_Device_InterfaceType(device) == USB_INTERFACE)
         {
             if (device->drive_info.passThroughHacks.nvmePTHacks.limitedPassthroughCapabilities)
             {
@@ -1254,7 +1292,7 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
             currentErase->osSupported = false;
         }
 #else
-        if (device->drive_info.interface_type != USB_INTERFACE)
+        if (get_Device_InterfaceType(device) != USB_INTERFACE)
         {
             currentErase->osSupported = true;
         }
@@ -1394,19 +1432,23 @@ eReturnValues get_Supported_Erase_Methods(const tDevice* device,
             // TODO: Make this guess better by reading the drive capabilities and interface speed to determine a more
             // accurate estimate.
             uint32_t megabytesPerSecond = is_SSD(device) ? 450 : 150; // assume 450 MB/s on SSD and 150 MB/s on HDD
-            *overwriteEraseTimeEstimateMinutes = C_CAST(
-                uint32_t, (C_CAST(double, (device->drive_info.deviceMaxLba * device->drive_info.deviceBlockSize)) /
-                           (megabytesPerSecond * 1.049e+6)) /
-                              60.0);
+            *overwriteEraseTimeEstimateMinutes =
+                C_CAST(uint32_t, (C_CAST(double, (return_Device_MaxLba(device) * get_Device_BlockSize(device))) /
+                                  (megabytesPerSecond * 1.049e+6)) /
+                                     60.0);
         }
     }
 
     return ret;
 }
 
-void print_Supported_Erase_Methods(const tDevice*    device,
-                                   eraseMethod const eraseMethodList[MAX_SUPPORTED_ERASE_METHODS],
-                                   const uint32_t*   overwriteEraseTimeEstimateMinutes)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+M_PARAM_RO(3)
+OPENSEA_OPERATIONS_API
+void print_Supported_Erase_Methods(const tDevice* M_NONNULL device,
+                                   eraseMethod const eraseMethodList[M_NONNULL_ARRAY MAX_SUPPORTED_ERASE_METHODS],
+                                   const uint32_t* M_NULLABLE overwriteEraseTimeEstimateMinutes)
 {
     uint8_t counter                     = UINT8_C(0);
     bool    cryptoSupported             = false;
@@ -1520,10 +1562,11 @@ void print_Supported_Erase_Methods(const tDevice*    device,
     }
 }
 
-eReturnValues set_Sense_Data_Format(const tDevice* device,
-                                    bool           defaultSetting,
-                                    bool           descriptorFormat,
-                                    bool           saveParameters)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Sense_Data_Format(const tDevice* M_NONNULL device,
+                                                           bool                     defaultSetting,
+                                                           bool                     descriptorFormat,
+                                                           bool                     saveParameters)
 {
     eReturnValues ret = NOT_SUPPORTED;
     // Change D_Sense for Control Mode page
@@ -1611,7 +1654,10 @@ eReturnValues set_Sense_Data_Format(const tDevice* device,
     return ret;
 }
 
-eReturnValues get_Current_Free_Fall_Control_Sensitivity(const tDevice* device, uint16_t* sensitivity)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Current_Free_Fall_Control_Sensitivity(const tDevice* M_NONNULL device,
+                                                                               uint16_t* M_NONNULL      sensitivity)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1620,7 +1666,7 @@ eReturnValues get_Current_Free_Fall_Control_Sensitivity(const tDevice* device, u
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
             le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15)
@@ -1648,10 +1694,12 @@ eReturnValues get_Current_Free_Fall_Control_Sensitivity(const tDevice* device, u
     return ret;
 }
 
-eReturnValues set_Free_Fall_Control_Sensitivity(const tDevice* device, uint8_t sensitivity)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Free_Fall_Control_Sensitivity(const tDevice* M_NONNULL device,
+                                                                       uint8_t                  sensitivity)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
             le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15)
@@ -1667,10 +1715,11 @@ eReturnValues set_Free_Fall_Control_Sensitivity(const tDevice* device, uint8_t s
     return ret;
 }
 
-eReturnValues disable_Free_Fall_Control_Feature(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues disable_Free_Fall_Control_Feature(const tDevice* M_NONNULL device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word086)) &&
             le16_to_host(device->drive_info.IdentifyData.ata.Word086) & BIT15)
@@ -1686,7 +1735,8 @@ eReturnValues disable_Free_Fall_Control_Feature(const tDevice* device)
     return ret;
 }
 
-void show_Test_Unit_Ready_Status(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(const tDevice* M_NONNULL device)
 {
     scsiStatus returnedStatus;
     safe_memset(&returnedStatus, sizeof(scsiStatus), 0, sizeof(scsiStatus));
@@ -1709,10 +1759,11 @@ void show_Test_Unit_Ready_Status(const tDevice* device)
     }
 }
 
-eReturnValues enable_Disable_AAM_Feature(const tDevice* device, bool enable)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues enable_Disable_AAM_Feature(const tDevice* M_NONNULL device, bool enable)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // check the identify bits to make sure APM is supported.
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
@@ -1749,10 +1800,10 @@ eReturnValues enable_Disable_AAM_Feature(const tDevice* device, bool enable)
 //  80h = minimum acoustic emanation
 //  81h - FDh = intermediate acoustic management levels
 //  FEh = maximum performance.
-eReturnValues set_AAM_Level(const tDevice* device, uint8_t aamLevel)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues set_AAM_Level(const tDevice* M_NONNULL device, uint8_t aamLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // check the identify bits to make sure APM is supported.
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
@@ -1765,10 +1816,12 @@ eReturnValues set_AAM_Level(const tDevice* device, uint8_t aamLevel)
     return ret;
 }
 
-eReturnValues get_AAM_Level(const tDevice* device, uint8_t* aamLevel)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_AAM_Level(const tDevice* M_NONNULL device, uint8_t* M_NONNULL aamLevel)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // check the identify bits to make sure AAM is supported.
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
@@ -1790,7 +1843,8 @@ eReturnValues get_AAM_Level(const tDevice* device, uint8_t* aamLevel)
     return ret;
 }
 
-bool scsi_MP_Reset_To_Defaults_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_MP_Reset_To_Defaults_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SCSI2) // VPD added in SCSI2
@@ -1808,10 +1862,11 @@ bool scsi_MP_Reset_To_Defaults_Supported(const tDevice* device)
     return supported;
 }
 
-eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
-                                    uint8_t              modePage,
-                                    uint8_t              subpage,
-                                    eSCSI_MP_UPDATE_MODE updateMode)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(const tDevice* M_NONNULL device,
+                                                           uint8_t                  modePage,
+                                                           uint8_t                  subpage,
+                                                           eSCSI_MP_UPDATE_MODE     updateMode)
 {
     eReturnValues        ret            = NOT_SUPPORTED;
     uint32_t             modePageLength = UINT32_C(0);
@@ -1849,8 +1904,8 @@ eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
         {
             if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
             {
-                uint8_t* modeData = C_CAST(
-                    uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t),
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                 if (modeData == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
@@ -1905,7 +1960,7 @@ eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
                         currentPageToSetLength += currentPageLength;
                         currentPageToSet =
                             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(currentPageToSetLength, sizeof(uint8_t),
-                                                                             device->os_info.minimumAlignment));
+                                                                             get_Device_IO_Minimum_Alignment(device)));
                         if (currentPageToSet == M_NULLPTR)
                         {
                             safe_free_aligned(&modeData);
@@ -2010,8 +2065,8 @@ eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
         // individual page...easy peasy
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
         {
-            uint8_t* modeData = C_CAST(
-                uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
             if (modeData == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
@@ -2087,10 +2142,13 @@ eReturnValues scsi_Update_Mode_Page(const tDevice*       device,
 }
 
 // NOTE: This rely's on NOT having the mode page header in the passed in buffer, just the raw mode page itself!
-eReturnValues scsi_Set_Mode_Page(const tDevice* device,
-                                 uint8_t*       modePageData,
-                                 uint16_t       modeDataLength,
-                                 bool           saveChanges)
+M_PARAM_RO(1)
+M_NONNULL_IF_NONZERO_PARAM(2, 3)
+M_PARAM_RO_SIZE(2, 3)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Mode_Page(const tDevice* M_NONNULL device,
+                                                        uint8_t* M_NULLABLE      modePageData,
+                                                        uint16_t                 modeDataLength,
+                                                        bool                     saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -2112,7 +2170,7 @@ eReturnValues scsi_Set_Mode_Page(const tDevice* device,
     if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, modePage, subpage, &modePageLength))
     {
         uint8_t* modeData = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (modeData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -2633,7 +2691,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
 M_NONNULL_IF_NONZERO_PARAM(2, 3)
 M_PARAM_RO_SIZE(2, 3)
 static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
-                            uint8_t*             modeData,
+                            uint8_t* M_NULLABLE  modeData,
                             uint32_t             modeDataLen,
                             eScsiModePageControl mpc,
                             bool                 outputWithPrintDataBuffer)
@@ -2830,11 +2888,12 @@ static void print_Mode_Page(uint8_t              scsiPeripheralDeviceType,
 }
 
 // shows a single mode page for the selected control(current, saved, changable, default)
-void show_SCSI_Mode_Page(const tDevice*       device,
-                         uint8_t              modePage,
-                         uint8_t              subpage,
-                         eScsiModePageControl mpc,
-                         bool                 bufferFormatOutput)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(const tDevice* M_NONNULL device,
+                                                uint8_t                  modePage,
+                                                uint8_t                  subpage,
+                                                eScsiModePageControl     mpc,
+                                                bool                     bufferFormatOutput)
 {
     uint32_t modePageLength = UINT32_C(0);
     if (modePage == MP_RETURN_ALL_PAGES ||
@@ -2843,8 +2902,8 @@ void show_SCSI_Mode_Page(const tDevice*       device,
     {
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
         {
-            uint8_t* modeData = C_CAST(
-                uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
             if (modeData == M_NULLPTR)
             {
                 return;
@@ -2907,8 +2966,8 @@ void show_SCSI_Mode_Page(const tDevice*       device,
         // single page...easy
         if (SUCCESS == get_SCSI_Mode_Page_Size(device, mpc, modePage, subpage, &modePageLength))
         {
-            uint8_t* modeData = C_CAST(
-                uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* modeData = C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
             if (modeData == M_NULLPTR)
             {
                 return;
@@ -2953,7 +3012,11 @@ void show_SCSI_Mode_Page(const tDevice*       device,
 
 // shows all mpc values for a given page.
 // should we return an error when asking for all mode pages since that output will otherwise be really messy???
-void show_SCSI_Mode_Page_All(const tDevice* device, uint8_t modePage, uint8_t subpage, bool bufferFormatOutput)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page_All(const tDevice* M_NONNULL device,
+                                                    uint8_t                  modePage,
+                                                    uint8_t                  subpage,
+                                                    bool                     bufferFormatOutput)
 {
     eScsiModePageControl mpc = MPC_CURRENT_VALUES; // will be incremented through a loop
     for (; mpc <= MPC_SAVED_VALUES; ++mpc)
@@ -2963,7 +3026,8 @@ void show_SCSI_Mode_Page_All(const tDevice* device, uint8_t modePage, uint8_t su
 }
 
 // if yes, a page and subpage can be provided when doing a log page reset
-static bool reset_Specific_Log_Page_Supported(const tDevice* device)
+M_PARAM_RO(1)
+static bool reset_Specific_Log_Page_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
@@ -2987,11 +3051,12 @@ static bool reset_Specific_Log_Page_Supported(const tDevice* device)
     return supported;
 }
 
-eReturnValues reset_SCSI_Log_Page(const tDevice*      device,
-                                  eScsiLogPageControl pageControl,
-                                  uint8_t             logPage,
-                                  uint8_t             logSubPage,
-                                  bool                saveChanges)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues reset_SCSI_Log_Page(const tDevice* M_NONNULL device,
+                                                         eScsiLogPageControl      pageControl,
+                                                         uint8_t                  logPage,
+                                                         uint8_t                  logSubPage,
+                                                         bool                     saveChanges)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (logPage || logSubPage)
@@ -3008,10 +3073,11 @@ eReturnValues reset_SCSI_Log_Page(const tDevice*      device,
 }
 
 // doing this in SCSI way for now...should handle nvme separately at some point since a namespace is similar to a lun
-uint8_t get_LUN_Count(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API uint8_t get_LUN_Count(const tDevice* M_NONNULL device)
 {
     uint8_t lunCount = UINT8_C(1); // assume 1 since we are talking over a lun right now. - TJE
-    if (device->drive_info.interface_type != USB_INTERFACE && device->drive_info.interface_type != IEEE_1394_INTERFACE)
+    if (get_Device_InterfaceType(device) != USB_INTERFACE && get_Device_InterfaceType(device) != IEEE_1394_INTERFACE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, luns, 4);
         uint8_t selectReport = UINT8_C(0x02); // or 0????
@@ -3024,7 +3090,10 @@ uint8_t get_LUN_Count(const tDevice* device)
     return lunCount;
 }
 
-eMLU get_MLU_Value_For_SCSI_Operation(const tDevice* device, uint8_t operationCode, uint16_t serviceAction)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eMLU get_MLU_Value_For_SCSI_Operation(const tDevice* M_NONNULL device,
+                                                             uint8_t                  operationCode,
+                                                             uint16_t                 serviceAction)
 {
     eMLU                         mlu = MLU_NOT_REPORTED;
     scsiOperationCodeInfoRequest mluSupReq;
@@ -3044,20 +3113,23 @@ eMLU get_MLU_Value_For_SCSI_Operation(const tDevice* device, uint8_t operationCo
     return mlu;
 }
 
-bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(const tDevice* device, uint8_t modePage, uint8_t subPage)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_Mode_Pages_Shared_By_Multiple_Logical_Units(const tDevice* M_NONNULL device,
+                                                                             uint8_t                  modePage,
+                                                                             uint8_t                  subPage)
 {
     bool     mlus                 = false;
     uint32_t modePagePolicyLength = UINT32_C(4);
     uint8_t* vpdModePagePolicy    = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (vpdModePagePolicy != M_NULLPTR)
     {
         if (SUCCESS == scsi_Inquiry(device, vpdModePagePolicy, modePagePolicyLength, MODE_PAGE_POLICY, true, false))
         {
             modePagePolicyLength = M_BytesTo2ByteValue(vpdModePagePolicy[2], vpdModePagePolicy[3]) + 4;
             safe_free_aligned(&vpdModePagePolicy);
-            vpdModePagePolicy = C_CAST(
-                uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            vpdModePagePolicy = C_CAST(uint8_t*, safe_calloc_aligned(modePagePolicyLength, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
             if (vpdModePagePolicy != M_NULLPTR)
             {
                 if (SUCCESS ==
@@ -3120,14 +3192,17 @@ typedef struct s_concurrentRangesV1
     concurrentRangeDescriptionV1 range[15]; // maximum of 15 concurrent ranges per ACS5
 } concurrentRangesV1, *ptrConcurrentRangesV1;
 
-eReturnValues get_Concurrent_Positioning_Ranges(const tDevice* device, ptrConcurrentRanges ranges)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Concurrent_Positioning_Ranges(const tDevice* M_NONNULL      device,
+                                                                       ptrConcurrentRanges M_NONNULL ranges)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
     if (ranges != M_NULLPTR && ranges->size >= sizeof(concurrentRangesV1) &&
         ranges->version >= CONCURRENT_RANGES_VERSION_V1)
     {
-        if (device->drive_info.drive_type == ATA_DRIVE)
+        if (get_Device_DriveType(device) == ATA_DRIVE)
         {
             uint32_t concurrentLogSizeBytes =
                 0; // NOTE: spec currently says this is at most 1024 bytes, but may be as low as 512
@@ -3137,7 +3212,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(const tDevice* device, ptrConcur
             {
                 uint8_t* concurrentRangeLog =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                 if (concurrentRangeLog == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
@@ -3171,7 +3246,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(const tDevice* device, ptrConcur
                 safe_free_aligned(&concurrentRangeLog);
             }
         }
-        else if (device->drive_info.drive_type == SCSI_DRIVE)
+        else if (get_Device_DriveType(device) == SCSI_DRIVE)
         {
             uint32_t concurrentLogSizeBytes = UINT32_C(0);
             if (SUCCESS == get_SCSI_VPD_Page_Size(device, CONCURRENT_POSITIONING_RANGES, &concurrentLogSizeBytes) &&
@@ -3179,7 +3254,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(const tDevice* device, ptrConcur
             {
                 uint8_t* concurrentRangeVPD =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(concurrentLogSizeBytes, sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                 if (concurrentRangeVPD == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
@@ -3226,7 +3301,7 @@ eReturnValues get_Concurrent_Positioning_Ranges(const tDevice* device, ptrConcur
     return ret;
 }
 
-void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges M_NONNULL ranges)
 {
 
     if (ranges != M_NULLPTR && ranges->size >= sizeof(concurrentRangesV1) &&
@@ -3257,7 +3332,10 @@ void print_Concurrent_Positioning_Ranges(ptrConcurrentRanges ranges)
     }
 }
 
-eReturnValues get_Write_Read_Verify_Info(const tDevice* device, ptrWRVInfo info)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Write_Read_Verify_Info(const tDevice* M_NONNULL device,
+                                                                ptrWRVInfo M_NONNULL     info)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -3266,7 +3344,7 @@ eReturnValues get_Write_Read_Verify_Info(const tDevice* device, ptrWRVInfo info)
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = SUCCESS;
         // check identify data
@@ -3316,15 +3394,15 @@ eReturnValues get_Write_Read_Verify_Info(const tDevice* device, ptrWRVInfo info)
                         info->bytesBeingVerified = UINT64_MAX;
                         break;
                     case ATA_WRV_MODE_65536:
-                        info->bytesBeingVerified = UINT64_C(65536) * device->drive_info.deviceBlockSize;
+                        info->bytesBeingVerified = UINT64_C(65536) * get_Device_BlockSize(device);
                         break;
                     case ATA_WRV_MODE_VENDOR:
                         info->bytesBeingVerified =
-                            C_CAST(uint64_t, info->wrv2sectorCount) * device->drive_info.deviceBlockSize;
+                            C_CAST(uint64_t, info->wrv2sectorCount) * get_Device_BlockSize(device);
                         break;
                     case ATA_WRV_MODE_USER:
                         info->bytesBeingVerified =
-                            C_CAST(uint64_t, info->wrv3sectorCount) * device->drive_info.deviceBlockSize;
+                            C_CAST(uint64_t, info->wrv3sectorCount) * get_Device_BlockSize(device);
                         break;
                     default: // handle any case not currently defined in the specifications.
                         info->bytesBeingVerified = 0;
@@ -3337,7 +3415,8 @@ eReturnValues get_Write_Read_Verify_Info(const tDevice* device, ptrWRVInfo info)
     return ret;
 }
 
-void print_Write_Read_Verify_Info(ptrWRVInfo info)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void print_Write_Read_Verify_Info(ptrWRVInfo M_NONNULL info)
 {
 
     if (info != M_NULLPTR)
@@ -3395,20 +3474,24 @@ void print_Write_Read_Verify_Info(ptrWRVInfo info)
     }
 }
 
-eReturnValues disable_Write_Read_Verify(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues disable_Write_Read_Verify(const tDevice* M_NONNULL device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = ata_SF_Write_Read_Verify(device, ATA_SF_DISABLE, ATA_WRV_MODE_ALL, RESERVED);
     }
     return ret;
 }
 
-eReturnValues set_Write_Read_Verify(const tDevice* device, bool all, bool vendorSpecific, uint32_t wrvSectorCount)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Write_Read_Verify(const tDevice* M_NONNULL device,
+                                                           bool                     all,
+                                                           bool                     vendorSpecific,
+                                                           uint32_t                 wrvSectorCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (all && vendorSpecific)
         {
@@ -3449,13 +3532,14 @@ eReturnValues set_Write_Read_Verify(const tDevice* device, bool all, bool vendor
     return ret;
 }
 
-eOSFeatureSupported is_Block_Sanitize_Operation_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported is_Block_Sanitize_Operation_Supported(const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
-    if (device->drive_info.drive_type == NVME_DRIVE) // If NVMe drive
+    if (get_Device_DriveType(device) == NVME_DRIVE) // If NVMe drive
     {
-        if (device->drive_info.interface_type == USB_INTERFACE) // If USB_INTERFACE
+        if (get_Device_InterfaceType(device) == USB_INTERFACE) // If USB_INTERFACE
         {
             if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON ||
                 device->drive_info.passThroughHacks.passthroughType ==
@@ -3508,14 +3592,14 @@ eOSFeatureSupported is_Block_Sanitize_Operation_Supported(const tDevice* device)
         }
         else if (is_Windows_8_Or_Higher()) // If Windows_8_or_higher
         {
-            if ((device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE) ||
-                (device->drive_info.drive_type == SCSI_DRIVE && device->drive_info.interface_type == SCSI_INTERFACE))
+            if ((get_Device_DriveType(device) == ATA_DRIVE && get_Device_InterfaceType(device) == IDE_INTERFACE) ||
+                (get_Device_DriveType(device) == SCSI_DRIVE && get_Device_InterfaceType(device) == SCSI_INTERFACE))
             {
                 featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
             }
         }
 #else
-        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
+        if (get_Device_DriveType(device) == ATA_DRIVE && get_Device_InterfaceType(device) == USB_INTERFACE &&
             device->drive_info.adapter_info.vendorIDValid &&
             device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
@@ -3527,13 +3611,14 @@ eOSFeatureSupported is_Block_Sanitize_Operation_Supported(const tDevice* device)
     return featureSupported;
 }
 
-eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
-    if (device->drive_info.drive_type == NVME_DRIVE) // If NVMe drive
+    if (get_Device_DriveType(device) == NVME_DRIVE) // If NVMe drive
     {
-        if (device->drive_info.interface_type == USB_INTERFACE) // If USB_INTERFACE
+        if (get_Device_InterfaceType(device) == USB_INTERFACE) // If USB_INTERFACE
         {
             if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON ||
                 device->drive_info.passThroughHacks.passthroughType ==
@@ -3586,14 +3671,14 @@ eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(const tDevice* device
         }
         else if (is_Windows_8_Or_Higher()) // If Windows_8_or_higher
         {
-            if ((device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE) ||
-                (device->drive_info.drive_type == SCSI_DRIVE && device->drive_info.interface_type == SCSI_INTERFACE))
+            if ((get_Device_DriveType(device) == ATA_DRIVE && get_Device_InterfaceType(device) == IDE_INTERFACE) ||
+                (get_Device_DriveType(device) == SCSI_DRIVE && get_Device_InterfaceType(device) == SCSI_INTERFACE))
             {
                 featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
             }
         }
 #else
-        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
+        if (get_Device_DriveType(device) == ATA_DRIVE && get_Device_InterfaceType(device) == USB_INTERFACE &&
             device->drive_info.adapter_info.vendorIDValid &&
             device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
@@ -3605,13 +3690,14 @@ eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(const tDevice* device
     return featureSupported;
 }
 
-eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
-    if (device->drive_info.drive_type == NVME_DRIVE) // If NVMe drive
+    if (get_Device_DriveType(device) == NVME_DRIVE) // If NVMe drive
     {
-        if (device->drive_info.interface_type == USB_INTERFACE) // If USB_INTERFACE
+        if (get_Device_InterfaceType(device) == USB_INTERFACE) // If USB_INTERFACE
         {
             if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON ||
                 device->drive_info.passThroughHacks.passthroughType ==
@@ -3650,14 +3736,14 @@ eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(const tDevice* dev
         }
         else if (is_Windows_8_Or_Higher()) // If Windows_8_or_higher
         {
-            if ((device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == IDE_INTERFACE) ||
-                (device->drive_info.drive_type == SCSI_DRIVE && device->drive_info.interface_type == SCSI_INTERFACE))
+            if ((get_Device_DriveType(device) == ATA_DRIVE && get_Device_InterfaceType(device) == IDE_INTERFACE) ||
+                (get_Device_DriveType(device) == SCSI_DRIVE && get_Device_InterfaceType(device) == SCSI_INTERFACE))
             {
                 featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
             }
         }
 #else
-        if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.interface_type == USB_INTERFACE &&
+        if (get_Device_DriveType(device) == ATA_DRIVE && get_Device_InterfaceType(device) == USB_INTERFACE &&
             device->drive_info.adapter_info.vendorIDValid &&
             device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
@@ -3669,13 +3755,14 @@ eOSFeatureSupported is_Overwrite_Sanitize_Operation_Supported(const tDevice* dev
     return featureSupported;
 }
 
-eOSFeatureSupported is_NVMe_Format_Operation_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported is_NVMe_Format_Operation_Supported(const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
-    if (device->drive_info.drive_type == NVME_DRIVE) // If NVMe drive
+    if (get_Device_DriveType(device) == NVME_DRIVE) // If NVMe drive
     {
-        if (device->drive_info.interface_type == USB_INTERFACE) // If USB_INTERFACE
+        if (get_Device_InterfaceType(device) == USB_INTERFACE) // If USB_INTERFACE
         {
             if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON ||
                 device->drive_info.passThroughHacks.passthroughType ==
@@ -3700,18 +3787,19 @@ eOSFeatureSupported is_NVMe_Format_Operation_Supported(const tDevice* device)
     return featureSupported;
 }
 
-eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
-    if (device->drive_info.interface_type == USB_INTERFACE) // If USB_INTERFACE
+    if (get_Device_InterfaceType(device) == USB_INTERFACE) // If USB_INTERFACE
     {
         // Some devices may support the most basic version of this command,
         // but it is better to just disable it since it likely won't do what we want
         featureSupported = OS_FEATURE_INTERFACE_BLOCKS;
     }
-    else if (device->drive_info.interface_type == SCSI_INTERFACE &&
-             device->drive_info.drive_type == ATA_DRIVE) // If SATA drive on a SCSI_INTERFACE
+    else if (get_Device_InterfaceType(device) == SCSI_INTERFACE &&
+             get_Device_DriveType(device) == ATA_DRIVE) // If SATA drive on a SCSI_INTERFACE
     {
         // It MAY be supported, but it will most likely just return without running anything.
         // It is recommended to disable it in this case because it doesn't really do anything useful.
@@ -3725,14 +3813,16 @@ eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(const tDevice* devic
     return featureSupported;
 }
 
-eOSFeatureSupported is_SMART_Check_Operation_Supported(M_ATTR_UNUSED const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported
+is_SMART_Check_Operation_Supported(M_ATTR_UNUSED const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_SUPPORTED;
 
 #if defined(_WIN32)
     if (device->os_info.ioType == WIN_IOCTL_BASIC)
         featureSupported = OS_FEATURE_OS_BLOCKS;
-    else if (device->drive_info.drive_type == NVME_DRIVE && device->drive_info.interface_type == SCSI_INTERFACE &&
+    else if (get_Device_DriveType(device) == NVME_DRIVE && get_Device_InterfaceType(device) == SCSI_INTERFACE &&
              strcmp(device->drive_info.T10_vendor_ident, "NVMe") ==
                  0) // SCSI Vendor ID is set to NVMe, the Interface is SCSI_INTERFACE, drive is NVMe, then not supported
         featureSupported = OS_FEATURE_OS_BLOCKS;
@@ -3741,13 +3831,14 @@ eOSFeatureSupported is_SMART_Check_Operation_Supported(M_ATTR_UNUSED const tDevi
     return featureSupported;
 }
 
-eOSFeatureSupported is_DST_Operation_Supported(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported is_DST_Operation_Supported(const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
-    if (device->drive_info.drive_type == NVME_DRIVE) // If NVMe drive
+    if (get_Device_DriveType(device) == NVME_DRIVE) // If NVMe drive
     {
-        if (device->drive_info.interface_type == USB_INTERFACE) // If USB_INTERFACE
+        if (get_Device_InterfaceType(device) == USB_INTERFACE) // If USB_INTERFACE
         {
             if (device->drive_info.passThroughHacks.passthroughType == NVME_PASSTHROUGH_JMICRON ||
                 device->drive_info.passThroughHacks.passthroughType ==
@@ -3764,7 +3855,7 @@ eOSFeatureSupported is_DST_Operation_Supported(const tDevice* device)
 #endif
             }
         }
-        else if (device->drive_info.interface_type == SCSI_INTERFACE &&
+        else if (get_Device_InterfaceType(device) == SCSI_INTERFACE &&
                  (strcmp(device->drive_info.T10_vendor_ident, "NVMe") ==
                   0)) // SCSI Vendor ID is set to NVMe, the Interface is SCSI_INTERFACE, drive is NVMe, then not
                       // supported
@@ -3798,11 +3889,13 @@ eOSFeatureSupported is_DST_Operation_Supported(const tDevice* device)
     return featureSupported;
 }
 
-eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(M_ATTR_UNUSED const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eOSFeatureSupported
+is_ATA_Secure_Erase_Operation_Supported(M_ATTR_UNUSED const tDevice* M_NONNULL device)
 {
     eOSFeatureSupported featureSupported = OS_FEATURE_UNKNOWN;
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
 #if defined(_WIN32)
         if (device->os_info.ioType == WIN_IOCTL_BASIC || device->os_info.ioType == WIN_IOCTL_SMART_ONLY ||
@@ -3810,14 +3903,14 @@ eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(M_ATTR_UNUSED const 
                                                                // WIN_IOCTL_SMART_ONLY or WIN_IOCTL_SMART_AND_IDE
             featureSupported = OS_FEATURE_OS_BLOCKS;
         else if (!is_Windows_PE() && !is_Windows_8_Or_Higher() &&
-                 (device->drive_info.interface_type == USB_INTERFACE ||
-                  device->drive_info.interface_type == SCSI_INTERFACE)) // Non PE windows which are older than 8 will
-                                                                        // not support for USB or SCSI interface
+                 (get_Device_InterfaceType(device) == USB_INTERFACE ||
+                  get_Device_InterfaceType(device) == SCSI_INTERFACE)) // Non PE windows which are older than 8 will
+                                                                       // not support for USB or SCSI interface
             featureSupported = OS_FEATURE_OS_BLOCKS;
         else
             featureSupported = OS_FEATURE_SUPPORTED;
 #else
-        if (device->drive_info.interface_type == USB_INTERFACE && device->drive_info.adapter_info.vendorIDValid &&
+        if (get_Device_InterfaceType(device) == USB_INTERFACE && device->drive_info.adapter_info.vendorIDValid &&
             device->drive_info.adapter_info.vendorID == USB_Vendor_Seagate_RSS)
             featureSupported = OS_FEATURE_OS_BLOCKS;
         else

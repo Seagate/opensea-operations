@@ -32,20 +32,23 @@
 #include "operations_Common.h"
 #include "platform_helper.h"
 
-eReturnValues erase_Range(const tDevice* device,
-                          uint64_t       eraseRangeStart,
-                          uint64_t       eraseRangeEnd,
-                          uint8_t*       pattern,
-                          uint32_t       patternLength,
-                          bool           hideLBACounter)
+M_PARAM_RO(1)
+M_NONNULL_IF_NONZERO_PARAM(4, 5)
+M_PARAM_RO_SIZE(4, 5)
+OPENSEA_OPERATIONS_API eReturnValues erase_Range(const tDevice* M_NONNULL device,
+                                                 uint64_t                 eraseRangeStart,
+                                                 uint64_t                 eraseRangeEnd,
+                                                 uint8_t* M_NULLABLE      pattern,
+                                                 uint32_t                 patternLength,
+                                                 bool                     hideLBACounter)
 {
     eReturnValues ret         = SUCCESS;
     uint32_t      sectors     = get_Sector_Count_For_Read_Write(device);
     uint64_t      iter        = UINT64_C(0);
-    uint32_t      dataLength  = sectors * device->drive_info.deviceBlockSize;
+    uint32_t      dataLength  = sectors * get_Device_BlockSize(device);
     uint64_t      alignedLBA  = align_LBA(device, eraseRangeStart);
     uint8_t*      writeBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase range");
@@ -60,7 +63,7 @@ eReturnValues erase_Range(const tDevice* device,
     {
         // only unmount when we are touching boot sectors!
         os_Unmount_File_Systems_On_Device(device);
-        if ((eraseRangeStart + eraseRangeEnd) >= device->drive_info.deviceMaxLba)
+        if ((eraseRangeStart + eraseRangeEnd) >= return_Device_MaxLba(device))
         {
             // At least in WIndows, you MIGHT get a permissions issue trying to write LBA 0 and maxlba.
             // So if this erase is erasing the whole drive, do this first to make sure we use a low-level
@@ -82,10 +85,10 @@ eReturnValues erase_Range(const tDevice* device,
             if (alignedLBA + sectors > eraseRangeEnd)
             {
                 sectors    = C_CAST(uint16_t, eraseRangeEnd - alignedLBA);
-                dataLength = sectors * device->drive_info.deviceBlockSize;
+                dataLength = sectors * get_Device_BlockSize(device);
             }
             // set the pattern, or clear the buffer at the LBA the user requested
-            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
+            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount* get_Device_BlockSize(device));
             if (pattern != M_NULLPTR)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes],
@@ -122,10 +125,10 @@ eReturnValues erase_Range(const tDevice* device,
         {
             if (iter + sectors > eraseRangeEnd)
             {
-                if (iter + sectors > device->drive_info.deviceMaxLba)
+                if (iter + sectors > return_Device_MaxLba(device))
                 {
                     sectors    = C_CAST(uint16_t, eraseRangeEnd - iter);
-                    dataLength = sectors * device->drive_info.deviceBlockSize;
+                    dataLength = sectors * get_Device_BlockSize(device);
                 }
                 else // we aren't going to the end of the drive and may need to read the nearby data to keep anything
                      // the user didn't want to overwrite
@@ -137,12 +140,12 @@ eReturnValues erase_Range(const tDevice* device,
                         {
                             fill_Pattern_Buffer_Into_Another_Buffer(
                                 pattern, patternLength, writeBuffer,
-                                C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
+                                C_CAST(uint32_t, (eraseRangeEnd - iter) * get_Device_BlockSize(device)));
                         }
                         else
                         {
                             safe_memset(writeBuffer, dataLength, 0,
-                                        C_CAST(uint32_t, (eraseRangeEnd - iter) * device->drive_info.deviceBlockSize));
+                                        C_CAST(uint32_t, (eraseRangeEnd - iter) * get_Device_BlockSize(device)));
                         }
                     }
                 }
@@ -167,9 +170,9 @@ eReturnValues erase_Range(const tDevice* device,
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && FAILURE != ret && !hideLBACounter)
         {
-            if (eraseRangeEnd > device->drive_info.deviceMaxLba)
+            if (eraseRangeEnd > return_Device_MaxLba(device))
             {
-                printf("\rWriting LBA: %-40" PRIu64 "", device->drive_info.deviceMaxLba);
+                printf("\rWriting LBA: %-40" PRIu64 "", return_Device_MaxLba(device));
             }
             else
             {
@@ -189,12 +192,15 @@ eReturnValues erase_Range(const tDevice* device,
     return ret;
 }
 
-eReturnValues erase_Time(const tDevice* device,
-                         uint64_t       eraseStartLBA,
-                         uint64_t       eraseTime,
-                         uint8_t*       pattern,
-                         uint32_t       patternLength,
-                         bool           hideLBACounter)
+M_PARAM_RO(1)
+M_NONNULL_IF_NONZERO_PARAM(4, 5)
+M_PARAM_RO_SIZE(4, 5)
+OPENSEA_OPERATIONS_API eReturnValues erase_Time(const tDevice* M_NONNULL device,
+                                                uint64_t                 eraseStartLBA,
+                                                uint64_t                 eraseTime,
+                                                uint8_t* M_NULLABLE      pattern,
+                                                uint32_t                 patternLength,
+                                                bool                     hideLBACounter)
 {
     eReturnValues ret         = UNKNOWN;
     time_t        currentTime = 0;
@@ -202,16 +208,16 @@ eReturnValues erase_Time(const tDevice* device,
     // first figure out how many writes we'll need to issue, then allocate the memory we need
     uint32_t sectors     = get_Sector_Count_For_Read_Write(device);
     uint64_t iter        = UINT64_C(0);
-    uint32_t dataLength  = sectors * device->drive_info.deviceBlockSize;
+    uint32_t dataLength  = sectors * get_Device_BlockSize(device);
     uint64_t alignedLBA  = align_LBA(device, eraseStartLBA);
     uint8_t* writeBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase time");
         return MEMORY_FAILURE;
     }
-    if (device->drive_info.deviceMaxLba == 0)
+    if (return_Device_MaxLba(device) == 0)
     {
         safe_free(&writeBuffer);
         return NOT_SUPPORTED;
@@ -234,13 +240,13 @@ eReturnValues erase_Time(const tDevice* device,
         // read the LBA, modify ONLY the data the user wants to erase, then write it to the drive.
         if (SUCCESS == read_LBA(device, alignedLBA, false, writeBuffer, dataLength))
         {
-            if (alignedLBA + sectors > device->drive_info.deviceMaxLba)
+            if (alignedLBA + sectors > return_Device_MaxLba(device))
             {
-                sectors    = C_CAST(uint16_t, device->drive_info.deviceMaxLba - alignedLBA);
-                dataLength = sectors * device->drive_info.deviceBlockSize;
+                sectors    = C_CAST(uint16_t, return_Device_MaxLba(device) - alignedLBA);
+                dataLength = sectors * get_Device_BlockSize(device);
             }
             // set the pattern, or clear the buffer at the LBA the user requested
-            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount * device->drive_info.deviceBlockSize);
+            uint32_t adjustmentBytes = C_CAST(uint32_t, adjustmentAmount* get_Device_BlockSize(device));
             if (pattern != M_NULLPTR)
             {
                 fill_Pattern_Buffer_Into_Another_Buffer(pattern, patternLength, &writeBuffer[adjustmentBytes],
@@ -272,10 +278,10 @@ eReturnValues erase_Time(const tDevice* device,
     for (iter = eraseStartLBA; C_CAST(uint64_t, difftime(currentTime, startTime)) < eraseTime;
          iter += sectors, currentTime = time(M_NULLPTR))
     {
-        if (iter + sectors > device->drive_info.deviceMaxLba)
+        if (iter + sectors > return_Device_MaxLba(device))
         {
-            sectors    = C_CAST(uint16_t, device->drive_info.deviceMaxLba - iter);
-            dataLength = sectors * device->drive_info.deviceBlockSize;
+            sectors    = C_CAST(uint16_t, return_Device_MaxLba(device) - iter);
+            dataLength = sectors * get_Device_BlockSize(device);
         }
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
@@ -294,7 +300,7 @@ eReturnValues erase_Time(const tDevice* device,
             // permission errors - TJE
             os_Update_File_System_Cache(device);
         }
-        if (iter + sectors >= device->drive_info.deviceMaxLba)
+        if (iter + sectors >= return_Device_MaxLba(device))
         {
             // reset the sector count back to what it was and set iter back to 0
             iter    = 0;
@@ -313,14 +319,14 @@ eReturnValues erase_Time(const tDevice* device,
 }
 
 // This erases the first 32KiB and last 32 KiB of the drive.
-eReturnValues erase_Boot_Sectors(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues erase_Boot_Sectors(const tDevice* M_NONNULL device)
 {
     eReturnValues ret         = SUCCESS;
     uint32_t      sectors     = get_Sector_Count_For_Read_Write(device);
     uint64_t      iter        = UINT64_C(0);
-    uint32_t      dataLength  = sectors * device->drive_info.deviceBlockSize;
+    uint32_t      dataLength  = sectors * get_Device_BlockSize(device);
     uint8_t*      writeBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (writeBuffer == M_NULLPTR)
     {
         perror("calloc failure! Write Buffer - erase range");
@@ -352,7 +358,7 @@ eReturnValues erase_Boot_Sectors(const tDevice* device)
     if (ret == SUCCESS)
     {
         // write max LBA only if LBA 0 wrote successfully
-        ret = write_LBA(device, device->drive_info.deviceMaxLba - iter, false, writeBuffer, dataLength);
+        ret = write_LBA(device, return_Device_MaxLba(device) - iter, false, writeBuffer, dataLength);
     }
     flush_Cache(device);
     if (VERBOSITY_QUIET < device->deviceVerbosity)

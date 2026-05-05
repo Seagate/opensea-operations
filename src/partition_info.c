@@ -30,7 +30,8 @@
 #include "operations_Common.h"
 #include "partition_info.h"
 
-ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
+M_PARAM_RW(1)
+OPENSEA_OPERATIONS_API ptrPartitionInfo M_NULLABLE delete_Partition_Info(ptrPartitionInfo M_NULLABLE partInfo)
 {
 
     if (partInfo != M_NULLPTR)
@@ -55,7 +56,8 @@ ptrPartitionInfo delete_Partition_Info(ptrPartitionInfo partInfo)
     return partInfo;
 }
 
-static void fill_OG_MBR_Partitions(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData mbr)
+M_PARAM_RO_SIZE(1, 2)
+static void fill_OG_MBR_Partitions(uint8_t* M_NONNULL mbrDataBuf, uint32_t mbrDataSize, ptrMBRData M_NONNULL mbr)
 {
     if (mbrDataBuf && mbrDataSize >= UINT32_C(512) && mbr)
     {
@@ -90,7 +92,8 @@ static void fill_OG_MBR_Partitions(uint8_t* mbrDataBuf, uint32_t mbrDataSize, pt
     }
 }
 
-static eReturnValues fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, ptrMBRData mbr)
+M_PARAM_RO_SIZE(1, 2)
+static eReturnValues fill_MBR_Data(uint8_t* M_NONNULL mbrDataBuf, uint32_t mbrDataSize, ptrMBRData M_NONNULL mbr)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (mbrDataBuf && mbr && mbrDataSize >= 512 && !is_Empty(mbrDataBuf, 512) && mbrDataBuf[510] == MBR_SIGNATURE_LO &&
@@ -268,10 +271,11 @@ static eReturnValues fill_MBR_Data(uint8_t* mbrDataBuf, uint32_t mbrDataSize, pt
 }
 
 // This requires pointing data to lba 0 (to keep consistent with other functions)
-static uint32_t number_Of_GPT_Partitions(uint8_t* gptDataBuf,
-                                         uint32_t gptDataSize,
-                                         uint32_t deviceLogicalBlockSize,
-                                         uint64_t lba)
+M_PARAM_RO_SIZE(1, 2)
+static uint32_t number_Of_GPT_Partitions(uint8_t* M_NONNULL gptDataBuf,
+                                         uint32_t           gptDataSize,
+                                         uint32_t           deviceLogicalBlockSize,
+                                         uint64_t           lba)
 {
     uint32_t count = UINT32_C(0);
     if (gptDataBuf && gptDataSize >= (2 * deviceLogicalBlockSize))
@@ -304,7 +308,9 @@ static uint32_t reverse_bits_32(uint32_t value)
 
 #define UEFI_CRC32_POLYNOMIAL UINT32_C(0x04C11DB7)
 
-static uint32_t gpt_CRC_32(const uint8_t* dataBuf, uint32_t dataLength)
+M_PARAM_RO_SIZE(1, 2)
+M_NONNULL_IF_NONZERO_SIZE(1, 2)
+static uint32_t gpt_CRC_32(const uint8_t* M_NONNULL dataBuf, uint32_t dataLength)
 {
     uint32_t crc32 = UINT32_MAX;
     if (dataBuf && dataLength > 0)
@@ -585,13 +591,15 @@ gptPartitionTypeName gptGUIDNameLookup[] = {
 // used with bsearch to locate the name quicker
 static int cmp_GPT_Part_GUID(const void* a, const void* b)
 {
-    return memcmp(&(C_CAST(const gptPartitionTypeName*, a))->guid, &(C_CAST(const gptPartitionTypeName*, b))->guid,
-                  sizeof(gptGUID));
+    return memcmp(&(M_REINTERPRET_CAST(const gptPartitionTypeName*, a))->guid,
+                  &(M_REINTERPRET_CAST(const gptPartitionTypeName*, b))->guid, sizeof(gptGUID));
 }
 
 // This copies the mixed endianness GUID from the dataBuf into a format that can easily be output with a for-loop into
 // the GUID variable
-static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID* guid)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void copy_GPT_GUID(uint8_t* M_NONNULL dataBuf, gptGUID* M_NONNULL guid)
 {
     if (dataBuf && guid)
     {
@@ -618,23 +626,26 @@ static void copy_GPT_GUID(uint8_t* dataBuf, gptGUID* guid)
 
 #define GPT_SIGNATURE_STR_LEN RSIZE_T_C(8)
 
-static eReturnValues fill_GPT_Data(const tDevice* device,
-                                   uint8_t*       gptDataBuf,
-                                   uint32_t       gptDataSize,
-                                   ptrGPTData     gpt,
-                                   uint32_t       sizeOfGPTDataStruct,
-                                   uint64_t       lba)
+M_PARAM_RO(1)
+M_PARAM_RO_SIZE(2, 3)
+M_PARAM_WO(4)
+static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
+                                   uint8_t* M_NONNULL       gptDataBuf,
+                                   uint32_t                 gptDataSize,
+                                   ptrGPTData M_NONNULL     gpt,
+                                   uint32_t                 sizeOfGPTDataStruct,
+                                   uint64_t                 lba)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (gptDataBuf && gpt && gptDataSize >= UINT32_C(32768) &&
-        gptDataSize >= (UINT32_C(2) * device->drive_info.deviceBlockSize))
+        gptDataSize >= (UINT32_C(2) * get_Device_BlockSize(device)))
     {
         // In order to "easily" adapt this code for GPT backup, it will move the buffer data around since at the
         // beginning the header is before the partitions, but for the backup the partitions come before the header.
-        uint32_t gptHeaderOffset = device->drive_info.deviceBlockSize;
+        uint32_t gptHeaderOffset = get_Device_BlockSize(device);
         if (lba != UINT64_C(0))
         {
-            gptHeaderOffset = gptDataSize - device->drive_info.deviceBlockSize;
+            gptHeaderOffset = gptDataSize - get_Device_BlockSize(device);
         }
 
         DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN + RSIZE_T_C(1));
@@ -690,14 +701,14 @@ static eReturnValues fill_GPT_Data(const tDevice* device,
                 bool     usedLocalPartitionBuf = false;
                 uint8_t* gptPartitionArray =
                     &gptDataBuf[gptHeaderOffset +
-                                device->drive_info.deviceBlockSize]; // offset to the beginning of the partition array
-                uint32_t gptPartitionArrayDataLength = gptDataSize - (UINT32_C(2) * device->drive_info.deviceBlockSize);
+                                get_Device_BlockSize(device)]; // offset to the beginning of the partition array
+                uint32_t gptPartitionArrayDataLength = gptDataSize - (UINT32_C(2) * get_Device_BlockSize(device));
                 uint32_t sizeOfPartitionEntry =
                     M_BytesTo4ByteValue(gptDataBuf[gptHeaderOffset + 87], gptDataBuf[gptHeaderOffset + 86],
                                         gptDataBuf[gptHeaderOffset + 85], gptDataBuf[gptHeaderOffset + 84]);
                 if (lba != UINT64_C(0))
                 {
-                    gptPartitionArray = &gptDataBuf[gptDataSize - device->drive_info.deviceBlockSize -
+                    gptPartitionArray = &gptDataBuf[gptDataSize - get_Device_BlockSize(device) -
                                                     (gpt->numberOfPartitionEntries *
                                                      sizeOfPartitionEntry)]; // for backup this will point to the
                                                                              // beginning of the partition array
@@ -720,14 +731,14 @@ static eReturnValues fill_GPT_Data(const tDevice* device,
                     // calculate the data length and round up to the nearest full logical block
                     gptPartitionArrayDataLength =
                         C_CAST(uint32_t, (((sizeOfPartitionEntry * gpt->numberOfPartitionEntries) +
-                                           (device->drive_info.deviceBlockSize - UINT32_C(1))) /
-                                          device->drive_info.deviceBlockSize) *
-                                             device->drive_info.deviceBlockSize);
+                                           (get_Device_BlockSize(device) - UINT32_C(1))) /
+                                          get_Device_BlockSize(device)) *
+                                             get_Device_BlockSize(device));
                     if (lba != UINT64_C(0))
                     {
                         // calculate the LBA to read the beginning of the partition array!
-                        partitionArrayLBA = device->drive_info.deviceMaxLba -
-                                            (gptPartitionArrayDataLength / device->drive_info.deviceBlockSize);
+                        partitionArrayLBA =
+                            return_Device_MaxLba(device) - (gptPartitionArrayDataLength / get_Device_BlockSize(device));
                     }
                     gptPartitionArray =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc(gptPartitionArrayDataLength, sizeof(uint8_t)));
@@ -765,11 +776,11 @@ static eReturnValues fill_GPT_Data(const tDevice* device,
                             gptGUIDsSorted = true;
                         }
 
-                        gptName =
-                            C_CAST(gptPartitionTypeName*,
-                                   safe_bsearch(&gpt->partition[partIter].partitionTypeGUID, gptGUIDNameLookup,
-                                                SIZE_OF_STACK_ARRAY(gptGUIDNameLookup), sizeof(gptGUIDNameLookup[0]),
-                                                (int (*)(const void*, const void*))cmp_GPT_Part_GUID));
+                        gptName = C_CAST(gptPartitionTypeName*,
+                                         safe_bsearch(&gpt->partition[partIter].partitionTypeGUID,
+                                                      M_REINTERPRET_CAST(void*, gptGUIDNameLookup),
+                                                      SIZE_OF_STACK_ARRAY(gptGUIDNameLookup),
+                                                      sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID));
 
                         if (gptName != M_NULLPTR)
                         {
@@ -820,7 +831,8 @@ static eReturnValues fill_GPT_Data(const tDevice* device,
     return ret;
 }
 
-ptrPartitionInfo get_Partition_Info(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API ptrPartitionInfo M_NULLABLE get_Partition_Info(const tDevice* M_NONNULL device)
 {
     ptrPartitionInfo partitionData = M_REINTERPRET_CAST(ptrPartitionInfo, safe_calloc(1, sizeof(partitionInfo)));
     // This function will read LBA 0 for 32KiB first, enough to handle most situations
@@ -832,7 +844,7 @@ ptrPartitionInfo get_Partition_Info(const tDevice* device)
     if (dataBuffer != M_NULLPTR && partitionData != M_NULLPTR)
     {
         uint64_t lba                 = UINT64_C(0);
-        partitionData->diskBlockSize = device->drive_info.deviceBlockSize;
+        partitionData->diskBlockSize = get_Device_BlockSize(device);
         do
         {
             if (SUCCESS == read_LBA(device, lba, false, dataBuffer,
@@ -841,14 +853,14 @@ ptrPartitionInfo get_Partition_Info(const tDevice* device)
                 DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN + 1);
                 if (lba == 0)
                 {
-                    safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1,
-                                &dataBuffer[device->drive_info.deviceBlockSize], GPT_SIGNATURE_STR_LEN);
+                    safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1, &dataBuffer[get_Device_BlockSize(device)],
+                                GPT_SIGNATURE_STR_LEN);
                 }
                 else
                 {
                     // check for backup GPT
                     safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1,
-                                &dataBuffer[dataSize - device->drive_info.deviceBlockSize], GPT_SIGNATURE_STR_LEN);
+                                &dataBuffer[dataSize - get_Device_BlockSize(device)], GPT_SIGNATURE_STR_LEN);
                 }
                 // First check for an MBR. This is most common to find, then check if APM is in sector 1. If neither are
                 // found, check if a GPT table exists even without a protective MBR First check the signature bytes
@@ -874,8 +886,8 @@ ptrPartitionInfo get_Partition_Info(const tDevice* device)
                         }
                     }
                 }
-                else if (lba == 0 && dataBuffer[device->drive_info.deviceBlockSize + 0] == APM_SIG_0 &&
-                         dataBuffer[device->drive_info.deviceBlockSize + 1] == APM_SIG_1)
+                else if (lba == 0 && dataBuffer[get_Device_BlockSize(device) + 0] == APM_SIG_0 &&
+                         dataBuffer[get_Device_BlockSize(device) + 1] == APM_SIG_1)
                 {
                     // APM detected!
                     partitionData->partitionDataType = PARTITION_TABLE_APM;
@@ -892,13 +904,13 @@ ptrPartitionInfo get_Partition_Info(const tDevice* device)
                     safe_memset(dataBuffer, dataSize, 0,
                                 dataSize); // clear out any old data in case something weird happens
                     // change the LBA to read from to maxLBA - 32KiB
-                    lba = device->drive_info.deviceMaxLba - (dataSize / device->drive_info.deviceBlockSize) +
+                    lba = return_Device_MaxLba(device) - (dataSize / get_Device_BlockSize(device)) +
                           1; // 1 corrects the LBA offset to be able to find the backup GPT partition -TJE
                 }
                 else if (partitionData->partitionDataType == PARTITION_TABLE_GPT)
                 {
                     uint32_t partitionCount =
-                        number_Of_GPT_Partitions(dataBuffer, dataSize, device->drive_info.deviceBlockSize, lba);
+                        number_Of_GPT_Partitions(dataBuffer, dataSize, get_Device_BlockSize(device), lba);
                     uint32_t gptStructSize = C_CAST(uint32_t, (sizeof(gptData) - sizeof(gptPartitionEntry)) +
                                                                   (sizeof(gptPartitionEntry) * partitionCount));
                     partitionData->gptTable =
@@ -940,7 +952,7 @@ static void print_MBR_CHS(mbrCHSAddress address)
     printf("%" PRIu16 ":%" PRIu8 ":%" PRIu8, cylinder, address.head, sector);
 }
 
-static void print_MBR_Info(ptrMBRData mbrTable)
+static void print_MBR_Info(ptrMBRData M_NONNULL mbrTable)
 {
 
     if (mbrTable != M_NULLPTR)
@@ -1041,7 +1053,7 @@ static void print_GPT_GUID(gptGUID guid)
            guid.part5[4], guid.part5[5]);
 }
 
-static void print_GPT_Info(ptrGPTData gptTable)
+static void print_GPT_Info(ptrGPTData M_NONNULL gptTable)
 {
 
     if (gptTable != M_NULLPTR)
@@ -1166,7 +1178,7 @@ static void print_GPT_Info(ptrGPTData gptTable)
     }
 }
 
-static void print_APM_Info(ptrAPMData apmTable)
+static void print_APM_Info(ptrAPMData M_NONNULL apmTable)
 {
 
     if (apmTable != M_NULLPTR)
@@ -1175,7 +1187,7 @@ static void print_APM_Info(ptrAPMData apmTable)
     }
 }
 
-void print_Partition_Info(ptrPartitionInfo partitionTable)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Partition_Info(ptrPartitionInfo M_NONNULL partitionTable)
 {
 
     if (partitionTable != M_NULLPTR)

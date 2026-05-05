@@ -315,8 +315,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         uint8_t pioCycleTime = M_Byte1(le16_to_host(wordPtr[51]));
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
-            safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                        sizeof(interfaceSpeed)); // clear anything we've set so far
+            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
@@ -355,8 +354,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         uint8_t dmaCycleTime = M_Byte1(le16_to_host(wordPtr[52]));
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
-            safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                        sizeof(interfaceSpeed)); // clear anything we've set so far
+            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
@@ -398,8 +396,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
-            safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                        sizeof(interfaceSpeed)); // clear anything we've set so far
+            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
@@ -473,8 +470,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         uint8_t swdmaSelected  = get_8bit_range_uint16(le16_to_host(wordPtr[62]), 10, 8);
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
-            safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                        sizeof(interfaceSpeed)); // clear anything we've set so far
+            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
@@ -571,8 +567,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         uint8_t mwdmaSelected  = get_8bit_range_uint16(le16_to_host(wordPtr[63]), 10, 8);
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
-            safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                        sizeof(interfaceSpeed)); // clear anything we've set so far
+            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
@@ -667,8 +662,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
-            safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                        sizeof(interfaceSpeed)); // clear anything we've set so far
+            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
@@ -807,8 +801,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     // SATA Capabilities (Words 76 & 77)
     if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(wordPtr[76])))
     {
-        safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                    sizeof(interfaceSpeed)); // clear anything we've set so far
+        clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
         driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_SERIAL;
         driveInfo->interfaceSpeedInfo.speedIsValid = true;
         // port speed
@@ -1537,8 +1530,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     {
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
-            safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                        sizeof(interfaceSpeed)); // clear anything we've set so far
+            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
@@ -2227,8 +2219,7 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     if (transportType == 0xE)
     {
-        safe_memset(&driveInfo->interfaceSpeedInfo, sizeof(interfaceSpeed), 0,
-                    sizeof(interfaceSpeed)); // clear anything we've set so far
+        clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
         driveInfo->interfaceSpeedInfo.speedType = INTERFACE_SPEED_PCIE;
     }
 
@@ -3265,7 +3256,10 @@ static eReturnValues get_Security_Features_From_Security_Protocol(const tDevice*
     return ret;
 }
 
-eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice* M_NONNULL              device,
+                                                               ptrDriveInformationSAS_SATA M_NONNULL driveInfo)
 {
     eReturnValues                  ret                         = SUCCESS;
     bool                           smartStatusFromSCTStatusLog = false;
@@ -3285,8 +3279,8 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
     if (SUCCESS == ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE))
     {
         get_ATA_Drive_Info_From_Identify(driveInfo, &ataCap, iddata, LEGACY_DRIVE_SEC_SIZE);
-        if (is_Seagate_Family(device) && device->drive_info.interface_type != IDE_INTERFACE &&
-            device->drive_info.interface_type != SCSI_INTERFACE)
+        if (is_Seagate_Family(device) && get_Device_InterfaceType(device) != IDE_INTERFACE &&
+            get_Device_InterfaceType(device) != SCSI_INTERFACE)
         {
             char*  p1    = driveInfo->serialNumber;
             char** snptr = &p1;
@@ -3298,7 +3292,7 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
     // Read Log data
     uint32_t logBufferSize = ATA_LOG_PAGE_LEN_BYTES;
     uint8_t* logBuffer     = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(logBufferSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(logBufferSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -3358,7 +3352,7 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
         if (idDataLogSize > 0)
         {
             uint8_t* idDataLog = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(idDataLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(idDataLogSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             if (idDataLog != M_NULLPTR)
             {
                 if (SUCCESS == get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, M_NULLPTR, M_NULLPTR, true, true, true,
@@ -3374,7 +3368,7 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
         if (devStatsSize > 0) // can come from GPL or SMART
         {
             uint8_t* devStats = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(devStatsSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(devStatsSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             if (devStats != M_NULLPTR)
             {
                 if (SUCCESS == get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, M_NULLPTR, M_NULLPTR, true, true, true,
@@ -3486,7 +3480,7 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
         if (ataCap.gplSupported && farmLogSize)
         {
             uint8_t* farmData = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(16384, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(16384, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             if (farmData != M_NULLPTR)
             {
                 // read "page 0" or first 4KB for header/top level information and verify this is in fact the FARM log
@@ -3580,7 +3574,7 @@ eReturnValues get_ATA_Drive_Information(const tDevice* device, ptrDriveInformati
             // Read supported security protocol list
             uint8_t* protocolList =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
+                                                                 get_Device_IO_Minimum_Alignment(device)));
             if (protocolList)
             {
                 if (SUCCESS == ata_Trusted_Receive(device, device->drive_info.ata_Options.dmaSupported, 0, 0,
@@ -3652,10 +3646,13 @@ typedef struct s_scsiIdentifyInfo
     bool    zoneDomainsOrRealms;
 } scsiIdentifyInfo, *ptrSCSIIdentifyInfo;
 
-static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo,
-                                           ptrSCSIIdentifyInfo         scsiInfo,
-                                           uint8_t*                    inquiryData,
-                                           uint32_t                    dataLength)
+M_PARAM_RW(1)
+M_PARAM_RW(2)
+M_PARAM_RO_SIZE(3, 4)
+static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA M_NONNULL driveInfo,
+                                           ptrSCSIIdentifyInfo M_NONNULL         scsiInfo,
+                                           const uint8_t* M_NONNULL              inquiryData,
+                                           uint32_t                              dataLength)
 {
     eReturnValues ret = SUCCESS;
     if (driveInfo && scsiInfo && inquiryData && dataLength >= INQ_RETURN_DATA_LENGTH_SCSI2)
@@ -3777,9 +3774,12 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA driveInfo
     return ret;
 }
 
-static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
-                                       ptrDriveInformationSAS_SATA driveInfo,
-                                       ptrSCSIIdentifyInfo         scsiInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_RO(3)
+static eReturnValues get_SCSI_VPD_Data(const tDevice* M_NONNULL              device,
+                                       ptrDriveInformationSAS_SATA M_NONNULL driveInfo,
+                                       const ptrSCSIIdentifyInfo M_NONNULL   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
@@ -3787,7 +3787,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
         // VPD pages (read list of supported pages...if we don't get anything back, we'll dummy up a list of things we
         // are interested in trying to read...this is to work around crappy USB bridges
         uint8_t* tempBuf = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(SIZE_T_C(1024), sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(SIZE_T_C(1024), sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (tempBuf == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -3897,7 +3897,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                     uint8_t  unitSerialNumberPageLength = SERIAL_NUM_LEN + 4; // adding 4 bytes extra for the header
                     uint8_t* unitSerialNumber =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(unitSerialNumberPageLength, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (unitSerialNumber == M_NULLPTR)
                     {
                         perror("Error allocating memory to read the unit serial number");
@@ -3954,7 +3954,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                 {
                     uint8_t* deviceIdentification =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(INQ_RETURN_DATA_LENGTH, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (deviceIdentification == M_NULLPTR)
                     {
                         perror("Error allocating memory to read device identification VPD page");
@@ -3970,7 +3970,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                             uint8_t* temp = M_REINTERPRET_CAST(
                                 uint8_t*, safe_reallocf_aligned(M_REINTERPRET_CAST(void**, &deviceIdentification), 0,
                                                                 uint16_to_sizet(devIDPageLen) + SIZE_T_C(4),
-                                                                device->os_info.minimumAlignment));
+                                                                get_Device_IO_Minimum_Alignment(device)));
                             if (temp == M_NULLPTR)
                             {
                                 perror("Error trying to realloc for larget device identification VPD page data!\n");
@@ -4083,7 +4083,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                 {
                     uint8_t* extendedInquiryData =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (extendedInquiryData == M_NULLPTR)
                     {
                         perror("Error allocating memory to read extended inquiry VPD page");
@@ -4126,9 +4126,10 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                             {
                                 uint16_t supportedBlockSizesAndProtectionTypesLength =
                                     4; // reallocate in a minute when we know how much to read
-                                uint8_t* supportedBlockSizesAndProtectionTypes = C_CAST(
-                                    uint8_t*, safe_calloc_aligned(supportedBlockSizesAndProtectionTypesLength,
-                                                                  sizeof(uint8_t), device->os_info.minimumAlignment));
+                                uint8_t* supportedBlockSizesAndProtectionTypes =
+                                    C_CAST(uint8_t*, safe_calloc_aligned(supportedBlockSizesAndProtectionTypesLength,
+                                                                         sizeof(uint8_t),
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                                 if (supportedBlockSizesAndProtectionTypes != M_NULLPTR)
                                 {
                                     if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes,
@@ -4144,7 +4145,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                                             safe_reallocf_aligned(
                                                 M_REINTERPRET_CAST(void**, &supportedBlockSizesAndProtectionTypes), 0,
                                                 supportedBlockSizesAndProtectionTypesLength * sizeof(uint8_t),
-                                                device->os_info.minimumAlignment));
+                                                get_Device_IO_Minimum_Alignment(device)));
                                         supportedBlockSizesAndProtectionTypes = temp;
                                         if (SUCCESS == scsi_Inquiry(device, supportedBlockSizesAndProtectionTypes,
                                                                     supportedBlockSizesAndProtectionTypesLength,
@@ -4198,7 +4199,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                 {
                     uint8_t* blockDeviceCharacteristics = M_REINTERPRET_CAST(
                         uint8_t*, safe_calloc_aligned(VPD_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t),
-                                                      device->os_info.minimumAlignment));
+                                                      get_Device_IO_Minimum_Alignment(device)));
                     if (blockDeviceCharacteristics == M_NULLPTR)
                     {
                         perror("Error allocating memory to read block device characteistics VPD page");
@@ -4229,7 +4230,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                 {
                     uint8_t* logicalBlockProvisioning = M_REINTERPRET_CAST(
                         uint8_t*, safe_calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t),
-                                                      device->os_info.minimumAlignment));
+                                                      get_Device_IO_Minimum_Alignment(device)));
                     if (logicalBlockProvisioning == M_NULLPTR)
                     {
                         perror("Error allocating memory to read logical block provisioning VPD page");
@@ -4283,7 +4284,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                 {
                     uint8_t* blockLimits =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (blockLimits == M_NULLPTR)
                     {
                         perror("Error allocating memory to read logical block provisioning VPD page");
@@ -4323,7 +4324,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                 {
                     uint8_t* ataInformation =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_ATA_INFORMATION_LEN, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (ataInformation == M_NULLPTR)
                     {
                         perror("Error allocating memory to read ATA Information VPD page");
@@ -4348,7 +4349,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                         64; // max of 15 ranges at 32 bytes each, plus 64 bytes that show ahead as a "header"
                     uint8_t* concurrentRangesData =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(concurrentRangesLength, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (concurrentRangesData == M_NULLPTR)
                     {
                         perror("Error allocating memory to read concurrent positioning ranges VPD page");
@@ -4370,7 +4371,7 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
                 {
                     uint8_t* zbdCharacteristics = M_REINTERPRET_CAST(
                         uint8_t*, safe_calloc_aligned(VPD_ZONED_BLOCK_DEVICE_CHARACTERISTICS_LEN, sizeof(uint8_t),
-                                                      device->os_info.minimumAlignment));
+                                                      get_Device_IO_Minimum_Alignment(device)));
                     if (zbdCharacteristics == M_NULLPTR)
                     {
                         perror("Error allocating memory to read zoned block device characteristics VPD page");
@@ -4412,9 +4413,12 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice*              device,
     return ret;
 }
 
-static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
-                                       ptrDriveInformationSAS_SATA driveInfo,
-                                       ptrSCSIIdentifyInfo         scsiInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_RO(3)
+static eReturnValues get_SCSI_Log_Data(const tDevice* M_NONNULL              device,
+                                       ptrDriveInformationSAS_SATA M_NONNULL driveInfo,
+                                       const ptrSCSIIdentifyInfo M_NONNULL   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
@@ -4427,7 +4431,7 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
             bool subpagesSupported = true;
             // Check log pages for data->start with list of pages and subpages
             uint8_t* scsiLogBuf = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(512, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             if (scsiLogBuf != M_NULLPTR)
             {
                 if (!device->drive_info.passThroughHacks.scsiHacks.noLogSubPages &&
@@ -4611,8 +4615,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         {
                             // we need parameter code 5h (total bytes processed)
                             // assume we only need to read 16 bytes to get this value
-                            uint8_t* writeErrorData = C_CAST(
-                                uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* writeErrorData =
+                                C_CAST(uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (writeErrorData == M_NULLPTR)
                             {
                                 break;
@@ -4664,8 +4669,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         {
                             // we need parameter code 5h (total bytes processed)
                             // assume we only need to read 16 bytes to get this value
-                            uint8_t* readErrorData = C_CAST(
-                                uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* readErrorData =
+                                C_CAST(uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (readErrorData == M_NULLPTR)
                             {
                                 break;
@@ -4721,8 +4727,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         {
                         case 0: // temperature
                         {
-                            uint8_t* temperatureData = C_CAST(
-                                uint8_t*, safe_calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* temperatureData =
+                                C_CAST(uint8_t*, safe_calloc_aligned(10, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (temperatureData == M_NULLPTR)
                             {
                                 break;
@@ -4738,8 +4745,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         break;
                         case 1: // environmental reporting
                         {
-                            uint8_t* environmentReporting = C_CAST(
-                                uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* environmentReporting =
+                                C_CAST(uint8_t*, safe_calloc_aligned(16, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (environmentReporting == M_NULLPTR)
                             {
                                 break;
@@ -4785,8 +4793,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         {
                         case 0x00: // start-stop cycle count
                         {
-                            uint8_t* startStopCounterLog = C_CAST(
-                                uint8_t*, safe_calloc_aligned(14, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* startStopCounterLog =
+                                C_CAST(uint8_t*, safe_calloc_aligned(14, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (startStopCounterLog == M_NULLPTR)
                             {
                                 break;
@@ -4829,8 +4838,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         break;
                         case 0x01: // utilization
                         {
-                            uint8_t* utilizationData = C_CAST(
-                                uint8_t*, safe_calloc_aligned(10, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* utilizationData =
+                                C_CAST(uint8_t*, safe_calloc_aligned(10, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (utilizationData == M_NULLPTR)
                             {
                                 break;
@@ -4855,8 +4865,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         {
                         case 0x00: // application client
                         {
-                            uint8_t* applicationClient = C_CAST(
-                                uint8_t*, safe_calloc_aligned(4, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* applicationClient =
+                                C_CAST(uint8_t*, safe_calloc_aligned(4, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (applicationClient == M_NULLPTR)
                             {
                                 break;
@@ -4881,7 +4892,7 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         {
                             uint8_t* selfTestResults = M_REINTERPRET_CAST(
                                 uint8_t*, safe_calloc_aligned(LP_SELF_TEST_RESULTS_LEN, sizeof(uint8_t),
-                                                              device->os_info.minimumAlignment));
+                                                              get_Device_IO_Minimum_Alignment(device)));
                             if (selfTestResults == M_NULLPTR)
                             {
                                 break;
@@ -4912,8 +4923,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         if (subpageCode == 0)
                         {
                             // need parameter 0001h
-                            uint8_t* ssdEnduranceData = C_CAST(
-                                uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* ssdEnduranceData =
+                                C_CAST(uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (ssdEnduranceData == M_NULLPTR)
                             {
                                 break;
@@ -4931,8 +4943,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         if (subpageCode == 0)
                         {
                             // reading power on minutes from here
-                            uint8_t* backgroundScanResults = C_CAST(
-                                uint8_t*, safe_calloc_aligned(19, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* backgroundScanResults =
+                                C_CAST(uint8_t*, safe_calloc_aligned(19, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (backgroundScanResults == M_NULLPTR)
                             {
                                 break;
@@ -4953,8 +4966,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         if (subpageCode == 0)
                         {
                             // parameter code 1 is what we're interested in for this one
-                            uint8_t* generalStatsAndPerformance = C_CAST(
-                                uint8_t*, safe_calloc_aligned(72, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* generalStatsAndPerformance =
+                                C_CAST(uint8_t*, safe_calloc_aligned(72, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (generalStatsAndPerformance == M_NULLPTR)
                             {
                                 break;
@@ -4986,8 +5000,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                     case LP_INFORMATION_EXCEPTIONS:
                         if (subpageCode == 0)
                         {
-                            uint8_t* informationExceptions = C_CAST(
-                                uint8_t*, safe_calloc_aligned(11, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* informationExceptions =
+                                C_CAST(uint8_t*, safe_calloc_aligned(11, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (informationExceptions == M_NULLPTR)
                             {
                                 break;
@@ -5024,8 +5039,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                         {
                             // Currently only reading first parameter to check if this is the farm log.
                             // TODO: Expand this to read more info out of FARM
-                            uint8_t* farmData = C_CAST(
-                                uint8_t*, safe_calloc_aligned(76, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* farmData =
+                                C_CAST(uint8_t*, safe_calloc_aligned(76, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (farmData == M_NULLPTR)
                             {
                                 break;
@@ -5053,8 +5069,9 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
                                // indicator on SSDs (PPM value)
                         if (is_Seagate_Family(device) == SEAGATE || is_Seagate_Family(device) == SEAGATE_VENDOR_A)
                         {
-                            uint8_t* ssdUsage = C_CAST(
-                                uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t), device->os_info.minimumAlignment));
+                            uint8_t* ssdUsage =
+                                C_CAST(uint8_t*, safe_calloc_aligned(12, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                             if (ssdUsage == M_NULLPTR)
                             {
                                 break;
@@ -5087,9 +5104,12 @@ static eReturnValues get_SCSI_Log_Data(const tDevice*              device,
     return ret;
 }
 
-static eReturnValues get_SCSI_Read_Capacity_Data(const tDevice*              device,
-                                                 ptrDriveInformationSAS_SATA driveInfo,
-                                                 ptrSCSIIdentifyInfo         scsiInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_RO(3)
+static eReturnValues get_SCSI_Read_Capacity_Data(const tDevice* M_NONNULL              device,
+                                                 ptrDriveInformationSAS_SATA M_NONNULL driveInfo,
+                                                 const ptrSCSIIdentifyInfo M_NONNULL   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
@@ -5188,9 +5208,12 @@ static eReturnValues get_SCSI_Read_Capacity_Data(const tDevice*              dev
     return ret;
 }
 
-static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
-                                        ptrDriveInformationSAS_SATA driveInfo,
-                                        ptrSCSIIdentifyInfo         scsiInfo)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+M_PARAM_RO(3)
+static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              device,
+                                        ptrDriveInformationSAS_SATA M_NONNULL driveInfo,
+                                        const ptrSCSIIdentifyInfo M_NONNULL   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
@@ -5207,9 +5230,9 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
             // format for page list is first byte = page, 2nd byte = subpage, then increment and look at the next page
             listOfModePagesAndSubpages[offset] = MP_READ_WRITE_ERROR_RECOVERY; // AWRE, ARRE
             offset += 2;
-            if (device->drive_info.interface_type != USB_INTERFACE &&
-                device->drive_info.interface_type != IEEE_1394_INTERFACE &&
-                device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+            if (get_Device_InterfaceType(device) != USB_INTERFACE &&
+                get_Device_InterfaceType(device) != IEEE_1394_INTERFACE &&
+                get_Device_InterfaceType(device) != MMC_INTERFACE && get_Device_InterfaceType(device) != SD_INTERFACE)
             {
                 if (driveInfo->rotationRate == 0 &&
                     (scsiInfo->peripheralDeviceType == PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE ||
@@ -5235,10 +5258,10 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                 listOfModePagesAndSubpages[offset]     = MP_CONTROL; // DLC
                 listOfModePagesAndSubpages[offset + 1] = 0x01;
                 offset += 2;
-                if (device->drive_info.interface_type != USB_INTERFACE &&
-                    device->drive_info.interface_type != IEEE_1394_INTERFACE &&
-                    device->drive_info.interface_type != MMC_INTERFACE &&
-                    device->drive_info.interface_type != SD_INTERFACE)
+                if (get_Device_InterfaceType(device) != USB_INTERFACE &&
+                    get_Device_InterfaceType(device) != IEEE_1394_INTERFACE &&
+                    get_Device_InterfaceType(device) != MMC_INTERFACE &&
+                    get_Device_InterfaceType(device) != SD_INTERFACE)
                 {
                     // Command Duration Limits
                     if (scsiInfo->version >= SCSI_VERSION_SPC_5)
@@ -5270,9 +5293,9 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                 listOfModePagesAndSubpages[offset + 1] = 0xF2;
                 offset += 2;
             }
-            if (device->drive_info.interface_type != USB_INTERFACE &&
-                device->drive_info.interface_type != IEEE_1394_INTERFACE &&
-                device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+            if (get_Device_InterfaceType(device) != USB_INTERFACE &&
+                get_Device_InterfaceType(device) != IEEE_1394_INTERFACE &&
+                get_Device_InterfaceType(device) != MMC_INTERFACE && get_Device_InterfaceType(device) != SD_INTERFACE)
             {
                 if (scsiInfo->version >= SCSI_VERSION_SPC_2) // SPC2 added this page
                 {
@@ -5311,9 +5334,9 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
                 listOfModePagesAndSubpages[offset + 1] = 0;
                 offset += 2;
             }
-            if (device->drive_info.interface_type != USB_INTERFACE &&
-                device->drive_info.interface_type != IEEE_1394_INTERFACE &&
-                device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+            if (get_Device_InterfaceType(device) != USB_INTERFACE &&
+                get_Device_InterfaceType(device) != IEEE_1394_INTERFACE &&
+                get_Device_InterfaceType(device) != MMC_INTERFACE && get_Device_InterfaceType(device) != SD_INTERFACE)
             {
                 if (!device->drive_info.passThroughHacks.scsiHacks.noModeSubPages &&
                     scsiInfo->version >= SCSI_VERSION_SPC_3) // SPC3 added subpage codes
@@ -6963,24 +6986,28 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice*              device,
 }
 
 // which diag pages are suppored to add to features list
-static eReturnValues get_SCSI_Diagnostic_Data(const tDevice*              device,
-                                              ptrDriveInformationSAS_SATA driveInfo,
-                                              ptrSCSIIdentifyInfo         scsiInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_RO(3)
+static eReturnValues get_SCSI_Diagnostic_Data(const tDevice* M_NONNULL              device,
+                                              ptrDriveInformationSAS_SATA M_NONNULL driveInfo,
+                                              const ptrSCSIIdentifyInfo M_NONNULL   scsiInfo)
 {
     eReturnValues ret = SUCCESS;
     if (device && driveInfo && scsiInfo)
     {
         // skip diag pages on USB/IEEE1394 as it is extremly unlikely these requests will be handled properly and
         // unlikely that any standard diag pages will be supported.-TJE
-        if (device->drive_info.interface_type != USB_INTERFACE &&
-            device->drive_info.interface_type != IEEE_1394_INTERFACE &&
-            device->drive_info.interface_type != MMC_INTERFACE && device->drive_info.interface_type != SD_INTERFACE)
+        if (get_Device_InterfaceType(device) != USB_INTERFACE &&
+            get_Device_InterfaceType(device) != IEEE_1394_INTERFACE &&
+            get_Device_InterfaceType(device) != MMC_INTERFACE && get_Device_InterfaceType(device) != SD_INTERFACE)
         {
             // Read supported Diagnostic parameters and check for rebuild assist. (need SCSI2 and higher since before
             // that, this is all vendor unique)
             uint16_t supportedDiagsLength = UINT16_C(512);
-            uint8_t* supportedDiagnostics = C_CAST(
-                uint8_t*, safe_calloc_aligned(supportedDiagsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* supportedDiagnostics =
+                C_CAST(uint8_t*, safe_calloc_aligned(supportedDiagsLength, sizeof(uint8_t),
+                                                     get_Device_IO_Minimum_Alignment(device)));
             if (supportedDiagnostics != M_NULLPTR)
             {
                 bool gotDiagData = false;
@@ -7263,7 +7290,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                 supportedDLModes.size    = sizeof(supportedDLModes);
                 supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
                 // change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
-                const eDriveType tempDevType                          = device->drive_info.drive_type;
+                const eDriveType tempDevType                          = get_Device_DriveType(device);
                 M_CONST_CAST(tDevice*, device)->drive_info.drive_type = SCSI_DRIVE;
                 if (SUCCESS == get_Supported_FWDL_Modes(device, &supportedDLModes))
                 {
@@ -7274,7 +7301,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                     driveInfo->fwdlSupport.seagateDeferredPowerCycleRequired =
                         supportedDLModes.seagateDeferredPowerCycleActivate;
                 }
-                M_CONST_CAST(tDevice*, device)->drive_info.drive_type = tempDevType;
+                set_Device_DriveType(M_CONST_CAST(tDevice*, device), tempDevType); // set it back to what it was before
                 // ATA Passthrough commands
                 safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
                             sizeof(scsiOperationCodeInfoRequest));
@@ -7310,7 +7337,10 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
     return ret;
 }
 
-eReturnValues get_SCSI_Drive_Information(const tDevice* device, ptrDriveInformationSAS_SATA driveInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice* M_NONNULL              device,
+                                                                ptrDriveInformationSAS_SATA M_NONNULL driveInfo)
 {
     eReturnValues ret = SUCCESS;
 
@@ -7323,8 +7353,8 @@ eReturnValues get_SCSI_Drive_Information(const tDevice* device, ptrDriveInformat
     scsiIdentifyInfo scsiInfo;
     safe_memset(&scsiInfo, sizeof(scsiIdentifyInfo), 0, sizeof(scsiIdentifyInfo));
     // start with standard inquiry data
-    uint8_t* inquiryData =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* inquiryData = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (inquiryData != M_NULLPTR)
     {
         if (SUCCESS == scsi_Inquiry(device, inquiryData, 255, 0, false, false))
@@ -7337,8 +7367,8 @@ eReturnValues get_SCSI_Drive_Information(const tDevice* device, ptrDriveInformat
                 sizeof(adapterInfo));
 
     // TODO: add checking peripheral device type as well to make sure it's only direct access and zoned block devices?
-    if ((device->drive_info.interface_type == SCSI_INTERFACE || device->drive_info.interface_type == RAID_INTERFACE) &&
-        (device->drive_info.drive_type != ATA_DRIVE && device->drive_info.drive_type != NVME_DRIVE))
+    if ((get_Device_InterfaceType(device) == SCSI_INTERFACE || get_Device_InterfaceType(device) == RAID_INTERFACE) &&
+        (get_Device_DriveType(device) != ATA_DRIVE && get_Device_DriveType(device) != NVME_DRIVE))
     {
         // send report luns to see how many luns are attached. This SHOULD be the way to detect multi-actuator drives
         // for now. This could change in the future.
@@ -7359,8 +7389,8 @@ eReturnValues get_SCSI_Drive_Information(const tDevice* device, ptrDriveInformat
     {
         // Check for TCG support - try sending a security protocol in command to get the list of security protocols
         // (check for security protocol EFh? We can do that for ATA Security information)
-        uint8_t* securityProtocols =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(512, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* securityProtocols = M_REINTERPRET_CAST(
+            uint8_t*, safe_calloc_aligned(512, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (securityProtocols != M_NULLPTR)
         {
             if (SUCCESS ==
@@ -7503,10 +7533,13 @@ eReturnValues get_SCSI_Drive_Information(const tDevice* device, ptrDriveInformat
 
 // currently using the bitfields in here, other commands are sometimes run to read additional information
 // may need to reorganize more in the future to eliminate needing to pass in tDevice -TJE
-static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice*          device,
-                                                       ptrDriveInformationNVMe driveInfo,
-                                                       uint8_t*                nvmeIdentifyData,
-                                                       uint32_t                identifyDataLength)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_RO_SIZE(3, 4)
+static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice* M_NONNULL          device,
+                                                       ptrDriveInformationNVMe M_NONNULL driveInfo,
+                                                       const uint8_t* M_NONNULL          nvmeIdentifyData,
+                                                       uint32_t                          identifyDataLength)
 {
     eReturnValues ret = SUCCESS;
     if (!device || !driveInfo || !nvmeIdentifyData || identifyDataLength != NVME_IDENTIFY_DATA_LEN)
@@ -7845,9 +7878,11 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice*          d
     return ret;
 }
 
-static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe driveInfo,
-                                                      uint8_t*                nvmeIdentifyData,
-                                                      uint32_t                identifyDataLength)
+M_PARAM_WO(1)
+M_PARAM_RO_SIZE(2, 3)
+static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe M_NONNULL driveInfo,
+                                                      const uint8_t* M_NONNULL          nvmeIdentifyData,
+                                                      uint32_t                          identifyDataLength)
 {
     eReturnValues ret = SUCCESS;
     if (!driveInfo || !nvmeIdentifyData || identifyDataLength != NVME_IDENTIFY_DATA_LEN)
@@ -7960,7 +7995,9 @@ static eReturnValues get_NVMe_Namespace_Identify_Data(ptrDriveInformationNVMe dr
 }
 
 // TODO: Move code in controller data reading DST log to here
-static eReturnValues get_NVMe_Log_Data(const tDevice* device, ptrDriveInformationNVMe driveInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_NVMe_Log_Data(const tDevice* M_NONNULL device, ptrDriveInformationNVMe M_NONNULL driveInfo)
 {
     eReturnValues ret = SUCCESS;
     if (!device || !driveInfo)
@@ -8012,7 +8049,10 @@ static eReturnValues get_NVMe_Log_Data(const tDevice* device, ptrDriveInformatio
     return ret;
 }
 
-eReturnValues get_NVMe_Drive_Information(const tDevice* device, ptrDriveInformationNVMe driveInfo)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(const tDevice* M_NONNULL          device,
+                                                                ptrDriveInformationNVMe M_NONNULL driveInfo)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -8024,8 +8064,8 @@ eReturnValues get_NVMe_Drive_Information(const tDevice* device, ptrDriveInformat
     safe_memset(driveInfo, sizeof(driveInformationNVMe), 0, sizeof(driveInformationNVMe));
     // changing ret to success since we have passthrough available
     ret                       = SUCCESS;
-    uint8_t* nvmeIdentifyData = C_CAST(
-        uint8_t*, safe_calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* nvmeIdentifyData = C_CAST(uint8_t*, safe_calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
     if (nvmeIdentifyData == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -8046,7 +8086,7 @@ eReturnValues get_NVMe_Drive_Information(const tDevice* device, ptrDriveInformat
 
 // This is for use with ATA or SCSI drives where we only want to show the applicable information for each drive type.
 // NOT RECOMMENDED ON EXTERNAL USB/IEEE1394 PRODUCTS!
-void print_Device_Information(ptrDriveInformation driveInfo)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_Device_Information(ptrDriveInformation M_NONNULL driveInfo)
 {
     switch (driveInfo->infoType)
     {
@@ -8061,7 +8101,7 @@ void print_Device_Information(ptrDriveInformation driveInfo)
     }
 }
 
-void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDriveInformationNVMe M_NONNULL driveInfo)
 {
     print_str("NVMe Controller Information:\n");
     printf("\tModel Number: %s\n", driveInfo->controllerData.modelNumber);
@@ -8426,7 +8466,8 @@ void print_NVMe_Device_Information(ptrDriveInformationNVMe driveInfo)
     print_str("\n");
 }
 
-void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA M_NONNULL driveInfo)
 {
     double mCapacity = 0.0;
     double capacity  = 0.0;
@@ -9391,7 +9432,10 @@ void print_SAS_Sata_Device_Information(ptrDriveInformationSAS_SATA driveInfo)
 
 // This exists so we can print out SCSI reported and ATA reported information for comparison purposes. (SAT test/check)
 // NOT FOR USE WITH A SAS DRIVE
-void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo, ptrDriveInformation driveInfo)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API void print_Parent_And_Child_Information(ptrDriveInformation M_NONNULL translatorDriveInfo,
+                                                               ptrDriveInformation M_NONNULL driveInfo)
 {
 
     if (translatorDriveInfo != M_NULLPTR && translatorDriveInfo->infoType == DRIVE_INFO_SAS_SATA)
@@ -9425,9 +9469,12 @@ void print_Parent_And_Child_Information(ptrDriveInformation translatorDriveInfo,
 }
 
 // This function ONLY exists because we need to show a mix of SCSI and ATA information on USB.
-void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
-                                         ptrDriveInformationSAS_SATA scsiDriveInfo,
-                                         ptrDriveInformationSAS_SATA ataDriveInfo)
+M_PARAM_WO(1)
+M_PARAM_RO(2)
+M_PARAM_RO(3)
+OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformationSAS_SATA M_NONNULL externalDriveInfo,
+                                                                ptrDriveInformationSAS_SATA M_NONNULL scsiDriveInfo,
+                                                                ptrDriveInformationSAS_SATA M_NONNULL ataDriveInfo)
 {
 
     if (externalDriveInfo != M_NULLPTR && scsiDriveInfo != M_NULLPTR && ataDriveInfo != M_NULLPTR)
@@ -9486,9 +9533,13 @@ void generate_External_Drive_Information(ptrDriveInformationSAS_SATA externalDri
     }
 }
 
-void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA externalDriveInfo,
-                                              ptrDriveInformationSAS_SATA scsiDriveInfo,
-                                              ptrDriveInformationNVMe     nvmeDriveInfo)
+M_PARAM_WO(1)
+M_PARAM_RO(2)
+M_PARAM_RO(3)
+OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(
+    ptrDriveInformationSAS_SATA M_NONNULL externalDriveInfo,
+    ptrDriveInformationSAS_SATA M_NONNULL scsiDriveInfo,
+    ptrDriveInformationNVMe M_NONNULL     nvmeDriveInfo)
 {
     // for the most part, keep all the SCSI information.
     // After that take the POH, temperature, DST information, workload, and combine the features.
@@ -9589,13 +9640,19 @@ void generate_External_NVMe_Drive_Information(ptrDriveInformationSAS_SATA extern
     }
 }
 
-eReturnValues get_Drive_Information(const tDevice*          device,
-                                    bool                    showChildInformation,
-                                    ptrDriveInformation*    ataDriveInfo,
-                                    ptrDriveInformation*    scsiDriveInfo,
-                                    ptrDriveInformation*    nvmeDriveInfo,
-                                    ptrDriveInformation*    usbDriveInfo,
-                                    eDriveTypeForPrintInfo* driveType)
+M_PARAM_RO(1)
+M_PARAM_WO(3)
+M_PARAM_WO(4)
+M_PARAM_WO(5)
+M_PARAM_WO(6)
+M_PARAM_WO(7)
+OPENSEA_OPERATIONS_API eReturnValues get_Drive_Information(const tDevice* M_NONNULL device,
+                                                           bool                     showChildInformation,
+                                                           ptrDriveInformation M_NONNULL* M_NULLABLE ataDriveInfo,
+                                                           ptrDriveInformation M_NONNULL* M_NULLABLE scsiDriveInfo,
+                                                           ptrDriveInformation M_NONNULL* M_NULLABLE nvmeDriveInfo,
+                                                           ptrDriveInformation M_NONNULL* M_NULLABLE usbDriveInfo,
+                                                           eDriveTypeForPrintInfo* M_NULLABLE        driveType)
 {
     eReturnValues ret = SUCCESS;
 
@@ -9607,9 +9664,9 @@ eReturnValues get_Drive_Information(const tDevice*          device,
 
     // Always allocate scsiDrive info since it will always be available no matter the drive type we are talking to!
     *scsiDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
-    if (device->drive_info.drive_type == ATA_DRIVE ||
+    if (get_Device_DriveType(device) == ATA_DRIVE ||
         (device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe &&
-         device->drive_info.drive_type != NVME_DRIVE))
+         get_Device_DriveType(device) != NVME_DRIVE))
     {
 #if defined(DEBUG_DRIVE_INFO_TIME)
         start_Timer(&ataTime);
@@ -9625,7 +9682,7 @@ eReturnValues get_Drive_Information(const tDevice*          device,
         stop_Timer(&ataTime);
 #endif // DEBUG_DRIVE_INFO_TIME
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
 #if defined(DEBUG_DRIVE_INFO_TIME)
         start_Timer(&nvmeTime);
@@ -9663,7 +9720,7 @@ eReturnValues get_Drive_Information(const tDevice*          device,
     uint8_t  seconds     = UINT8_C(0);
     uint64_t ataSeconds  = UINT64_C(0);
     uint64_t nvmeSeconds = UINT64_C(0);
-    if (device->drive_info.drive_type == ATA_DRIVE ||
+    if (get_Device_DriveType(device) == ATA_DRIVE ||
         device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe)
     {
         ataSeconds = get_Seconds(ataTime);
@@ -9672,7 +9729,7 @@ eReturnValues get_Drive_Information(const tDevice*          device,
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
         print_str("\n");
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         nvmeSeconds = get_Seconds(nvmeTime);
         convert_Seconds_To_Displayable_Time(nvmeSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
@@ -9695,26 +9752,26 @@ eReturnValues get_Drive_Information(const tDevice*          device,
     if (ret == SUCCESS && (*ataDriveInfo || *scsiDriveInfo || *usbDriveInfo || *nvmeDriveInfo))
     {
         if (showChildInformation &&
-            (device->drive_info.drive_type != SCSI_DRIVE ||
+            (get_Device_DriveType(device) != SCSI_DRIVE ||
              device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
             *scsiDriveInfo && (*ataDriveInfo || *nvmeDriveInfo))
         {
-            if ((device->drive_info.drive_type == ATA_DRIVE ||
+            if ((get_Device_DriveType(device) == ATA_DRIVE ||
                  device->drive_info.passThroughHacks.ataPTHacks.possilbyEmulatedNVMe) &&
                 *ataDriveInfo)
             {
                 *driveType = PRINT_INFO_FOR_ATA_SCSI_DRIVE;
             }
-            else if (device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo)
+            else if (get_Device_DriveType(device) == NVME_DRIVE && *nvmeDriveInfo)
             {
                 *driveType = PRINT_INFO_FOR_NVME_SCSI_DRIVE;
             }
         }
         else
         {
-            if ((device->drive_info.interface_type == USB_INTERFACE ||
-                 device->drive_info.interface_type == IEEE_1394_INTERFACE) &&
-                *ataDriveInfo && *scsiDriveInfo && device->drive_info.drive_type == ATA_DRIVE)
+            if ((get_Device_InterfaceType(device) == USB_INTERFACE ||
+                 get_Device_InterfaceType(device) == IEEE_1394_INTERFACE) &&
+                *ataDriveInfo && *scsiDriveInfo && get_Device_DriveType(device) == ATA_DRIVE)
             {
                 *usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
                 if (*usbDriveInfo != M_NULLPTR)
@@ -9730,8 +9787,8 @@ eReturnValues get_Drive_Information(const tDevice*          device,
                     print_str("Error allocating memory for USB - ATA drive info\n");
                 }
             }
-            else if (device->drive_info.interface_type == USB_INTERFACE &&
-                     device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo && *scsiDriveInfo)
+            else if (get_Device_InterfaceType(device) == USB_INTERFACE && get_Device_DriveType(device) == NVME_DRIVE &&
+                     *nvmeDriveInfo && *scsiDriveInfo)
             {
                 *usbDriveInfo = M_REINTERPRET_CAST(ptrDriveInformation, safe_calloc(1, sizeof(driveInformation)));
                 if (*usbDriveInfo != M_NULLPTR)
@@ -9749,11 +9806,11 @@ eReturnValues get_Drive_Information(const tDevice*          device,
             }
             else
             {
-                if (device->drive_info.drive_type == ATA_DRIVE && *ataDriveInfo)
+                if (get_Device_DriveType(device) == ATA_DRIVE && *ataDriveInfo)
                 {
                     *driveType = PRINT_INFO_FOR_ATA_DRIVE;
                 }
-                else if (device->drive_info.drive_type == NVME_DRIVE && *nvmeDriveInfo)
+                else if (get_Device_DriveType(device) == NVME_DRIVE && *nvmeDriveInfo)
                 {
                     *driveType = PRINT_INFO_FOR_NVME_DRIVE;
                 }
@@ -9773,7 +9830,8 @@ eReturnValues get_Drive_Information(const tDevice*          device,
     return ret;
 }
 
-eReturnValues print_Drive_Information(const tDevice* device, bool showChildInformation)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(const tDevice* M_NONNULL device, bool showChildInformation)
 {
     eReturnValues          ret           = SUCCESS;
     ptrDriveInformation    ataDriveInfo  = M_NULLPTR;
@@ -9821,35 +9879,35 @@ eReturnValues print_Drive_Information(const tDevice* device, bool showChildInfor
     return ret;
 }
 
-M_RETURNS_NONNULL const char* print_drive_type(const tDevice* device)
+M_RETURNS_NONNULL M_PARAM_RO(1) const char* print_drive_type(const tDevice* M_NONNULL device)
 {
     if (device != M_NULLPTR)
     {
-        if (device->drive_info.drive_type == ATA_DRIVE)
+        if (get_Device_DriveType(device) == ATA_DRIVE)
         {
             return "ATA";
         }
-        else if (device->drive_info.drive_type == SCSI_DRIVE)
+        else if (get_Device_DriveType(device) == SCSI_DRIVE)
         {
             return "SCSI";
         }
-        else if (device->drive_info.drive_type == NVME_DRIVE)
+        else if (get_Device_DriveType(device) == NVME_DRIVE)
         {
             return "NVMe";
         }
-        else if (device->drive_info.drive_type == RAID_DRIVE)
+        else if (get_Device_DriveType(device) == RAID_DRIVE)
         {
             return "RAID";
         }
-        else if (device->drive_info.drive_type == ATAPI_DRIVE)
+        else if (get_Device_DriveType(device) == ATAPI_DRIVE)
         {
             return "ATAPI";
         }
-        else if (device->drive_info.drive_type == FLASH_DRIVE)
+        else if (get_Device_DriveType(device) == FLASH_DRIVE)
         {
             return "FLASH";
         }
-        else if (device->drive_info.drive_type == LEGACY_TAPE_DRIVE)
+        else if (get_Device_DriveType(device) == LEGACY_TAPE_DRIVE)
         {
             return "TAPE";
         }

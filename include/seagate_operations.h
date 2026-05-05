@@ -429,7 +429,8 @@ extern "C"
     //  Exit:
     //
     //-----------------------------------------------------------------------------
-    M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Power_Telemetry_Data(ptrSeagatePwrTelemetry M_NONNULL pwrTelData);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API void show_Power_Telemetry_Data(const ptrSeagatePwrTelemetry M_NONNULL pwrTelData);
 
     //-----------------------------------------------------------------------------
     //
@@ -603,7 +604,7 @@ extern "C"
         seagateStatistic eraseSecurityFileFailureTimeStamp;
     } seagateSasDeviceStatistics;
 
-    // access the proper stats in the union based on device->drive_info.drive_type
+    // access the proper stats in the union based on get_Device_DriveType(device)
     typedef struct s_seagateDeviceStatistics
     {
         union
@@ -624,8 +625,8 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_RO(2)
     OPENSEA_OPERATIONS_API
-    void print_Seagate_DeviceStatistics(const tDevice* M_NONNULL             device,
-                                        ptrSeagateDeviceStatistics M_NONNULL seagateDeviceStats);
+    void print_Seagate_DeviceStatistics(const tDevice* M_NONNULL                   device,
+                                        const ptrSeagateDeviceStatistics M_NONNULL seagateDeviceStats);
 
 #define FIRMWARE_RELEASE_NUM_LEN       8
 #define SERVO_FIRMWARE_RELEASE_NUM_LEN 8

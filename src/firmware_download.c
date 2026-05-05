@@ -123,12 +123,13 @@ typedef struct s_firmwareUpdateDataV3
     bool    disableResetAfterCommit; // NVMe only
 } firmwareUpdateDataV3;
 
+M_PARAM_RO(2)
 static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, const tDevice* device)
 {
 #if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
     // Check if the device needs a power cycle to complete the update...This has been necessary in Windows with the
     // Intel NVMe driver in some cases
-    if (ret == SUCCESS && device->drive_info.drive_type == NVME_DRIVE)
+    if (ret == SUCCESS && get_Device_DriveType(device) == NVME_DRIVE)
     {
         // we do not already have a "Power cycle is requied" return code, so need to check the firmware log for the NVMe
         // device to see if the "next active" slot value is non-zero. If it is non-zero then the low-level driver did
@@ -175,7 +176,10 @@ static eReturnValues check_For_Power_Cycle_Required(eReturnValues ret, const tDe
 #endif //_WIN32 and WINVER >= WIN10
 }
 
-eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* options)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL      device,
+                                                       firmwareUpdateData* M_NONNULL options)
 {
     eReturnValues ret = SUCCESS;
 #ifdef _DEBUG
@@ -274,7 +278,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
 
         if (options->dlMode == FWDL_UPDATE_MODE_ACTIVATE)
         {
-            if (device->drive_info.drive_type == NVME_DRIVE && options->existingFirmwareImage &&
+            if (get_Device_DriveType(device) == NVME_DRIVE && options->existingFirmwareImage &&
                 options->firmwareSlot == 0)
             {
                 // cannot activate slot 0 for an existing image. Value should be between 1 and 7
@@ -287,10 +291,11 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                                                                 options->firmwareSlot, options->existingFirmwareImage, false, false, 60,
                                                                 nvmeForceCA, nvmeForceCommitAction,
                                                                 nvmeforceDisableReset); // giving 60 seconds to activate the firmware
-            options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+            options->activateFWTime = options->avgSegmentDlTime = get_tDevice_Last_Command_Completion_Time_NS(device);
 #if defined(_WIN32) && WINVER >= SEA_WIN32_WINNT_WIN10
-            if (device->drive_info.drive_type != NVME_DRIVE && ret == OS_PASSTHROUGH_FAILURE &&
-                device->os_info.fwdlIOsupport.fwdlIOSupported && device->os_info.last_error == ERROR_INVALID_FUNCTION)
+            if (get_Device_DriveType(device) != NVME_DRIVE && ret == OS_PASSTHROUGH_FAILURE &&
+                device->os_info.fwdlIOsupport.fwdlIOSupported &&
+                get_Device_OS_Info_Last_Error(device) == ERROR_INVALID_FUNCTION)
             {
                 // This means that we encountered a driver that is not allowing us to issue the Win10 API Firmware
                 // activate call for some unknown reason. This doesn't happen with Microsoft's AHCI driver though...
@@ -302,7 +307,8 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem,
                                                 options->firmwareSlot, options->existingFirmwareImage, false, false, 60,
                                                 nvmeForceCA, nvmeForceCommitAction, nvmeforceDisableReset);
-                options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+                options->activateFWTime = options->avgSegmentDlTime =
+                    get_tDevice_Last_Command_Completion_Time_NS(device);
                 M_CONST_CAST(tDevice*, device)->os_info.fwdlIOsupport.fwdlIOSupported = true;
             }
 #endif //_WIN32 and WINVER >= WIN10
@@ -330,7 +336,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
             ret = firmware_Download_Command(device, mode, 0, options->firmwareMemoryLength, options->firmwareFileMem,
                                             options->bufferID, false, true, true, 60, nvmeForceCA,
                                             nvmeForceCommitAction, nvmeforceDisableReset);
-            options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
+            options->activateFWTime = options->avgSegmentDlTime = get_tDevice_Last_Command_Completion_Time_NS(device);
             os_Unlock_Device(device);
         }
         else
@@ -342,7 +348,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
             uint32_t      downloadOffset       = UINT32_C(0);
             uint32_t      currentDownloadBlock = UINT32_C(0);
 
-            if (device->drive_info.drive_type == NVME_DRIVE && options->dlMode == FWDL_UPDATE_MODE_SEGMENTED)
+            if (get_Device_DriveType(device) == NVME_DRIVE && options->dlMode == FWDL_UPDATE_MODE_SEGMENTED)
             {
                 options->dlMode = FWDL_UPDATE_MODE_DEFERRED_PLUS_ACTIVATE;
             }
@@ -398,7 +404,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
 #    if WINVER >= SEA_WIN32_WINNT_WIN10
             // saving this for later since we may need to turn it off...
             bool deviceSupportsWinAPI = device->os_info.fwdlIOsupport.fwdlIOSupported;
-            if (device->drive_info.drive_type != NVME_DRIVE && deviceSupportsWinAPI && downloadMode == DL_FW_DEFERRED)
+            if (get_Device_DriveType(device) != NVME_DRIVE && deviceSupportsWinAPI && downloadMode == DL_FW_DEFERRED)
             {
                 // check if alignment requirements will be met
                 if (options->firmwareMemoryLength % device->os_info.fwdlIOsupport.payloadAlignment)
@@ -439,7 +445,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                                                 &options->firmwareFileMem[downloadOffset], options->bufferID, false,
                                                 firstSegment, lastSegment, fwdlTimeout, nvmeForceCA,
                                                 nvmeForceCommitAction, nvmeforceDisableReset);
-                options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
+                options->avgSegmentDlTime += get_tDevice_Last_Command_Completion_Time_NS(device);
 
                 if (currentDownloadBlock % 20 == 0)
                 {
@@ -453,7 +459,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 {
                     if (automaticModeDetection &&
                         (downloadMode == DL_FW_DEFERRED || downloadMode == DL_FW_DEFERRED_SELECT_ACTIVATE) &&
-                        downloadOffset == 0 && device->drive_info.drive_type != NVME_DRIVE)
+                        downloadOffset == 0 && get_Device_DriveType(device) != NVME_DRIVE)
                     {
                         // possible drive bug where it reported an unsupported mode
                         // try changing to a segmented mode
@@ -463,7 +469,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                         //  field in parameter list, so if you get invalid field in parameter, do NOT retry.
                         //  2. For ATA/SATA, need to look for a command abort in the rtfrs. There is no other way for
                         //  SATA to specify things, so it is a less robust check
-                        if (device->drive_info.drive_type == ATA_DRIVE &&
+                        if (get_Device_DriveType(device) == ATA_DRIVE &&
                             device->drive_info.lastCommandRTFRs.status & ATA_STATUS_BIT_ERROR &&
                             device->drive_info.lastCommandRTFRs.error & ATA_ERROR_BIT_ABORT)
                         {
@@ -480,7 +486,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                             }
                             continue;
                         }
-                        else if (device->drive_info.drive_type == SCSI_DRIVE)
+                        else if (get_Device_DriveType(device) == SCSI_DRIVE)
                         {
                             if (is_Invalid_Field_In_CDB(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN))
                             {
@@ -523,7 +529,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
 
             if (downloadRemainder == UINT32_C(0))
             {
-                options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
+                options->activateFWTime = get_tDevice_Last_Command_Completion_Time_NS(device);
             }
 
             // check to make sure we haven't had a failure yet
@@ -536,7 +542,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                     // Check that we don't have RTFRs from the last command and that the sense data does not say
                     // "unaligned write command" We may need to expand this check if we encounter this problem in other
                     // OS's or on other kinds of controllers (currently this is from a motherboard)
-                    if (device->drive_info.drive_type == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 &&
+                    if (get_Device_DriveType(device) == ATA_DRIVE && device->drive_info.lastCommandRTFRs.status == 0 &&
                         device->drive_info.lastCommandRTFRs.error == 0)
                     {
                         if (is_Unaligned_Write(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN)) // Check fru?
@@ -550,7 +556,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
             // download remaining data
             if (downloadRemainder > 0 && ret == SUCCESS)
             {
-                if (device->drive_info.drive_type == ATA_DRIVE)
+                if (get_Device_DriveType(device) == ATA_DRIVE)
                 {
                     // round the remainder to the nearest sector since ATA talks in terms of sectors
                     downloadRemainder = ((downloadRemainder + LEGACY_DRIVE_SEC_SIZE) - 1) / LEGACY_DRIVE_SEC_SIZE;
@@ -563,7 +569,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 // Because of this, there are additional allignment requirements for the segments that we must meet.
                 // So now we are going to check if this meets those requirements...if not, we need to allocate a
                 // different buffer that meets the requirements, copy the data to it, then send the command. - TJE
-                if (device->drive_info.drive_type != NVME_DRIVE && device->os_info.fwdlIOsupport.fwdlIOSupported &&
+                if (get_Device_DriveType(device) != NVME_DRIVE && device->os_info.fwdlIOsupport.fwdlIOSupported &&
                     downloadMode == DL_FW_DEFERRED) // checking to see if Windows says the FWDL API is supported
                 {
                     if (downloadRemainder < device->os_info.fwdlIOsupport.maxXferSize &&
@@ -623,7 +629,7 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                         // Check that we don't have RTFRs from the last command and that the sense data does not say
                         // "unaligned write command" We may need to expand this check if we encounter this problem in
                         // other OS's or on other kinds of controllers (currently this is from a motherboard)
-                        if (device->drive_info.drive_type == ATA_DRIVE &&
+                        if (get_Device_DriveType(device) == ATA_DRIVE &&
                             device->drive_info.lastCommandRTFRs.status == 0 &&
                             device->drive_info.lastCommandRTFRs.error == 0)
                         {
@@ -634,8 +640,8 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                         }
                     }
                 }
-                options->activateFWTime = device->drive_info.lastCommandTimeNanoSeconds;
-                options->avgSegmentDlTime += device->drive_info.lastCommandTimeNanoSeconds;
+                options->activateFWTime = get_tDevice_Last_Command_Completion_Time_NS(device);
+                options->avgSegmentDlTime += get_tDevice_Last_Command_Completion_Time_NS(device);
             }
             if (options->dlMode == FWDL_UPDATE_MODE_DEFERRED_PLUS_ACTIVATE && ret == SUCCESS)
             {
@@ -645,8 +651,9 @@ eReturnValues firmware_Download(const tDevice* device, firmwareUpdateData* optio
                 ret = firmware_Download_Command(device, DL_FW_ACTIVATE, 0, 0, options->firmwareFileMem,
                                                 options->firmwareSlot, false, false, false, 60, nvmeForceCA,
                                                 nvmeForceCommitAction, nvmeforceDisableReset);
-                options->activateFWTime = options->avgSegmentDlTime = device->drive_info.lastCommandTimeNanoSeconds;
-                ret                                                 = check_For_Power_Cycle_Required(ret, device);
+                options->activateFWTime = options->avgSegmentDlTime =
+                    get_tDevice_Last_Command_Completion_Time_NS(device);
+                ret = check_For_Power_Cycle_Required(ret, device);
             }
             os_Unlock_Device(device);
             if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -740,7 +747,10 @@ typedef struct s_supportedDLModesV2
                                        // or SCSI at this time - TJE
 } supportedDLModesV2, *ptrSupportedDLModesV2;
 
-static void get_ATA_Identify_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void get_ATA_Identify_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                  ptrSupportedDLModes M_NONNULL supportedModes)
 {
     // first check the bits in the identify data
     if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word053)) &&
@@ -800,7 +810,10 @@ static void get_ATA_Identify_Supported_FWDL_Modes(const tDevice* device, ptrSupp
     }
 }
 
-static void get_ATA_ID_Data_Log_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void get_ATA_ID_Data_Log_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                     ptrSupportedDLModes M_NONNULL supportedModes)
 {
     // now try reading the supportd capabilities page of the identify device data log for the remaining info
     // (deferred download)
@@ -865,7 +878,10 @@ static void get_ATA_ID_Data_Log_Supported_FWDL_Modes(const tDevice* device, ptrS
     }
 }
 
-static eReturnValues get_ATA_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_ATA_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                  ptrSupportedDLModes M_NONNULL supportedModes)
 {
     eReturnValues ret = SUCCESS;
     get_ATA_Identify_Supported_FWDL_Modes(device, supportedModes);
@@ -873,7 +889,10 @@ static eReturnValues get_ATA_Supported_FWDL_Modes(const tDevice* device, ptrSupp
     return ret;
 }
 
-static eReturnValues get_NVMe_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_NVMe_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                   ptrSupportedDLModes M_NONNULL supportedModes)
 {
     eReturnValues ret = SUCCESS;
     if (le16_to_host(device->drive_info.IdentifyData.nvme.ctrl.oacs) & BIT2)
@@ -996,11 +1015,14 @@ static eReturnValues get_NVMe_Supported_FWDL_Modes(const tDevice* device, ptrSup
     return ret;
 }
 
-static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                           ptrSupportedDLModes M_NONNULL supportedModes)
 {
-    eReturnValues ret         = SUCCESS;
-    uint8_t*      extendedInq = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret    = SUCCESS;
+    uint8_t* extendedInq = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t),
+                                                                            get_Device_IO_Minimum_Alignment(device)));
     if (extendedInq != M_NULLPTR)
     {
         ret = scsi_Inquiry(device, extendedInq, VPD_EXTENDED_INQUIRY_LEN, EXTENDED_INQUIRY_DATA, true, false);
@@ -1049,15 +1071,17 @@ static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(const tDevice* device
     return ret;
 }
 
-static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDevice*      device,
-                                                                       ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                                       ptrSupportedDLModes M_NONNULL supportedModes)
 {
     eReturnValues ret = SUCCESS;
     // else try requesting all supported OPs and parse that information??? It could be report all is
     // supported, but other modes are not
     uint32_t reportAllOPsLength = UINT32_C(4);
     uint8_t* reportAllOPs       = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (reportAllOPs != M_NULLPTR)
     {
         ret = scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0, reportAllOPsLength, reportAllOPs);
@@ -1067,8 +1091,8 @@ static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDe
             reportAllOPsLength =
                 M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
             safe_free_aligned(&reportAllOPs);
-            reportAllOPs = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            reportAllOPs = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t),
+                                                                            get_Device_IO_Minimum_Alignment(device)));
             if (reportAllOPs != M_NULLPTR)
             {
                 if (SUCCESS == scsi_Report_Supported_Operation_Codes(device, false, REPORT_ALL, 0, 0,
@@ -1194,8 +1218,10 @@ static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDe
     return ret;
 }
 
-static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(const tDevice*      device,
-                                                                   ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                                   ptrSupportedDLModes M_NONNULL supportedModes)
 {
     eReturnValues                ret = SUCCESS;
     scsiOperationCodeInfoRequest writeBufSupReq;
@@ -1337,7 +1363,10 @@ static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(const tDevice
     return ret;
 }
 
-static void get_SCSI_ReadBuffer_FWDL_Boundary(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void get_SCSI_ReadBuffer_FWDL_Boundary(const tDevice* M_NONNULL      device,
+                                              ptrSupportedDLModes M_NONNULL supportedModes)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, offsetReq, 4);
     if (SUCCESS == scsi_Read_Buffer(device, 0x03, 0, 0, 4, offsetReq))
@@ -1374,14 +1403,17 @@ static void get_SCSI_ReadBuffer_FWDL_Boundary(const tDevice* device, ptrSupporte
     }
 }
 
-static void get_Seagate_SCSI_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void get_Seagate_SCSI_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                  ptrSupportedDLModes M_NONNULL supportedModes)
 {
     // The code below is Seagate specific...should this be in Seagate Operations? - TJE
     eSeagateFamily family = is_Seagate_Family(device);
     if ((family == SEAGATE || family == SEAGATE_VENDOR_A) && supportedModes->scsiInfoPossiblyIncomplete)
     {
-        uint8_t* c3VPD =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* c3VPD = M_REINTERPRET_CAST(
+            uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (c3VPD != M_NULLPTR)
         {
             // If the drive is a Seagate SCSI drive, then try reading the C3 mode page which is Seagate specific
@@ -1411,7 +1443,10 @@ static void get_Seagate_SCSI_Supported_FWDL_Modes(const tDevice* device, ptrSupp
     }
 }
 
-static eReturnValues get_SCSI_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_SCSI_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                   ptrSupportedDLModes M_NONNULL supportedModes)
 {
     eReturnValues ret = SUCCESS;
     // before trying all the code below, look at the extended inquiry data page so see if the download modes are
@@ -1434,7 +1469,10 @@ static eReturnValues get_SCSI_Supported_FWDL_Modes(const tDevice* device, ptrSup
     return ret;
 }
 
-static eReturnValues set_Recommended_FWDL_Mode(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+static eReturnValues set_Recommended_FWDL_Mode(const tDevice* M_NONNULL      device,
+                                               ptrSupportedDLModes M_NONNULL supportedModes)
 {
     eReturnValues ret = SUCCESS;
     // set the recommended download mode
@@ -1479,14 +1517,17 @@ static eReturnValues set_Recommended_FWDL_Mode(const tDevice* device, ptrSupport
     return ret;
 }
 
-eReturnValues get_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                              ptrSupportedDLModes M_NONNULL supportedModes)
 {
     eReturnValues ret = SUCCESS;
 
     if (supportedModes != M_NULLPTR && supportedModes->version >= SUPPORTED_FWDL_MODES_VERSION_V1 &&
         supportedModes->size >= sizeof(supportedDLModesV1))
     {
-        switch (device->drive_info.drive_type)
+        switch (get_Device_DriveType(device))
         {
         case ATA_DRIVE:
             ret = get_ATA_Supported_FWDL_Modes(device, supportedModes);
@@ -1511,7 +1552,10 @@ eReturnValues get_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLMode
     return ret;
 }
 
-void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes supportedModes)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
+                                                      ptrSupportedDLModes M_NONNULL supportedModes)
 {
 
     if (supportedModes != M_NULLPTR && device != M_NULLPTR &&
@@ -1519,8 +1563,8 @@ void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes suppor
         supportedModes->size >= sizeof(supportedDLModesV1))
     {
         print_str("===Download Support information===\n");
-        if (device->drive_info.interface_type == USB_INTERFACE ||
-            device->drive_info.interface_type == IEEE_1394_INTERFACE)
+        if (get_Device_InterfaceType(device) == USB_INTERFACE ||
+            get_Device_InterfaceType(device) == IEEE_1394_INTERFACE)
         {
             printf("Model Number: %s (%s)\n", device->drive_info.bridge_info.childDriveMN,
                    device->drive_info.product_identification);
@@ -1550,7 +1594,7 @@ void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes suppor
             }
             if (supportedModes->deferred)
             {
-                if (device->drive_info.drive_type == NVME_DRIVE)
+                if (get_Device_DriveType(device) == NVME_DRIVE)
                 {
                     print_str("\tDeferred (Requires activation command to activate)\n");
                 }
@@ -1679,7 +1723,11 @@ void show_Supported_FWDL_Modes(const tDevice* device, ptrSupportedDLModes suppor
     }
 }
 
-uint16_t get_fwdl_segment_size(const tDevice* device, uint16_t requestedSize, supportedDLModes fwdlSupport)
+M_NONNULL_PARAM_LIST(1)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice* M_NONNULL device,
+                                                      uint16_t                 requestedSize,
+                                                      supportedDLModes         fwdlSupport)
 {
     uint16_t updateLen = requestedSize;
     // Always allow overriding this automatic mode with the user's requested size!
@@ -1695,11 +1743,11 @@ uint16_t get_fwdl_segment_size(const tDevice* device, uint16_t requestedSize, su
             // First evaluate min/max requirements (if they exist)
             if (fwdlSupport.minSegmentSize > DEFAULT_FWDL_SEGMENT_SIZE)
             {
-                updateLen = fwdlSupport.minSegmentSize;
+                updateLen = M_STATIC_CAST(uint16_t, fwdlSupport.minSegmentSize);
             }
             else
             {
-                updateLen = M_Min(fwdlSupport.maxSegmentSize, DEFAULT_FWDL_SEGMENT_SIZE);
+                updateLen = M_STATIC_CAST(uint16_t, M_Min(fwdlSupport.maxSegmentSize, DEFAULT_FWDL_SEGMENT_SIZE));
             }
         }
 

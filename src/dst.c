@@ -35,26 +35,26 @@
 #include "smart.h"
 #include <stdlib.h>
 
-eReturnValues ata_Abort_DST(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues ata_Abort_DST(const tDevice* M_NONNULL device)
 {
     return ata_SMART_Offline(device, ATA_SMART_OFFLINE_ABORT_SELF_TEST, DEFAULT_COMMAND_TIMEOUT);
 }
 
-eReturnValues scsi_Abort_DST(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues scsi_Abort_DST(const tDevice* M_NONNULL device)
 {
     return scsi_Send_Diagnostic(device, SCSI_STC_ABORT_SELF_TEST, RESERVED, RESERVED, RESERVED, RESERVED, RESERVED,
                                 M_NULLPTR, RESERVED, DEFAULT_COMMAND_TIMEOUT);
 }
 
-eReturnValues nvme_Abort_DST(const tDevice* device, uint32_t nsid)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Abort_DST(const tDevice* M_NONNULL device, uint32_t nsid)
 {
     return nvme_Device_Self_Test(device, nsid, NVME_STC_ABORT);
 }
 
-eReturnValues abort_DST(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues abort_DST(const tDevice* M_NONNULL device)
 {
     eReturnValues result = NOT_SUPPORTED;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case NVME_DRIVE:
         result = nvme_Abort_DST(device, UINT32_MAX);
@@ -73,7 +73,12 @@ eReturnValues abort_DST(const tDevice* device)
 
 #define ATA_DST_PERCENT_COMPLETE_CONVERSION_FACTOR    UINT32_C(10)
 #define ATA_SELF_TEST_PROGRESS_SCSI_CONVERSION_FACTOR UINT32_C(100)
-eReturnValues ata_Get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues ata_Get_DST_Progress(const tDevice* M_NONNULL device,
+                                                          uint32_t* M_NONNULL      percentComplete,
+                                                          uint8_t* M_NONNULL       status)
 {
     eReturnValues result = SUCCESS;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, temp_buf, ATA_SMART_READ_DATA_SIZE);
@@ -89,13 +94,18 @@ eReturnValues ata_Get_DST_Progress(const tDevice* device, uint32_t* percentCompl
     return result;
 }
 
-eReturnValues scsi_Get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Get_DST_Progress(const tDevice* M_NONNULL device,
+                                                           uint32_t* M_NONNULL      percentComplete,
+                                                           uint8_t* M_NONNULL       status)
 {
     // 04h 09h LOGICAL UNIT NOT READY, SELF-TEST IN PROGRESS
     eReturnValues result        = UNKNOWN;
     size_t        temp_buf_size = LP_SELF_TEST_RESULTS_LEN;
     uint8_t*      temp_buf      = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(temp_buf_size, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(temp_buf_size, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (temp_buf == M_NULLPTR)
     {
         perror("Calloc Failure!\n");
@@ -115,7 +125,12 @@ eReturnValues scsi_Get_DST_Progress(const tDevice* device, uint32_t* percentComp
     return result;
 }
 
-eReturnValues nvme_Get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues nvme_Get_DST_Progress(const tDevice* M_NONNULL device,
+                                                           uint32_t* M_NONNULL      percentComplete,
+                                                           uint8_t* M_NONNULL       status)
 {
     eReturnValues result = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeSelfTestLogBuf, NVME_LOG_SIZE_SELF_TEST);
@@ -158,12 +173,17 @@ eReturnValues nvme_Get_DST_Progress(const tDevice* device, uint32_t* percentComp
     return result;
 }
 
-eReturnValues get_DST_Progress(const tDevice* device, uint32_t* percentComplete, uint8_t* status)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues get_DST_Progress(const tDevice* M_NONNULL device,
+                                                      uint32_t* M_NONNULL      percentComplete,
+                                                      uint8_t* M_NONNULL       status)
 {
     eReturnValues result = UNKNOWN;
     *percentComplete     = 0;
     *status              = 0xFF;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         result = ata_Get_DST_Progress(device, percentComplete, status);
@@ -184,7 +204,11 @@ eReturnValues get_DST_Progress(const tDevice* device, uint32_t* percentComplete,
     return result;
 }
 
-void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool justRanDST, bool isNVMeDrive)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t         status,
+                                                           char* M_NONNULL translatedString,
+                                                           bool            justRanDST,
+                                                           bool            isNVMeDrive)
 {
 
     if (translatedString != M_NULLPTR)
@@ -370,7 +394,7 @@ void translate_DST_Status_To_String(uint8_t status, char* translatedString, bool
     }
 }
 
-eReturnValues print_DST_Progress(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_DST_Progress(const tDevice* M_NONNULL device)
 {
     eReturnValues result          = UNKNOWN;
     uint32_t      percentComplete = UINT32_C(0);
@@ -391,7 +415,7 @@ eReturnValues print_DST_Progress(const tDevice* device)
     {
         bool isNVMeDrive = false;
         DECLARE_ZERO_INIT_ARRAY(char, statusTranslation, MAX_DST_STATUS_STRING_LENGTH);
-        if (device->drive_info.drive_type == NVME_DRIVE)
+        if (get_Device_DriveType(device) == NVME_DRIVE)
         {
             isNVMeDrive = true;
         }
@@ -502,10 +526,10 @@ M_PARAM_RO(1) static bool is_ATA_Self_Test_Supported(const tDevice* M_NONNULL de
     return supported;
 }
 
-bool is_Self_Test_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Self_Test_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case NVME_DRIVE:
         supported = is_NVME_Self_Test_Supported(device);
@@ -522,10 +546,10 @@ bool is_Self_Test_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_Conveyance_Self_Test_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Conveyance_Self_Test_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, smartReadData, ATA_SMART_READ_DATA_SIZE);
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, ATA_SMART_READ_DATA_SIZE))
@@ -541,15 +565,16 @@ bool is_Conveyance_Self_Test_Supported(const tDevice* device)
 }
 
 // Incorrect spelling so reroute to correct spelling
-bool is_Conveyence_Self_Test_Supported(const tDevice* device)
+M_DEPRECATED M_PARAM_RO(1) OPENSEA_OPERATIONS_API
+    bool is_Conveyence_Self_Test_Supported(const tDevice* M_NONNULL device)
 {
     return is_Conveyance_Self_Test_Supported(device);
 }
 
-bool is_Selective_Self_Test_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Selective_Self_Test_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, smartReadData, ATA_SMART_READ_DATA_SIZE);
         if (SUCCESS == ata_SMART_Read_Data(device, smartReadData, ATA_SMART_READ_DATA_SIZE))
@@ -564,7 +589,11 @@ bool is_Selective_Self_Test_Supported(const tDevice* device)
     return supported;
 }
 
-eReturnValues send_DST(const tDevice* device, eDSTType DSTType, bool captiveForeground, uint32_t commandTimeout)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues send_DST(const tDevice* M_NONNULL device,
+                                              eDSTType                 DSTType,
+                                              bool                     captiveForeground,
+                                              uint32_t                 commandTimeout)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (commandTimeout == 0)
@@ -579,7 +608,7 @@ eReturnValues send_DST(const tDevice* device, eDSTType DSTType, bool captiveFore
         }
     }
     os_Lock_Device(device);
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case NVME_DRIVE:
         switch (DSTType)
@@ -680,6 +709,8 @@ eReturnValues send_DST(const tDevice* device, eDSTType DSTType, bool captiveFore
 }
 
 M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
 static bool is_ATA_SMART_Offline_Supported(const tDevice* M_NONNULL device,
                                            bool* M_NULLABLE         abortRestart,
                                            uint16_t* M_NULLABLE     offlineTimeSeconds)
@@ -762,10 +793,10 @@ M_PARAM_WO(2) static eReturnValues get_SMART_Offline_Status(const tDevice* M_NON
 //       ever restart on its own. The standards just say it restarts after a "vendor specific event". Because of this,
 //       the polling code is removed entirely unless the following #define is set to reenable it. -TJE
 // #define ENABLE_SMART_OFFLINE_ROUTINE_POLLING 1
-eReturnValues run_SMART_Offline(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues run_SMART_Offline(const tDevice* M_NONNULL device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         bool     abortRestart         = false;
         uint16_t offlineTimeInSeconds = UINT16_C(0);
@@ -923,6 +954,7 @@ typedef struct s_DSTTiming
     uint32_t maxDSTWaitTimeSeconds;
 } dstTiming;
 
+M_PARAM_RO(1)
 static dstTiming get_DST_Polling_Interval(const tDevice* M_NONNULL device, eDSTType DSTType, bool captiveForeground)
 {
     dstTiming timing;
@@ -1096,7 +1128,7 @@ static eReturnValues poll_DST_Progress(const tDevice* M_NONNULL device,
         {
             bool isNVMeDrive = false;
             DECLARE_ZERO_INIT_ARRAY(char, statusTranslation, MAX_DST_STATUS_STRING_LENGTH);
-            if (device->drive_info.drive_type == NVME_DRIVE)
+            if (get_Device_DriveType(device) == NVME_DRIVE)
             {
                 isNVMeDrive = true;
             }
@@ -1107,11 +1139,12 @@ static eReturnValues poll_DST_Progress(const tDevice* M_NONNULL device,
     return ret;
 }
 
-eReturnValues run_DST(const tDevice* device,
-                      eDSTType       DSTType,
-                      bool           pollForProgress,
-                      bool           captiveForeground,
-                      bool           ignoreMaxTime)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues run_DST(const tDevice* M_NONNULL device,
+                                             eDSTType                 DSTType,
+                                             bool                     pollForProgress,
+                                             bool                     captiveForeground,
+                                             bool                     ignoreMaxTime)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_Self_Test_Supported(device))
@@ -1140,7 +1173,7 @@ eReturnValues run_DST(const tDevice* device,
             {
                 // need to check the result! Probably best to do this from DST log in case ATA RTFRs are not reported
                 // back correctly. - TJE
-                if (device->drive_info.drive_type == NVME_DRIVE)
+                if (get_Device_DriveType(device) == NVME_DRIVE)
                 {
                     // simulate a "captive" test on NVMe by polling and waiting to get status.
                     while (status == 0x0F && ret == SUCCESS)
@@ -1159,13 +1192,13 @@ eReturnValues run_DST(const tDevice* device,
                 else
                 {
                     // if the LBA registers have C2-4F or 2C-F4, then we have pass vs fail results.
-                    if (device->drive_info.drive_type == ATA_DRIVE &&
+                    if (get_Device_DriveType(device) == ATA_DRIVE &&
                         device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID &&
                         device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
                     {
                         ret = SUCCESS;
                     }
-                    else if (device->drive_info.drive_type == ATA_DRIVE &&
+                    else if (get_Device_DriveType(device) == ATA_DRIVE &&
                              device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_BAD_SIG_MID &&
                              device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_BAD_SIG_HI)
                     {
@@ -1210,7 +1243,7 @@ eReturnValues run_DST(const tDevice* device,
                 {
                     bool isNVMeDrive = false;
                     DECLARE_ZERO_INIT_ARRAY(char, statusTranslation, MAX_DST_STATUS_STRING_LENGTH);
-                    if (device->drive_info.drive_type == NVME_DRIVE)
+                    if (get_Device_DriveType(device) == NVME_DRIVE)
                     {
                         isNVMeDrive = true;
                     }
@@ -1239,8 +1272,8 @@ static eReturnValues get_ATA_Long_DST_Time(const tDevice* M_NONNULL device,
     if (is_Self_Test_Supported(device))
     {
         uint16_t longDSTTime = UINT16_C(0);
-        uint8_t* smartData   = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(ATA_SMART_READ_DATA_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* smartData = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(ATA_SMART_READ_DATA_SIZE, sizeof(uint8_t),
+                                                                              get_Device_IO_Minimum_Alignment(device)));
         if (smartData == M_NULLPTR)
         {
             perror("calloc failure\n");
@@ -1291,7 +1324,7 @@ static eReturnValues get_SCSI_Long_DST_Time(const tDevice* M_NONNULL device,
     bool          getTimeFromExtendedInquiryData = false;
     uint8_t*      controlMP =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(MP_CONTROL_LEN + MODE_PARAMETER_HEADER_10_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (controlMP == M_NULLPTR)
     {
         perror("calloc failure!");
@@ -1344,8 +1377,9 @@ static eReturnValues get_SCSI_Long_DST_Time(const tDevice* M_NONNULL device,
     safe_free_aligned(&controlMP);
     if (getTimeFromExtendedInquiryData)
     {
-        uint8_t* extendedInqyData = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* extendedInqyData =
+            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_EXTENDED_INQUIRY_LEN, sizeof(uint8_t),
+                                                             get_Device_IO_Minimum_Alignment(device)));
         if (extendedInqyData == M_NULLPTR)
         {
             perror("calloc failure!\n");
@@ -1366,7 +1400,12 @@ static eReturnValues get_SCSI_Long_DST_Time(const tDevice* M_NONNULL device,
     return ret;
 }
 
-eReturnValues get_Long_DST_Time(const tDevice* device, uint8_t* hours, uint8_t* minutes)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues get_Long_DST_Time(const tDevice* M_NONNULL device,
+                                                       uint8_t* M_NONNULL       hours,
+                                                       uint8_t* M_NONNULL       minutes)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1375,7 +1414,7 @@ eReturnValues get_Long_DST_Time(const tDevice* device, uint8_t* hours, uint8_t* 
         return BAD_PARAMETER;
     }
 
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         ret = get_ATA_Long_DST_Time(device, hours, minutes);
@@ -1392,7 +1431,9 @@ eReturnValues get_Long_DST_Time(const tDevice* device, uint8_t* hours, uint8_t* 
     return ret;
 }
 
-bool get_Error_LBA_From_DST_Log(const tDevice* device, uint64_t* lba)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API bool get_Error_LBA_From_DST_Log(const tDevice* M_NONNULL device, uint64_t* M_NONNULL lba)
 {
     bool isValidLBA = false;
     *lba            = UINT64_MAX; // set to something crazy in case caller ignores return type
@@ -1410,13 +1451,17 @@ bool get_Error_LBA_From_DST_Log(const tDevice* device, uint64_t* lba)
     return isValidLBA;
 }
 
-static eReturnValues repair_LBA_And_Log_Result(const tDevice* device,
-                                               bool           passthroughWrite,
-                                               bool           autoWriteReassign,
-                                               bool           autoReadReassign,
-                                               errorLBA*      errorList,
-                                               uint64_t*      errorIndex,
-                                               uint64_t*      totalErrors)
+M_PARAM_RO(1)
+M_PARAM_RW(5)
+M_PARAM_RW(6)
+M_PARAM_RW(7)
+static eReturnValues repair_LBA_And_Log_Result(const tDevice* M_NONNULL device,
+                                               bool                     passthroughWrite,
+                                               bool                     autoWriteReassign,
+                                               bool                     autoReadReassign,
+                                               errorLBA* M_NONNULL      errorList,
+                                               uint64_t* M_NONNULL      errorIndex,
+                                               uint64_t* M_NONNULL      totalErrors)
 {
     eReturnValues ret = SUCCESS;
     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1438,15 +1483,19 @@ static M_INLINE uint64_t half_read_around_range(uint64_t range)
     return range / UINT64_C(2);
 }
 
-static eReturnValues read_Around_Defect(const tDevice* device,
-                                        bool           passthroughWrite,
-                                        uint64_t       readAroundRange,
-                                        errorLBA*      errorList,
-                                        uint64_t*      errorIndex,
-                                        uint64_t*      totalErrors,
-                                        bool           autoReadReassign,
-                                        bool           autoWriteReassign,
-                                        uint16_t       errorLimit)
+M_PARAM_RO(1)
+M_PARAM_RW(4)
+M_PARAM_RW(5)
+M_PARAM_RW(6)
+static eReturnValues read_Around_Defect(const tDevice* M_NONNULL device,
+                                        bool                     passthroughWrite,
+                                        uint64_t                 readAroundRange,
+                                        errorLBA* M_NONNULL      errorList,
+                                        uint64_t* M_NONNULL      errorIndex,
+                                        uint64_t* M_NONNULL      totalErrors,
+                                        bool                     autoReadReassign,
+                                        bool                     autoWriteReassign,
+                                        uint16_t                 errorLimit)
 {
     eReturnValues ret             = SUCCESS;
     uint64_t      readAroundStart = UINT64_C(0);
@@ -1457,18 +1506,18 @@ static eReturnValues read_Around_Defect(const tDevice* device,
     }
     if (passthroughWrite)
     {
-        if (device->drive_info.bridge_info.childDeviceMaxLba - errorList[*errorIndex].errorAddress <
+        if (return_Device_Child_MaxLba(device) - errorList[*errorIndex].errorAddress <
             half_read_around_range(readAroundRange))
         {
-            readAroundRange = device->drive_info.bridge_info.childDeviceMaxLba - readAroundStart;
+            readAroundRange = return_Device_Child_MaxLba(device) - readAroundStart;
         }
     }
     else
     {
-        if (device->drive_info.deviceMaxLba - errorList[*errorIndex].errorAddress <
-            half_read_around_range(readAroundRange))
+        uint64_t devMaxLBA = return_Device_MaxLba(device);
+        if (devMaxLBA - errorList[*errorIndex].errorAddress < half_read_around_range(readAroundRange))
         {
-            readAroundRange = device->drive_info.deviceMaxLba - readAroundStart;
+            readAroundRange = devMaxLBA - readAroundStart;
         }
     }
     // not using generic_tests.h since we don't have a way to force ATA vs SCSI passthrough command for
@@ -1486,12 +1535,10 @@ static eReturnValues read_Around_Defect(const tDevice* device,
     if (SUCCESS != verify)
     {
         // there is another bad sector we need to find and fix...
-        uint8_t logicalPerPhysical =
-            C_CAST(uint8_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
+        uint16_t logicalPerPhysical = get_Logical_Sectors_Per_Physical_Sector(device);
         if (passthroughWrite)
         {
-            logicalPerPhysical = C_CAST(uint8_t, device->drive_info.bridge_info.childDevicePhyBlockSize /
-                                                     device->drive_info.bridge_info.childDeviceBlockSize);
+            logicalPerPhysical = get_Child_Logical_Sectors_Per_Physical_Sector(device);
         }
         for (uint64_t iter = readAroundStart; iter < (readAroundStart + readAroundRange); iter += logicalPerPhysical)
         {
@@ -1524,12 +1571,15 @@ static eReturnValues read_Around_Defect(const tDevice* device,
     return ret;
 }
 
-eReturnValues run_DST_And_Clean(const tDevice*          device,
-                                uint16_t                errorLimit,
-                                custom_Update           updateFunction,
-                                void*                   updateData,
-                                ptrDSTAndCleanErrorList externalErrorList,
-                                bool*                   repaired)
+M_PARAM_RO(1)
+M_PARAM_WO(5)
+M_PARAM_WO(6)
+OPENSEA_OPERATIONS_API eReturnValues run_DST_And_Clean(const tDevice* M_NONNULL           device,
+                                                       uint16_t                           errorLimit,
+                                                       custom_Update M_NULLABLE           updateFunction,
+                                                       void* M_NULLABLE                   updateData,
+                                                       ptrDSTAndCleanErrorList M_NULLABLE externalErrorList,
+                                                       bool* M_NULLABLE                   repaired)
 {
     eReturnValues ret              = SUCCESS; // assume this works successfully
     errorLBA*     errorList        = M_NULLPTR;
@@ -1557,8 +1607,8 @@ eReturnValues run_DST_And_Clean(const tDevice*          device,
         {
             errorListAllocation = errorLimit * sizeof(errorLBA);
         }
-        errorList = C_CAST(
-            errorLBA*, safe_calloc_aligned(errorListAllocation, sizeof(errorLBA), device->os_info.minimumAlignment));
+        errorList = C_CAST(errorLBA*, safe_calloc_aligned(errorListAllocation, sizeof(errorLBA),
+                                                          get_Device_IO_Minimum_Alignment(device)));
         if (errorList == M_NULLPTR)
         {
             perror("calloc failure\n");
@@ -1675,7 +1725,10 @@ eReturnValues run_DST_And_Clean(const tDevice*          device,
 
 #define ENABLE_DST_LOG_DEBUG 0 // set to non zero to enable this debug.
 
-static eReturnValues get_ATA_Extended_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_ATA_Extended_DST_Log_Entries(const tDevice* M_NONNULL   device,
+                                                      ptrDstLogEntries M_NONNULL entries)
 {
     eReturnValues ret     = NOT_SUPPORTED;
     uint32_t      logSize = UINT32_C(0);
@@ -1684,7 +1737,7 @@ static eReturnValues get_ATA_Extended_DST_Log_Entries(const tDevice* device, ptr
         uint8_t* selfTestResults = M_NULLPTR;
         uint32_t extLogSize      = logSize;
         selfTestResults          = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(extLogSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(extLogSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         uint16_t lastPage = C_CAST(uint16_t, (extLogSize / LEGACY_DRIVE_SEC_SIZE) - 1); // zero indexed
         if (selfTestResults == M_NULLPTR)
         {
@@ -1885,15 +1938,17 @@ static eReturnValues get_ATA_Extended_DST_Log_Entries(const tDevice* device, ptr
     return ret;
 }
 
-static eReturnValues get_ATA_SMART_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_ATA_SMART_DST_Log_Entries(const tDevice* M_NONNULL device, ptrDstLogEntries M_NONNULL entries)
 {
     eReturnValues ret     = NOT_SUPPORTED;
     uint32_t      logSize = UINT32_C(0);
     if (SUCCESS == get_ATA_Log_Size(device, ATA_LOG_SMART_SELF_TEST_LOG, &logSize, false, true) && logSize > 0)
     {
         uint8_t* selfTestResults = M_NULLPTR;
-        selfTestResults          = C_CAST(
-            uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        selfTestResults          = C_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t),
+                                                                        get_Device_IO_Minimum_Alignment(device)));
         if (selfTestResults == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -2038,7 +2093,9 @@ static eReturnValues get_ATA_SMART_DST_Log_Entries(const tDevice* device, ptrDst
     return ret;
 }
 
-static eReturnValues get_ATA_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_ATA_DST_Log_Entries(const tDevice* M_NONNULL device, ptrDstLogEntries M_NONNULL entries)
 {
     eReturnValues ret = NOT_SUPPORTED;
     // used for compatibility purposes with drives that may have GPL, but not support the ext log...
@@ -2192,9 +2249,12 @@ static eReturnValues get_NVMe_DST_Log_Entries(const tDevice* M_NONNULL device, p
     return ret;
 }
 
-eReturnValues get_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entries)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_DST_Log_Entries(const tDevice* M_NONNULL   device,
+                                                         ptrDstLogEntries M_NONNULL entries)
 {
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         return get_ATA_DST_Log_Entries(device, entries);
@@ -2213,6 +2273,7 @@ eReturnValues get_DST_Log_Entries(const tDevice* device, ptrDstLogEntries entrie
     }
 }
 
+M_PARAM_WO_SIZE(2, 3)
 static void get_ATA_Self_Test_Code_String(uint8_t selfTestRun, char* M_NONNULL selfTestRunString, size_t maxLength)
 {
     if (selfTestRunString != M_NULLPTR && maxLength > SIZE_T_C(0))
@@ -2262,7 +2323,8 @@ static void get_ATA_Self_Test_Code_String(uint8_t selfTestRun, char* M_NONNULL s
     }
 }
 
-static void get_SCSI_Self_Test_Code_String(uint8_t selfTestRun, char* selfTestRunString, size_t maxLength)
+M_PARAM_WO_SIZE(2, 3)
+static void get_SCSI_Self_Test_Code_String(uint8_t selfTestRun, char* M_NONNULL selfTestRunString, size_t maxLength)
 {
     if (selfTestRunString != M_NULLPTR && maxLength > SIZE_T_C(0))
     {
@@ -2290,7 +2352,8 @@ static void get_SCSI_Self_Test_Code_String(uint8_t selfTestRun, char* selfTestRu
     }
 }
 
-static void get_NVMe_Self_Test_Code_String(uint8_t selfTestRun, char* selfTestRunString, size_t maxLength)
+M_PARAM_WO_SIZE(2, 3)
+static void get_NVMe_Self_Test_Code_String(uint8_t selfTestRun, char* M_NONNULL selfTestRunString, size_t maxLength)
 {
     if (selfTestRunString != M_NULLPTR && maxLength > SIZE_T_C(0))
     {
@@ -2315,11 +2378,12 @@ static void get_NVMe_Self_Test_Code_String(uint8_t selfTestRun, char* selfTestRu
     }
 }
 
-static void get_Selftest_Execution_Status_String(dstLogType logtype,
-                                                 uint8_t    selfTestExecutionStatus,
-                                                 char*      status,
-                                                 size_t     maxLength,
-                                                 uint8_t    segmentNumber)
+M_PARAM_WO_SIZE(3, 4)
+static void get_Selftest_Execution_Status_String(dstLogType      logtype,
+                                                 uint8_t         selfTestExecutionStatus,
+                                                 char* M_NONNULL status,
+                                                 size_t          maxLength,
+                                                 uint8_t         segmentNumber)
 {
     if (status != M_NULLPTR && maxLength > SIZE_T_C(0))
     {
@@ -2401,7 +2465,7 @@ static void get_Selftest_Execution_Status_String(dstLogType logtype,
     }
 }
 
-eReturnValues print_DST_Log_Entries(ptrDstLogEntries entries)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_DST_Log_Entries(ptrDstLogEntries M_NONNULL entries)
 {
 
     if (entries == M_NULLPTR)

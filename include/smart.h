@@ -700,8 +700,8 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     M_PARAM_RO(2)
-    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Info(const tDevice* M_NONNULL      device,
-                                                          ptrSmartFeatureInfo M_NONNULL smartInfo);
+    OPENSEA_OPERATIONS_API eReturnValues print_SMART_Info(const tDevice* M_NONNULL            device,
+                                                          const ptrSmartFeatureInfo M_NONNULL smartInfo);
 
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(const tDevice* M_NONNULL device);
 

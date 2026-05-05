@@ -49,7 +49,6 @@ extern "C"
     M_PARAM_RO(1)
     M_NULL_TERM_STRING(2)
     M_PARAM_RO(2)
-
     OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(const tDevice* M_NONNULL device,
                                                                 const char* M_NULLABLE   filePath,
                                                                 uint32_t                 transferSizeBytes,
@@ -571,9 +570,13 @@ extern "C"
     } farmLogData;
 
     // TODO: Option to select which FARM data between current, saved, factory
-    eReturnValues read_FARM_Data(const tDevice* M_NONNULL device, farmLogData* M_NONNULL farmdata);
+    M_PARAM_RO(1)
+    M_PARAM_WO(2)
+    OPENSEA_OPERATIONS_API eReturnValues read_FARM_Data(const tDevice* M_NONNULL device,
+                                                        farmLogData* M_NONNULL   farmdata);
 
-    void print_FARM_Data(farmLogData* M_NONNULL farmdata);
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API void print_FARM_Data(farmLogData* M_NONNULL farmdata);
 
 #if defined(__cplusplus)
 }

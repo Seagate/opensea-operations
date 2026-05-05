@@ -26,7 +26,7 @@
 
 #include "sas_phy.h"
 
-bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* M_NONNULL device)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedDiagnosticPages, 50);
     if (SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 50, supportedDiagnosticPages, 50, 15) &&
@@ -49,7 +49,8 @@ bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* device)
     return false;
 }
 
-static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t                 diagPage[32],
+M_PARAM_WO(1)
+static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t                 diagPage[M_NONNULL_ARRAY 32],
                                                    uint8_t                 phyIdentifier,
                                                    eSASPhyTestFunction     testFunction,
                                                    eSASPhyTestPattern      pattern,
@@ -60,21 +61,23 @@ static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t                 diagP
                                                    uint64_t                phyTestPatternDwords)
 {
     eReturnValues ret = SUCCESS;
+    DISABLE_NONNULL_COMPARE
     if (diagPage == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
+    RESTORE_NONNULL_COMPARE
     diagPage[0] = DIAG_PAGE_PROTOCOL_SPECIFIC;
     diagPage[1] = 0x06; // protocol identifier = 6 for SAS
     diagPage[2] = 0x00;
     diagPage[3] = 0x1C; // see SPL
     diagPage[4] = phyIdentifier;
-    diagPage[5] = C_CAST(uint8_t, testFunction);
-    diagPage[6] = C_CAST(uint8_t, pattern);
+    diagPage[5] = M_STATIC_CAST(uint8_t, testFunction);
+    diagPage[6] = M_STATIC_CAST(uint8_t, pattern);
     // link rate
-    diagPage[7] = C_CAST(uint8_t, linkRate);
+    diagPage[7] = M_STATIC_CAST(uint8_t, linkRate);
     // phy test function ssc
-    diagPage[7] |= C_CAST(uint8_t, testFunctionSSC << 4);
+    diagPage[7] |= M_STATIC_CAST(uint8_t, testFunctionSSC << 4);
     // phy test function SATA
     if (sataTestFunction)
     {
@@ -83,7 +86,7 @@ static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t                 diagP
     diagPage[8]  = RESERVED;
     diagPage[9]  = RESERVED;
     diagPage[10] = RESERVED;
-    diagPage[11] = C_CAST(uint8_t, dwordControl);
+    diagPage[11] = M_STATIC_CAST(uint8_t, dwordControl);
     diagPage[12] = M_Byte7(phyTestPatternDwords);
     diagPage[13] = M_Byte6(phyTestPatternDwords);
     diagPage[14] = M_Byte5(phyTestPatternDwords);
@@ -107,14 +110,15 @@ static eReturnValues build_SAS_SSP_Diagnostic_Page(uint8_t                 diagP
     return ret;
 }
 
-eReturnValues start_SAS_Test_Pattern(const tDevice*          device,
-                                     uint8_t                 phyIdentifier,
-                                     eSASPhyTestPattern      pattern,
-                                     bool                    sataTestFunction,
-                                     eSASPhyTestFunctionSSC  testFunctionSSC,
-                                     eSASPhyPhysicalLinkRate linkRate,
-                                     eSASPhyDwordControl     dwordControl,
-                                     uint64_t                phyTestPatternDwords)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues start_SAS_Test_Pattern(const tDevice* M_NONNULL device,
+                                                            uint8_t                  phyIdentifier,
+                                                            eSASPhyTestPattern       pattern,
+                                                            bool                     sataTestFunction,
+                                                            eSASPhyTestFunctionSSC   testFunctionSSC,
+                                                            eSASPhyPhysicalLinkRate  linkRate,
+                                                            eSASPhyDwordControl      dwordControl,
+                                                            uint64_t                 phyTestPatternDwords)
 {
     eReturnValues ret = SUCCESS;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, sasDiagPage, 32);
@@ -128,7 +132,10 @@ eReturnValues start_SAS_Test_Pattern(const tDevice*          device,
     return ret;
 }
 
-eReturnValues stop_SAS_Test_Pattern(const tDevice* device, uint8_t phyIdentifier, eSASPhyPhysicalLinkRate linkRate)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues stop_SAS_Test_Pattern(const tDevice* M_NONNULL device,
+                                                           uint8_t                  phyIdentifier,
+                                                           eSASPhyPhysicalLinkRate  linkRate)
 {
     eReturnValues ret = SUCCESS;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, sasDiagPage, 32);

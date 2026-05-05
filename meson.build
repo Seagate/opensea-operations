@@ -344,6 +344,7 @@ opensea_operations_lib = library(
     'src/partition_info.c',
     'src/ata_device_config_overlay.c',
     'src/sata_phy.c',
+    'src/operations_json.c',
     c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep],
     include_directories: incdir,

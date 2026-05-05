@@ -155,6 +155,29 @@ extern "C"
         };
     } interfaceSpeed;
 
+    // Use this instead of memset when clearing this structure to avoid false positive stringop-overflow warnings.
+    static M_INLINE void clear_Interface_Speed_Data(interfaceSpeed* M_NONNULL speedInfo)
+    {
+        speedInfo->speedType                    = INTERFACE_SPEED_UNKNOWN;
+        speedInfo->speedIsValid                 = false;
+        speedInfo->serialSpeed.numberOfPorts    = 0;
+        speedInfo->serialSpeed.activePortNumber = 0;
+        for (uint8_t i = 0; i < MAX_PORTS; i++)
+        {
+            speedInfo->serialSpeed.portSpeedsMax[i]        = 0;
+            speedInfo->serialSpeed.portSpeedsNegotiated[i] = 0;
+        }
+        speedInfo->parallelSpeed.negotiatedValid  = false;
+        speedInfo->parallelSpeed.negotiatedSpeed  = 0.0;
+        speedInfo->parallelSpeed.maxSpeed         = 0.0;
+        speedInfo->parallelSpeed.negModeNameValid = false;
+        safe_memset(speedInfo->parallelSpeed.negModeName, sizeof(speedInfo->parallelSpeed.negModeName), 0,
+                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH);
+        speedInfo->parallelSpeed.maxModeNameValid = false;
+        safe_memset(speedInfo->parallelSpeed.maxModeName, sizeof(speedInfo->parallelSpeed.maxModeName), 0,
+                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH);
+    }
+
     // This struct is only for ATA drives...more specifically legacy drives. Can be used if any ATA drive that populates
     // these fields.
     typedef struct s_legacyCHSInfo

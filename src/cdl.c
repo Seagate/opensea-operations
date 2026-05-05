@@ -27,7 +27,9 @@
 #define CDL_T2A_DESCRIPTOR_OFFSET                                  8
 #define CDL_T2B_DESCRIPTOR_OFFSET                                  8
 
-eReturnValues enable_Disable_CDL_Feature(const tDevice* device, eCDLFeatureSet countField)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues enable_Disable_CDL_Feature(const tDevice* M_NONNULL device,
+                                                                eCDLFeatureSet           countField)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -36,7 +38,7 @@ eReturnValues enable_Disable_CDL_Feature(const tDevice* device, eCDLFeatureSet c
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = ata_Set_Features(device, SF_CDL_FEATURE, C_CAST(uint8_t, countField), 0, 0, 0);
     }
@@ -44,7 +46,9 @@ eReturnValues enable_Disable_CDL_Feature(const tDevice* device, eCDLFeatureSet c
     return ret;
 }
 
-static eReturnValues get_ATA_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_ATA_CDL_Settings(const tDevice* M_NONNULL device, tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -59,7 +63,7 @@ static eReturnValues get_ATA_CDL_Settings(const tDevice* device, tCDLSettings* c
     ret              = get_ATA_Log_Size(device, ATA_LOG_COMMAND_DURATION_LIMITS_LOG, &logSize, true, false);
     if (ret == SUCCESS)
     {
-        uint8_t* logBuffer = safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t* logBuffer = safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device));
         if (!logBuffer)
         {
             return MEMORY_FAILURE;
@@ -143,8 +147,8 @@ static eReturnValues get_ATA_CDL_Settings(const tDevice* device, tCDLSettings* c
             return ret;
         }
 
-        uint8_t* temp = C_CAST(
-            uint8_t*, safe_realloc_aligned(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE, device->os_info.minimumAlignment));
+        uint8_t* temp = C_CAST(uint8_t*, safe_realloc_aligned(logBuffer, 0, LEGACY_DRIVE_SEC_SIZE,
+                                                              get_Device_IO_Minimum_Alignment(device)));
         if (!temp)
         {
             return MEMORY_FAILURE;
@@ -255,7 +259,9 @@ static eCDLTimeFieldUnitType translate_Value_To_CDL_Unit(uint8_t unitValue)
     return unitType;
 }
 
-static eReturnValues get_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static eReturnValues get_SCSI_CDL_Settings(const tDevice* M_NONNULL device, tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -268,8 +274,8 @@ static eReturnValues get_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* 
     uint32_t modePageLength = UINT32_C(0);
     if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x07, &modePageLength))
     {
-        uint8_t* modeData =
-            C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeData = C_CAST(
+            uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (!modeData)
         {
             return MEMORY_FAILURE;
@@ -335,8 +341,8 @@ static eReturnValues get_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* 
     // read T2B mode page
     if (SUCCESS == get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x08, &modePageLength))
     {
-        uint8_t* modeData =
-            C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeData = C_CAST(
+            uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (!modeData)
         {
             return MEMORY_FAILURE;
@@ -400,15 +406,18 @@ static eReturnValues get_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* 
     return ret;
 }
 
-eReturnValues get_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_CDL_Settings(const tDevice* M_NONNULL device,
+                                                      tCDLSettings* M_NONNULL  cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = get_ATA_CDL_Settings(device, cdlSettings);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = get_SCSI_CDL_Settings(device, cdlSettings);
     }
@@ -416,8 +425,9 @@ eReturnValues get_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
     return ret;
 }
 
-static void translate_CDL_Performance_Vs_Command_Completion_Field_To_String(uint8_t cmdCompletionField,
-                                                                            char*   translatedString)
+M_PARAM_RW(2)
+static void translate_CDL_Performance_Vs_Command_Completion_Field_To_String(uint8_t         cmdCompletionField,
+                                                                            char* M_NONNULL translatedString)
 {
     switch (cmdCompletionField)
     {
@@ -486,10 +496,11 @@ static void translate_CDL_Performance_Vs_Command_Completion_Field_To_String(uint
     }
 }
 
-static void translate_Policy_To_String(eDriveType     driveType,
-                                       eCDLPolicyType policyType,
-                                       uint8_t        policyField,
-                                       char*          translatedString)
+M_PARAM_RW(4)
+static void translate_Policy_To_String(eDriveType      driveType,
+                                       eCDLPolicyType  policyType,
+                                       uint8_t         policyField,
+                                       char* M_NONNULL translatedString)
 {
     if (policyType == CDL_POLICY_TYPE_TOTAL_TIME || policyType == CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE)
     {
@@ -592,7 +603,8 @@ static void translate_Policy_To_String(eDriveType     driveType,
     }
 }
 
-static eReturnValues print_ATA_CDL_Settings(tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+static eReturnValues print_ATA_CDL_Settings(tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (cdlSettings == M_NULLPTR)
@@ -702,7 +714,8 @@ static eReturnValues print_ATA_CDL_Settings(tCDLSettings* cdlSettings)
     return ret;
 }
 
-static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (cdlSettings == M_NULLPTR)
@@ -802,7 +815,10 @@ static eReturnValues print_SCSI_CDL_Settings(tCDLSettings* cdlSettings)
     return ret;
 }
 
-eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues print_CDL_Settings(const tDevice* M_NONNULL device,
+                                                        tCDLSettings* M_NONNULL  cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -811,11 +827,11 @@ eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSetting
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = print_ATA_CDL_Settings(cdlSettings);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = print_SCSI_CDL_Settings(cdlSettings);
     }
@@ -823,7 +839,9 @@ eReturnValues print_CDL_Settings(const tDevice* device, tCDLSettings* cdlSetting
     return ret;
 }
 
-static eReturnValues config_ATA_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_RO(1)
+static eReturnValues config_ATA_CDL_Settings(const tDevice* M_NONNULL device, tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (cdlSettings == M_NULLPTR)
@@ -836,7 +854,7 @@ static eReturnValues config_ATA_CDL_Settings(const tDevice* device, tCDLSettings
     ret              = get_ATA_Log_Size(device, ATA_LOG_COMMAND_DURATION_LIMITS_LOG, &logSize, true, false);
     if (ret == SUCCESS)
     {
-        uint8_t* logBuffer = safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment);
+        uint8_t* logBuffer = safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device));
         if (!logBuffer)
         {
             return MEMORY_FAILURE;
@@ -935,7 +953,9 @@ static uint8_t translate_CDL_Unit_To_Value(eCDLTimeFieldUnitType unitType)
     return value;
 }
 
-static eReturnValues config_SCSI_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+static eReturnValues config_SCSI_CDL_Settings(const tDevice* M_NONNULL device, tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (cdlSettings == M_NULLPTR)
@@ -948,8 +968,8 @@ static eReturnValues config_SCSI_CDL_Settings(const tDevice* device, tCDLSetting
     ret                     = get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x07, &modePageLength);
     if (SUCCESS == ret)
     {
-        uint8_t* modeData =
-            C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeData = C_CAST(
+            uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (!modeData)
         {
             return MEMORY_FAILURE;
@@ -1032,8 +1052,8 @@ static eReturnValues config_SCSI_CDL_Settings(const tDevice* device, tCDLSetting
     ret = get_SCSI_Mode_Page_Size(device, MPC_CURRENT_VALUES, MP_CONTROL, 0x08, &modePageLength);
     if (SUCCESS == ret)
     {
-        uint8_t* modeData =
-            C_CAST(uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* modeData = C_CAST(
+            uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (!modeData)
         {
             return MEMORY_FAILURE;
@@ -1112,7 +1132,10 @@ static eReturnValues config_SCSI_CDL_Settings(const tDevice* device, tCDLSetting
     return ret;
 }
 
-eReturnValues config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues config_CDL_Settings(const tDevice* M_NONNULL device,
+                                                         tCDLSettings* M_NONNULL  cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1121,11 +1144,11 @@ eReturnValues config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettin
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = config_ATA_CDL_Settings(device, cdlSettings);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = config_SCSI_CDL_Settings(device, cdlSettings);
     }
@@ -1273,7 +1296,8 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
     return false;
 }
 
-static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (cdlSettings == M_NULLPTR)
@@ -1392,7 +1416,8 @@ static eReturnValues is_Valid_ATA_Config_CDL_Settings(tCDLSettings* cdlSettings)
     return ret;
 }
 
-static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* M_NONNULL cdlSettings)
 {
     eReturnValues ret = SUCCESS;
     if (cdlSettings == M_NULLPTR)
@@ -1536,7 +1561,10 @@ static eReturnValues is_Valid_SCSI_Config_CDL_Settings(tCDLSettings* cdlSettings
     return ret;
 }
 
-eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues is_Valid_Config_CDL_Settings(const tDevice* M_NONNULL device,
+                                                                  tCDLSettings* M_NONNULL  cdlSettings)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1545,11 +1573,11 @@ eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* 
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = is_Valid_ATA_Config_CDL_Settings(cdlSettings);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = is_Valid_SCSI_Config_CDL_Settings(cdlSettings);
     }
@@ -1557,7 +1585,8 @@ eReturnValues is_Valid_Config_CDL_Settings(const tDevice* device, tCDLSettings* 
     return ret;
 }
 
-bool is_Total_Time_Policy_Type_Supported(tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Total_Time_Policy_Type_Supported(tCDLSettings* M_NONNULL cdlSettings)
 {
     uint32_t currentCDLFeatureVersion =
         M_BytesTo4ByteValue(CDL_FEATURE_MAJOR_VERSION, CDL_FEATURE_MINOR_VERSION, CDL_FEATURE_PATCH_VERSION, 0);
@@ -1583,7 +1612,8 @@ bool is_Total_Time_Policy_Type_Supported(tCDLSettings* cdlSettings)
     return false;
 }
 
-bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* cdlSettings)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* M_NONNULL cdlSettings)
 {
     uint32_t currentCDLFeatureVersion =
         M_BytesTo4ByteValue(CDL_FEATURE_MAJOR_VERSION, CDL_FEATURE_MINOR_VERSION, CDL_FEATURE_PATCH_VERSION, 0);
@@ -1594,10 +1624,11 @@ bool is_Performance_Versus_Command_Completion_Supported(tCDLSettings* cdlSetting
     return false;
 }
 
-void get_Supported_Policy_String(eDriveType     driveType,
-                                 eCDLPolicyType policyType,
-                                 uint16_t       policySupportedDescriptor,
-                                 char*          policyString)
+M_PARAM_RW(4)
+OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType      driveType,
+                                                        eCDLPolicyType  policyType,
+                                                        uint16_t        policySupportedDescriptor,
+                                                        char* M_NONNULL policyString)
 {
     uint32_t currentCDLFeatureVersion =
         M_BytesTo4ByteValue(CDL_FEATURE_MAJOR_VERSION, CDL_FEATURE_MINOR_VERSION, CDL_FEATURE_PATCH_VERSION, 0);
@@ -1726,7 +1757,7 @@ void get_Supported_Policy_String(eDriveType     driveType,
     }
 }
 
-uint32_t convert_CDL_TimeField_To_Microseconds(eCDLTimeFieldUnitType unitType, uint32_t value)
+OPENSEA_OPERATIONS_API uint32_t convert_CDL_TimeField_To_Microseconds(eCDLTimeFieldUnitType unitType, uint32_t value)
 {
     uint32_t convertedValue = value;
     switch (unitType)

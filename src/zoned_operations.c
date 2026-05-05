@@ -24,10 +24,12 @@
 
 #include "zoned_operations.h"
 
-eReturnValues get_Number_Of_Zones(const tDevice*        device,
-                                  eZoneReportingOptions reportingOptions,
-                                  uint64_t              startingLBA,
-                                  uint32_t*             numberOfMatchingZones)
+M_PARAM_RO(1)
+M_PARAM_WO(4)
+OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_Zones(const tDevice* M_NONNULL device,
+                                                         eZoneReportingOptions    reportingOptions,
+                                                         uint64_t                 startingLBA,
+                                                         uint32_t* M_NONNULL      numberOfMatchingZones)
 {
     eReturnValues ret = SUCCESS;
 
@@ -38,12 +40,12 @@ eReturnValues get_Number_Of_Zones(const tDevice*        device,
 
     DECLARE_ZERO_INIT_ARRAY(uint8_t, reportZones, LEGACY_DRIVE_SEC_SIZE);
     uint32_t zoneListLength = UINT32_C(0);
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = ata_Report_Zones_Ext(device, reportingOptions, false, 1, startingLBA, reportZones, LEGACY_DRIVE_SEC_SIZE);
         zoneListLength = M_BytesTo4ByteValue(reportZones[3], reportZones[2], reportZones[1], reportZones[0]);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = scsi_Report_Zones(device, reportingOptions, false, LEGACY_DRIVE_SEC_SIZE, startingLBA, reportZones);
         zoneListLength = M_BytesTo4ByteValue(reportZones[0], reportZones[1], reportZones[2], reportZones[3]);
@@ -60,11 +62,13 @@ eReturnValues get_Number_Of_Zones(const tDevice*        device,
     return SUCCESS;
 }
 
-eReturnValues get_Zone_Descriptors(const tDevice*        device,
-                                   eZoneReportingOptions reportingOptions,
-                                   uint64_t              startingLBA,
-                                   uint32_t              numberOfZoneDescriptors,
-                                   ptrZoneDescriptor     zoneDescriptors)
+M_PARAM_RO(1)
+M_PARAM_WO(5)
+OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(const tDevice* M_NONNULL    device,
+                                                          eZoneReportingOptions       reportingOptions,
+                                                          uint64_t                    startingLBA,
+                                                          uint32_t                    numberOfZoneDescriptors,
+                                                          ptrZoneDescriptor M_NONNULL zoneDescriptors)
 {
     eReturnValues ret                = SUCCESS;
     uint8_t*      reportZones        = M_NULLPTR;
@@ -76,15 +80,16 @@ eReturnValues get_Zone_Descriptors(const tDevice*        device,
         return BAD_PARAMETER;
     }
 
-    reportZones = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE * uint32_to_sizet(sectorCount),
-                                                                   sizeof(uint8_t), device->os_info.minimumAlignment));
+    reportZones =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE * uint32_to_sizet(sectorCount),
+                                                         sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (reportZones == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
     // need to break this into chunks to pull.
     uint64_t nextZoneLBA = startingLBA;
-    uint64_t zoneMaxLBA  = device->drive_info.deviceMaxLba; // start with this...change later.
+    uint64_t zoneMaxLBA  = return_Device_MaxLba(device); // start with this...change later.
     uint32_t zoneIter    = UINT32_C(0);
     for (uint32_t pullIter = UINT32_C(0); pullIter < dataBytesToRequest;
          pullIter += (sectorCount * LEGACY_DRIVE_SEC_SIZE - 64))
@@ -95,7 +100,7 @@ eReturnValues get_Zone_Descriptors(const tDevice*        device,
             sectorCount = (dataBytesToRequest - pullIter + 64 + (LEGACY_DRIVE_SEC_SIZE - 1)) /
                           LEGACY_DRIVE_SEC_SIZE; // rounds to nearest 512B
         }
-        if (device->drive_info.drive_type == ATA_DRIVE)
+        if (get_Device_DriveType(device) == ATA_DRIVE)
         {
             ret             = ata_Report_Zones_Ext(device, reportingOptions, true,
                                                    C_CAST(uint16_t, M_Min(dataBytesToRequest / LEGACY_DRIVE_SEC_SIZE, sectorCount)),
@@ -104,7 +109,7 @@ eReturnValues get_Zone_Descriptors(const tDevice*        device,
             zoneMaxLBA      = M_BytesTo8ByteValue(reportZones[15], reportZones[14], reportZones[13], reportZones[12],
                                                   reportZones[11], reportZones[10], reportZones[9], reportZones[8]);
         }
-        else if (device->drive_info.drive_type == SCSI_DRIVE)
+        else if (get_Device_DriveType(device) == SCSI_DRIVE)
         {
             ret = scsi_Report_Zones(device, reportingOptions, true, (LEGACY_DRIVE_SEC_SIZE * sectorCount), nextZoneLBA,
                                     reportZones);
@@ -148,7 +153,7 @@ eReturnValues get_Zone_Descriptors(const tDevice*        device,
                                     reportZones[byteIter + 27], reportZones[byteIter + 28], reportZones[byteIter + 29],
                                     reportZones[byteIter + 30], reportZones[byteIter + 31]);
             // byte swap for ATA because of endianness differences
-            if (device->drive_info.drive_type == ATA_DRIVE)
+            if (get_Device_DriveType(device) == ATA_DRIVE)
             {
                 // byte swap the zone length, start lba, and write pointer lba. All other fields match SCSI
                 byte_Swap_64(&zoneDescriptors[zoneIter].zoneLength);
@@ -264,9 +269,10 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
     }
 }
 
-void print_Zone_Descriptors(eZoneReportingOptions reportingOptions,
-                            uint32_t              numberOfZoneDescriptors,
-                            ptrZoneDescriptor     zoneDescriptors)
+M_PARAM_RO(3)
+OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       reportingOptions,
+                                                   uint32_t                    numberOfZoneDescriptors,
+                                                   ptrZoneDescriptor M_NONNULL zoneDescriptors)
 {
     print_str("=======Key======\n");
     print_str("\tZone Type:\n");

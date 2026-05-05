@@ -114,9 +114,10 @@ extern "C"
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tDevice* M_NONNULL device,
-                                                                            eNvmeFeaturesSelectValue selectType,
-                                                                            bool listOnlySupportedFeatures);
+    OPENSEA_OPERATIONS_API eReturnValues
+    nvme_Print_All_Feature_Identifiers(const tDevice* M_NONNULL device,
+                                       eNvmeFeaturesSelectValue selectType,
+                                       M_ATTR_UNUSED bool       listOnlySupportedFeatures);
 
     //-----------------------------------------------------------------------------
     //

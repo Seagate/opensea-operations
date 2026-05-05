@@ -33,7 +33,8 @@ typedef enum
     REASSIGN_LBA_REMOVE_ALL_BEFORE_LBA_VALUE
 } eReassignLBAOperation;
 
-static M_INLINE uint32_t get_Current_Reassign_List_Length(const uint8_t* reassignList, bool longLBA)
+M_PARAM_RO(1)
+static M_INLINE uint32_t get_Current_Reassign_List_Length(const uint8_t* M_NONNULL reassignList, bool longLBA)
 {
     if (longLBA)
     {
@@ -46,9 +47,11 @@ static M_INLINE uint32_t get_Current_Reassign_List_Length(const uint8_t* reassig
 }
 
 M_NONNULL_PARAM_LIST(1, 2)
-static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t** reassignList,
-                                                          uint32_t* listLength,
-                                                          size_t    listAlignment)
+M_PARAM_RW(1)
+M_PARAM_RW(2)
+static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t* M_NONNULL* M_NULLABLE reassignList,
+                                                          uint32_t* M_NONNULL            listLength,
+                                                          size_t                         listAlignment)
 {
     eReturnValues ret               = SUCCESS;
     uint32_t      currentListLength = get_Current_Reassign_List_Length(*reassignList, false);
@@ -106,13 +109,16 @@ static eReturnValues convert_LBA_Reassign_List_To_LongLBA(uint8_t** reassignList
 // order.
 // TODO: Handle case where current list is 32bit LBAs and adding a 64bit LBA to it so longLBA mode is changed.
 M_NONNULL_PARAM_LIST(1, 2)
-static eReturnValues update_LBA_Reassign_List(uint8_t**             reassignList,
-                                              uint32_t*             listLength,
-                                              size_t                listAlignment,
-                                              uint64_t              lba,
-                                              eReassignLBAOperation operation,
-                                              bool*                 longLBA,
-                                              uint16_t              logicalPerPhysical)
+M_PARAM_RW(1)
+M_PARAM_RW(2)
+M_PARAM_RW(6)
+static eReturnValues update_LBA_Reassign_List(uint8_t* M_NONNULL* M_NULLABLE reassignList,
+                                              uint32_t* M_NONNULL            listLength,
+                                              size_t                         listAlignment,
+                                              uint64_t                       lba,
+                                              eReassignLBAOperation          operation,
+                                              bool* M_NONNULL                longLBA,
+                                              uint16_t                       logicalPerPhysical)
 {
     eReturnValues ret               = SUCCESS;
     uint8_t       increment         = *longLBA ? REASSIGN_BLOCKS_LONG_LBA_LENGTH : REASSIGN_BLOCKS_SHORT_LBA_LENGTH;
@@ -264,14 +270,16 @@ static M_INLINE bool is_Valid_Reassign_LBA(uint64_t lba, uint64_t maxLba, bool r
     return valid;
 }
 
-eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32_t lbaListLength)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+OPENSEA_OPERATIONS_API
+eReturnValues reallocate_LBAs(const tDevice* M_NONNULL device, ptrErrorLBA M_NONNULL lbaList, uint32_t lbaListLength)
 {
-    eReturnValues ret       = SUCCESS;
-    bool          longLBA   = false;
-    uint32_t      listIndex = UINT32_C(0);
-    uint8_t       increment = REASSIGN_BLOCKS_SHORT_LBA_LENGTH;
-    uint16_t      logicalPerPhysical =
-        C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
+    eReturnValues ret                = SUCCESS;
+    bool          longLBA            = false;
+    uint32_t      listIndex          = UINT32_C(0);
+    uint8_t       increment          = REASSIGN_BLOCKS_SHORT_LBA_LENGTH;
+    uint16_t      logicalPerPhysical = get_Logical_Sectors_Per_Physical_Sector(device);
     if (lbaListLength == 0 || lbaList == M_NULLPTR)
     {
         return BAD_PARAMETER;
@@ -288,9 +296,9 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
     }
     uint32_t reassignListLength =
         (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) + REASSIGN_BLOCKS_LIST_HEADER_LENGTH;
-    uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
-    uint8_t* dataBuf =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint32_t dataSize = get_Device_BlockSize(device) * logicalPerPhysical;
+    uint8_t* dataBuf  = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (dataBuf == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -300,8 +308,8 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
     {
         uint64_t reassignLBA = lbaList[listIndex].errorAddress;
         // create the list of LBAs. 1 for 1 logical per physical, 8 for 8 logical per physical
-        ret = update_LBA_Reassign_List(&dataBuf, &reassignListLength, device->os_info.minimumAlignment, reassignLBA,
-                                       REASSIGN_LBA_ADD_TO_LIST, &longLBA, logicalPerPhysical);
+        ret = update_LBA_Reassign_List(&dataBuf, &reassignListLength, get_Device_IO_Minimum_Alignment(device),
+                                       reassignLBA, REASSIGN_LBA_ADD_TO_LIST, &longLBA, logicalPerPhysical);
     }
     if (ret != SUCCESS)
     {
@@ -371,12 +379,12 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
                     done                        = false;
                     // if we have a valid LBA, then we need to remove all LBAs prior to that one and reissue the
                     // command.
-                    if (is_Valid_Reassign_LBA(commandSpecificLba, device->drive_info.deviceMaxLba,
+                    if (is_Valid_Reassign_LBA(commandSpecificLba, return_Device_MaxLba(device),
                                               senseFields.fixedFormat))
                     {
-                        ret = update_LBA_Reassign_List(&dataBuf, &reassignListLength, device->os_info.minimumAlignment,
-                                                       commandSpecificLba, REASSIGN_LBA_REMOVE_ALL_BEFORE_LBA_VALUE,
-                                                       &longLBA, logicalPerPhysical);
+                        ret = update_LBA_Reassign_List(
+                            &dataBuf, &reassignListLength, get_Device_IO_Minimum_Alignment(device), commandSpecificLba,
+                            REASSIGN_LBA_REMOVE_ALL_BEFORE_LBA_VALUE, &longLBA, logicalPerPhysical);
                         if (ret != SUCCESS)
                         {
                             safe_free_aligned(&dataBuf);
@@ -399,9 +407,9 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
                         senseFields.fixedFormat ? senseFields.fixedInformation : senseFields.descriptorInformation;
                     done = false;
                     // if valid, add it to the list and reissue the command
-                    if (is_Valid_Reassign_LBA(informationLba, device->drive_info.deviceMaxLba, senseFields.fixedFormat))
+                    if (is_Valid_Reassign_LBA(informationLba, return_Device_MaxLba(device), senseFields.fixedFormat))
                     {
-                        update_LBA_Reassign_List(&dataBuf, &reassignListLength, device->os_info.minimumAlignment,
+                        update_LBA_Reassign_List(&dataBuf, &reassignListLength, get_Device_IO_Minimum_Alignment(device),
                                                  informationLba, REASSIGN_LBA_ADD_TO_LIST, &longLBA,
                                                  logicalPerPhysical);
                     }
@@ -446,18 +454,19 @@ eReturnValues reallocate_LBAs(const tDevice* device, ptrErrorLBA lbaList, uint32
     return ret;
 }
 
-eReturnValues repair_LBA(const tDevice* device,
-                         ptrErrorLBA    LBA,
-                         bool           forcePassthroughCommand,
-                         bool           automaticWriteReallocationEnabled,
-                         bool           automaticReadReallocationEnabled)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+OPENSEA_OPERATIONS_API eReturnValues repair_LBA(const tDevice* M_NONNULL device,
+                                                ptrErrorLBA M_NONNULL    LBA,
+                                                bool                     forcePassthroughCommand,
+                                                bool                     automaticWriteReallocationEnabled,
+                                                bool                     automaticReadReallocationEnabled)
 {
-    eReturnValues ret = UNKNOWN;
-    uint16_t      logicalPerPhysical =
-        C_CAST(uint16_t, device->drive_info.devicePhyBlockSize / device->drive_info.deviceBlockSize);
-    uint32_t dataSize = device->drive_info.deviceBlockSize * logicalPerPhysical;
-    uint8_t* dataBuf =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret                = UNKNOWN;
+    uint16_t      logicalPerPhysical = get_Logical_Sectors_Per_Physical_Sector(device);
+    uint32_t      dataSize           = get_Device_BlockSize(device) * logicalPerPhysical;
+    uint8_t*      dataBuf            = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(dataSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (dataBuf == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -469,17 +478,16 @@ eReturnValues repair_LBA(const tDevice* device,
         printf("\n\tAttempting repair on LBA %" PRIu64 " (aligned)", LBA->errorAddress);
     }
     if (forcePassthroughCommand &&
-        (device->drive_info.drive_type == ATA_DRIVE || device->drive_info.drive_type == ATAPI_DRIVE))
+        (get_Device_DriveType(device) == ATA_DRIVE || get_Device_DriveType(device) == ATAPI_DRIVE))
     {
-        if (device->drive_info.interface_type != IDE_INTERFACE)
+        if (get_Device_InterfaceType(device) != IDE_INTERFACE)
         {
             // need to use child drive info for write
             uint8_t* temp      = M_NULLPTR;
-            logicalPerPhysical = C_CAST(uint16_t, device->drive_info.bridge_info.childDevicePhyBlockSize /
-                                                      device->drive_info.bridge_info.childDeviceBlockSize);
-            dataSize           = device->drive_info.bridge_info.childDeviceBlockSize * logicalPerPhysical;
+            logicalPerPhysical = get_Child_Logical_Sectors_Per_Physical_Sector(device);
+            dataSize           = get_Device_Child_BlockSize(device) * logicalPerPhysical;
             temp = M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(dataBuf, 0, dataSize * sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
             if (temp == M_NULLPTR)
             {
                 safe_free_aligned(&dataBuf);
@@ -524,7 +532,7 @@ eReturnValues repair_LBA(const tDevice* device,
         }
         // Try sending reassign blocks last since this will increase g-list count.
         // Do not do this with NVMe since no translation for this command has been defined.
-        if (ret != SUCCESS && device->drive_info.drive_type != NVME_DRIVE)
+        if (ret != SUCCESS && get_Device_DriveType(device) != NVME_DRIVE)
         {
             // need to use the reallocate command (ATA interfaces should attempt translating it through SAT)
             ret = reallocate_LBAs(device, LBA, 1);
@@ -563,8 +571,8 @@ eReturnValues repair_LBA(const tDevice* device,
         }
     }
     bool emulationActive = is_Sector_Size_Emulation_Active(device);
-    if (ret == PERMISSION_DENIED && !forcePassthroughCommand && device->drive_info.interface_type != IDE_INTERFACE &&
-        device->drive_info.drive_type == ATA_DRIVE && !emulationActive)
+    if (ret == PERMISSION_DENIED && !forcePassthroughCommand && get_Device_InterfaceType(device) != IDE_INTERFACE &&
+        get_Device_DriveType(device) == ATA_DRIVE && !emulationActive)
     {
         // We are going to call this function recursively to try it again forcing ATA passthrough
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -601,7 +609,8 @@ const char* get_Repair_Status_String(eRepairStatus status)
     return statusString;
 }
 
-void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void print_LBA_Error_List(constPtrErrorLBA M_NONNULL LBAs, uint16_t numberOfErrors)
 {
     // need to print out a list of the LBAs and their status
     print_str("                            Bad LBAs                            \n");
@@ -628,9 +637,13 @@ void print_LBA_Error_List(constPtrErrorLBA LBAs, uint16_t numberOfErrors)
     }
 }
 
-eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
-                                                 bool*          automaticWriteReallocationEnabled,
-                                                 bool*          automaticReadReallocationEnabled)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues
+get_Automatic_Reallocation_Support(const tDevice* M_NONNULL device,
+                                   bool* M_NONNULL          automaticWriteReallocationEnabled,
+                                   bool* M_NONNULL          automaticReadReallocationEnabled)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -643,7 +656,7 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
         *automaticWriteReallocationEnabled = false;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE) // this should also catch USB drives
+    if (get_Device_DriveType(device) == ATA_DRIVE) // this should also catch USB drives
     {
         // ATA always supports automatic write reallocation.
         // ATA does not support automatic read reallocation.
@@ -659,7 +672,7 @@ eReturnValues get_Automatic_Reallocation_Support(const tDevice* device,
 
         ret = SUCCESS;
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
 
         if (automaticReadReallocationEnabled != M_NULLPTR)
@@ -740,7 +753,10 @@ static int errorLBACompare(const void* a, const void* b)
     return 0;
 }
 
-void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
+M_PARAM_RW(1)
+M_PARAM_RW(2)
+OPENSEA_OPERATIONS_API
+void sort_Error_LBA_List(ptrErrorLBA M_NONNULL LBAList, uint32_t* M_NONNULL numberOfLBAsInTheList)
 {
 
     if (LBAList == M_NULLPTR || numberOfLBAsInTheList == M_NULLPTR)
@@ -778,7 +794,9 @@ void sort_Error_LBA_List(ptrErrorLBA LBAList, uint32_t* numberOfLBAsInTheList)
     }
 }
 
-bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API
+bool is_LBA_Already_In_The_List(ptrErrorLBA M_NONNULL LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
 {
     bool inList = false;
 
@@ -799,7 +817,10 @@ bool is_LBA_Already_In_The_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheL
     return inList;
 }
 
-uint32_t find_LBA_Entry_In_List(ptrErrorLBA LBAList, uint32_t numberOfLBAsInTheList, uint64_t lba)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API uint32_t find_LBA_Entry_In_List(ptrErrorLBA M_NONNULL LBAList,
+                                                       uint32_t              numberOfLBAsInTheList,
+                                                       uint64_t              lba)
 {
     uint32_t index = UINT32_MAX; // something invalid
 

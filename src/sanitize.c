@@ -30,9 +30,12 @@
 #include "platform_helper.h"
 #include "sanitize.h"
 
-static eReturnValues get_ATA_Sanitize_Progress(const tDevice*   device,
-                                               double*          percentComplete,
-                                               eSanitizeStatus* sanitizeStatus)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+static eReturnValues get_ATA_Sanitize_Progress(const tDevice* M_NONNULL   device,
+                                               double* M_NONNULL          percentComplete,
+                                               eSanitizeStatus* M_NONNULL sanitizeStatus)
 {
     eReturnValues result             = ata_Sanitize_Status(device, false);
     uint16_t      ataPercentComplete = UINT16_C(0);
@@ -107,9 +110,12 @@ static eReturnValues get_ATA_Sanitize_Progress(const tDevice*   device,
     return result;
 }
 
-static eReturnValues get_NVMe_Sanitize_Progress(const tDevice*   device,
-                                                double*          percentComplete,
-                                                eSanitizeStatus* sanitizeStatus)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+static eReturnValues get_NVMe_Sanitize_Progress(const tDevice* M_NONNULL   device,
+                                                double* M_NONNULL          percentComplete,
+                                                eSanitizeStatus* M_NONNULL sanitizeStatus)
 {
     eReturnValues result = UNKNOWN;
     // read the sanitize status log
@@ -154,9 +160,12 @@ static eReturnValues get_NVMe_Sanitize_Progress(const tDevice*   device,
     return result;
 }
 
-static eReturnValues get_SCSI_Sanitize_Progress(const tDevice*   device,
-                                                double*          percentComplete,
-                                                eSanitizeStatus* sanitizeStatus)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+static eReturnValues get_SCSI_Sanitize_Progress(const tDevice* M_NONNULL   device,
+                                                double* M_NONNULL          percentComplete,
+                                                eSanitizeStatus* M_NONNULL sanitizeStatus)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, req_sense_buf, SPC3_SENSE_LEN);
     uint8_t       acq                   = UINT8_C(0);
@@ -192,11 +201,16 @@ static eReturnValues get_SCSI_Sanitize_Progress(const tDevice*   device,
     return result;
 }
 
-eReturnValues get_Sanitize_Progress(const tDevice* device, double* percentComplete, eSanitizeStatus* sanitizeStatus)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues get_Sanitize_Progress(const tDevice* M_NONNULL   device,
+                                                           double* M_NONNULL          percentComplete,
+                                                           eSanitizeStatus* M_NONNULL sanitizeStatus)
 {
     eReturnValues result = UNKNOWN;
     *sanitizeStatus      = 0;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         result = get_ATA_Sanitize_Progress(device, percentComplete, sanitizeStatus);
@@ -265,7 +279,7 @@ static void print_Sanitize_Status_To_Screen(eSanitizeStatus sanitizeInProgress, 
     }
 }
 
-eReturnValues show_Sanitize_Progress(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_Sanitize_Progress(const tDevice* M_NONNULL device)
 {
     eReturnValues   ret                = UNKNOWN;
     double          percentComplete    = 0.0;
@@ -278,7 +292,10 @@ eReturnValues show_Sanitize_Progress(const tDevice* device)
     return ret;
 }
 
-eReturnValues get_ATA_Sanitize_Device_Features(const tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues
+get_ATA_Sanitize_Device_Features(const tDevice* M_NONNULL device, sanitizeFeaturesSupported* M_NONNULL sanitizeOptions)
 {
     eReturnValues ret = FAILURE;
     if (le16_to_host(device->drive_info.IdentifyData.ata.Word255) == 0)
@@ -334,7 +351,11 @@ eReturnValues get_ATA_Sanitize_Device_Features(const tDevice* device, sanitizeFe
     return ret;
 }
 
-eReturnValues get_SCSI_Sanitize_Supported_Features(const tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues
+get_SCSI_Sanitize_Supported_Features(const tDevice* M_NONNULL             device,
+                                     sanitizeFeaturesSupported* M_NONNULL sanitizeOptions)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (device->drive_info.scsiVersion >=
@@ -413,7 +434,11 @@ eReturnValues get_SCSI_Sanitize_Supported_Features(const tDevice* device, saniti
     return ret;
 }
 
-eReturnValues get_NVMe_Sanitize_Supported_Features(const tDevice* device, sanitizeFeaturesSupported* sanitizeOptions)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues
+get_NVMe_Sanitize_Supported_Features(const tDevice* M_NONNULL             device,
+                                     sanitizeFeaturesSupported* M_NONNULL sanitizeOptions)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.sanicap) > 0)
@@ -481,10 +506,13 @@ eReturnValues get_NVMe_Sanitize_Supported_Features(const tDevice* device, saniti
     return ret;
 }
 
-eReturnValues get_Sanitize_Device_Features(const tDevice* device, sanitizeFeaturesSupported* opts)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Sanitize_Device_Features(const tDevice* M_NONNULL             device,
+                                                                  sanitizeFeaturesSupported* M_NONNULL opts)
 {
     eReturnValues ret = UNKNOWN;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case NVME_DRIVE:
         ret = get_NVMe_Sanitize_Supported_Features(device, opts);
@@ -511,10 +539,10 @@ eReturnValues get_Sanitize_Device_Features(const tDevice* device, sanitizeFeatur
     return ret;
 }
 
-eReturnValues sanitize_Freezelock(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sanitize_Freezelock(const tDevice* M_NONNULL device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = ata_Sanitize_Freeze_Lock(device);
         if (ret != SUCCESS)
@@ -540,10 +568,10 @@ eReturnValues sanitize_Freezelock(const tDevice* device)
     return ret;
 }
 
-eReturnValues sanitize_Anti_Freezelock(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues sanitize_Anti_Freezelock(const tDevice* M_NONNULL device)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         ret = ata_Sanitize_Anti_Freeze_Lock(device);
         if (ret != SUCCESS)
@@ -569,11 +597,12 @@ eReturnValues sanitize_Anti_Freezelock(const tDevice* device)
     return ret;
 }
 
-eReturnValues run_Sanitize_Operation(const tDevice*      device,
-                                     eSanitizeOperations sanitizeOperation,
-                                     bool                pollForProgress,
-                                     uint8_t*            pattern,
-                                     uint32_t            patternLength)
+M_DEPRECATED M_PARAM_RO(1) M_NONNULL_IF_NONZERO_PARAM(4, 5) M_PARAM_RO_SIZE(4, 5) OPENSEA_OPERATIONS_API eReturnValues
+    run_Sanitize_Operation(const tDevice* M_NONNULL device,
+                           eSanitizeOperations      sanitizeOperation,
+                           bool                     pollForProgress,
+                           uint8_t* M_NULLABLE      pattern,
+                           uint32_t                 patternLength)
 {
     // convert to calling new functions since this one is obsolete.
     sanitizeOperationOptions sanitizeOptions;
@@ -616,9 +645,10 @@ eReturnValues run_Sanitize_Operation(const tDevice*      device,
     return run_Sanitize_Operation2(device, sanitizeOptions);
 }
 
-static eReturnValues sanitize_Poll_For_Progress(const tDevice* device,
-                                                uint32_t       delayTime,
-                                                eSanitizeErase sanitizeEraseOperation)
+M_PARAM_RO(1)
+static eReturnValues sanitize_Poll_For_Progress(const tDevice* M_NONNULL device,
+                                                uint32_t                 delayTime,
+                                                eSanitizeErase           sanitizeEraseOperation)
 {
     eReturnValues ret             = IN_PROGRESS;
     uint8_t       minutes         = UINT8_C(0);
@@ -709,7 +739,9 @@ typedef struct s_sanitizeOperationOptions_V1
     } overwriteOptions; // overwrite unique options
 } sanitizeOperationOptions_V1;
 
-eReturnValues run_Sanitize_Operation2(const tDevice* device, sanitizeOperationOptions sanitizeOptions)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues run_Sanitize_Operation2(const tDevice* M_NONNULL device,
+                                                             sanitizeOperationOptions sanitizeOptions)
 {
     eReturnValues ret = UNKNOWN;
     if (sanitizeOptions.version >= SANITIZE_OPERATION_OPTIONS_VERSION_V1 &&
@@ -794,7 +826,7 @@ eReturnValues run_Sanitize_Operation2(const tDevice* device, sanitizeOperationOp
             if (sanitizeOptions.overwriteOptions.numberOfPasses >=
                 ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES) // 16 is max number of passes for NVMe/SATA
             {
-                if (device->drive_info.drive_type != SCSI_DRIVE)
+                if (get_Device_DriveType(device) != SCSI_DRIVE)
                 {
                     if (sanitizeOptions.overwriteOptions.numberOfPasses > ATA_NVME_MAX_SANITIZE_OVERWRITE_PASSES)
                     {

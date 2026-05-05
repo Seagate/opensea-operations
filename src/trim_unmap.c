@@ -26,7 +26,8 @@
 #include "platform_helper.h"
 #include "trim_unmap.h"
 
-static bool is_ATA_Data_Set_Management_XL_Supported(const tDevice* device)
+M_PARAM_RO(1)
+static bool is_ATA_Data_Set_Management_XL_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if (device->drive_info.ata_Options.generalPurposeLoggingSupported)
@@ -98,10 +99,15 @@ static bool is_ATA_Data_Set_Management_XL_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapBlockDescriptors, uint32_t* maxLBACount)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API bool is_Trim_Or_Unmap_Supported(const tDevice* M_NONNULL device,
+                                                       uint32_t* M_NONNULL      maxTrimOrUnmapBlockDescriptors,
+                                                       uint32_t* M_NONNULL      maxLBACount)
 {
     bool supported = false;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word169)) &&
@@ -143,7 +149,7 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
                     // change the #if or use some other kind of check instead.
                     uint8_t* blockLimits =
                         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t),
-                                                                         device->os_info.minimumAlignment));
+                                                                         get_Device_IO_Minimum_Alignment(device)));
                     if (blockLimits == M_NULLPTR)
                     {
                         perror("calloc failure!");
@@ -177,7 +183,7 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
         // check the bit in logical block provisioning VPD page
         uint8_t* lbpPage =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(VPD_LOGICAL_BLOCK_PROVISIONING_LEN, sizeof(uint8_t),
-                                                             device->os_info.minimumAlignment));
+                                                             get_Device_IO_Minimum_Alignment(device)));
         if (M_NULLPTR == lbpPage)
         {
             perror("calloc failure!");
@@ -195,8 +201,8 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
 
         if (supported == true && M_NULLPTR != maxTrimOrUnmapBlockDescriptors && M_NULLPTR != maxLBACount)
         {
-            uint8_t* blockLimits = C_CAST(
-                uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* blockLimits = C_CAST(uint8_t*, safe_calloc_aligned(VPD_BLOCK_LIMITS_LEN, sizeof(uint8_t),
+                                                                        get_Device_IO_Minimum_Alignment(device)));
             if (M_NULLPTR == blockLimits)
             {
                 perror("calloc failure!");
@@ -218,10 +224,13 @@ bool is_Trim_Or_Unmap_Supported(const tDevice* device, uint32_t* maxTrimOrUnmapB
     return supported;
 }
 
-eReturnValues trim_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues trim_Unmap_Range(const tDevice* M_NONNULL device,
+                                                      uint64_t                 startLBA,
+                                                      uint64_t                 range)
 {
     eReturnValues ret = UNKNOWN;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         ret = ata_Trim_Range(device, startLBA, range);
@@ -239,7 +248,10 @@ eReturnValues trim_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_
     return ret;
 }
 
-eReturnValues nvme_Deallocate_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(const tDevice* M_NONNULL device,
+                                                           uint64_t                 startLBA,
+                                                           uint64_t                 range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -304,7 +316,8 @@ eReturnValues nvme_Deallocate_Range(const tDevice* device, uint64_t startLBA, ui
     return ret;
 }
 
-eReturnValues ata_Trim_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues ata_Trim_Range(const tDevice* M_NONNULL device, uint64_t startLBA, uint64_t range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -327,7 +340,7 @@ eReturnValues ata_Trim_Range(const tDevice* device, uint64_t startLBA, uint64_t 
                                                       LEGACY_DRIVE_SEC_SIZE); // maximum of 64 TRIM entries per sector
         uint8_t* trimBuffer =
             M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(uint64_to_sizet(trimBufferLen), sizeof(uint8_t),
-                                                             device->os_info.minimumAlignment));
+                                                             get_Device_IO_Minimum_Alignment(device)));
         uint64_t trimLBA           = UINT64_C(0);
         uint64_t bufferIter        = UINT64_C(0);
         uint16_t trimCommands      = UINT16_C(0);
@@ -426,7 +439,10 @@ eReturnValues ata_Trim_Range(const tDevice* device, uint64_t startLBA, uint64_t 
     return ret;
 }
 
-eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_t range)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(const tDevice* M_NONNULL device,
+                                                      uint64_t                 startLBA,
+                                                      uint64_t                 range)
 {
     eReturnValues ret                            = UNKNOWN;
     uint32_t      maxTrimOrUnmapBlockDescriptors = UINT32_C(0);
@@ -452,7 +468,7 @@ eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_
             unmapDescriptors * UINT32_C(16); // this is JUST the descriptors. The header will need to be tacked onto the
                                              // beginning of this for each command.
         uint8_t* unmapBuffer = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(unmapBufferLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(unmapBufferLen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         uint64_t unmapLBA      = UINT64_C(0);
         uint64_t bufferIter    = UINT64_C(0);
         uint32_t unmapCommands = UINT32_C(0);
@@ -508,8 +524,8 @@ eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_
         uint32_t unmapOffset = UINT32_C(0);
         // allocate a buffer to hold the descriptors AND header. Earlier buffer was just to build the descriptors into
         // it.
-        uint8_t* unmapCommandBuffer = C_CAST(
-            uint8_t*, safe_calloc_aligned(unmapCommandDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* unmapCommandBuffer = C_CAST(uint8_t*, safe_calloc_aligned(unmapCommandDataLen, sizeof(uint8_t),
+                                                                           get_Device_IO_Minimum_Alignment(device)));
         if (M_NULLPTR == unmapCommandBuffer)
         {
             perror("calloc failure");
@@ -533,7 +549,7 @@ eReturnValues scsi_Unmap_Range(const tDevice* device, uint64_t startLBA, uint64_
                 unmapCommandDataLen += 8;
                 uint8_t* temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &unmapCommandBuffer), 0,
                                                                        unmapCommandDataLen * sizeof(uint8_t),
-                                                                       device->os_info.minimumAlignment));
+                                                                       get_Device_IO_Minimum_Alignment(device)));
                 if (temp == M_NULLPTR)
                 {
                     perror("realloc failure!");

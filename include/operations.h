@@ -12,6 +12,13 @@
 //
 #pragma once
 
+#include "common_types.h"
+#include "io_utils.h"
+#include "memory_safety.h"
+#include "string_utils.h"
+#include "time_utils.h"
+#include "type_conversion.h"
+
 #include "ata_helper.h"
 #include "operations_Common.h"
 
@@ -20,7 +27,119 @@ extern "C"
 {
 #endif
 
-#include <time.h>
+    //! \enum
+    //! \brief JSON report message sizes
+    enum
+    {
+        JSON_REPORT_LBA_SIZE                 = 64,  //!< Max Size of JSON message for LBA reporting
+        JSON_REPORT_PROGRESS_SIZE            = 64,  //!< Max Size of JSON message for progress reporting
+        JSON_REPORT_TIME_REMAINING_SIZE      = 64,  //!< Max Size of JSON message for time remaining reporting
+        JSON_REPORT_TEST_STEP_MESSAGE_LENGTH = 128, //!< Max Length of test step info message
+        JSON_REPORT_TEST_STEP_INFO_SIZE      = 256, //!< Max Size of JSON message for test step info reporting
+    };
+
+    /* JSON reporting: schema, types, and helper API
+       - Callback-first: format into a stack buffer and call `custom_Update`
+       - NDJSON: each message is a single-line JSON object terminated with '\n'
+    */
+
+#define OP_JSON_SCHEMA_VERSION "1.0"
+
+    typedef enum
+    {
+        OP_JSON_TYPE_PROGRESS,
+        OP_JSON_TYPE_ERROR,
+        OP_JSON_TYPE_STATUS,
+        OP_JSON_TYPE_STEP,
+        OP_JSON_TYPE_CUSTOM
+    } eOpJsonType;
+
+    enum
+    {
+        OP_JSON_SCHEMA_VER_SIZE     = 8,
+        OP_JSON_OPERATION_NAME_SIZE = 64,
+        OP_JSON_UNIT_SIZE           = 32,
+        OP_JSON_MESSAGE_SIZE        = 256,
+        OP_JSON_LINE_BUF_SIZE       = 512,
+        OP_JSON_TIMESTAMP_SIZE      = 32
+    };
+
+    typedef struct op_json_message
+    {
+        char        schema_version[OP_JSON_SCHEMA_VER_SIZE];
+        char        operation_name[OP_JSON_OPERATION_NAME_SIZE];
+        eOpJsonType type;
+        char        timestamp[OP_JSON_TIMESTAMP_SIZE]; /* optional ISO8601 string */
+
+        bool   has_percent;
+        double percent_complete;
+
+        bool     has_lba;
+        uint64_t lba;
+
+        bool     has_bytes;
+        uint64_t bytes_read;
+
+        bool     has_total_bytes;
+        uint64_t total_bytes;
+
+        bool has_status;
+        int  status_code;
+
+        bool has_unit;
+        char unit[OP_JSON_UNIT_SIZE];
+
+        bool has_message;
+        char message[OP_JSON_MESSAGE_SIZE];
+
+        bool                   has_metadata;
+        const char* M_NULLABLE metadata;     /* not owned; must remain valid during call */
+        rsize_t                metadata_len; /* if 0, treat metadata as NUL-terminated */
+
+        bool     has_estimated_time_seconds;
+        uint64_t estimated_time_seconds; /* approximate seconds remaining */
+
+        uint32_t reserved_flags; /* init zero; future-proofing */
+    } op_json_message;
+
+    /* Serialize into `out_buf` (single-line JSON + '\n'). Returns bytes written or 0 on truncation/error. */
+    size_t op_format_json_message(const op_json_message* M_NONNULL msg, char* M_NONNULL out_buf, rsize_t out_buf_size);
+
+    /* Format into stack buffer and invoke callback: custom_Update(updateCtx, buf, len) */
+    void op_emit_json_callback(const op_json_message* M_NONNULL msg,
+                               custom_Update M_NONNULL          updateFunc,
+                               void* M_NULLABLE                 updateCtx);
+
+    /* Convenience emitters that build a message and call the callback */
+    void op_emit_progress_cb(custom_Update M_NONNULL updateFunc,
+                             void* M_NULLABLE        updateCtx,
+                             const char* M_NONNULL   operation_name,
+                             double                  percent,
+                             const char* M_NULLABLE  unit);
+
+    void op_emit_error_lba_cb(custom_Update M_NONNULL updateFunc,
+                              void* M_NULLABLE        updateCtx,
+                              const char* M_NONNULL   operation_name,
+                              uint64_t                lba,
+                              int                     status_code,
+                              const char* M_NULLABLE  message);
+
+    void op_emit_step_cb(custom_Update M_NONNULL updateFunc,
+                         void* M_NULLABLE        updateCtx,
+                         const char* M_NONNULL   operation_name,
+                         const char* M_NONNULL   step_message);
+
+    void op_emit_custom_cb(custom_Update M_NONNULL          updateFunc,
+                           void* M_NULLABLE                 updateCtx,
+                           const op_json_message* M_NONNULL msg);
+
+    /* Convenience emitter: report the current LBA being processed. Optional `action` describes the activity (e.g.,
+     * "reading"). */
+    void op_emit_lba_cb(custom_Update M_NONNULL updateFunc,
+                        void* M_NULLABLE        updateCtx,
+                        const char* M_NONNULL   operation_name,
+                        uint64_t                lba,
+                        const char* M_NULLABLE  action);
 
     //-----------------------------------------------------------------------------
     //
@@ -755,14 +874,22 @@ extern "C"
         OS_FEATURE_INTERFACE_BLOCKS, // blocking because of Interface
     } eOSFeatureSupported;
 
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_Block_Sanitize_Operation_Supported(const tDevice* M_NONNULL device);
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_Crypto_Sanitize_Operation_Supported(const tDevice* M_NONNULL device);
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported
     is_Overwrite_Sanitize_Operation_Supported(const tDevice* M_NONNULL device);
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_NVMe_Format_Operation_Supported(const tDevice* M_NONNULL device);
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_SCSI_Format_Unit_Operation_Supported(const tDevice* M_NONNULL device);
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_SMART_Check_Operation_Supported(const tDevice* M_NONNULL device);
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_DST_Operation_Supported(const tDevice* M_NONNULL device);
+    M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eOSFeatureSupported is_ATA_Secure_Erase_Operation_Supported(const tDevice* M_NONNULL device);
 
 #if defined(__cplusplus)

@@ -32,10 +32,10 @@
 #include "scsi_helper.h"
 #include "scsi_helper_func.h"
 
-bool is_Persistent_Reservations_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Persistent_Reservations_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         // try a persistent reserve in with no data transferred. This SHOULD not return an error if this feature is
         // supported - TJE
@@ -44,7 +44,7 @@ bool is_Persistent_Reservations_Supported(const tDevice* device)
             supported = true;
         }
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         // Controller identify says if the commands are supported
         // NS identify says which types of reservations are supported...should have both non-zero if supported - TJE
@@ -119,8 +119,11 @@ typedef struct s_persistentReservationCapabilitiesV1
 
 #define PERSISTENT_RESERVATION_CAPABILITIES_VERSION_V1 1
 
-eReturnValues get_Persistent_Reservations_Capabilities(const tDevice*                       device,
-                                                       ptrPersistentReservationCapabilities prCapabilities)
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+OPENSEA_OPERATIONS_API eReturnValues
+get_Persistent_Reservations_Capabilities(const tDevice* M_NONNULL                       device,
+                                         ptrPersistentReservationCapabilities M_NONNULL prCapabilities)
 {
     // note: some older drives don't support report capabilities...need to figure out what to do about those - TJE
     eReturnValues ret = NOT_SUPPORTED;
@@ -135,7 +138,7 @@ eReturnValues get_Persistent_Reservations_Capabilities(const tDevice*           
     {
         return BAD_PARAMETER;
     }
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, capabilities, 8);
         if (SUCCESS ==
@@ -360,7 +363,7 @@ eReturnValues get_Persistent_Reservations_Capabilities(const tDevice*           
             }
         }
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt getReservatinPersistence;
         safe_memset(&getReservatinPersistence, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
@@ -445,7 +448,9 @@ static void show_Allowed_Commands_Value(eAllowedCommandDetail value)
     }
 }
 
-void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities prCapabilities)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API
+void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilities M_NONNULL prCapabilities)
 {
 
     if (prCapabilities == M_NULLPTR)
@@ -589,7 +594,10 @@ void show_Persistent_Reservations_Capabilities(ptrPersistentReservationCapabilit
     }
 }
 
-eReturnValues get_Registration_Key_Count(const tDevice* device, uint16_t* keyCount)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Registration_Key_Count(const tDevice* M_NONNULL device,
+                                                                uint16_t* M_NONNULL      keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -598,7 +606,7 @@ eReturnValues get_Registration_Key_Count(const tDevice* device, uint16_t* keyCou
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, readKeyCount, 8);
         if (SUCCESS ==
@@ -609,7 +617,7 @@ eReturnValues get_Registration_Key_Count(const tDevice* device, uint16_t* keyCou
                                    UINT32_C(8)); // each registered key is 8 bytes in length
         }
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(
             uint8_t, readKeyCount,
@@ -634,7 +642,11 @@ typedef struct s_registrationKeysDataV1
                                  // are filled in when read.
 } registrationKeysDataV1, *ptrRegistrationKeysDataV1;
 
-eReturnValues get_Registration_Keys(const tDevice* device, uint16_t numberOfKeys, ptrRegistrationKeysData keys)
+M_PARAM_RO(1)
+M_PARAM_RW(3)
+OPENSEA_OPERATIONS_API eReturnValues get_Registration_Keys(const tDevice* M_NONNULL          device,
+                                                           uint16_t                          numberOfKeys,
+                                                           ptrRegistrationKeysData M_NONNULL keys)
 {
     // get only registration keys
     eReturnValues ret = NOT_SUPPORTED;
@@ -648,11 +660,11 @@ eReturnValues get_Registration_Keys(const tDevice* device, uint16_t numberOfKeys
     {
         return BAD_PARAMETER;
     }
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         uint16_t dataLength       = C_CAST(uint16_t, (numberOfKeys * UINT16_C(8)) + UINT16_C(8));
         uint8_t* registrationKeys = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (registrationKeys == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -679,13 +691,13 @@ eReturnValues get_Registration_Keys(const tDevice* device, uint16_t numberOfKeys
         }
         safe_free_aligned(&registrationKeys);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         uint32_t dataLength =
             (C_CAST(uint32_t, numberOfKeys) * UINT32_C(24)) +
             UINT32_C(24); // 24 byte header, then 24 bytes per key....if extended, then it is even larger.
         uint8_t* registrationKeys = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(dataLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (registrationKeys == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -712,7 +724,7 @@ eReturnValues get_Registration_Keys(const tDevice* device, uint16_t numberOfKeys
     return ret;
 }
 
-void show_Registration_Keys(ptrRegistrationKeysData keys)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Registration_Keys(ptrRegistrationKeysData M_NONNULL keys)
 {
 
     if (keys != M_NULLPTR && keys->version >= REGISTRATION_KEY_DATA_VERSION_V1 &&
@@ -734,7 +746,10 @@ void show_Registration_Keys(ptrRegistrationKeysData keys)
 }
 
 // If supporting "extents", multiple can be reported, but this capability is obsolete, so this will likely return 1 or 0
-eReturnValues get_Reservation_Count(const tDevice* device, uint16_t* reservationKeyCount)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Reservation_Count(const tDevice* M_NONNULL device,
+                                                           uint16_t* M_NONNULL      reservationKeyCount)
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
@@ -744,7 +759,7 @@ eReturnValues get_Reservation_Count(const tDevice* device, uint16_t* reservation
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, reservationKeys, 8);
         if (SUCCESS ==
@@ -755,7 +770,7 @@ eReturnValues get_Reservation_Count(const tDevice* device, uint16_t* reservation
                                                         UINT32_C(16));
         }
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(
             uint8_t, readKeyCount,
@@ -796,7 +811,11 @@ typedef struct s_reservationsDataV1
         reservation[1]; // variable length depending on how it was allocated. Should always be AT LEAST one of these
 } reservationsDataV1, *ptrReservationsDataV1;
 
-eReturnValues get_Reservations(const tDevice* device, uint16_t numberReservations, ptrReservationsData reservations)
+M_PARAM_RO(1)
+M_PARAM_RW(3)
+OPENSEA_OPERATIONS_API eReturnValues get_Reservations(const tDevice* M_NONNULL      device,
+                                                      uint16_t                      numberReservations,
+                                                      ptrReservationsData M_NONNULL reservations)
 {
     // get only reservations
     eReturnValues ret = NOT_SUPPORTED;
@@ -810,11 +829,11 @@ eReturnValues get_Reservations(const tDevice* device, uint16_t numberReservation
     {
         return BAD_PARAMETER;
     }
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         uint16_t reservationsLength = C_CAST(uint16_t, numberReservations* UINT16_C(16) + UINT16_C(8));
-        uint8_t* reservationKeys    = C_CAST(
-            uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* reservationKeys    = C_CAST(uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t),
+                                                                           get_Device_IO_Minimum_Alignment(device)));
         if (reservationKeys == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -895,7 +914,7 @@ eReturnValues get_Reservations(const tDevice* device, uint16_t numberReservation
         }
         safe_free_aligned(&reservationKeys);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         // due to how the API was written and NVMe works, we need to call this instead to read all the keys. The get
         // reservations key count will only return 0 or 1 since there is at MOST 1 active reservation. But we need to go
@@ -904,8 +923,8 @@ eReturnValues get_Reservations(const tDevice* device, uint16_t numberReservation
         if (SUCCESS == get_Registration_Key_Count(device, &totalReservationKeys))
         {
             uint32_t reservationsLength = (C_CAST(uint32_t, totalReservationKeys) * UINT32_C(24)) + UINT32_C(24);
-            uint8_t* reservationKeys    = C_CAST(
-                uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* reservationKeys    = C_CAST(uint8_t*, safe_calloc_aligned(reservationsLength, sizeof(uint8_t),
+                                                                               get_Device_IO_Minimum_Alignment(device)));
             if (reservationKeys == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
@@ -975,7 +994,7 @@ eReturnValues get_Reservations(const tDevice* device, uint16_t numberReservation
     return ret;
 }
 
-void show_Reservations(ptrReservationsData reservations)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData M_NONNULL reservations)
 {
     if (reservations->version >= RESERVATION_DATA_VERSION_V1 && reservations->size >= sizeof(reservationsDataV1))
     {
@@ -1054,7 +1073,10 @@ void show_Reservations(ptrReservationsData reservations)
     }
 }
 
-eReturnValues get_Full_Status_Key_Count(const tDevice* device, uint16_t* keyCount)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Full_Status_Key_Count(const tDevice* M_NONNULL device,
+                                                               uint16_t* M_NONNULL      keyCount)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1064,12 +1086,12 @@ eReturnValues get_Full_Status_Key_Count(const tDevice* device, uint16_t* keyCoun
     }
 
     *keyCount = UINT16_C(0);
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         uint32_t fullStatusDataLength = UINT32_C(32); // some drive FW have a bug where if this is read as 8 bytes, it
                                                       // returns that there are no keys, even when there are...-TJE
-        uint8_t* fullStatusData = C_CAST(
-            uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t),
+                                                                       get_Device_IO_Minimum_Alignment(device)));
         if (fullStatusData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -1086,8 +1108,8 @@ eReturnValues get_Full_Status_Key_Count(const tDevice* device, uint16_t* keyCoun
                 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
             // reallocate with enough memory
             safe_free_aligned(&fullStatusData);
-            fullStatusData = C_CAST(
-                uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t),
+                                                                  get_Device_IO_Minimum_Alignment(device)));
             if (fullStatusData == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
@@ -1117,7 +1139,7 @@ eReturnValues get_Full_Status_Key_Count(const tDevice* device, uint16_t* keyCoun
         }
         safe_free_aligned(&fullStatusData);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(
             uint8_t, readKeyCount,
@@ -1155,7 +1177,11 @@ typedef struct s_fullReservationInfoV1
         reservationKey[1]; // Variable size depending on how many will be reported by the device at a given time.
 } fullReservationInfoV1, *ptrFullReservationInfoV1;
 
-eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrFullReservationInfo fullReservation)
+M_PARAM_RO(1)
+M_PARAM_RW(3)
+OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(const tDevice* M_NONNULL         device,
+                                                     uint16_t                         numberOfKeys,
+                                                     ptrFullReservationInfo M_NONNULL fullReservation)
 {
     // if newer SPC, use the read full status subcommand.
     // If older SPC, use the get_Registrations and get_Reservations functions to get all the data we need to collect. -
@@ -1172,12 +1198,12 @@ eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrF
     {
         return BAD_PARAMETER;
     }
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         uint32_t fullStatusDataLength = UINT32_C(32); // some drive FW have a bug where if this is read as 8 bytes, it
                                                       // returns that there are no keys, even when there are...-TJE
-        uint8_t* fullStatusData = C_CAST(
-            uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t),
+                                                                       get_Device_IO_Minimum_Alignment(device)));
         if (fullStatusData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -1194,8 +1220,8 @@ eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrF
                 8 + M_BytesTo4ByteValue(fullStatusData[4], fullStatusData[5], fullStatusData[6], fullStatusData[7]);
             // reallocate with enough memory
             safe_free_aligned(&fullStatusData);
-            fullStatusData = C_CAST(
-                uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            fullStatusData = C_CAST(uint8_t*, safe_calloc_aligned(fullStatusDataLength, sizeof(uint8_t),
+                                                                  get_Device_IO_Minimum_Alignment(device)));
             if (fullStatusData == M_NULLPTR)
             {
                 return MEMORY_FAILURE;
@@ -1383,11 +1409,11 @@ eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrF
         }
         safe_free_aligned(&fullStatusData);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         uint32_t nvmeFullDataLen = UINT32_C(24) + (UINT32_C(24) * C_CAST(uint32_t, numberOfKeys));
         uint8_t* nvmeFullData    = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(nvmeFullDataLen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (nvmeFullData == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -1459,7 +1485,7 @@ eReturnValues get_Full_Status(const tDevice* device, uint16_t numberOfKeys, ptrF
     return ret;
 }
 
-void show_Full_Status(ptrFullReservationInfo fullReservation)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInfo M_NONNULL fullReservation)
 {
 
     if (fullReservation != M_NULLPTR && fullReservation->version >= FULL_RESERVATION_INFO_VERSION_V1 &&
@@ -1588,6 +1614,7 @@ typedef struct s_persistentReserveOutBasic
 } persistentReserveOutBasic, *ptrPersistentReserveOutBasic;
 
 #define PR_OUT_BASIC_MIN_LENGTH 24
+
 M_NONNULL_IF_NONZERO_PARAM(1, 2)
 M_PARAM_RW_SIZE(1, 2)
 static void format_Basic_Info(uint8_t* M_NULLABLE                    ptrData,
@@ -1656,14 +1683,15 @@ static void format_Basic_Info(uint8_t* M_NULLABLE                    ptrData,
     }
 }
 
-eReturnValues register_Key(const tDevice* device,
-                           uint64_t       registrationKey,
-                           bool           allTargetPorts,
-                           bool           persistThroughPowerLoss,
-                           bool           ignoreExisting)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues register_Key(const tDevice* M_NONNULL device,
+                                                  uint64_t                 registrationKey,
+                                                  bool                     allTargetPorts,
+                                                  bool                     persistThroughPowerLoss,
+                                                  bool                     ignoreExisting)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
@@ -1681,7 +1709,7 @@ eReturnValues register_Key(const tDevice* device,
                                                          : SCSI_PERSISTENT_RESERVE_OUT_REGISTER,
                                           0, 0, PR_OUT_BASIC_MIN_LENGTH, registerData);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, 16);
         registerData[8]  = M_Byte0(registrationKey);
@@ -1701,10 +1729,11 @@ eReturnValues register_Key(const tDevice* device,
     return ret;
 }
 
-eReturnValues unregister_Key(const tDevice* device, uint64_t currentRegistrationKey)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues unregister_Key(const tDevice* M_NONNULL device, uint64_t currentRegistrationKey)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
@@ -1715,7 +1744,7 @@ eReturnValues unregister_Key(const tDevice* device, uint64_t currentRegistration
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_REGISTER, 0, 0, PR_OUT_BASIC_MIN_LENGTH,
                                           registerData);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, 16);
         registerData[0] = M_Byte0(currentRegistrationKey);
@@ -1731,10 +1760,13 @@ eReturnValues unregister_Key(const tDevice* device, uint64_t currentRegistration
     return ret;
 }
 
-eReturnValues acquire_Reservation(const tDevice* device, uint64_t key, eReservationType resType)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues acquire_Reservation(const tDevice* M_NONNULL device,
+                                                         uint64_t                 key,
+                                                         eReservationType         resType)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, acquireRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t                   scsiReservationType = UINT8_C(0);
@@ -1778,7 +1810,7 @@ eReturnValues acquire_Reservation(const tDevice* device, uint64_t key, eReservat
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_RESERVE, 0, scsiReservationType,
                                           PR_OUT_BASIC_MIN_LENGTH, acquireRes);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, acquireRes, 16);
         uint8_t nvmeReservationType = UINT8_C(0);
@@ -1819,10 +1851,13 @@ eReturnValues acquire_Reservation(const tDevice* device, uint64_t key, eReservat
     return ret;
 }
 
-eReturnValues release_Reservation(const tDevice* device, uint64_t key, eReservationType resType)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues release_Reservation(const tDevice* M_NONNULL device,
+                                                         uint64_t                 key,
+                                                         eReservationType         resType)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, releaseRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t                   scsiReservationType = UINT8_C(0);
@@ -1866,7 +1901,7 @@ eReturnValues release_Reservation(const tDevice* device, uint64_t key, eReservat
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_RELEASE, 0, scsiReservationType,
                                           PR_OUT_BASIC_MIN_LENGTH, releaseRes);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, releaseRes, 8);
         uint8_t nvmeReservationType = UINT8_C(0);
@@ -1907,10 +1942,11 @@ eReturnValues release_Reservation(const tDevice* device, uint64_t key, eReservat
     return ret;
 }
 
-eReturnValues clear_Reservations(const tDevice* device, uint64_t key)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues clear_Reservations(const tDevice* M_NONNULL device, uint64_t key)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, clearRes, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
@@ -1920,7 +1956,7 @@ eReturnValues clear_Reservations(const tDevice* device, uint64_t key)
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_CLEAR, 0, 0, PR_OUT_BASIC_MIN_LENGTH,
                                           clearRes);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, clearRes, 8);
         clearRes[0] = M_Byte0(key);
@@ -1936,14 +1972,15 @@ eReturnValues clear_Reservations(const tDevice* device, uint64_t key)
     return ret;
 }
 
-eReturnValues preempt_Reservation(const tDevice*   device,
-                                  uint64_t         key,
-                                  uint64_t         preemptKey,
-                                  bool             abort,
-                                  eReservationType resType)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues preempt_Reservation(const tDevice* M_NONNULL device,
+                                                         uint64_t                 key,
+                                                         uint64_t                 preemptKey,
+                                                         bool                     abort,
+                                                         eReservationType         resType)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, preemptRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t                   scsiReservationType = UINT8_C(0);
@@ -1989,7 +2026,7 @@ eReturnValues preempt_Reservation(const tDevice*   device,
             device, abort ? SCSI_PERSISTENT_RESERVE_OUT_PREEMPT_AND_ABORT : SCSI_PERSISTENT_RESERVE_OUT_PREEMPT, 0,
             scsiReservationType, PR_OUT_BASIC_MIN_LENGTH, preemptRes);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, preemptRes, 16);
         uint8_t nvmeReservationType = UINT8_C(0);

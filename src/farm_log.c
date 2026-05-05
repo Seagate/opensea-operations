@@ -25,6 +25,7 @@
 #include "string_utils.h"
 #include "time_utils.h"
 #include "type_conversion.h"
+#include "warning_ctl.h"
 
 #include "farm_log.h"
 #include "logs.h"
@@ -261,9 +262,9 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
         if (is_FARM_Time_Series_Log_Supported(device))
         {
             // FARM Time series logpage 0xC6 - feature 0x00
-            uint8_t* farmTimeSeriesFramesLog =
-                M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(uint32_to_sizet(ATA_TIMESERIES_FRAME_LOG_SIZE),
-                                                                 sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t* farmTimeSeriesFramesLog = M_REINTERPRET_CAST(
+                uint8_t*, safe_calloc_aligned(uint32_to_sizet(ATA_TIMESERIES_FRAME_LOG_SIZE), sizeof(uint8_t),
+                                              get_Device_IO_Minimum_Alignment(device)));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false,
                                        true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR,
@@ -356,7 +357,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             // FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t* farmWorkloadTraceFramesLog =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
+                                                                 get_Device_IO_Minimum_Alignment(device)));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false,
                                        true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR,
@@ -406,7 +407,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             // FARM Time series logpage 0xC6 - feature 0x01
             uint8_t* farmTimeSeriesFramesLog =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
+                                                                 get_Device_IO_Minimum_Alignment(device)));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false,
                                        true, farmTimeSeriesFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR,
@@ -578,7 +579,7 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
             // FARM Workload trace logpage 0xC6 - feature 0x02
             uint8_t* farmWorkloadTraceFramesLog =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(ATA_TIMESERIES_FRAME_LOG_SIZE, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment));
+                                                                 get_Device_IO_Minimum_Alignment(device)));
             startTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
             if (SUCCESS == get_ATA_Log(device, SEAGATE_ATA_LOG_FARM_TIME_SERIES, M_NULLPTR, M_NULLPTR, true, false,
                                        true, farmWorkloadTraceFramesLog, ATA_TIMESERIES_FRAME_LOG_SIZE, M_NULLPTR,
@@ -723,20 +724,20 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
     return SUCCESS;
 }
 
-static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
-                                      uint8_t*                header,
-                                      tZeroPaddingBufferSize* zeroPaddingBufferSize,
-                                      uint8_t*                farmCurrentHeader,
-                                      uint8_t*                farmFactoryHeader,
-                                      uint8_t*                farmTimeSeriesHeader,
-                                      uint8_t*                farmLongSavedHeader,
-                                      uint8_t*                farmStickyHeader,
-                                      farmPtrAndLen           farmCurrentLog,
-                                      farmPtrAndLen           farmFactoryLog,
-                                      farmPtrAndLen           farmTimeSeriesLog,
-                                      farmPtrAndLen           farmLongSavedLog,
-                                      farmPtrAndLen           farmStickyLog,
-                                      tSASLogpageSize         logpageSize)
+static eReturnValues pullSCSIFarmLogs(const tDevice* M_NONNULL device,
+                                      uint8_t*                 header,
+                                      tZeroPaddingBufferSize*  zeroPaddingBufferSize,
+                                      uint8_t*                 farmCurrentHeader,
+                                      uint8_t*                 farmFactoryHeader,
+                                      uint8_t*                 farmTimeSeriesHeader,
+                                      uint8_t*                 farmLongSavedHeader,
+                                      uint8_t*                 farmStickyHeader,
+                                      farmPtrAndLen            farmCurrentLog,
+                                      farmPtrAndLen            farmFactoryLog,
+                                      farmPtrAndLen            farmTimeSeriesLog,
+                                      farmPtrAndLen            farmLongSavedLog,
+                                      farmPtrAndLen            farmStickyLog,
+                                      tSASLogpageSize          logpageSize)
 {
     eReturnValues returnValue          = FAILURE;
     uint64_t      startTimeInMilliSecs = UINT64_C(0);
@@ -1071,7 +1072,7 @@ static eReturnValues pullSCSIFarmLogs(const tDevice*          device,
     return SUCCESS;
 }
 
-static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInfo* farmFile)
+static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInfo* M_NONNULL farmFile)
 {
     eReturnValues returnValue = SUCCESS;
     if (paddingSize > 0)
@@ -1105,15 +1106,18 @@ static eReturnValues write_FARM_Zero_Padding(uint32_t paddingSize, secureFileInf
     return returnValue;
 }
 
-eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
-                                     const char* const        filePath,
-                                     uint32_t                 transferSizeBytes,
-                                     int                      sataFarmCopyType,
-                                     eLogFileNamingConvention fileNameType)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(const tDevice* M_NONNULL device,
+                                                            const char* M_NULLABLE   filePath,
+                                                            uint32_t                 transferSizeBytes,
+                                                            int                      sataFarmCopyType,
+                                                            eLogFileNamingConvention fileNameType)
 {
     eReturnValues returnValue = NOT_SUPPORTED;
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (!(is_FARM_Log_Supported(device) ||
               is_FARM_Time_Series_Log_Supported(device))) // No farm or farm timeseries supported, then return
@@ -1121,7 +1125,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
             return returnValue;
         }
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         if (!(is_FARM_Log_Supported(device) || is_Factory_FARM_Log_Supported(device) ||
               is_FARM_Long_Saved_Log_Supported(device) || is_FARM_Time_Series_Log_Supported(device) ||
@@ -1177,11 +1181,11 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
 
     // set interface type
     DECLARE_ZERO_INIT_ARRAY(char, interfaceType, 4 + 1);
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SATA");
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SAS");
     }
@@ -1215,30 +1219,30 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
     do
     {
         // pull individual log subpage
-        if (device->drive_info.drive_type == ATA_DRIVE)
+        if (get_Device_DriveType(device) == ATA_DRIVE)
         {
             // initialize log buffers
             farmCurrentLog.ptr =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmCurrentLog.alloclen, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment)); // 96KB
+                                                                 get_Device_IO_Minimum_Alignment(device))); // 96KB
             farmFactoryLog.ptr =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmFactoryLog.alloclen, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment)); // 96KB
+                                                                 get_Device_IO_Minimum_Alignment(device))); // 96KB
             farmSavedLog.ptr =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmSavedLog.alloclen, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment)); // 96KB
+                                                                 get_Device_IO_Minimum_Alignment(device))); // 96KB
             farmTimeSeriesLog.ptr =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmTimeSeriesLog.alloclen, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment)); // 16 * 96KB
+                                                                 get_Device_IO_Minimum_Alignment(device))); // 16 * 96KB
             farmLongSavedLog.ptr =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmLongSavedLog.alloclen, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment)); // 2 * 96KB
+                                                                 get_Device_IO_Minimum_Alignment(device))); // 2 * 96KB
             farmStickyLog.ptr =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmStickyLog.alloclen, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment)); // 6 * 96KB
+                                                                 get_Device_IO_Minimum_Alignment(device))); // 6 * 96KB
             farmWorkLoadTraceLog.ptr =
                 M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmWorkLoadTraceLog.alloclen, sizeof(uint8_t),
-                                                                 device->os_info.minimumAlignment)); // 2048KB
+                                                                 get_Device_IO_Minimum_Alignment(device))); // 2048KB
             if (!farmCurrentLog.ptr)
             {
                 if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1305,7 +1309,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                 break;
             }
         }
-        else if (device->drive_info.drive_type == SCSI_DRIVE)
+        else if (get_Device_DriveType(device) == SCSI_DRIVE)
         {
             uint32_t        logSize     = UINT32_C(0);
             tSASLogpageSize logpageSize = {UINT32_C(0), UINT32_C(0), UINT32_C(0), UINT32_C(0), UINT32_C(0)};
@@ -1319,7 +1323,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                 farmCurrentLog.alloclen = uint32_to_sizet(logSize);
                 farmCurrentLog.ptr =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmCurrentLog.alloclen, sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                 if (!farmCurrentLog.ptr)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1338,7 +1342,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                 farmFactoryLog.alloclen = uint32_to_sizet(logSize);
                 farmFactoryLog.ptr =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmFactoryLog.alloclen, sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                 if (!farmFactoryLog.ptr)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1357,7 +1361,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                 farmTimeSeriesLog.alloclen = uint32_to_sizet(logSize) * FARM_TIME_SERIES_PAGES;
                 farmTimeSeriesLog.ptr =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmTimeSeriesLog.alloclen, sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                 if (!farmTimeSeriesLog.ptr)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1376,7 +1380,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                 farmLongSavedLog.alloclen = uint32_to_sizet(logSize) * FARM_LONG_SAVED_PAGES;
                 farmLongSavedLog.ptr =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmLongSavedLog.alloclen, sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                 if (!farmLongSavedLog.ptr)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -1395,7 +1399,7 @@ eReturnValues pull_FARM_Combined_Log(const tDevice*           device,
                 farmStickyLog.alloclen = uint32_to_sizet(logSize) * FARM_STICKY_PAGES;
                 farmStickyLog.ptr =
                     M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(farmStickyLog.alloclen, sizeof(uint8_t),
-                                                                     device->os_info.minimumAlignment));
+                                                                     get_Device_IO_Minimum_Alignment(device)));
                 if (!farmStickyLog.ptr)
                 {
                     if (device->deviceVerbosity > VERBOSITY_QUIET)
@@ -2471,14 +2475,16 @@ static farmLogData* sata_Read_FARM_Log(uint8_t* ptrData, uint32_t dataLength, fa
 }
 
 // TODO: Option to select which FARM data between current, saved, factory
-eReturnValues read_FARM_Data(const tDevice* device, farmLogData* farmdata)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues read_FARM_Data(const tDevice* M_NONNULL device, farmLogData* M_NONNULL farmdata)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         uint32_t datalen     = FARM_PAGE_LEN * (FARM_PAGE_RELIABILITY_STATS + 1); // 96KiB
         uint8_t* rawFarmData = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(datalen, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(datalen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (rawFarmData != M_NULLPTR)
         {
             ret = get_ATA_Log(device, SEAGATE_ATA_LOG_FIELD_ACCESSIBLE_RELIABILITY_METRICS, M_NULLPTR, M_NULLPTR, true,
@@ -2490,11 +2496,11 @@ eReturnValues read_FARM_Data(const tDevice* device, farmLogData* farmdata)
             safe_free_aligned(&rawFarmData);
         }
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         uint32_t datalen     = UINT16_MAX; // reading FARM on SAS can be done in one 64k transfer
         uint8_t* rawFarmData = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(datalen, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(datalen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (rawFarmData != M_NULLPTR)
         {
             ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, M_NULLPTR, M_NULLPTR, true,
@@ -2509,7 +2515,8 @@ eReturnValues read_FARM_Data(const tDevice* device, farmLogData* farmdata)
     return ret;
 }
 
-static M_INLINE void print_Statistic_Name(const char* statisticname)
+M_NULL_TERM_STRING(1)
+static M_INLINE void print_Statistic_Name(const char* M_NULLABLE statisticname)
 {
     const char* stat = statisticname;
     if (statisticname == M_NULLPTR)
@@ -2519,7 +2526,9 @@ static M_INLINE void print_Statistic_Name(const char* statisticname)
     printf("%-50s", stat);
 }
 
-static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64(const char* statisticname, uint64_t statisticData)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64(const char* M_NULLABLE statisticname,
+                                                              uint64_t               statisticData)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2538,7 +2547,9 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64(const char* statis
     return printed;
 }
 
-static M_INLINE bool print_Stat_If_Supported_And_Valid_GPES(const char* statisticname, uint64_t statisticData)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_Stat_If_Supported_And_Valid_GPES(const char* M_NULLABLE statisticname,
+                                                            uint64_t               statisticData)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2559,7 +2570,9 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_GPES(const char* statisti
     return printed;
 }
 
-static M_INLINE bool print_Stat_If_Supported_And_Valid_int64(const char* statisticname, uint64_t statisticData)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_Stat_If_Supported_And_Valid_int64(const char* M_NULLABLE statisticname,
+                                                             uint64_t               statisticData)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2586,9 +2599,10 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_int64(const char* statist
 }
 
 // If a statistic is a counter in 1/1000 or .1%, etc can provide a conversion factor with this
-static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64_Factor(const char* statisticname,
-                                                                     uint64_t    statisticData,
-                                                                     double      conversionFactor)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64_Factor(const char* M_NULLABLE statisticname,
+                                                                     uint64_t               statisticData,
+                                                                     double                 conversionFactor)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2623,9 +2637,10 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Uint64_Factor(const char*
     return printed;
 }
 
-static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* statisticname,
-                                                                    uint64_t    statisticData,
-                                                                    double      conversionFactor)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* M_NULLABLE statisticname,
+                                                                    uint64_t               statisticData,
+                                                                    double                 conversionFactor)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2670,9 +2685,10 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_int64_Factor(const char* 
 #define MICRO_SECONDS_PER_SECOND        1000000.0
 #define MICRO_SECONDS_PER_MILLI_SECONDS 1000.0
 
-static M_INLINE bool print_Stat_If_Supported_And_Valid_Time(const char* statisticname,
-                                                            uint64_t    statisticData,
-                                                            double      conversionToMicroseconds)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_Stat_If_Supported_And_Valid_Time(const char* M_NULLABLE statisticname,
+                                                            uint64_t               statisticData,
+                                                            double                 conversionToMicroseconds)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2698,7 +2714,9 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_Time(const char* statisti
     return printed;
 }
 
-static M_INLINE bool print_Stat_If_Supported_And_Valid_HexUint64(const char* statisticname, uint64_t statisticData)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_Stat_If_Supported_And_Valid_HexUint64(const char* M_NULLABLE statisticname,
+                                                                 uint64_t               statisticData)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2726,7 +2744,8 @@ static M_INLINE uint8_t get_Farm_Float_Bits(uint64_t floatData)
 }
 
 // For Mrheadresistance type output
-static bool print_Stat_If_Supported_And_Valid_Float(const char* statisticname, uint64_t statisticData)
+M_NULL_TERM_STRING(1)
+static bool print_Stat_If_Supported_And_Valid_Float(const char* M_NULLABLE statisticname, uint64_t statisticData)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData);
@@ -2762,7 +2781,9 @@ static bool print_Stat_If_Supported_And_Valid_Float(const char* statisticname, u
     return printed;
 }
 
-static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* statisticname, uint64_t firstqword)
+M_NULL_TERM_STRING(1)
+static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* M_NULLABLE statisticname,
+                                                                 uint64_t               firstqword)
 {
     size_t asciilen      = SIZE_T_C(5);
     char*  farmASCIIData = M_REINTERPRET_CAST(char*, safe_calloc(asciilen, sizeof(char)));
@@ -2779,7 +2800,12 @@ static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* sta
 }
 
 // TODO: Might want standalone qwords to str function - TJE
-static void print_Stat_If_Supported_And_Valid_ASCII(const char* statisticname, uint64_t* firstqword, uint8_t numQwords)
+M_NULL_TERM_STRING(1)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+static void print_Stat_If_Supported_And_Valid_ASCII(const char* M_NULLABLE    statisticname,
+                                                    const uint64_t* M_NONNULL firstqword,
+                                                    uint8_t                   numQwords)
 {
     if (firstqword != M_NULLPTR)
     {
@@ -2835,7 +2861,11 @@ static void print_Stat_If_Supported_And_Valid_Date_Of_Assembly(uint64_t doaQword
 }
 
 // for WWN
-static void print_Stat_If_Supported_And_Valid_2Qwords_To_UINT64_Hex(const char* statisticname, uint64_t* firstqword)
+M_NULL_TERM_STRING(1)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+static void print_Stat_If_Supported_And_Valid_2Qwords_To_UINT64_Hex(const char* M_NULLABLE    statisticname,
+                                                                    const uint64_t* M_NONNULL firstqword)
 {
     if (firstqword != M_NULLPTR)
     {
@@ -2846,7 +2876,9 @@ static void print_Stat_If_Supported_And_Valid_2Qwords_To_UINT64_Hex(const char* 
     }
 }
 
-static M_INLINE void print_Stat_If_Supported_And_Valid_Recording_Type(const char* statisticname, uint64_t statisticData)
+M_NULL_TERM_STRING(1)
+static M_INLINE void print_Stat_If_Supported_And_Valid_Recording_Type(const char* M_NULLABLE statisticname,
+                                                                      uint64_t               statisticData)
 {
     uint8_t status = get_Farm_Status_Byte(statisticData);
     if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
@@ -2878,10 +2910,13 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Recording_Type(const char
     }
 }
 
-static M_INLINE void print_Stat_If_Supported_And_Valid_Bool(const char* statisticname,
-                                                            uint64_t    statisticData,
-                                                            const char* truestring,
-                                                            const char* falsestring)
+M_NULL_TERM_STRING(1)
+M_NULL_TERM_STRING(3)
+M_NULL_TERM_STRING(4)
+static M_INLINE void print_Stat_If_Supported_And_Valid_Bool(const char* M_NULLABLE statisticname,
+                                                            uint64_t               statisticData,
+                                                            const char* M_NULLABLE truestring,
+                                                            const char* M_NULLABLE falsestring)
 {
     uint8_t status = get_Farm_Status_Byte(statisticData);
     if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
@@ -2932,14 +2967,17 @@ typedef enum eFARMByHeadOutputFormat
 } eFARMByHeadOutputFormat;
 
 #define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
-static bool print_Stat_If_Supported_And_Valid_By_Head(const char*             statisticname,
-                                                      uint64_t                byhead[FARM_MAX_HEADS],
+M_NULL_TERM_STRING(1)
+static bool print_Stat_If_Supported_And_Valid_By_Head(const char* M_NULLABLE  statisticname,
+                                                      const uint64_t          byhead[M_NONNULL_ARRAY FARM_MAX_HEADS],
                                                       uint64_t                numberOfHeads,
                                                       eFARMByHeadOutputFormat outputFormat,
                                                       double                  conversionfactor)
 {
+    DISABLE_NONNULL_COMPARE
     if (byhead != M_NULLPTR)
     {
+        RESTORE_NONNULL_COMPARE
         uint64_t printCount = UINT64_C(0);
         for (uint64_t headiter = UINT64_C(0); headiter < FARM_MAX_HEADS && headiter < numberOfHeads; ++headiter)
         {
@@ -3004,7 +3042,10 @@ static bool print_Stat_If_Supported_And_Valid_By_Head(const char*             st
     return false;
 }
 
-static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface* farmInterface)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+static void print_Farm_Drive_Info(const farmDriveInfo* M_NONNULL driveInfo,
+                                  eFARMDriveInterface* M_NONNULL farmInterface)
 {
     if (driveInfo != M_NULLPTR)
     {
@@ -3095,7 +3136,8 @@ static void print_Farm_Drive_Info(farmDriveInfo* driveInfo, eFARMDriveInterface*
     }
 }
 
-static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestrictedRangems)
+M_PARAM_RO(1)
+static void print_FARM_Workload_Info(const farmWorkload* M_NONNULL work, uint64_t timerestrictedRangems)
 {
     if (work != M_NULLPTR)
     {
@@ -3311,7 +3353,8 @@ static void print_FARM_Workload_Info(farmWorkload* work, uint64_t timerestricted
 #define FLEDTIMESTAMP_STR_LEN    20
 #define FLED_POWER_CYCLE_STR_LEN 20
 
-static char* get_Farm_FLED_Info_String(char* str, size_t strlen, uint64_t fledqword)
+M_PARAM_WO_SIZE(1, 2)
+static char* M_NULLABLE get_Farm_FLED_Info_String(char* M_NULLABLE str, size_t strlen, uint64_t fledqword)
 {
     uint8_t  fledInfoStatus = get_Farm_Status_Byte(fledqword);
     uint64_t fled           = get_Farm_Qword_Data(fledqword);
@@ -3330,13 +3373,17 @@ static char* get_Farm_FLED_Info_String(char* str, size_t strlen, uint64_t fledqw
     return str;
 }
 
-static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator actuator,
-                                                 uint64_t      totalFLEDs,
-                                                 uint64_t      fledIndex,
-                                                 uint64_t      fledInfo[FARM_FLED_EVENTS],
-                                                 uint64_t      rwRetry[FARM_RW_RETRY_EVENTS],
-                                                 uint64_t      fledtimestamp[FARM_FLED_EVENTS],
-                                                 uint64_t      powerCycleFLED[FARM_FLED_EVENTS])
+M_PARAM_RO(4)
+M_PARAM_RO(5)
+M_PARAM_RO(6)
+M_PARAM_RO(7)
+static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator  actuator,
+                                                 uint64_t       totalFLEDs,
+                                                 uint64_t       fledIndex,
+                                                 const uint64_t fledInfo[M_NONNULL_ARRAY FARM_FLED_EVENTS],
+                                                 const uint64_t rwRetry[M_NONNULL_ARRAY FARM_RW_RETRY_EVENTS],
+                                                 const uint64_t fledtimestamp[M_NONNULL_ARRAY FARM_FLED_EVENTS],
+                                                 const uint64_t powerCycleFLED[M_NONNULL_ARRAY FARM_FLED_EVENTS])
 {
     const char* fullDriveStr    = "";
     const char* actuator0Str    = "Actuator 0 ";
@@ -3397,7 +3444,10 @@ static void print_FARM_Error_Info_Flash_LED_Data(eFARMActuator actuator,
     }
 }
 
-static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads, eFARMDriveInterface driveInterface)
+M_PARAM_RO(1)
+static void print_FARM_Error_Info(const farmErrorStatistics* M_NONNULL error,
+                                  uint64_t                             numheads,
+                                  eFARMDriveInterface                  driveInterface)
 {
     if (error != M_NULLPTR)
     {
@@ -3511,9 +3561,10 @@ static void print_FARM_Error_Info(farmErrorStatistics* error, uint64_t numheads,
     }
 }
 
-static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
-                                        uint64_t                   timerestrictedRangems,
-                                        eFARMDriveInterface        farminterface)
+M_PARAM_RO(1)
+static void print_FARM_Environment_Info(const farmEnvironmentStatistics* M_NONNULL env,
+                                        uint64_t                                   timerestrictedRangems,
+                                        eFARMDriveInterface                        farminterface)
 {
     if (env != M_NULLPTR)
     {
@@ -3616,10 +3667,15 @@ static void print_FARM_Environment_Info(farmEnvironmentStatistics* env,
 }
 
 // unitStr should be the units this field is in if it is NOT % delta
-static bool print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(const char* fieldStr,
-                                                                            const char* unitStr,
-                                                                            uint64_t    byhead[FARM_MAX_HEADS],
-                                                                            uint64_t    numberOfHeads)
+M_NULL_TERM_STRING(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+static bool print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(
+    const char* M_NONNULL fieldStr,
+    const char* M_NONNULL unitStr,
+    const uint64_t        byhead[M_NONNULL_ARRAY FARM_MAX_HEADS],
+    uint64_t              numberOfHeads)
 {
     bool   printed = false;
     size_t len     = safe_strlen(fieldStr) + M_Max(safe_strlen(unitStr), safe_strlen("% delta")) +
@@ -3645,9 +3701,13 @@ static bool print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(cons
 }
 
 #define THREE_STATS_IN_ONE 3
-static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(const char* statisticname,
-                                                                      uint64_t    statisticData[THREE_STATS_IN_ONE],
-                                                                      double      conversionFactor)
+
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(
+    const char* M_NONNULL statisticname,
+    const uint64_t        statisticData[M_NONNULL_ARRAY THREE_STATS_IN_ONE],
+    double                conversionFactor)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData[0]);
@@ -3698,9 +3758,12 @@ static M_INLINE bool print_3_Stat_If_Supported_And_Valid_int64_Factor(const char
 }
 
 // If a statistic is a counter in 1/1000 or .1%, etc can provide a conversion factor with this
-static M_INLINE bool print_3_Stat_If_Supported_And_Valid_Uint64_Factor(const char* statisticname,
-                                                                       uint64_t    statisticData[THREE_STATS_IN_ONE],
-                                                                       double      conversionFactor)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(1)
+static M_INLINE bool print_3_Stat_If_Supported_And_Valid_Uint64_Factor(
+    const char* M_NONNULL statisticname,
+    const uint64_t        statisticData[M_NONNULL_ARRAY THREE_STATS_IN_ONE],
+    double                conversionFactor)
 {
     bool    printed = false;
     uint8_t status  = get_Farm_Status_Byte(statisticData[0]);
@@ -3741,9 +3804,11 @@ static M_INLINE bool print_3_Stat_If_Supported_And_Valid_Uint64_Factor(const cha
 }
 
 #define BY_HEAD_INFO_STR_LEN 8 // max length of " Head xx"
-static bool print_3_Stat_If_Supported_And_Valid_By_Head(const char* statisticname,
-                                                        uint64_t    byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
-                                                        uint64_t    numberOfHeads,
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(1)
+static bool print_3_Stat_If_Supported_And_Valid_By_Head(const char* M_NONNULL statisticname,
+                                                        const uint64_t byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
+                                                        uint64_t       numberOfHeads,
                                                         eFARMByHeadOutputFormat outputFormat,
                                                         double                  conversionfactor)
 {
@@ -3813,19 +3878,23 @@ static bool print_3_Stat_If_Supported_And_Valid_By_Head(const char* statisticnam
     return false;
 }
 
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(1)
+M_PARAM_RO(2)
 static M_INLINE bool print_Stat_If_Supported_And_Valid_Fly_Height_Clearance_By_Head(
-    const char* fieldStr,
-    uint64_t    byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
-    uint64_t    numberOfHeads)
+    const char* M_NONNULL fieldStr,
+    const uint64_t        byhead[FARM_MAX_HEADS][THREE_STATS_IN_ONE],
+    uint64_t              numberOfHeads)
 {
     return print_3_Stat_If_Supported_And_Valid_By_Head(fieldStr, byhead, numberOfHeads, FARM_BY_HEAD_INT64_FACTOR,
                                                        0.001);
 }
 
-static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
-                                        uint64_t                   numheads,
-                                        eFARMDriveInterface        farminterface,
-                                        uint64_t                   timerestrictedRangems)
+M_PARAM_RO(1)
+static void print_FARM_Reliability_Info(const farmReliabilityStatistics* M_NONNULL reli,
+                                        uint64_t                                   numheads,
+                                        eFARMDriveInterface                        farminterface,
+                                        uint64_t                                   timerestrictedRangems)
 {
     if (reli != M_NULLPTR)
     {
@@ -3930,7 +3999,8 @@ static void print_FARM_Reliability_Info(farmReliabilityStatistics* reli,
     }
 }
 
-void print_FARM_Data(farmLogData* farmdata)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API void print_FARM_Data(farmLogData* M_NONNULL farmdata)
 {
 
     if (farmdata != M_NULLPTR)

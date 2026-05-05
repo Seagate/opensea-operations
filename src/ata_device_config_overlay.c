@@ -33,10 +33,12 @@
 // and set only possible if supported (check identify bit) If frozen, identify, identify dma, restore, set will all be
 // aborted. If id bit shows supported, but the dco ident fails, consider the drive in a frozen state -TJE
 
-bool is_DCO_Supported(const tDevice* device, bool* dmaSupport)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API bool is_DCO_Supported(const tDevice* M_NONNULL device, bool* M_NULLABLE dmaSupport)
 {
     bool supported = false;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
              le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT11) ||
@@ -62,7 +64,7 @@ bool is_DCO_Supported(const tDevice* device, bool* dmaSupport)
     return supported;
 }
 
-eReturnValues dco_Restore(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Restore(const tDevice* M_NONNULL device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_DCO_Supported(device, M_NULLPTR))
@@ -82,7 +84,7 @@ eReturnValues dco_Restore(const tDevice* device)
     return ret;
 }
 
-eReturnValues dco_Freeze_Lock(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Freeze_Lock(const tDevice* M_NONNULL device)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (is_DCO_Supported(device, M_NULLPTR))
@@ -96,7 +98,9 @@ eReturnValues dco_Freeze_Lock(const tDevice* device)
     return ret;
 }
 
-eReturnValues dco_Identify(const tDevice* device, ptrDcoData data)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues dco_Identify(const tDevice* M_NONNULL device, ptrDcoData M_NONNULL data)
 {
     eReturnValues ret           = NOT_SUPPORTED;
     bool          dcoDMASupport = false;
@@ -106,7 +110,7 @@ eReturnValues dco_Identify(const tDevice* device, ptrDcoData data)
         if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, 512);
-            if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
+            if (get_tDevice_ATA_DMA_Mode(device) == ATA_DMA_MODE_NO_DMA)
             {
                 dcoDMASupport = false;
             }
@@ -189,7 +193,7 @@ eReturnValues dco_Identify(const tDevice* device, ptrDcoData data)
     return ret;
 }
 
-void show_DCO_Identify_Data(const ptrDcoData data)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_DCO_Identify_Data(const ptrDcoData M_NONNULL data)
 {
 
     if (data != M_NULLPTR)
@@ -360,6 +364,7 @@ void show_DCO_Identify_Data(const ptrDcoData data)
 }
 
 M_NONNULL_PARAM_LIST(2)
+M_PARAM_RW(1)
 M_PARAM_RW(1)
 M_PARAM_RO(2)
 static M_INLINE void dco_Set_DMA_Modes(uint8_t dcoIdentData[M_NONNULL_ARRAY DCO_DATA_SIZE], ptrDcoData M_NONNULL data)
@@ -557,7 +562,9 @@ static M_INLINE void dco_Set_Features2(uint8_t dcoIdentData[M_NONNULL_ARRAY DCO_
     }
 }
 
-eReturnValues dco_Set(const tDevice* device, ptrDcoData data)
+M_PARAM_RO(1)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues dco_Set(const tDevice* M_NONNULL device, ptrDcoData M_NONNULL data)
 {
     eReturnValues ret           = NOT_SUPPORTED;
     bool          dcoDMASupport = false;
@@ -567,7 +574,7 @@ eReturnValues dco_Set(const tDevice* device, ptrDcoData data)
         if (data != M_NULLPTR)
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, dcoIdentData, DCO_DATA_SIZE);
-            if (device->drive_info.ata_Options.dmaMode == ATA_DMA_MODE_NO_DMA)
+            if (get_tDevice_ATA_DMA_Mode(device) == ATA_DMA_MODE_NO_DMA)
             {
                 dcoDMASupport = false;
             }

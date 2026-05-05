@@ -27,7 +27,7 @@
 
 #include "buffer_test.h"
 
-static bool ata_Buffer_Commands_Supported(const tDevice* device)
+static bool ata_Buffer_Commands_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if ((is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word082)) &&
@@ -52,7 +52,7 @@ static bool ata_Buffer_Commands_Supported(const tDevice* device)
     return supported;
 }
 
-static bool scsi_Buffer_Commands_Supported(const tDevice* device)
+static bool scsi_Buffer_Commands_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     // SCSI 2 + should support this.
@@ -81,15 +81,15 @@ static bool scsi_Buffer_Commands_Supported(const tDevice* device)
     return supported;
 }
 
-static bool are_Buffer_Commands_Available(const tDevice* device)
+static bool are_Buffer_Commands_Available(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     // Check if read/write buffer commands are supported on SATA and SAS
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         supported = ata_Buffer_Commands_Supported(device);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         supported = scsi_Buffer_Commands_Supported(device);
     }
@@ -106,7 +106,7 @@ static eReturnValues get_Buffer_Size(const tDevice* device, uint32_t* bufferSize
     *bufferSize = LEGACY_DRIVE_SEC_SIZE; // default to this size. Change this only if the drive reports a different size
     *offsetBoundary = 0x09;              // default to this size. Change this only if the drive reports a different size
     // get the size of the buffer for the drive.
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, bufferSizeData, 4);
         if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_DESCRIPTOR, 0, 0, 4, bufferSizeData))
@@ -124,7 +124,7 @@ static eReturnValues get_Buffer_Size(const tDevice* device, uint32_t* bufferSize
 
 static eReturnValues send_Read_Buffer_Command(const tDevice* device, uint8_t* ptrData, uint32_t dataSize)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // return ata_Read_Buffer(device, ptrData, device->drive_info.ata_Options.readBufferDMASupported);
         // Switching to this new function since it will automatically try DMA mode if supported by the drive.
@@ -132,7 +132,7 @@ static eReturnValues send_Read_Buffer_Command(const tDevice* device, uint8_t* pt
         // mode.
         return send_ATA_Read_Buffer_Cmd(device, ptrData);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return scsi_Read_Buffer(device, SCSI_RB_DATA, 0, 0, dataSize, ptrData);
     }
@@ -144,7 +144,7 @@ static eReturnValues send_Read_Buffer_Command(const tDevice* device, uint8_t* pt
 
 static eReturnValues send_Write_Buffer_Command(const tDevice* device, uint8_t* ptrData, uint32_t dataSize)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // return ata_Write_Buffer(device, ptrData, device->drive_info.ata_Options.writeBufferDMASupported);
         // Switching to this new function since it will automatically try DMA mode if supported by the drive.
@@ -152,7 +152,7 @@ static eReturnValues send_Write_Buffer_Command(const tDevice* device, uint8_t* p
         // mode.
         return send_ATA_Write_Buffer_Cmd(device, ptrData);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return scsi_Write_Buffer(device, SCSI_WB_DATA, 0, 0, 0, dataSize, ptrData, false, false, 0);
     }
@@ -162,7 +162,7 @@ static eReturnValues send_Write_Buffer_Command(const tDevice* device, uint8_t* p
     }
 }
 
-static bool was_There_A_CRC_Error_On_Last_Command(const tDevice* device)
+static bool was_There_A_CRC_Error_On_Last_Command(const tDevice* M_NONNULL device)
 {
     bool    crc            = false;
     bool    checkSenseData = false;
@@ -170,7 +170,7 @@ static bool was_There_A_CRC_Error_On_Last_Command(const tDevice* device)
     uint8_t asc            = UINT8_C(0);
     uint8_t ascq           = UINT8_C(0);
     uint8_t fru            = UINT8_C(0);
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (device->drive_info.lastCommandRTFRs.status & ATA_STATUS_BIT_ERROR) // error bit set
         {
@@ -187,7 +187,7 @@ static bool was_There_A_CRC_Error_On_Last_Command(const tDevice* device)
             ascq           = device->drive_info.ataSenseData.additionalSenseCodeQualifier;
         }
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         checkSenseData = true;
         get_Sense_Key_ASC_ASCQ_FRU(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseKey, &asc, &ascq,
@@ -252,11 +252,11 @@ static void perform_Byte_Pattern_Test(const tDevice*        device,
 {
     uint32_t numberOfTimesToTest = UINT32_C(5);
     uint8_t* patternBuffer =
-        C_CAST(uint8_t*,
-               safe_malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment)); // only send this to the drive
+        C_CAST(uint8_t*, safe_malloc_aligned(deviceBufferSize,
+                                             get_Device_IO_Minimum_Alignment(device))); // only send this to the drive
     uint8_t* returnBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_malloc_aligned(deviceBufferSize,
-                                      device->os_info.minimumAlignment)); // only receive this from the drive
+                                      get_Device_IO_Minimum_Alignment(device))); // only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         fill_Pattern_Buffer_Into_Another_Buffer(C_CAST(uint8_t*, &pattern), sizeof(uint32_t), patternBuffer,
@@ -345,10 +345,10 @@ static void perform_Walking_Test(const tDevice*        device,
 {
     uint8_t* patternBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(deviceBufferSize, sizeof(uint8_t),
-                                      device->os_info.minimumAlignment)); // only send this to the drive
+                                      get_Device_IO_Minimum_Alignment(device))); // only send this to the drive
     uint8_t* returnBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_malloc_aligned(deviceBufferSize,
-                                      device->os_info.minimumAlignment)); // only receive this from the drive
+                                      get_Device_IO_Minimum_Alignment(device))); // only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         DECLARE_SEATIMER(patternTimer);
@@ -460,11 +460,11 @@ static void perform_Random_Pattern_Test(const tDevice*        device,
 {
     uint32_t numberOfTimesToTest = UINT32_C(10);
     uint8_t* patternBuffer =
-        C_CAST(uint8_t*,
-               safe_malloc_aligned(deviceBufferSize, device->os_info.minimumAlignment)); // only send this to the drive
+        C_CAST(uint8_t*, safe_malloc_aligned(deviceBufferSize,
+                                             get_Device_IO_Minimum_Alignment(device))); // only send this to the drive
     uint8_t* returnBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_malloc_aligned(deviceBufferSize,
-                                      device->os_info.minimumAlignment)); // only receive this from the drive
+                                      get_Device_IO_Minimum_Alignment(device))); // only receive this from the drive
     if (patternBuffer && returnBuffer)
     {
         DECLARE_SEATIMER(patternTimer);
@@ -573,7 +573,10 @@ typedef enum eRowBoatPatternEnum
 // Slower interface speed = longer test time to get a confident result.
 
 // master function for the whole test.
-eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults testResults)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues perform_Cable_Test(const tDevice* M_NONNULL      device,
+                                                        ptrCableTestResults M_NONNULL testResults)
 {
     eReturnValues ret = SUCCESS;
 
@@ -666,7 +669,7 @@ eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults test
     return ret;
 }
 
-void print_Cable_Test_Results(cableTestResults testResults)
+OPENSEA_OPERATIONS_API void print_Cable_Test_Results(cableTestResults testResults)
 {
     print_str("Test Results:\n");
     print_str("=============\n");

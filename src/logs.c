@@ -37,14 +37,15 @@
 
 // Idea: Try to recursively call this with identify commands to retry up to 5 times to get a valid SN or ID before
 // returning unknown
-const char* get_Drive_ID_For_Logfile_Name(const tDevice* device)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API const char* M_NULLABLE get_Drive_ID_For_Logfile_Name(const tDevice* M_NONNULL device)
 {
 
     if (device != M_NULLPTR)
     {
         // Try SN first
-        if ((device->drive_info.interface_type == USB_INTERFACE ||
-             device->drive_info.interface_type == IEEE_1394_INTERFACE) &&
+        if ((get_Device_InterfaceType(device) == USB_INTERFACE ||
+             get_Device_InterfaceType(device) == IEEE_1394_INTERFACE) &&
             safe_strnlen(device->drive_info.bridge_info.childDriveSN, SERIAL_NUM_LEN) > 0)
         {
             return device->drive_info.bridge_info.childDriveSN;
@@ -64,14 +65,22 @@ const char* get_Drive_ID_For_Logfile_Name(const tDevice* device)
     }
 }
 
-eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
-    const tDevice*           device,
-    secureFileInfo**         file,                    /*required*/
-    eLogFileNamingConvention logFileNamingConvention, /*required*/
-    const char* logPath, // optional /*requested path to output to. Will be checked for security. If NULL, current
-                         // directory will be used*/
-    const char* logName, // optional /*name of the log file from the drive, FARM, DST, etc*/
-    const char* logExt   // optional /*extension for the log file. If NULL, set to .bin*/
+M_PARAM_RO(1)
+M_PARAM_RW(2)
+M_NULL_TERM_STRING(4)
+M_PARAM_RO(4)
+M_NULL_TERM_STRING(5)
+M_PARAM_RO(5)
+M_NULL_TERM_STRING(6)
+M_PARAM_RO(6)
+OPENSEA_OPERATIONS_API eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
+    const tDevice* M_NONNULL              device,
+    secureFileInfo* M_NONNULL* M_NULLABLE file,                    /*required*/
+    eLogFileNamingConvention              logFileNamingConvention, /*required*/
+    const char* M_NULLABLE logPath, // optional /*requested path to output to. Will be checked for security. If
+                                    // NULL, current directory will be used*/
+    const char* M_NULLABLE logName, // optional /*name of the log file from the drive, FARM, DST, etc*/
+    const char* M_NULLABLE logExt   // optional /*extension for the log file. If NULL, set to .bin*/
 )
 {
     return create_And_Open_Secure_Log_File(get_Drive_ID_For_Logfile_Name(device),
@@ -80,7 +89,13 @@ eReturnValues create_And_Open_Secure_Log_File_Dev_EZ(
                                            logName, safe_strlen(logName), logExt, safe_strlen(logExt));
 }
 
-eReturnValues get_ATA_Log_Size(const tDevice* device, uint8_t logAddress, uint32_t* logFileSize, bool gpl, bool smart)
+M_PARAM_RO(1)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log_Size(const tDevice* M_NONNULL device,
+                                                      uint8_t                  logAddress,
+                                                      uint32_t* M_NONNULL      logFileSize,
+                                                      bool                     gpl,
+                                                      bool                     smart)
 {
     eReturnValues ret        = NOT_SUPPORTED; // assume the log is not supported
     bool          foundInGPL = false;
@@ -91,7 +106,7 @@ eReturnValues get_ATA_Log_Size(const tDevice* device, uint8_t logAddress, uint32
 #endif
 
     uint8_t* logBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -188,11 +203,16 @@ eReturnValues get_ATA_Log_Size(const tDevice* device, uint8_t logAddress, uint32
     return ret;
 }
 
-eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t logSubPage, uint32_t* logFileSize)
+M_PARAM_RO(1)
+M_PARAM_WO(4)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(const tDevice* M_NONNULL device,
+                                                       uint8_t                  logPage,
+                                                       uint8_t                  logSubPage,
+                                                       uint32_t* M_NONNULL      logFileSize)
 {
-    eReturnValues ret = NOT_SUPPORTED; // assume the log is not supported
-    uint8_t*      logBuffer =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+    eReturnValues ret       = NOT_SUPPORTED; // assume the log is not supported
+    uint8_t*      logBuffer = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -280,12 +300,16 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
     return ret;
 }
 
-eReturnValues get_SCSI_VPD_Page_Size(const tDevice* device, uint8_t vpdPage, uint32_t* vpdPageSize)
+M_PARAM_RO(1)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD_Page_Size(const tDevice* M_NONNULL device,
+                                                            uint8_t                  vpdPage,
+                                                            uint32_t* M_NONNULL      vpdPageSize)
 {
     eReturnValues ret             = NOT_SUPPORTED; // assume the page is not supported
     uint32_t      vpdBufferLength = INQ_RETURN_DATA_LENGTH;
     uint8_t*      vpdBuffer       = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (vpdBuffer == M_NULLPTR)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -329,7 +353,8 @@ eReturnValues get_SCSI_VPD_Page_Size(const tDevice* device, uint8_t vpdPage, uin
 // If device is older than SCSI2, DBD is not available and will be limited to 6 byte command
 // checking for this for old drives that may support mode pages, but not the dbd bit properly
 // Earlier than SCSI 2, RBC devices, and CCS compliant devices are assumed to only support mode sense 6 commands.
-static bool use_6B_SCSI_Mode(const tDevice* device, M_ATTR_UNUSED uint8_t modePage, uint8_t subpage)
+M_PARAM_RO(1)
+static bool use_6B_SCSI_Mode(const tDevice* M_NONNULL device, M_ATTR_UNUSED uint8_t modePage, uint8_t subpage)
 {
     bool sixByte = false;
     if (device->drive_info.scsiVersion < SCSI_VERSION_SCSI2 ||
@@ -345,11 +370,13 @@ static bool use_6B_SCSI_Mode(const tDevice* device, M_ATTR_UNUSED uint8_t modePa
 }
 
 // modePageSize includes any blockdescriptors that may be present
-eReturnValues get_SCSI_Mode_Page_Size(const tDevice*       device,
-                                      eScsiModePageControl mpc,
-                                      uint8_t              modePage,
-                                      uint8_t              subpage,
-                                      uint32_t*            modePageSize)
+M_PARAM_RO(1)
+M_PARAM_WO(5)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice* M_NONNULL device,
+                                                             eScsiModePageControl     mpc,
+                                                             uint8_t                  modePage,
+                                                             uint8_t                  subpage,
+                                                             uint32_t* M_NONNULL      modePageSize)
 {
     eReturnValues ret        = NOT_SUPPORTED; // assume the page is not supported
     uint32_t      modeLength = MODE_PARAMETER_HEADER_10_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -366,7 +393,7 @@ eReturnValues get_SCSI_Mode_Page_Size(const tDevice*       device,
         modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
     }
     uint8_t* modeBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(modeLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(modeLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (modeBuffer == M_NULLPTR)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -379,7 +406,7 @@ eReturnValues get_SCSI_Mode_Page_Size(const tDevice*       device,
     if (!sixByte)
     {
         bool longlba = false;
-        if (device->drive_info.deviceMaxLba > UINT32_MAX)
+        if (return_Device_MaxLba(device) > UINT32_MAX)
         {
             longlba    = true;
             modeLength = MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN;
@@ -397,7 +424,7 @@ eReturnValues get_SCSI_Mode_Page_Size(const tDevice*       device,
                 modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
                 // reallocate memory!
                 uint8_t* temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &modeBuffer), 0, modeLength,
-                                                                       device->os_info.minimumAlignment));
+                                                                       get_Device_IO_Minimum_Alignment(device)));
                 if (temp == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
@@ -460,17 +487,27 @@ eReturnValues get_SCSI_Mode_Page_Size(const tDevice*       device,
     return ret;
 }
 
-eReturnValues get_SCSI_Mode_Page(const tDevice*       device,
-                                 eScsiModePageControl mpc,
-                                 uint8_t              modePage,
-                                 uint8_t              subpage,
-                                 const char*          logName,
-                                 const char*          fileExtension,
-                                 bool                 toBuffer,
-                                 uint8_t*             myBuf,
-                                 uint32_t             bufSize,
-                                 const char*          filePath,
-                                 bool*                used6ByteCmd)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(5)
+M_PARAM_RO(5)
+M_NULL_TERM_STRING(6)
+M_PARAM_RO(6)
+M_NONNULL_IF_NONZERO_PARAM(8, 9)
+M_PARAM_WO_SIZE(8, 9)
+M_NULL_TERM_STRING(10)
+M_PARAM_RO(10)
+M_PARAM_WO(11)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice* M_NONNULL device,
+                                                        eScsiModePageControl     mpc,
+                                                        uint8_t                  modePage,
+                                                        uint8_t                  subpage,
+                                                        const char* M_NULLABLE   logName,
+                                                        const char* M_NULLABLE   fileExtension,
+                                                        bool                     toBuffer,
+                                                        uint8_t* M_NULLABLE      myBuf,
+                                                        uint32_t                 bufSize,
+                                                        const char* M_NULLABLE   filePath,
+                                                        bool* M_NULLABLE         used6ByteCmd)
 {
     eReturnValues ret        = NOT_SUPPORTED; // assume the page is not supported
     uint32_t      modeLength = UINT32_C(0);
@@ -491,7 +528,7 @@ eReturnValues get_SCSI_Mode_Page(const tDevice*       device,
     }
     bool     sixByte    = use_6B_SCSI_Mode(device, modePage, subpage);
     uint8_t* modeBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(modeLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(modeLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (modeBuffer == M_NULLPTR)
     {
         if (VERBOSITY_QUIET < device->deviceVerbosity)
@@ -504,7 +541,7 @@ eReturnValues get_SCSI_Mode_Page(const tDevice*       device,
     {
         // do not disable block descriptor for consistency between mode sense 6 and 10.
         bool longlba = false;
-        if (device->drive_info.deviceMaxLba > UINT32_MAX)
+        if (return_Device_MaxLba(device) > UINT32_MAX)
         {
             longlba = true;
         }
@@ -631,7 +668,7 @@ eReturnValues get_SCSI_Mode_Page(const tDevice*       device,
                 modeLength = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
                 // reallocate memory!
                 uint8_t* temp = C_CAST(uint8_t*, safe_reallocf_aligned(C_CAST(void**, &modeBuffer), 0, modeLength,
-                                                                       device->os_info.minimumAlignment));
+                                                                       get_Device_IO_Minimum_Alignment(device)));
                 if (temp == M_NULLPTR)
                 {
                     return MEMORY_FAILURE;
@@ -806,7 +843,8 @@ eReturnValues get_SCSI_Mode_Page(const tDevice*       device,
     return ret;
 }
 
-static M_INLINE void modify_Short_Blk_Desc_Num_Blocks(uint8_t* mp, uint8_t mpheaderlen, uint32_t lba)
+M_PARAM_WO_SIZE(1, 2)
+static M_INLINE void modify_Short_Blk_Desc_Num_Blocks(uint8_t* M_NONNULL mp, uint8_t mpheaderlen, uint32_t lba)
 {
     mp[mpheaderlen + 0] = M_Byte3(lba);
     mp[mpheaderlen + 1] = M_Byte2(lba);
@@ -814,14 +852,16 @@ static M_INLINE void modify_Short_Blk_Desc_Num_Blocks(uint8_t* mp, uint8_t mphea
     mp[mpheaderlen + 3] = M_Byte0(lba);
 }
 
-static M_INLINE void modify_Short_Blk_Desc_Block_Len(uint8_t* mp, uint8_t mpheaderlen, uint32_t len)
+M_PARAM_WO_SIZE(1, 2)
+static M_INLINE void modify_Short_Blk_Desc_Block_Len(uint8_t* M_NONNULL mp, uint8_t mpheaderlen, uint32_t len)
 {
     mp[mpheaderlen + 5] = M_Byte2(len);
     mp[mpheaderlen + 6] = M_Byte1(len);
     mp[mpheaderlen + 7] = M_Byte0(len);
 }
 
-static M_INLINE void modify_Long_Blk_Desc_Num_Blocks(uint8_t* mp, uint8_t mpheaderlen, uint64_t lba)
+M_PARAM_WO_SIZE(1, 2)
+static M_INLINE void modify_Long_Blk_Desc_Num_Blocks(uint8_t* M_NONNULL mp, uint8_t mpheaderlen, uint64_t lba)
 {
     mp[mpheaderlen + 0] = M_Byte7(lba);
     mp[mpheaderlen + 1] = M_Byte6(lba);
@@ -833,7 +873,8 @@ static M_INLINE void modify_Long_Blk_Desc_Num_Blocks(uint8_t* mp, uint8_t mphead
     mp[mpheaderlen + 7] = M_Byte0(lba);
 }
 
-static M_INLINE void modify_Long_Blk_Desc_Block_Len(uint8_t* mp, uint8_t mpheaderlen, uint32_t len)
+M_PARAM_WO_SIZE(1, 2)
+static M_INLINE void modify_Long_Blk_Desc_Block_Len(uint8_t* M_NONNULL mp, uint8_t mpheaderlen, uint32_t len)
 {
     mp[mpheaderlen + 12] = M_Byte3(len);
     mp[mpheaderlen + 13] = M_Byte2(len);
@@ -841,9 +882,11 @@ static M_INLINE void modify_Long_Blk_Desc_Block_Len(uint8_t* mp, uint8_t mpheade
     mp[mpheaderlen + 15] = M_Byte0(len);
 }
 
-static eReturnValues modify_SCSI_Block_Descriptor_10B(const tDevice*           device,
-                                                      modifyScsiBlkDescFields  modifications,
-                                                      modifyScsiBlkDescFields* endingBlockDescriptor)
+M_PARAM_RO(1)
+M_PARAM_RW(3)
+static eReturnValues modify_SCSI_Block_Descriptor_10B(const tDevice* M_NONNULL            device,
+                                                      modifyScsiBlkDescFields             modifications,
+                                                      modifyScsiBlkDescFields* M_NULLABLE endingBlockDescriptor)
 {
     eReturnValues ret = SUCCESS;
     // SPC2 added concept of long LBA, so use that to determine when to request long lba info.
@@ -857,8 +900,8 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(const tDevice*           d
     do
     {
         uint8_t  mpalloclen = MODE_PARAMETER_HEADER_10_LEN + LONG_LBA_BLOCK_DESCRIPTOR_LEN;
-        uint8_t* mp =
-            M_STATIC_CAST(uint8_t*, safe_calloc_aligned(mpalloclen, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* mp         = M_STATIC_CAST(
+            uint8_t*, safe_calloc_aligned(mpalloclen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (mp == M_NULLPTR)
         {
             return MEMORY_FAILURE;
@@ -978,7 +1021,7 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(const tDevice*           d
                                 if (modifications.numberOfLogicalBlocks == UINT64_MAX)
                                 {
                                     if (!modifications.modifyBlockLen && startLBAToVerify == endingLBAToVerify &&
-                                        endingLBAToVerify != (device->drive_info.deviceMaxLba + UINT64_C(1)))
+                                        endingLBAToVerify != (return_Device_MaxLba(device) + UINT64_C(1)))
                                     {
                                         ret = NOT_SUPPORTED;
                                     }
@@ -1033,14 +1076,16 @@ static eReturnValues modify_SCSI_Block_Descriptor_10B(const tDevice*           d
     return ret;
 }
 
-static eReturnValues modify_SCSI_Block_Descriptor_6B(const tDevice*           device,
-                                                     modifyScsiBlkDescFields  modifications,
-                                                     modifyScsiBlkDescFields* endingBlockDescriptor)
+M_PARAM_RO(1)
+M_PARAM_RW(3)
+static eReturnValues modify_SCSI_Block_Descriptor_6B(const tDevice* M_NONNULL            device,
+                                                     modifyScsiBlkDescFields             modifications,
+                                                     modifyScsiBlkDescFields* M_NULLABLE endingBlockDescriptor)
 {
     eReturnValues ret        = SUCCESS;
     uint8_t       mpalloclen = MODE_PARAMETER_HEADER_6_LEN + SHORT_LBA_BLOCK_DESCRIPTOR_LEN;
-    uint8_t*      mp =
-        M_STATIC_CAST(uint8_t*, safe_calloc_aligned(mpalloclen, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t*      mp         = M_STATIC_CAST(
+        uint8_t*, safe_calloc_aligned(mpalloclen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (mp == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -1093,7 +1138,7 @@ static eReturnValues modify_SCSI_Block_Descriptor_6B(const tDevice*           de
                             if (modifications.numberOfLogicalBlocks == UINT64_MAX)
                             {
                                 if (!modifications.modifyBlockLen && startingNumBlocks == endingNumBlocks &&
-                                    endingNumBlocks != (device->drive_info.deviceMaxLba + UINT64_C(1)))
+                                    endingNumBlocks != (return_Device_MaxLba(device) + UINT64_C(1)))
                                 {
                                     ret = NOT_SUPPORTED;
                                 }
@@ -1147,9 +1192,12 @@ static eReturnValues modify_SCSI_Block_Descriptor_6B(const tDevice*           de
 // 2: Modify the requested fields
 // 3: Write block descriptor back
 // 4: verify block descriptor changed as expected
-eReturnValues modify_SCSI_Block_Descriptor(const tDevice*           device,
-                                           modifyScsiBlkDescFields  modifications,
-                                           modifyScsiBlkDescFields* endingBlockDescriptor)
+M_PARAM_RO(1)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues
+modify_SCSI_Block_Descriptor(const tDevice* M_NONNULL            device,
+                             modifyScsiBlkDescFields             modifications,
+                             modifyScsiBlkDescFields* M_NULLABLE endingBlockDescriptor)
 {
     eReturnValues ret = SUCCESS;
     if (device->drive_info.passThroughHacks.scsiHacks.noModePages)
@@ -1168,7 +1216,9 @@ eReturnValues modify_SCSI_Block_Descriptor(const tDevice*           device,
 }
 
 // TODO: Need to move this to a different location in opensea-transport instead of this layer.-TJE
-bool is_SCSI_Read_Buffer_16_Supported(const tDevice* device)
+M_PARAM_RO(1)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_SCSI_Read_Buffer_16_Supported(const tDevice* M_NONNULL device)
 {
     bool supported = false;
     if (device->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize == INT8_C(0))
@@ -1195,12 +1245,17 @@ bool is_SCSI_Read_Buffer_16_Supported(const tDevice* device)
     return supported;
 }
 
+//! \def SCSI_ERROR_HISTORY_DIRECTORY_LEN
+//! \brief size used to read the error history directory (2088 bytes)
 #define SCSI_ERROR_HISTORY_DIRECTORY_LEN 2088
-eReturnValues get_SCSI_Error_History_Size(const tDevice* device,
-                                          uint8_t        bufferID,
-                                          uint32_t*      errorHistorySize,
-                                          bool           createNewSnapshot,
-                                          bool           useReadBuffer16)
+
+M_PARAM_RO(1)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History_Size(const tDevice* M_NONNULL device,
+                                                                 uint8_t                  bufferID,
+                                                                 uint32_t* M_NONNULL      errorHistorySize,
+                                                                 bool                     createNewSnapshot,
+                                                                 bool                     useReadBuffer16)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -1211,7 +1266,7 @@ eReturnValues get_SCSI_Error_History_Size(const tDevice* device,
 
     uint8_t* errorHistoryDirectory =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_ERROR_HISTORY_DIRECTORY_LEN, sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (errorHistoryDirectory == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -1260,18 +1315,28 @@ eReturnValues get_SCSI_Error_History_Size(const tDevice* device,
     return ret;
 }
 
-eReturnValues get_SCSI_Error_History(const tDevice* device,
-                                     uint8_t        bufferID,
-                                     const char*    logName,
-                                     bool           createNewSnapshot,
-                                     bool           useReadBuffer16,
-                                     const char*    fileExtension,
-                                     bool           toBuffer,
-                                     uint8_t*       myBuf,
-                                     uint32_t       bufSize,
-                                     const char*    filePath,
-                                     uint32_t       transferSizeBytes,
-                                     char*          fileNameUsed)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(3)
+M_PARAM_RO(3)
+M_NULL_TERM_STRING(6)
+M_PARAM_RO(6)
+M_NONNULL_IF_NONZERO_PARAM(8, 9)
+M_PARAM_WO_SIZE(8, 9)
+M_NULL_TERM_STRING(10)
+M_PARAM_RO(10)
+M_PARAM_WO(12)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(const tDevice* M_NONNULL device,
+                                                            uint8_t                  bufferID,
+                                                            const char* M_NULLABLE   logName,
+                                                            bool                     createNewSnapshot,
+                                                            bool                     useReadBuffer16,
+                                                            const char* M_NULLABLE   fileExtension,
+                                                            bool                     toBuffer,
+                                                            uint8_t* M_NULLABLE      myBuf,
+                                                            uint32_t                 bufSize,
+                                                            const char* M_NULLABLE   filePath,
+                                                            uint32_t                 transferSizeBytes,
+                                                            char* M_NULLABLE         fileNameUsed)
 {
     eReturnValues   ret           = UNKNOWN;
     uint32_t        historyLen    = UINT32_C(0);
@@ -1299,7 +1364,7 @@ eReturnValues get_SCSI_Error_History(const tDevice* device,
             increment = historyLen;
         }
         historyBuffer = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(increment, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(increment, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
 
         if (historyBuffer == M_NULLPTR)
         {
@@ -1444,9 +1509,13 @@ eReturnValues get_SCSI_Error_History(const tDevice* device,
     return ret;
 }
 
-eReturnValues get_SMART_Extended_Comprehensive_Error_Log(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_SMART_Extended_Comprehensive_Error_Log(const tDevice* M_NONNULL device,
+                                                                                const char* M_NULLABLE   filePath)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return get_ATA_Log(device, ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG, "SMART_Ext_Comp_Error_Log", "bin",
                            true, false, false, M_NULLPTR, 0, filePath, 0, 0);
@@ -1457,7 +1526,12 @@ eReturnValues get_SMART_Extended_Comprehensive_Error_Log(const tDevice* device, 
     }
 }
 
-eReturnValues get_ATA_DST_Log(const tDevice* device, bool extLog, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(3)
+M_PARAM_RO(3)
+OPENSEA_OPERATIONS_API eReturnValues get_ATA_DST_Log(const tDevice* M_NONNULL device,
+                                                     bool                     extLog,
+                                                     const char* M_NULLABLE   filePath)
 {
     if (extLog)
     {
@@ -1473,17 +1547,20 @@ eReturnValues get_ATA_DST_Log(const tDevice* device, bool extLog, const char* fi
     }
 }
 
-eReturnValues get_DST_Log(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_DST_Log(const tDevice* M_NONNULL device, const char* M_NULLABLE filePath)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return get_ATA_DST_Log(device, device->drive_info.ata_Options.generalPurposeLoggingSupported, filePath);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return get_SCSI_Log(device, LP_SELF_TEST_RESULTS, 0, "Self_Test_Results", "bin", false, M_NULLPTR, 0, filePath);
     }
-    else if (device->drive_info.drive_type == NVME_DRIVE)
+    else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         return pull_Supported_NVMe_Logs(device, 6, PULL_LOG_BIN_FILE_MODE, 0);
     }
@@ -1493,15 +1570,19 @@ eReturnValues get_DST_Log(const tDevice* device, const char* filePath)
     }
 }
 
-eReturnValues get_Pending_Defect_List(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Pending_Defect_List(const tDevice* M_NONNULL device,
+                                                             const char* M_NULLABLE   filePath)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // new is ACS4. Can be read with standard read log command if the drive supports the log.
         return get_ATA_Log(device, ATA_LOG_PENDING_DEFECTS_LOG, "Pending_Defects", "plst", true, false, false,
                            M_NULLPTR, 0, filePath, 0, 0);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         // this is new in SBC4. We can read this with a logsense command. (if the drive supports it)
         return get_SCSI_Log(device, LP_PENDING_DEFECTS, 0x01, "Pending_Defects", "plst", false, M_NULLPTR, 0, filePath);
@@ -1512,9 +1593,13 @@ eReturnValues get_Pending_Defect_List(const tDevice* device, const char* filePat
     }
 }
 
-eReturnValues get_Identify_Device_Data_Log(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Identify_Device_Data_Log(const tDevice* M_NONNULL device,
+                                                                  const char* M_NULLABLE   filePath)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return get_ATA_Log(device, ATA_LOG_IDENTIFY_DEVICE_DATA, "Identify_Device_Data_Log", "bin", true, true, false,
                            M_NULLPTR, 0, filePath, 0, 0);
@@ -1525,9 +1610,13 @@ eReturnValues get_Identify_Device_Data_Log(const tDevice* device, const char* fi
     }
 }
 
-eReturnValues get_SATA_Phy_Event_Counters_Log(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters_Log(const tDevice* M_NONNULL device,
+                                                                     const char* M_NULLABLE   filePath)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return get_ATA_Log(device, ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG, "SATA_Phy_Event_Counters", "bin", true, false,
                            false, M_NULLPTR, 0, filePath, 0, 0);
@@ -1538,14 +1627,18 @@ eReturnValues get_SATA_Phy_Event_Counters_Log(const tDevice* device, const char*
     }
 }
 
-eReturnValues get_Device_Statistics_Log(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_Device_Statistics_Log(const tDevice* M_NONNULL device,
+                                                               const char* M_NULLABLE   filePath)
 {
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         return get_ATA_Log(device, ATA_LOG_DEVICE_STATISTICS, "Device_Statistics", "bin", true, true, false, M_NULLPTR,
                            0, filePath, 0, 0);
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return get_SCSI_Log(device, LP_GENERAL_STATISTICS_AND_PERFORMANCE, 0, "Device_Statistics", "bin", false,
                             M_NULLPTR, 0, filePath);
@@ -1557,10 +1650,13 @@ eReturnValues get_Device_Statistics_Log(const tDevice* device, const char* fileP
 }
 
 // PowerCondition log
-eReturnValues get_EPC_log(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_EPC_log(const tDevice* M_NONNULL device, const char* M_NULLABLE filePath)
 {
     eReturnValues ret = FAILURE;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // old code was reading address 0x12, however the ACS3 spec says 0x12 is the NCQ Queue Management log and 0x08
         // is the Power Conditions log
@@ -1568,7 +1664,7 @@ eReturnValues get_EPC_log(const tDevice* device, const char* filePath)
             get_ATA_Log(device, ATA_LOG_POWER_CONDITIONS, "EPC", "EPC", true, false, false, M_NULLPTR, 0, filePath,
                         LEGACY_DRIVE_SEC_SIZE * 2, 0); // sending in an override to read both pages in one command - TJE
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         ret = get_SCSI_VPD(device, POWER_CONDITION, "EPC", "EPC", false, M_NULLPTR, 0, filePath);
     }
@@ -1579,16 +1675,24 @@ eReturnValues get_EPC_log(const tDevice* device, const char* filePath)
     return ret;
 }
 
-eReturnValues pull_SCSI_G_List(const tDevice* device, const char* filePath)
+M_DEPRECATED_REASON("Use pull_SCSI_Defect_List() instead to handle both Grown and Primary defect lists and select "
+                    "a different address descriptor type")
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_G_List(const tDevice* M_NONNULL device, const char* M_NULLABLE filePath)
 {
     return pull_SCSI_Defect_List(device, AD_LONG_BLOCK_FORMAT_ADDRESS_DESCRIPTOR, true, false, filePath);
 }
 
-eReturnValues pull_SCSI_Defect_List(const tDevice*          device,
-                                    eSCSIAddressDescriptors format,
-                                    bool                    primaryList,
-                                    bool                    grownList,
-                                    const char*             filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(5)
+M_PARAM_RO(5)
+OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Defect_List(const tDevice* M_NONNULL device,
+                                                           eSCSIAddressDescriptors  format,
+                                                           bool                     primaryList,
+                                                           bool                     grownList,
+                                                           const char* M_NULLABLE   filePath)
 {
     eReturnValues         ret = SUCCESS;
     scsiDefectList2Params defectList2Params;
@@ -1608,9 +1712,13 @@ eReturnValues pull_SCSI_Defect_List(const tDevice*          device,
     return ret;
 }
 
-eReturnValues pull_SCSI_Informational_Exceptions_Log(const tDevice* device, const char* filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Informational_Exceptions_Log(const tDevice* M_NONNULL device,
+                                                                            const char* M_NULLABLE   filePath)
 {
-    if (device->drive_info.drive_type == SCSI_DRIVE)
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         return get_SCSI_Log(device, LP_INFORMATION_EXCEPTIONS, 0, "Informational_Exceptions", "bin", false, M_NULLPTR,
                             0, filePath);
@@ -1621,18 +1729,27 @@ eReturnValues pull_SCSI_Informational_Exceptions_Log(const tDevice* device, cons
     }
 }
 
-eReturnValues get_ATA_Log(const tDevice* device,
-                          uint8_t        logAddress,
-                          const char*    logName,
-                          const char*    fileExtension,
-                          bool           GPL,
-                          bool           SMART,
-                          bool           toBuffer,
-                          uint8_t*       myBuf,
-                          uint32_t       bufSize,
-                          const char*    filePath,
-                          uint32_t       transferSizeBytes,
-                          uint16_t       featureRegister)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(3)
+M_PARAM_RO(3)
+M_NULL_TERM_STRING(4)
+M_PARAM_RO(4)
+M_NONNULL_IF_NONZERO_PARAM(8, 9)
+M_PARAM_WO_SIZE(8, 9)
+M_NULL_TERM_STRING(10)
+M_PARAM_RO(10)
+OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(const tDevice* M_NONNULL device,
+                                                 uint8_t                  logAddress,
+                                                 const char* M_NULLABLE   logName,
+                                                 const char* M_NULLABLE   fileExtension,
+                                                 bool                     GPL,
+                                                 bool                     SMART,
+                                                 bool                     toBuffer,
+                                                 uint8_t* M_NULLABLE      myBuf,
+                                                 uint32_t                 bufSize,
+                                                 const char* M_NULLABLE   filePath,
+                                                 uint32_t                 transferSizeBytes,
+                                                 uint16_t                 featureRegister)
 {
     eReturnValues ret     = UNKNOWN;
     uint32_t      logSize = UINT32_C(0);
@@ -1671,7 +1788,7 @@ eReturnValues get_ATA_Log(const tDevice* device,
         bool            fileOpened = false;
         secureFileInfo* fp_log     = M_NULLPTR;
         uint8_t*        logBuffer  = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (logBuffer == M_NULLPTR)
         {
             perror("Calloc Failure!\n");
@@ -1685,8 +1802,8 @@ eReturnValues get_ATA_Log(const tDevice* device,
             uint16_t numberOfLogPages   = C_CAST(uint16_t, logSize / LEGACY_DRIVE_SEC_SIZE);
             uint16_t pagesToReadNow     = UINT16_C(1);
             uint16_t currentPage        = UINT16_C(0);
-            if (device->drive_info.interface_type != USB_INTERFACE &&
-                device->drive_info.interface_type != IEEE_1394_INTERFACE)
+            if (get_Device_InterfaceType(device) != USB_INTERFACE &&
+                get_Device_InterfaceType(device) != IEEE_1394_INTERFACE)
             {
                 pagesToReadAtATime = 32;
             }
@@ -1997,15 +2114,24 @@ eReturnValues get_ATA_Log(const tDevice* device,
 //
 //-----------------------------------------------------------------------------
 
-eReturnValues get_SCSI_Log(const tDevice* device,
-                           uint8_t        logAddress,
-                           uint8_t        subpage,
-                           const char*    logName,
-                           const char*    fileExtension,
-                           bool           toBuffer,
-                           uint8_t*       myBuf,
-                           uint32_t       bufSize,
-                           const char*    filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(4)
+M_PARAM_RO(4)
+M_NULL_TERM_STRING(5)
+M_PARAM_RO(5)
+M_NONNULL_IF_NONZERO_PARAM(7, 8)
+M_PARAM_WO_SIZE(7, 8)
+M_NULL_TERM_STRING(9)
+M_PARAM_RO(9)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log(const tDevice* M_NONNULL device,
+                                                  uint8_t                  logAddress,
+                                                  uint8_t                  subpage,
+                                                  const char* M_NULLABLE   logName,
+                                                  const char* M_NULLABLE   fileExtension,
+                                                  bool                     toBuffer,
+                                                  uint8_t* M_NULLABLE      myBuf,
+                                                  uint32_t                 bufSize,
+                                                  const char* M_NULLABLE   filePath)
 {
     eReturnValues   ret       = UNKNOWN;
     uint32_t        pageLen   = UINT32_C(0);
@@ -2035,7 +2161,7 @@ eReturnValues get_SCSI_Log(const tDevice* device,
         else
         {
             logBuffer = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(pageLen, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(pageLen, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         }
         if (logBuffer == M_NULLPTR)
         {
@@ -2137,14 +2263,23 @@ eReturnValues get_SCSI_Log(const tDevice* device,
     return ret;
 }
 
-eReturnValues get_SCSI_VPD(const tDevice* device,
-                           uint8_t        pageCode,
-                           const char*    logName,
-                           const char*    fileExtension,
-                           bool           toBuffer,
-                           uint8_t*       myBuf,
-                           uint32_t       bufSize,
-                           const char*    filePath)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(3)
+M_PARAM_RO(3)
+M_NULL_TERM_STRING(4)
+M_PARAM_RO(4)
+M_NONNULL_IF_NONZERO_PARAM(6, 7)
+M_PARAM_WO_SIZE(6, 7)
+M_NULL_TERM_STRING(8)
+M_PARAM_RO(8)
+OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD(const tDevice* M_NONNULL device,
+                                                  uint8_t                  pageCode,
+                                                  const char* M_NULLABLE   logName,
+                                                  const char* M_NULLABLE   fileExtension,
+                                                  bool                     toBuffer,
+                                                  uint8_t* M_NULLABLE      myBuf,
+                                                  uint32_t                 bufSize,
+                                                  const char* M_NULLABLE   filePath)
 {
     eReturnValues ret             = UNKNOWN;
     uint32_t      vpdBufferLength = UINT32_C(0);
@@ -2161,7 +2296,7 @@ eReturnValues get_SCSI_VPD(const tDevice* device,
     {
         secureFileInfo* fp_vpd    = M_NULLPTR;
         uint8_t*        vpdBuffer = M_REINTERPRET_CAST(
-            uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), device->os_info.minimumAlignment));
+            uint8_t*, safe_calloc_aligned(vpdBufferLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         bool fileOpened = false;
         if (vpdBuffer == M_NULLPTR)
         {
@@ -2258,14 +2393,19 @@ eReturnValues get_SCSI_VPD(const tDevice* device,
     return ret;
 }
 
-static eReturnValues ata_Pull_Telemetry_Log(const tDevice* device,
-                                            bool           currentOrSaved,
-                                            uint8_t        islDataSet,
-                                            bool           saveToFile,
-                                            uint8_t*       ptrData,
-                                            uint32_t       dataSize,
-                                            const char*    filePath,
-                                            uint32_t       transferSizeBytes)
+M_PARAM_RO(1)
+M_NONNULL_IF_NONZERO_PARAM(5, 6)
+M_PARAM_WO_SIZE(5, 6)
+M_NULL_TERM_STRING(7)
+M_PARAM_RO(7)
+static eReturnValues ata_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
+                                            bool                     currentOrSaved,
+                                            uint8_t                  islDataSet,
+                                            bool                     saveToFile,
+                                            uint8_t* M_NULLABLE      ptrData,
+                                            uint32_t                 dataSize,
+                                            const char* M_NULLABLE   filePath,
+                                            uint32_t                 transferSizeBytes)
 {
     eReturnValues   ret = SUCCESS;
     secureFileInfo* isl = M_NULLPTR;
@@ -2273,8 +2413,8 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* device,
     {
         return BAD_PARAMETER;
     }
-    uint8_t* dataBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* dataBuffer = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t),
+                                                                           get_Device_IO_Minimum_Alignment(device)));
     if (dataBuffer == M_NULLPTR)
     {
         perror("calloc failure");
@@ -2414,8 +2554,8 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* device,
                 }
                 // increment pageNumber to 1 and reallocate the local data buffer
                 pageNumber += 1;
-                temp = C_CAST(uint8_t*,
-                              safe_realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment));
+                temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuffer, 512, pullChunkSize,
+                                                             get_Device_IO_Minimum_Alignment(device)));
                 if (temp == M_NULLPTR)
                 {
                     safe_free_aligned(&dataBuffer);
@@ -2540,14 +2680,19 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* device,
     return ret;
 }
 
-static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* device,
-                                             bool           currentOrSaved,
-                                             uint8_t        islDataSet,
-                                             bool           saveToFile,
-                                             uint8_t*       ptrData,
-                                             uint32_t       dataSize,
-                                             const char*    filePath,
-                                             uint32_t       transferSizeBytes)
+M_PARAM_RO(1)
+M_NONNULL_IF_NONZERO_PARAM(5, 6)
+M_PARAM_WO_SIZE(5, 6)
+M_NULL_TERM_STRING(7)
+M_PARAM_RO(7)
+static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
+                                             bool                     currentOrSaved,
+                                             uint8_t                  islDataSet,
+                                             bool                     saveToFile,
+                                             uint8_t* M_NULLABLE      ptrData,
+                                             uint32_t                 dataSize,
+                                             const char* M_NULLABLE   filePath,
+                                             uint32_t                 transferSizeBytes)
 {
     eReturnValues   ret          = SUCCESS;
     secureFileInfo* isl          = M_NULLPTR;
@@ -2558,7 +2703,7 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* device,
         return BAD_PARAMETER;
     }
     uint8_t* dataBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
 
 #ifdef _DEBUG
     printf("--> %s\n", __FUNCTION__);
@@ -2759,8 +2904,8 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* device,
                 }
                 // increment pageNumber to 1 and reallocate the local data buffer
                 pageNumber += UINT32_C(1);
-                temp = C_CAST(uint8_t*,
-                              safe_realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment));
+                temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuffer, 512, pullChunkSize,
+                                                             get_Device_IO_Minimum_Alignment(device)));
                 if (temp == M_NULLPTR)
                 {
                     safe_free_aligned(&dataBuffer);
@@ -2872,14 +3017,19 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* device,
     return ret;
 }
 
-static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* device,
-                                             bool           currentOrSaved,
-                                             uint8_t        islDataSet,
-                                             bool           saveToFile,
-                                             uint8_t*       ptrData,
-                                             uint32_t       dataSize,
-                                             const char*    filePath,
-                                             uint32_t       transferSizeBytes)
+M_PARAM_RO(1)
+M_NONNULL_IF_NONZERO_PARAM(5, 6)
+M_PARAM_WO_SIZE(5, 6)
+M_NULL_TERM_STRING(7)
+M_PARAM_RO(7)
+static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
+                                             bool                     currentOrSaved,
+                                             uint8_t                  islDataSet,
+                                             bool                     saveToFile,
+                                             uint8_t* M_NULLABLE      ptrData,
+                                             uint32_t                 dataSize,
+                                             const char* M_NULLABLE   filePath,
+                                             uint32_t                 transferSizeBytes)
 {
     eReturnValues   ret = SUCCESS;
     secureFileInfo* isl = M_NULLPTR;
@@ -2888,7 +3038,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* device,
         return BAD_PARAMETER;
     }
     uint8_t* dataBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (dataBuffer == M_NULLPTR)
     {
         perror("calloc failure");
@@ -3048,8 +3198,8 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* device,
                 }
                 // increment pageNumber to 1 and reallocate the local data buffer
                 pageNumber += UINT32_C(1);
-                temp = C_CAST(uint8_t*,
-                              safe_realloc_aligned(dataBuffer, 512, pullChunkSize, device->os_info.minimumAlignment));
+                temp = C_CAST(uint8_t*, safe_realloc_aligned(dataBuffer, 512, pullChunkSize,
+                                                             get_Device_IO_Minimum_Alignment(device)));
                 if (temp == M_NULLPTR)
                 {
                     safe_free_aligned(&dataBuffer);
@@ -3173,17 +3323,22 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* device,
     return ret;
 }
 
-eReturnValues pull_Telemetry_Log(const tDevice* device,
-                                 bool           currentOrSaved,
-                                 uint8_t        islDataSet,
-                                 bool           saveToFile,
-                                 uint8_t*       ptrData,
-                                 uint32_t       dataSize,
-                                 const char*    filePath,
-                                 uint32_t       transferSizeBytes)
+M_PARAM_RO(1)
+M_NONNULL_IF_NONZERO_PARAM(5, 6)
+M_PARAM_WO_SIZE(5, 6)
+M_NULL_TERM_STRING(7)
+M_PARAM_RO(7)
+OPENSEA_OPERATIONS_API eReturnValues pull_Telemetry_Log(const tDevice* M_NONNULL device,
+                                                        bool                     currentOrSaved,
+                                                        uint8_t                  islDataSet,
+                                                        bool                     saveToFile,
+                                                        uint8_t* M_NULLABLE      ptrData,
+                                                        uint32_t                 dataSize,
+                                                        const char* M_NULLABLE   filePath,
+                                                        uint32_t                 transferSizeBytes)
 {
     eReturnValues ret = NOT_SUPPORTED;
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         ret = ata_Pull_Telemetry_Log(device, currentOrSaved, islDataSet, saveToFile, ptrData, dataSize, filePath,
@@ -3203,11 +3358,12 @@ eReturnValues pull_Telemetry_Log(const tDevice* device,
     return ret;
 }
 
-eReturnValues print_Supported_Logs(const tDevice* device, uint64_t flags)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues print_Supported_Logs(const tDevice* M_NONNULL device, uint64_t flags)
 {
     eReturnValues retStatus = NOT_SUPPORTED;
 
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         retStatus = print_Supported_ATA_Logs(device, flags);
@@ -3225,11 +3381,12 @@ eReturnValues print_Supported_Logs(const tDevice* device, uint64_t flags)
     return retStatus;
 }
 
-eReturnValues print_Supported_SCSI_Logs(const tDevice* device, uint64_t flags)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Logs(const tDevice* M_NONNULL device, uint64_t flags)
 {
     eReturnValues retStatus = NOT_SUPPORTED;
     uint8_t*      logBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -3349,14 +3506,16 @@ static void format_print_ata_logs_info(uint8_t  log,
 
 // To be portable between old & new, SMART and GPL, we need to read both GPL and SMART directory. Combine the results,
 // then show them on screen.
-eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues print_Supported_ATA_Logs(const tDevice* M_NONNULL device, uint64_t flags)
 {
     eReturnValues retStatus           = NOT_SUPPORTED;
     bool          legacyDriveNoLogDir = false;
-    uint8_t*      gplLogBuffer        = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t), device->os_info.minimumAlignment));
-    uint8_t* smartLogBuffer = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t), device->os_info.minimumAlignment));
+    uint8_t* gplLogBuffer = M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t),
+                                                                             get_Device_IO_Minimum_Alignment(device)));
+    uint8_t* smartLogBuffer =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(ATA_LOG_PAGE_LEN_BYTES, sizeof(uint8_t),
+                                                         get_Device_IO_Minimum_Alignment(device)));
     M_USE_UNUSED(flags);
     if (smartLogBuffer != M_NULLPTR)
     {
@@ -3600,7 +3759,8 @@ eReturnValues print_Supported_ATA_Logs(const tDevice* device, uint64_t flags)
     return retStatus;
 }
 
-eReturnValues print_Supported_NVMe_Logs(const tDevice* device, uint64_t flags)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(const tDevice* M_NONNULL device, uint64_t flags)
 {
     eReturnValues retStatus               = NOT_SUPPORTED;
     bool          readSupporteLogPagesLog = false;
@@ -3681,8 +3841,8 @@ eReturnValues print_Supported_NVMe_Logs(const tDevice* device, uint64_t flags)
 
     if (readSupporteLogPagesLog)
     {
-        uint8_t* supportedLogsPage =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(1024, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t* supportedLogsPage = M_REINTERPRET_CAST(
+            uint8_t*, safe_calloc_aligned(1024, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
         if (supportedLogsPage != M_NULLPTR)
         {
             nvmeGetLogPageCmdOpts suptLogOpts;
@@ -3843,10 +4003,11 @@ eReturnValues print_Supported_NVMe_Logs(const tDevice* device, uint64_t flags)
 
 // This function needs a proper rewrite to allow pulling with offsets, other log sizes, pulling to a buffer, and more
 // like the SCSI and ATA functions.
-eReturnValues pull_Supported_NVMe_Logs(const tDevice* device,
-                                       uint8_t        logNum,
-                                       eLogPullMode   mode,
-                                       uint32_t       nvmeLogSizeBytes)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(const tDevice* M_NONNULL device,
+                                                              uint8_t                  logNum,
+                                                              eLogPullMode             mode,
+                                                              uint32_t                 nvmeLogSizeBytes)
 {
     eReturnValues         retStatus = SUCCESS;
     uint64_t              size      = nvmeLogSizeBytes; // set this for now
@@ -3982,12 +4143,14 @@ eReturnValues pull_Supported_NVMe_Logs(const tDevice* device,
     return retStatus;
 }
 
-eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(const tDevice* device, uint64_t flags)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(const tDevice* M_NONNULL device,
+                                                                                   uint64_t                 flags)
 {
     eReturnValues ret                   = NOT_SUPPORTED;
     uint32_t      errorHistorySize      = SCSI_ERROR_HISTORY_DIRECTORY_LEN;
     uint8_t*      errorHistoryDirectory = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(errorHistorySize, sizeof(uint8_t), device->os_info.minimumAlignment));
+        uint8_t*, safe_calloc_aligned(errorHistorySize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     M_USE_UNUSED(flags);
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
     if (errorHistoryDirectory != M_NULLPTR)
@@ -4006,7 +4169,7 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(const tDevice* devic
                 // realloc and re-read
                 uint8_t* temp =
                     M_REINTERPRET_CAST(uint8_t*, safe_realloc_aligned(errorHistoryDirectory, 0, errorHistorySize,
-                                                                      device->os_info.minimumAlignment));
+                                                                      get_Device_IO_Minimum_Alignment(device)));
                 if (temp != M_NULLPTR)
                 {
                     errorHistoryDirectory = temp;
@@ -4064,12 +4227,17 @@ eReturnValues print_Supported_SCSI_Error_History_Buffer_IDs(const tDevice* devic
     return ret;
 }
 
-static eReturnValues pull_Generic_ATA_Log(const tDevice* device,
-                                          uint8_t        logNum,
-                                          eLogPullMode   mode,
-                                          const char*    filePath,
-                                          uint32_t       transferSizeBytes,
-                                          char*          logFileName)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(4)
+M_PARAM_RO(4)
+M_NULL_TERM_STRING(6)
+M_PARAM_RO(6)
+static eReturnValues pull_Generic_ATA_Log(const tDevice* M_NONNULL device,
+                                          uint8_t                  logNum,
+                                          eLogPullMode             mode,
+                                          const char* M_NULLABLE   filePath,
+                                          uint32_t                 transferSizeBytes,
+                                          char* M_NONNULL          logFileName)
 {
     eReturnValues retStatus     = NOT_SUPPORTED;
     uint32_t      logSize       = UINT32_C(0);
@@ -4108,7 +4276,7 @@ static eReturnValues pull_Generic_ATA_Log(const tDevice* device,
         if (SUCCESS == get_ATA_Log_Size(device, logNum, &logSize, true, false))
         {
             genericLogBuf = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             if (genericLogBuf != M_NULLPTR)
             {
                 retStatus = get_ATA_Log(device, logNum, M_NULLPTR, M_NULLPTR, true, false, true, genericLogBuf, logSize,
@@ -4131,12 +4299,17 @@ static eReturnValues pull_Generic_ATA_Log(const tDevice* device,
     return retStatus;
 }
 
-static eReturnValues pull_Generic_SCSI_Log(const tDevice* device,
-                                           uint8_t        logNum,
-                                           uint8_t        subpage,
-                                           eLogPullMode   mode,
-                                           const char*    filePath,
-                                           char*          logFileName)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(5)
+M_PARAM_RO(5)
+M_NULL_TERM_STRING(6)
+M_PARAM_RO(6)
+static eReturnValues pull_Generic_SCSI_Log(const tDevice* M_NONNULL device,
+                                           uint8_t                  logNum,
+                                           uint8_t                  subpage,
+                                           eLogPullMode             mode,
+                                           const char* M_NULLABLE   filePath,
+                                           char* M_NONNULL          logFileName)
 {
     eReturnValues retStatus     = NOT_SUPPORTED;
     uint32_t      logSize       = UINT32_C(0);
@@ -4150,7 +4323,7 @@ static eReturnValues pull_Generic_SCSI_Log(const tDevice* device,
         if (SUCCESS == get_SCSI_Log_Size(device, logNum, subpage, &logSize))
         {
             genericLogBuf = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             if (genericLogBuf != M_NULLPTR)
             {
                 retStatus = get_SCSI_Log(device, logNum, subpage, M_NULLPTR, M_NULLPTR, true, genericLogBuf, logSize,
@@ -4173,19 +4346,22 @@ static eReturnValues pull_Generic_SCSI_Log(const tDevice* device,
     return retStatus;
 }
 
-eReturnValues pull_Generic_Log(const tDevice* device,
-                               uint8_t        logNum,
-                               uint8_t        subpage,
-                               eLogPullMode   mode,
-                               const char*    filePath,
-                               uint32_t       transferSizeBytes,
-                               uint32_t       logLengthOverride)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(5)
+M_PARAM_RO(5)
+OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(const tDevice* M_NONNULL device,
+                                                      uint8_t                  logNum,
+                                                      uint8_t                  subpage,
+                                                      eLogPullMode             mode,
+                                                      const char* M_NULLABLE   filePath,
+                                                      uint32_t                 transferSizeBytes,
+                                                      uint32_t                 logLengthOverride)
 {
     eReturnValues retStatus = NOT_SUPPORTED;
 #define GENERIC_LOG_FILE_NAME_LENGTH 20
 #define LOG_NUMBER_POST_FIX_LENGTH   10
     DECLARE_ZERO_INIT_ARRAY(char, logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH);
-    if (device->drive_info.drive_type == SCSI_DRIVE && subpage != 0)
+    if (get_Device_DriveType(device) == SCSI_DRIVE && subpage != 0)
     {
         snprintf_err_handle(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH, "GENERIC_LOG-%u-%u",
                             logNum, subpage);
@@ -4197,10 +4373,10 @@ eReturnValues pull_Generic_Log(const tDevice* device,
     }
 #ifdef _DEBUG
     printf("%s: Log to Pull %d, mode %d, device type %d\n", __FUNCTION__, logNum, C_CAST(uint8_t, mode),
-           device->drive_info.drive_type);
+           get_Device_DriveType(device));
 #endif
 
-    switch (device->drive_info.drive_type)
+    switch (get_Device_DriveType(device))
     {
     case ATA_DRIVE:
         retStatus = pull_Generic_ATA_Log(device, logNum, mode, filePath, transferSizeBytes, logFileName);
@@ -4217,11 +4393,15 @@ eReturnValues pull_Generic_Log(const tDevice* device,
     return retStatus;
 }
 
-eReturnValues pull_Generic_Error_History(const tDevice* device,
-                                         uint8_t        bufferID,
-                                         eLogPullMode   mode,
-                                         const char*    filePath,
-                                         uint32_t       transferSizeBytes)
+M_PARAM_RO(1)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(4)
+M_PARAM_RO(4)
+OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(const tDevice* M_NONNULL device,
+                                                                uint8_t                  bufferID,
+                                                                eLogPullMode             mode,
+                                                                const char* M_NULLABLE   filePath,
+                                                                uint32_t                 transferSizeBytes)
 {
     eReturnValues retStatus     = NOT_SUPPORTED;
     uint32_t      logSize       = UINT32_C(0);
@@ -4243,7 +4423,7 @@ eReturnValues pull_Generic_Error_History(const tDevice* device,
         if (SUCCESS == get_SCSI_Error_History_Size(device, bufferID, &logSize, false, rb16))
         {
             genericLogBuf = M_REINTERPRET_CAST(
-                uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             if (genericLogBuf)
             {
                 retStatus = get_SCSI_Error_History(device, bufferID, M_NULLPTR, false, rb16, M_NULLPTR, true,
@@ -4266,14 +4446,17 @@ eReturnValues pull_Generic_Error_History(const tDevice* device,
     return retStatus;
 }
 
-eReturnValues pull_FARM_LogPage(const tDevice*           device,
-                                const char*              filePath,
-                                uint32_t                 transferSizeBytes,
-                                uint32_t                 issueFactory,
-                                uint16_t                 logPage,
-                                uint8_t                  logAddress,
-                                eLogPullMode             mode,
-                                eLogFileNamingConvention fileNameType)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL device,
+                                                       const char* M_NULLABLE   filePath,
+                                                       uint32_t                 transferSizeBytes,
+                                                       uint32_t                 issueFactory,
+                                                       uint16_t                 logPage,
+                                                       uint8_t                  logAddress,
+                                                       eLogPullMode             mode,
+                                                       eLogFileNamingConvention fileNameType)
 {
     bool            fileOpened         = false;
     secureFileInfo* fp_log             = M_NULLPTR;
@@ -4284,10 +4467,10 @@ eReturnValues pull_FARM_LogPage(const tDevice*           device,
     uint16_t        numberOfLogPages   = C_CAST(uint16_t, FARM_SUBLOGPAGE_LEN / LEGACY_DRIVE_SEC_SIZE);
     uint8_t*        logBuffer =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned((SIZE_T_C(32) * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t),
-                                                         device->os_info.minimumAlignment));
+                                                         get_Device_IO_Minimum_Alignment(device)));
     DECLARE_ZERO_INIT_ARRAY(char, logType, OPENSEA_PATH_MAX);
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         switch (mode)
         {
@@ -4299,8 +4482,8 @@ eReturnValues pull_FARM_LogPage(const tDevice*           device,
         case PULL_LOG_BIN_FILE_MODE:
         default:
             snprintf_err_handle(logType, OPENSEA_PATH_MAX, "FARM_PAGE_%d", logPage);
-            if (device->drive_info.interface_type != USB_INTERFACE &&
-                device->drive_info.interface_type != IEEE_1394_INTERFACE)
+            if (get_Device_InterfaceType(device) != USB_INTERFACE &&
+                get_Device_InterfaceType(device) != IEEE_1394_INTERFACE)
             {
                 pagesToReadAtATime = 32;
             }
@@ -4405,19 +4588,22 @@ eReturnValues pull_FARM_LogPage(const tDevice*           device,
     return ret;
 }
 
-eReturnValues pull_FARM_Log(const tDevice*           device,
-                            const char*              filePath,
-                            uint32_t                 transferSizeBytes,
-                            uint32_t                 issueFactory,
-                            uint8_t                  logAddress,
-                            eLogPullMode             mode,
-                            eLogFileNamingConvention fileNameType)
+M_PARAM_RO(1)
+M_NULL_TERM_STRING(2)
+M_PARAM_RO(2)
+OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL device,
+                                                   const char* M_NULLABLE   filePath,
+                                                   uint32_t                 transferSizeBytes,
+                                                   uint32_t                 issueFactory,
+                                                   uint8_t                  logAddress,
+                                                   eLogPullMode             mode,
+                                                   eLogFileNamingConvention fileNameType)
 {
     eReturnValues ret           = UNKNOWN;
     uint32_t      logSize       = UINT32_C(0);
     uint8_t*      genericLogBuf = M_NULLPTR;
     const char*   logName       = M_NULLPTR;
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         switch (logAddress)
         {
@@ -4425,8 +4611,8 @@ eReturnValues pull_FARM_Log(const tDevice*           device,
             ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
             if (ret == SUCCESS && logSize > 0)
             {
-                genericLogBuf =
-                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                genericLogBuf = C_CAST(
+                    uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             }
             else
             {
@@ -4571,8 +4757,8 @@ eReturnValues pull_FARM_Log(const tDevice*           device,
             ret = get_ATA_Log_Size(device, logAddress, &logSize, true, false);
             if (ret == SUCCESS && logSize > 0)
             {
-                genericLogBuf =
-                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                genericLogBuf = C_CAST(
+                    uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
             }
             else
             {
@@ -4721,14 +4907,14 @@ eReturnValues pull_FARM_Log(const tDevice*           device,
             }
         }
     }
-    else if (device->drive_info.drive_type == SCSI_DRIVE)
+    else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         if (issueFactory == 4)
         {
             if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
             {
-                genericLogBuf =
-                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                genericLogBuf = C_CAST(
+                    uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
                 if (genericLogBuf)
                 {
                     ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, M_NULLPTR, M_NULLPTR, true,
@@ -4748,8 +4934,8 @@ eReturnValues pull_FARM_Log(const tDevice*           device,
         {
             if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
             {
-                genericLogBuf =
-                    C_CAST(uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), device->os_info.minimumAlignment));
+                genericLogBuf = C_CAST(
+                    uint8_t*, safe_calloc_aligned(logSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
                 if (genericLogBuf)
                 {
                     ret = get_SCSI_Log(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_CURRENT, M_NULLPTR, M_NULLPTR, true,
@@ -4878,7 +5064,7 @@ eReturnValues pull_FARM_Log(const tDevice*           device,
     return ret;
 }
 
-bool is_FARM_Log_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Log_Supported(const tDevice* M_NONNULL device)
 {
     bool     supported = false;
     uint32_t logSize   = UINT32_C(0);
@@ -4887,12 +5073,12 @@ bool is_FARM_Log_Supported(const tDevice* device)
 #endif
     // NOLINTBEGIN(bugprone-branch-clone)
     // Disabling clang-tidy for readability
-    if ((device->drive_info.drive_type == ATA_DRIVE) &&
+    if ((get_Device_DriveType(device) == ATA_DRIVE) &&
         (get_ATA_Log_Size(device, 0xA6, &logSize, true, false) == SUCCESS))
     {
         supported = true;
     }
-    else if ((device->drive_info.drive_type == SCSI_DRIVE) &&
+    else if ((get_Device_DriveType(device) == SCSI_DRIVE) &&
              (get_SCSI_Log_Size(device, 0x3D, 0x03, &logSize) == SUCCESS))
     {
         supported = true;
@@ -4906,7 +5092,7 @@ bool is_FARM_Log_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_Factory_FARM_Log_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_Factory_FARM_Log_Supported(const tDevice* M_NONNULL device)
 {
     bool     supported = false;
     uint32_t logSize   = UINT32_C(0);
@@ -4914,7 +5100,7 @@ bool is_Factory_FARM_Log_Supported(const tDevice* device)
     printf("%s -->\n", __FUNCTION__);
 #endif
 
-    if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0x04, &logSize) == SUCCESS))
+    if ((get_Device_DriveType(device) == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0x04, &logSize) == SUCCESS))
     {
         supported = true;
     }
@@ -4926,7 +5112,7 @@ bool is_Factory_FARM_Log_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_FARM_Time_Series_Log_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Time_Series_Log_Supported(const tDevice* M_NONNULL device)
 {
     bool     supported = false;
     uint32_t logSize   = UINT32_C(0);
@@ -4936,12 +5122,12 @@ bool is_FARM_Time_Series_Log_Supported(const tDevice* device)
 
     // NOLINTBEGIN(bugprone-branch-clone)
     // Disabling clang-tidy for readability
-    if ((device->drive_info.drive_type == ATA_DRIVE) &&
+    if ((get_Device_DriveType(device) == ATA_DRIVE) &&
         (get_ATA_Log_Size(device, 0xC6, &logSize, true, false) == SUCCESS))
     {
         supported = true;
     }
-    else if ((device->drive_info.drive_type == SCSI_DRIVE) &&
+    else if ((get_Device_DriveType(device) == SCSI_DRIVE) &&
              (get_SCSI_Log_Size(device, 0x3D, 0x10, &logSize) == SUCCESS))
     {
         supported = true;
@@ -4955,7 +5141,7 @@ bool is_FARM_Time_Series_Log_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_FARM_Sticky_Log_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Sticky_Log_Supported(const tDevice* M_NONNULL device)
 {
     bool     supported = false;
     uint32_t logSize   = UINT32_C(0);
@@ -4963,7 +5149,7 @@ bool is_FARM_Sticky_Log_Supported(const tDevice* device)
     printf("%s -->\n", __FUNCTION__);
 #endif
 
-    if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0xC2, &logSize) == SUCCESS))
+    if ((get_Device_DriveType(device) == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0xC2, &logSize) == SUCCESS))
     {
         supported = true;
     }
@@ -4975,7 +5161,7 @@ bool is_FARM_Sticky_Log_Supported(const tDevice* device)
     return supported;
 }
 
-bool is_FARM_Long_Saved_Log_Supported(const tDevice* device)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_FARM_Long_Saved_Log_Supported(const tDevice* M_NONNULL device)
 {
     bool     supported = false;
     uint32_t logSize   = UINT32_C(0);
@@ -4983,7 +5169,7 @@ bool is_FARM_Long_Saved_Log_Supported(const tDevice* device)
     printf("%s -->\n", __FUNCTION__);
 #endif
 
-    if ((device->drive_info.drive_type == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0xC0, &logSize) == SUCCESS))
+    if ((get_Device_DriveType(device) == SCSI_DRIVE) && (get_SCSI_Log_Size(device, 0x3D, 0xC0, &logSize) == SUCCESS))
     {
         supported = true;
     }

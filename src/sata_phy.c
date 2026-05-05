@@ -29,6 +29,7 @@
 #include "sata_phy.h"
 
 M_PARAM_WO(1)
+M_PARAM_RO_SIZE(2, 3)
 static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters M_NONNULL counters,
                                                        uint8_t* M_NONNULL                phyEventLog,
                                                        uint32_t                          dataLength)
@@ -108,8 +109,10 @@ static M_INLINE void fill_SATA_Phy_Events_To_Structure(ptrSATAPhyEventCounters M
     }
 }
 
-eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          device,
-                                                   ptrSATAPhyEventCounters counters /* optional */)
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API
+eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice* M_NONNULL           device,
+                                                   ptrSATAPhyEventCounters M_NULLABLE counters /* optional */)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -118,7 +121,7 @@ eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          devic
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         if (is_ATA_Identify_Word_Valid_SATA(le16_to_host(device->drive_info.IdentifyData.ata.Word076)) &&
             le16_to_host(device->drive_info.IdentifyData.ata.Word076) & BIT10)
@@ -139,7 +142,10 @@ eReturnValues reinitialize_SATA_Phy_Event_Counters(const tDevice*          devic
     return ret;
 }
 
-eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEventCounters counters)
+M_PARAM_RO(1)
+M_PARAM_WO(2)
+OPENSEA_OPERATIONS_API eReturnValues get_SATA_Phy_Event_Counters(const tDevice* M_NONNULL          device,
+                                                                 ptrSATAPhyEventCounters M_NONNULL counters)
 {
     eReturnValues ret = NOT_SUPPORTED;
 
@@ -148,7 +154,7 @@ eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEvent
         return BAD_PARAMETER;
     }
 
-    if (device->drive_info.drive_type == ATA_DRIVE)
+    if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         // check the ID bits that show this is supported, then just read the page.
         // SATA defines this as 512B and no more.
@@ -168,7 +174,7 @@ eReturnValues get_SATA_Phy_Event_Counters(const tDevice* device, ptrSATAPhyEvent
     return ret;
 }
 
-void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters counters)
+M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAPhyEventCounters M_NONNULL counters)
 {
 
     if (counters != M_NULLPTR && counters->valid)

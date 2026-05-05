@@ -44,7 +44,7 @@ extern "C"
     M_PARAM_RO(1)
     M_PARAM_WO(4)
     OPENSEA_OPERATIONS_API bool is_Write_Same_Supported(const tDevice* M_NONNULL device,
-                                                        uint64_t                 startingLBA,
+                                                        M_ATTR_UNUSED uint64_t   startingLBA,
                                                         uint64_t                 requesedNumberOfLogicalBlocks,
                                                         uint64_t* M_NULLABLE     maxNumberOfLogicalBlocksPerCommand);
 

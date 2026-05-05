@@ -984,7 +984,9 @@ extern "C"
                                                             bool                     stopOnError,
                                                             bool                     repairOnTheFly,
                                                             bool                     repairAtEnd,
-                                                            bool                     hideLBACounter);
+                                                            bool                     hideLBACounter,
+                                                            custom_Update M_NULLABLE updateFunction,
+                                                            void* M_NULLABLE         updateData);
 
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues user_Timed_Test(const tDevice* M_NONNULL device,
