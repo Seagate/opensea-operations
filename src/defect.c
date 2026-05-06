@@ -348,6 +348,21 @@ static eReturnValues fill_Defect_List(ptrSCSIDefectList M_NONNULL ptrDefects,
     return ret;
 }
 
+// Checks that sizeof(scsiDefectList) + defectAlloc will not wrap size_t.
+// Returns SUCCESS if the addition is safe, MEMORY_FAILURE if it would overflow.
+// uint64_to_sizet() saturates to SIZE_MAX on 32-bit platforms when the true
+// product exceeds SIZE_MAX, so without this guard the wrap-around sum would
+// produce a tiny allocation that bypasses the per-element bounds checks in
+// fill_Defect_List.
+static M_INLINE eReturnValues check_Defect_List_Allocation(defectListSizeInfo sizeInfo)
+{
+    if (sizeInfo.defectAlloc > (SIZE_MAX - sizeof(scsiDefectList)))
+    {
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
+
 // one 10 or 12B read of the full list
 M_PARAM_RW(4)
 M_PARAM_RW(6)
@@ -385,6 +400,11 @@ static eReturnValues get_SCSI_Defects_Single_Command(scsiDefectDataIn   defectRe
         ret                      = get_SCSI_Defect_Data(defectRequest, &defectResult);
         if (SUCCESS == ret)
         {
+            if (check_Defect_List_Allocation(sizeInfo) != SUCCESS)
+            {
+                safe_free_aligned(&defectData);
+                return MEMORY_FAILURE;
+            }
             // now allocate our list to return to the caller!
             size_t defectListAllocSize = sizeof(scsiDefectList) + sizeInfo.defectAlloc;
             if (defects != M_NULLPTR)
@@ -478,6 +498,11 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn   defectRequ
     if (defectData != M_NULLPTR)
     {
         ptrSCSIDefectList ptrDefects          = M_NULLPTR;
+        if (check_Defect_List_Allocation(sizeInfo) != SUCCESS)
+        {
+            safe_free_aligned(&defectData);
+            return MEMORY_FAILURE;
+        }
         size_t            defectListAllocSize = sizeof(scsiDefectList) + sizeInfo.defectAlloc;
         defectRequest.defectData              = defectData;
         if (defects != M_NULLPTR)
