@@ -458,7 +458,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)farm_log.c\
 	$(SRC_DIR)partition_info.c\
 	$(SRC_DIR)ata_device_config_overlay.c\
-	$(SRC_DIR)sata_phy.c
+	$(SRC_DIR)sata_phy.c\
+	$(SRC_DIR)operations_json.c
 
 #Only define public stuff
 PROJECT_DEFINES += $(VMW_EXTRA_DEFS)#-DDISABLE_NVME_PASSTHROUGH  #-D_DEBUG

@@ -690,6 +690,7 @@
     <ClInclude Include="..\..\..\..\include\trim_unmap.h" />
     <ClInclude Include="..\..\..\..\include\writesame.h" />
     <ClInclude Include="..\..\..\..\include\zoned_operations.h" />
+    <ClInclude Include="..\..\..\..\include\operations_json.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\ata_device_config_overlay.c" />
@@ -722,6 +723,7 @@
     <ClCompile Include="..\..\..\..\src\trim_unmap.c" />
     <ClCompile Include="..\..\..\..\src\writesame.c" />
     <ClCompile Include="..\..\..\..\src\zoned_operations.c" />
+    <ClCompile Include="..\..\..\..\src\operations_json.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

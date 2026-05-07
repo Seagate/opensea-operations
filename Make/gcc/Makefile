@@ -138,7 +138,8 @@ LIB_SRC_FILES = \
 	$(SRC_DIR)reservations.c\
 	$(SRC_DIR)partition_info.c\
 	$(SRC_DIR)ata_device_config_overlay.c\
-	$(SRC_DIR)sata_phy.c
+	$(SRC_DIR)sata_phy.c\
+	$(SRC_DIR)operations_json.c
 
 UNAME := $(shell uname)
 
