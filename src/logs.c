@@ -192,7 +192,7 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
 {
     eReturnValues ret = NOT_SUPPORTED; // assume the log is not supported
     uint8_t*      logBuffer =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), device->os_info.minimumAlignment));
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -200,7 +200,7 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
     *logFileSize = 0;
     // first check that the logpage is supported
     if (logSubPage != 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES,
-                                                         LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, 255))
+                                                         LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH))
     {
         // validate the page code and subpage code
         uint8_t pageCode    = get_bit_range_uint8(logBuffer[0], 5, 0);
@@ -208,8 +208,11 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
         bool    spf         = M_ToBool(logBuffer[0] & BIT6);
         if (spf && pageCode == LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES && subpageCode == 0xFF)
         {
-            uint16_t pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH;
-            uint16_t pageLen = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+            uint32_t pageSupportIter = UINT32_C(0);
+            uint32_t pageLen = M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+            // Cap one below the buffer end: each iteration reads a 2-byte (page,subpage) pair,
+            // so the last valid starting index is buffer_size - 2.
+            pageLen = M_Min(pageLen, M_STATIC_CAST(uint32_t, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH) - UINT32_C(1));
             // search the buffer for the page we want
             for (pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH; pageSupportIter < pageLen; pageSupportIter += 2)
             {
@@ -230,10 +233,11 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
         }
     }
     else if (logSubPage == 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES,
-                                                              LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, 255))
+                                                              LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, SCSI_LOG_SUPPORTED_PAGES_MAX_LENGTH))
     {
-        uint16_t pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH;
-        uint16_t pageLen         = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+        uint32_t pageSupportIter = UINT32_C(0);
+        uint32_t pageLen         = M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+        pageLen = M_Min(pageLen, M_STATIC_CAST(uint32_t, SCSI_LOG_SUPPORTED_PAGES_MAX_LENGTH));
         // search the buffer for the page we want
         for (pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH; pageSupportIter < pageLen; ++pageSupportIter)
         {
@@ -247,7 +251,7 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
     // we know the page is supported, but to get the size, we need to try reading it.
     if (ret == SUCCESS)
     {
-        safe_memset(logBuffer, 255, 0, 255);
+        safe_memset(logBuffer, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH, 0, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH);
         // only requesting the header since this should get us the total length.
         // If this fails, we return success, but a size of zero. This shouldn't happen, but there are firmware bugs...
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logPage, logSubPage, 0, logBuffer,
@@ -2049,7 +2053,7 @@ eReturnValues get_SCSI_Log(const tDevice* device,
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logAddress, subpage, 0, logBuffer,
                                C_CAST(uint16_t, pageLen)) == SUCCESS)
         {
-            uint16_t returnedPageLength = M_BytesTo2ByteValue(logBuffer[2], logBuffer[3]) + LOG_PAGE_HEADER_LENGTH;
+            uint32_t returnedPageLength = M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + LOG_PAGE_HEADER_LENGTH;
             ret                         = SUCCESS;
             if (!toBuffer && logName && fileExtension) // Because you can also get a log file & get it in buffer.
             {

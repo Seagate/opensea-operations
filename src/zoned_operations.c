@@ -24,6 +24,13 @@
 
 #include "zoned_operations.h"
 
+#define ZONE_DESCRIPTOR_LENGTH 64
+
+//! \def MAX_ZONE_DESCRIPTOR_COUNT
+//! \brief This is the maximum number of zone descriptors that can be returned in a single report zones command.
+//! This is based on a UINT32_MAX reporting length divided by the 64 bytes per zone descriptor.
+#define MAX_ZONE_DESCRIPTOR_COUNT UINT32_C(67108863)
+
 eReturnValues get_Number_Of_Zones(const tDevice*        device,
                                   eZoneReportingOptions reportingOptions,
                                   uint64_t              startingLBA,
@@ -56,7 +63,7 @@ eReturnValues get_Number_Of_Zones(const tDevice*        device,
     {
         return ret;
     }
-    *numberOfMatchingZones = zoneListLength / 64;
+    *numberOfMatchingZones = zoneListLength / ZONE_DESCRIPTOR_LENGTH;
     return SUCCESS;
 }
 
@@ -87,12 +94,12 @@ eReturnValues get_Zone_Descriptors(const tDevice*        device,
     uint64_t zoneMaxLBA  = device->drive_info.deviceMaxLba; // start with this...change later.
     uint32_t zoneIter    = UINT32_C(0);
     for (uint32_t pullIter = UINT32_C(0); pullIter < dataBytesToRequest;
-         pullIter += (sectorCount * LEGACY_DRIVE_SEC_SIZE - 64))
+         pullIter += (sectorCount * LEGACY_DRIVE_SEC_SIZE - ZONE_DESCRIPTOR_LENGTH))
     {
         uint32_t localListLength = UINT32_C(0);
         if ((pullIter + (sectorCount * LEGACY_DRIVE_SEC_SIZE)) > dataBytesToRequest)
         {
-            sectorCount = (dataBytesToRequest - pullIter + 64 + (LEGACY_DRIVE_SEC_SIZE - 1)) /
+            sectorCount = (dataBytesToRequest - pullIter + ZONE_DESCRIPTOR_LENGTH + (LEGACY_DRIVE_SEC_SIZE - 1)) /
                           LEGACY_DRIVE_SEC_SIZE; // rounds to nearest 512B
         }
         if (device->drive_info.drive_type == ATA_DRIVE)
@@ -122,9 +129,9 @@ eReturnValues get_Zone_Descriptors(const tDevice*        device,
             return ret;
         }
         // fill in the returned zones.
-        for (uint32_t byteIter = UINT32_C(64); zoneIter < numberOfZoneDescriptors && byteIter <= localListLength &&
+        for (uint32_t byteIter = ZONE_DESCRIPTOR_LENGTH; zoneIter < numberOfZoneDescriptors && byteIter <= localListLength &&
                                                byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount);
-             ++zoneIter, byteIter += 64)
+             ++zoneIter, byteIter += ZONE_DESCRIPTOR_LENGTH)
         {
             zoneDescriptors[zoneIter].descriptorValid = true;
             zoneDescriptors[zoneIter].zoneType        = C_CAST(eZoneType, M_Nibble0(reportZones[byteIter + 0]));

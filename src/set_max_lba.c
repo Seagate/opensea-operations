@@ -565,11 +565,14 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(const tDevice* d
                 // header is first 8bytes
                 uint32_t numberOfDescriptors =
                     M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
-                uint32_t capModelMappingSz =
-                    C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
-                                         (sizeof(capacityModelDescriptor) * numberOfDescriptors));
+                uint64_t capModelMappingTotalBytes =
+                    M_STATIC_CAST(uint64_t, sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
+                    (M_STATIC_CAST(uint64_t, numberOfDescriptors) * M_STATIC_CAST(uint64_t, sizeof(capacityModelDescriptor)));
+                size_t capModelMappingSz = uint64_to_sizet(capModelMappingTotalBytes);
+                if (M_STATIC_CAST(uint64_t, capModelMappingSz) == capModelMappingTotalBytes)
+                {
                 capModelMapping =
-                    M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(capModelMappingSz, sizeof(uint8_t)));
+                    M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(1, capModelMappingSz));
                 if (capModelMapping != M_NULLPTR)
                 {
                     capModelMapping->numberOfDescriptors = numberOfDescriptors;
@@ -604,6 +607,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(const tDevice* d
                             capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                     }
                 }
+                } // M_STATIC_CAST(uint64_t, capModelMappingSz) == capModelMappingTotalBytes
             }
             safe_free_aligned_core(C_CAST(void**, &capMNMappingLog));
         }
@@ -626,11 +630,14 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(const tDevice* d
                 // calculate number of descriptors based on page length
                 uint32_t numberOfDescriptors = M_BytesTo2ByteValue(capProdIDMappingVPD[2], capProdIDMappingVPD[3]) /
                                                UINT32_C(48); // Each descriptor is 48B long
-                uint32_t capProdIDMappingSz =
-                    C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
-                                         (sizeof(capacityModelDescriptor) * numberOfDescriptors));
+                uint64_t capProdIDMappingTotalBytes =
+                    M_STATIC_CAST(uint64_t, sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
+                    (M_STATIC_CAST(uint64_t, numberOfDescriptors) * M_STATIC_CAST(uint64_t, sizeof(capacityModelDescriptor)));
+                size_t capProdIDMappingSz = uint64_to_sizet(capProdIDMappingTotalBytes);
+                if (M_STATIC_CAST(uint64_t, capProdIDMappingSz) == capProdIDMappingTotalBytes)
+                {
                 capModelMapping =
-                    M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(capProdIDMappingSz, sizeof(uint8_t)));
+                    M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(1, capProdIDMappingSz));
                 if (capModelMapping != M_NULLPTR)
                 {
                     capModelMapping->numberOfDescriptors = numberOfDescriptors;
@@ -665,6 +672,7 @@ ptrcapacityModelNumberMapping get_Capacity_Model_Number_Mapping(const tDevice* d
                             capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                     }
                 }
+                } // M_STATIC_CAST(uint64_t, capProdIDMappingSz) == capProdIDMappingTotalBytes
             }
             safe_free_aligned(&capProdIDMappingVPD);
         }

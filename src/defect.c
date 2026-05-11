@@ -1633,7 +1633,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevice*   device,
                 {
                     uint16_t pageLength = M_BytesTo2ByteValue(pendingDefectsLog[2],
                                                               pendingDefectsLog[3]); // does not include 4 byte header!
-                    if (pageLength > 4)
+                    if (pageLength > LOG_PAGE_HEADER_LENGTH)
                     {
                         uint32_t pendingDefectCount =
                             1; // will be set in loop shortly...but use this for now to enter the loop
@@ -1643,7 +1643,7 @@ eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevice*   device,
                         for (uint32_t defectCounter = UINT32_C(0);
                              offset < C_CAST(uint32_t, C_CAST(uint32_t, pageLength) + LOG_PAGE_HEADER_LENGTH) &&
                              defectCounter < pendingDefectCount;
-                             offset += (parameterLength + 4))
+                             offset += (C_CAST(uint32_t, parameterLength) + LOG_PAGE_HEADER_LENGTH))
                         {
                             uint16_t parameterCode =
                                 M_BytesTo2ByteValue(pendingDefectsLog[offset + 0], pendingDefectsLog[offset + 1]);
