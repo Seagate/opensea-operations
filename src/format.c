@@ -1679,6 +1679,12 @@ static bool is_ATA_Zero_Ext_Supported_For_MBR_Erase(const tDevice* device)
     return false;
 }
 
+enum
+{
+    MAX_LBA_RANGE_FOR_MBR_ERASE = 1,
+    MAX_LBA_RANGE_FOR_MBR_ERASE_WITH_BRIDGE = 2
+};
+
 // Specific handling for ATA drives. Preference is to use something like write-same or zeroes ext to bypass any
 // out-of-sync block size issues with sending any write commands.
 // The benefit to these other commands is that they let the drive write based on it's block size rather than
@@ -1690,13 +1696,13 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* device)
     eReturnValues ret            = SUCCESS;
     uint32_t      eraseBlockSize = device->drive_info.deviceBlockSize;
     uint64_t      devMaxLBA      = device->drive_info.deviceMaxLba;
-    uint32_t      maxLBARange    = 1;
+    uint32_t      maxLBARange    = MAX_LBA_RANGE_FOR_MBR_ERASE;
     if (device->drive_info.bridge_info.isValid)
     {
         if (device->drive_info.bridge_info.childDeviceMaxLba > devMaxLBA)
         {
             devMaxLBA   = device->drive_info.bridge_info.childDeviceMaxLba - 1;
-            maxLBARange = 2;
+            maxLBARange = MAX_LBA_RANGE_FOR_MBR_ERASE_WITH_BRIDGE;
         }
         eraseBlockSize = device->drive_info.bridge_info.childDeviceBlockSize;
     }
@@ -1746,13 +1752,13 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* device)
     eReturnValues ret            = SUCCESS;
     uint32_t      eraseBlockSize = device->drive_info.deviceBlockSize;
     uint64_t      devMaxLBA      = device->drive_info.deviceMaxLba;
-    uint32_t      maxLBARange    = 1;
+    uint32_t      maxLBARange    = MAX_LBA_RANGE_FOR_MBR_ERASE;
     if (device->drive_info.bridge_info.isValid)
     {
         if (device->drive_info.bridge_info.childDeviceMaxLba > devMaxLBA)
         {
             devMaxLBA   = device->drive_info.bridge_info.childDeviceMaxLba - 1;
-            maxLBARange = 2;
+            maxLBARange = MAX_LBA_RANGE_FOR_MBR_ERASE_WITH_BRIDGE;
         }
         eraseBlockSize = device->drive_info.bridge_info.childDeviceBlockSize;
     }
