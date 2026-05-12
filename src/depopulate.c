@@ -100,10 +100,8 @@ OPENSEA_OPERATIONS_API bool is_Depopulation_Feature_Supported(const tDevice* M_N
         // send some report supported operation code commands to figure it out
         scsiOperationCodeInfoRequest getElementStatusSup;
         scsiOperationCodeInfoRequest removeAndTruncateSup;
-        safe_memset(&getElementStatusSup, sizeof(scsiOperationCodeInfoRequest), 0,
-                    sizeof(scsiOperationCodeInfoRequest));
-        safe_memset(&removeAndTruncateSup, sizeof(scsiOperationCodeInfoRequest), 0,
-                    sizeof(scsiOperationCodeInfoRequest));
+        M_INITIALIZE_STRUCTURE(&getElementStatusSup, sizeof(scsiOperationCodeInfoRequest));
+        M_INITIALIZE_STRUCTURE(&removeAndTruncateSup, sizeof(scsiOperationCodeInfoRequest));
         getElementStatusSup.operationCode          = 0x9E;
         getElementStatusSup.serviceActionValid     = true;
         getElementStatusSup.serviceAction          = 0x17;
@@ -376,53 +374,113 @@ OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors_2(uint32_t        
         DECLARE_ZERO_INIT_ARRAY(char, rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH);
         if (elementList[elementIter].elementHealth == 0x0)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Not reported");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Not reported"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"Not reported\" to statusString for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth >= 0x1 && elementList[elementIter].elementHealth <= 0x63)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "In Limit");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "In Limit"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"In Limit\" to statusString for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth == 0x64)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "At Limit");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "At Limit"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"At Limit\" to statusString for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth >= 0x65 && elementList[elementIter].elementHealth <= 0xCF)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Over Limit");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Over Limit"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"Over Limit\" to statusString for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth == 0xFB)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate Error");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate Error"))
+                M_UNLIKELY
+                {
+                    print_error_format(
+                        "Error copying \"Repopulate Error\" to statusString for %s (Likely truncation)\n", __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth == 0xFC)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate in progress");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Repopulate in progress"))
+                M_UNLIKELY
+                {
+                    print_error_format(
+                        "Error copying \"Repopulate in progress\" to statusString for %s (Likely truncation)\n",
+                        __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth == 0xFD)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate Error");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate Error"))
+                M_UNLIKELY
+                {
+                    print_error_format(
+                        "Error copying \"Depopulate Error\" to statusString for %s (Likely truncation)\n", __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth == 0xFE)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate in progress");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulate in progress"))
+                M_UNLIKELY
+                {
+                    print_error_format(
+                        "Error copying \"Depopulate in progress\" to statusString for %s (Likely truncation)\n",
+                        __func__);
+                }
         }
         else if (elementList[elementIter].elementHealth == 0xFF)
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulated");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Depopulated"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"Depopulated\" to statusString for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         else
         {
-            snprintf_err_handle(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Reserved");
+            if (0 != safe_strcpy(statusString, PHYSICAL_ELEMENT_STATUS_STRING_MAX_LENGTH, "Reserved"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"Reserved\" to statusString for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         if (elementList[elementIter].associatedCapacity == UINT64_MAX)
         {
             // Drive doesn't report this
-            snprintf_err_handle(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "N/A");
+            if (0 != safe_strcpy(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"N/A\" to capacityString for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         else
         {
-            snprintf_err_handle(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "%" PRIu64,
-                                elementList[elementIter].associatedCapacity);
+            if (0 > snprintf_err_handle(capacityString, PHYSICAL_ELEMENT_CAPACITY_STRING_MAX_LENGTH, "%" PRIu64,
+                                        elementList[elementIter].associatedCapacity))
+            {
+                perror("Error formatting capacity string (likely truncation)");
+            }
         }
         if (elementList[elementIter].elementType == 1)
         {
@@ -430,11 +488,20 @@ OPENSEA_OPERATIONS_API void show_Physical_Element_Descriptors_2(uint32_t        
         }
         if (elementList[elementIter].restorationAllowed)
         {
-            snprintf_err_handle(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "Yes");
+            if (0 != safe_strcpy(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "Yes"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"Yes\" to rebuildAllowed for %s (Likely truncation)\n",
+                                       __func__);
+                }
         }
         else
         {
-            snprintf_err_handle(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "No");
+            if (0 != safe_strcpy(rebuildAllowed, PHYSICAL_ELEMENT_REBUILD_ALLOWED_STRING_MAX_LENGTH, "No"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"No\" to rebuildAllowed for %s (Likely truncation)\n", __func__);
+                }
         }
         printf("%9" PRIu32 "\t%c  \t%3" PRIu8 " \t%-23s\t%-17s\t%s\n", elementList[elementIter].elementIdentifier,
                elementType, elementList[elementIter].elementHealth, statusString, capacityString, rebuildAllowed);
@@ -536,8 +603,7 @@ static eReturnValues ata_get_Depopulate_Progress(const tDevice* M_NONNULL device
                 M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
             if (elementList != M_NULLPTR)
             {
-                safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
-                            numberOfDescriptors * sizeof(physicalElement));
+                M_INITIALIZE_STRUCTURE(elementList, numberOfDescriptors * sizeof(physicalElement));
                 if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                 {
                     // loop through and check associatedCapacity and elementIdentifiers
@@ -607,7 +673,7 @@ static eReturnValues scsi_get_Depopulate_Progress(const tDevice* M_NONNULL devic
     eReturnValues ret = NOT_SUPPORTED;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, senseData, SPC3_SENSE_LEN);
     senseDataFields senseFields;
-    safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+    M_INITIALIZE_STRUCTURE(&senseFields, sizeof(senseDataFields));
     if (SUCCESS == scsi_Request_Sense_Cmd(device, true, senseData, SPC3_SENSE_LEN))
     {
         ret = SUCCESS;
@@ -822,8 +888,7 @@ static eReturnValues determine_Depop_Failure_Reason(const tDevice* M_NONNULL dev
             M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
         if (elementList != M_NULLPTR)
         {
-            safe_memset(elementList, numberOfDescriptors * sizeof(physicalElement), 0,
-                        numberOfDescriptors * sizeof(physicalElement));
+            M_INITIALIZE_STRUCTURE(elementList, numberOfDescriptors * sizeof(physicalElement));
             if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
             {
                 // loop through and check associatedCapacity and elementIdentifiers
@@ -1164,7 +1229,7 @@ static bool is_Depopulate_And_Modify_Zones_Supported_ATA(const tDevice* M_NONNUL
                 }
             }
         }
-        safe_memset(supportedCapabilities, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+        M_INITIALIZE_STRUCTURE(supportedCapabilities, SIZE_OF_STACK_ARRAY(supportedCapabilities));
     }
     if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
                                              ATA_ID_DATA_LOG_ZONED_DEVICE_INFORMATION, supportedCapabilities,
@@ -1202,7 +1267,7 @@ static bool is_Depopulate_And_Modify_Zones_Supported_SCSI(const tDevice* M_NONNU
     bool supported = false;
     // send some report supported operation code commands to figure it out
     scsiOperationCodeInfoRequest removeAndTruncateSup;
-    safe_memset(&removeAndTruncateSup, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    M_INITIALIZE_STRUCTURE(&removeAndTruncateSup, sizeof(scsiOperationCodeInfoRequest));
     removeAndTruncateSup.operationCode         = 0x9E;
     removeAndTruncateSup.serviceActionValid    = true;
     removeAndTruncateSup.serviceAction         = 0x1A;
@@ -1321,7 +1386,7 @@ static bool is_Repopulate_Feature_Supported_SCSI(const tDevice* M_NONNULL device
     bool supported = false;
     // send some report supported operation code commands to figure it out
     scsiOperationCodeInfoRequest repopulateSup;
-    safe_memset(&repopulateSup, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    M_INITIALIZE_STRUCTURE(&repopulateSup, sizeof(scsiOperationCodeInfoRequest));
     repopulateSup.operationCode         = 0x9E;
     repopulateSup.serviceActionValid    = true;
     repopulateSup.serviceAction         = 0x19;
@@ -1564,25 +1629,57 @@ OPENSEA_OPERATIONS_API void show_LBA_Status_Descriptors(uint64_t                
         switch (elementList[descriptorIter].lbaAccessibility)
         {
         case LBA_ACCESSIBILITY_NOT_REPORTED:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
-                                "Not implemented or reported");
+            if (0 !=
+                safe_strcpy(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Not implemented or reported"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"Not implemented or reported\" to lbaAccessibilityString for %s "
+                                       "(Likely truncation)\n",
+                                       __func__);
+                }
             break;
         case LBA_ACCESSIBILITY_UNACCESSIBLE:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN,
-                                "Unable to be read or written");
+            if (0 !=
+                safe_strcpy(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Unable to be read or written"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"Unable to be read or written\" to lbaAccessibilityString for "
+                                       "%s (Likely truncation)\n",
+                                       __func__);
+                }
             break;
         case LBA_ACCESSIBILITY_READ_ONLY:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Read-only");
+            if (0 != safe_strcpy(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Read-only"))
+                M_UNLIKELY
+                {
+                    print_error_format(
+                        "Error copying \"Read-only\" to lbaAccessibilityString for %s (Likely truncation)\n", __func__);
+                }
             break;
         case LBA_ACCESSIBILITY_WITH_RISK:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "At risk of inaccessible");
+            if (0 != safe_strcpy(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "At risk of inaccessible"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying \"At risk of inaccessible\" to lbaAccessibilityString for %s "
+                                       "(Likely truncation)\n",
+                                       __func__);
+                }
             break;
         case LBA_ACCESSIBILITY_READ_ONLY_WITH_RISK:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Read-Only With Risk");
+            if (0 != safe_strcpy(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Read-Only With Risk"))
+                M_UNLIKELY
+                {
+                    print_error_format(
+                        "Error copying \"Read-Only With Risk\" to lbaAccessibilityString for %s (Likely truncation)\n",
+                        __func__);
+                }
             break;
         default:
-            snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Unknown (%u)",
-                                elementList[descriptorIter].lbaAccessibility);
+            if (0 > snprintf_err_handle(lbaAccessibilityString, LBA_ACCESSIBILITY_STRING_MAX_LEN, "Unknown (%u)",
+                                        elementList[descriptorIter].lbaAccessibility))
+            {
+                perror("Error formatting LBA accessibility string (likely truncation)");
+            }
             break;
         }
         char trimStatusChar = elementList[descriptorIter].trimStatus ? 'Y' : 'N';

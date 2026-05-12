@@ -143,7 +143,11 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log_Size(const tDevice* M_NONNULL d
         if (gpl)
         {
             // if we already tried the GPL buffer, make sure we clean it back up before we check again just to be safe.
-            safe_memset(logBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+            if (0 != safe_memset(logBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE))
+            {
+                safe_free_aligned(&logBuffer);
+                return MEMORY_FAILURE;
+            }
         }
         if (ata_SMART_Read_Log(device, ATA_LOG_DIRECTORY, logBuffer, LEGACY_DRIVE_SEC_SIZE) == SUCCESS)
         {
@@ -267,7 +271,11 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(const tDevice* M_NONNULL 
     // we know the page is supported, but to get the size, we need to try reading it.
     if (ret == SUCCESS)
     {
-        safe_memset(logBuffer, 255, 0, 255);
+        if (0 != safe_memset(logBuffer, 255, 0, 255))
+        {
+            safe_free_aligned(&logBuffer);
+            return MEMORY_FAILURE;
+        }
         // only requesting the header since this should get us the total length.
         // If this fails, we return success, but a size of zero. This shouldn't happen, but there are firmware bugs...
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logPage, logSubPage, 0, logBuffer,
@@ -337,7 +345,12 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_VPD_Page_Size(const tDevice* M_NON
         }
         if (ret == SUCCESS)
         {
-            safe_memset(vpdBuffer, vpdBufferLength, 0, vpdBufferLength);
+            if (0 != safe_memset(vpdBuffer, vpdBufferLength, 0, vpdBufferLength))
+            {
+                perror("Error clearing VPD buffer before reading VPD page\n");
+                safe_free_aligned(&vpdBuffer);
+                return MEMORY_FAILURE;
+            }
             // read the page so we can see how large it is.
             if (SUCCESS == scsi_Inquiry(device, vpdBuffer, vpdBufferLength, vpdPage, true, false))
             {
@@ -439,7 +452,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice* M_NO
                 // Turning off clang-tidy as these if/else need to be evaluated in the written order for how this
                 // works.-TJE
                 senseDataFields senseFields;
-                safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+                M_INITIALIZE_STRUCTURE(&senseFields, sizeof(senseDataFields));
                 get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
                 if (senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_FIELD_POINTER)
                 {
@@ -683,7 +696,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice* M_NONNULL
                 // Turning off clang-tidy as these if/else need to be evaluated in this order for how this is meant to
                 // work-TJE
                 senseDataFields senseFields;
-                safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+                M_INITIALIZE_STRUCTURE(&senseFields, sizeof(senseDataFields));
                 get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
                 if (senseFields.senseKeySpecificInformation.type == SENSE_KEY_SPECIFIC_FIELD_POINTER)
                 {
@@ -1224,7 +1237,7 @@ OPENSEA_OPERATIONS_API bool is_SCSI_Read_Buffer_16_Supported(const tDevice* M_NO
     if (device->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize == INT8_C(0))
     {
         scsiOperationCodeInfoRequest readBuf16SupReq;
-        safe_memset(&readBuf16SupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+        M_INITIALIZE_STRUCTURE(&readBuf16SupReq, sizeof(scsiOperationCodeInfoRequest));
         readBuf16SupReq.operationCode      = READ_BUFFER_16_CMD;
         readBuf16SupReq.serviceActionValid = false;
         eSCSICmdSupport readBuf16Support   = is_SCSI_Operation_Code_Supported(device, &readBuf16SupReq);
@@ -1428,8 +1441,14 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(const tDevice* M_NON
                             logFileOpened = true;
                             if (fileNameUsed != M_NULLPTR)
                             {
-                                safe_memcpy(fileNameUsed, OPENSEA_PATH_MAX, fp_History->fullpath,
-                                            safe_strnlen(fp_History->fullpath, OPENSEA_PATH_MAX));
+                                if (0 != safe_memcpy(fileNameUsed, OPENSEA_PATH_MAX, fp_History->fullpath,
+                                                     safe_strnlen(fp_History->fullpath, OPENSEA_PATH_MAX)))
+                                {
+                                    perror("Error copying file name used to output pointer");
+                                    safe_free_aligned(&historyBuffer);
+                                    free_Secure_File_Info(&fp_History);
+                                    return MEMORY_FAILURE;
+                                }
                             }
                         }
                         else
@@ -1696,7 +1715,7 @@ OPENSEA_OPERATIONS_API eReturnValues pull_SCSI_Defect_List(const tDevice* M_NONN
 {
     eReturnValues         ret = SUCCESS;
     scsiDefectList2Params defectList2Params;
-    safe_memset(&defectList2Params, sizeof(scsiDefectList2Params), 0, sizeof(scsiDefectList2Params));
+    M_INITIALIZE_STRUCTURE(&defectList2Params, sizeof(scsiDefectList2Params));
     defectList2Params.sizeOfStruct     = sizeof(scsiDefectList2Params);
     defectList2Params.version          = SCSI_DEFECT_LIST_2_VERSION;
     defectList2Params.device           = device;
@@ -1880,9 +1899,13 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(const tDevice* M_NONNULL device
                         {
                             if (bufSize >= logSize)
                             {
-                                safe_memset(&myBuf[uint16_to_sizet(currentPage) * LEGACY_DRIVE_SEC_SIZE],
-                                            bufSize - (uint16_to_sizet(currentPage) * LEGACY_DRIVE_SEC_SIZE), 0,
-                                            uint16_to_sizet(pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE);
+                                if (0 != safe_memset(&myBuf[uint16_to_sizet(currentPage) * LEGACY_DRIVE_SEC_SIZE],
+                                                     bufSize - (uint16_to_sizet(currentPage) * LEGACY_DRIVE_SEC_SIZE),
+                                                     0, uint16_to_sizet(pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE))
+                                {
+                                    safe_free_aligned(&logBuffer);
+                                    return MEMORY_FAILURE;
+                                }
                             }
                             else
                             {
@@ -2563,7 +2586,12 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                     return MEMORY_FAILURE;
                 }
                 dataBuffer = temp;
-                safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
+                if (0 != safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize))
+                {
+                    safe_free_aligned(&dataBuffer);
+                    perror("Error setting memory to zero for data buffer");
+                    return MEMORY_FAILURE;
+                }
                 // read the remaining data
                 for (pageNumber = UINT16_C(1); pageNumber < islPullingSize;
                      pageNumber += C_CAST(uint16_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
@@ -2634,7 +2662,12 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                         ret = FAILURE;
                         break;
                     }
-                    safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
+                    if (0 != safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize))
+                    {
+                        safe_free_aligned(&dataBuffer);
+                        perror("Error setting memory to zero for data buffer durring main loop pull");
+                        return MEMORY_FAILURE;
+                    }
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
@@ -2913,7 +2946,12 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                     return MEMORY_FAILURE;
                 }
                 dataBuffer = temp;
-                safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
+                if (0 != safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize))
+                {
+                    safe_free_aligned(&dataBuffer);
+                    perror("Error setting memory to zero for data buffer before main loop pull");
+                    return MEMORY_FAILURE;
+                }
                 // read the remaining data
                 for (pageNumber = UINT32_C(1); pageNumber < islPullingSize;
                      pageNumber += (pullChunkSize / LEGACY_DRIVE_SEC_SIZE))
@@ -2982,7 +3020,12 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                         ret = FAILURE;
                         break;
                     }
-                    safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
+                    if (0 != safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize))
+                    {
+                        perror("Error setting memory to zero for data buffer during main loop pull");
+                        safe_free_aligned(&dataBuffer);
+                        return MEMORY_FAILURE;
+                    }
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
@@ -3087,7 +3130,7 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
             }
             // read the first sector of the log with the trigger bit set
             nvmeGetLogPageCmdOpts telemOpts;
-            safe_memset(&telemOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+            M_INITIALIZE_STRUCTURE(&telemOpts, sizeof(nvmeGetLogPageCmdOpts));
             telemOpts.dataLen = UINT32_C(512);
             telemOpts.addr    = dataBuffer;
             telemOpts.nsid    = NVME_ALL_NAMESPACES;
@@ -3208,7 +3251,12 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                 }
                 dataBuffer     = temp;
                 telemOpts.addr = dataBuffer; // update the data buffer after the reallocation - TJE
-                safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
+                if (0 != safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize))
+                {
+                    perror("Error setting memory to zero for data buffer before main loop pull");
+                    safe_free_aligned(&dataBuffer);
+                    return MEMORY_FAILURE;
+                }
                 // read the remaining data
                 for (pageNumber = UINT32_C(1); pageNumber < islPullingSize;
                      pageNumber += C_CAST(uint32_t, (pullChunkSize / LEGACY_DRIVE_SEC_SIZE)))
@@ -3281,7 +3329,12 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                         ret = FAILURE;
                         break;
                     }
-                    safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize);
+                    if (0 != safe_memset(dataBuffer, pullChunkSize, 0, pullChunkSize))
+                    {
+                        perror("Error setting memory for data buffer");
+                        safe_free_aligned(&dataBuffer);
+                        return MEMORY_FAILURE;
+                    }
                 }
                 if (VERBOSITY_QUIET < device->deviceVerbosity)
                 {
@@ -3486,19 +3539,35 @@ static void format_print_ata_logs_info(uint8_t  log,
     DECLARE_ZERO_INIT_ARRAY(char, access, ATA_LOG_ACCESS_STRING_LENGTH);
     if (smartAccess)
     {
-        snprintf_err_handle(access, ATA_LOG_ACCESS_STRING_LENGTH, "SL");
+        if (0 != safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, "SL"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating ATA log info before output");
+            }
     }
     if (gplAccess)
     {
         if (smartAccess)
         {
-            safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, ", ");
+            if (0 != safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, ", "))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating ATA log info before output");
+                }
         }
-        safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, "GPL");
+        if (0 != safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, "GPL"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating ATA log info before output");
+            }
     }
     if (driveReportBug)
     {
-        safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, " !");
+        if (0 != safe_strcat(access, ATA_LOG_ACCESS_STRING_LENGTH, " !"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating ATA log info before output");
+            }
     }
     printf("   %3" PRIu8 " (%02" PRIX8 "h)   :     %-5" PRIu32 "      :    %-10" PRIu32 " :   %-10s\n", log, log,
            (logSize / ATA_LOG_PAGE_LEN_BYTES), logSize, access);
@@ -3776,8 +3845,8 @@ OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(const tDevice* M_
         logPageMap            suptLogPage;
         nvmeGetLogPageCmdOpts suptLogOpts;
 
-        safe_memset(&suptLogPage, sizeof(logPageMap), 0, sizeof(logPageMap));
-        safe_memset(&suptLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+        M_INITIALIZE_STRUCTURE(&suptLogPage, sizeof(logPageMap));
+        M_INITIALIZE_STRUCTURE(&suptLogOpts, sizeof(nvmeGetLogPageCmdOpts));
         suptLogOpts.addr    = C_CAST(uint8_t*, &suptLogPage);
         suptLogOpts.dataLen = sizeof(logPageMap);
         suptLogOpts.lid     = 0xC5;
@@ -3846,7 +3915,7 @@ OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(const tDevice* M_
         if (supportedLogsPage != M_NULLPTR)
         {
             nvmeGetLogPageCmdOpts suptLogOpts;
-            safe_memset(&suptLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+            M_INITIALIZE_STRUCTURE(&suptLogOpts, sizeof(nvmeGetLogPageCmdOpts));
             suptLogOpts.addr    = supportedLogsPage;
             suptLogOpts.dataLen = 1024;
             suptLogOpts.lid     = 0;
@@ -4015,7 +4084,7 @@ OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(const tDevice* M_N
     nvmeGetLogPageCmdOpts cmdOpts;
     if (nvmeLogSizeBytes > UINT32_C(0) || ((nvme_Get_Log_Size(device, logNum, &size) == SUCCESS) && size))
     {
-        safe_memset(&cmdOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+        M_INITIALIZE_STRUCTURE(&cmdOpts, sizeof(nvmeGetLogPageCmdOpts));
         logBuffer = M_REINTERPRET_CAST(uint8_t*, safe_calloc(uint64_to_sizet(size), sizeof(uint8_t)));
         if (logBuffer != M_NULLPTR)
         {
@@ -4037,7 +4106,12 @@ OPENSEA_OPERATIONS_API eReturnValues pull_Supported_NVMe_Logs(const tDevice* M_N
                     secureFileInfo* pLogFile = M_NULLPTR;
 #define NVME_LOG_NAME_SIZE 16
                     DECLARE_ZERO_INIT_ARRAY(char, logName, NVME_LOG_NAME_SIZE);
-                    snprintf_err_handle(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum);
+                    if (0 > snprintf_err_handle(logName, NVME_LOG_NAME_SIZE, "LOG_PAGE_%d", logNum))
+                    {
+                        perror("Error formatting log file name for pulling NVMe log page!\n");
+                        safe_free(&logBuffer);
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(
                                        device, &pLogFile, NAMING_SERIAL_NUMBER_DATE_TIME, M_NULLPTR, logName, "bin"))
                     {
@@ -4162,7 +4236,11 @@ OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_I
             DECLARE_ZERO_INIT_ARRAY(char, vendorIdentification, 9);
             uint8_t  version         = errorHistoryDirectory[1];
             uint16_t directoryLength = M_BytesTo2ByteValue(errorHistoryDirectory[30], errorHistoryDirectory[31]);
-            safe_memcpy(vendorIdentification, 9, errorHistoryDirectory, 8);
+            if (0 != safe_memcpy(vendorIdentification, 9, errorHistoryDirectory, 8))
+                M_UNLIKELY
+                {
+                    perror("Error copying vendor identification before printing");
+                }
             if ((C_CAST(uint32_t, directoryLength) + (UINT32_C(32)) > errorHistorySize))
             {
                 errorHistorySize = directoryLength + 32;
@@ -4173,7 +4251,11 @@ OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_I
                 if (temp != M_NULLPTR)
                 {
                     errorHistoryDirectory = temp;
-                    safe_memset(errorHistoryDirectory, errorHistorySize, 0, errorHistorySize);
+                    if (0 != safe_memset(errorHistoryDirectory, errorHistorySize, 0, errorHistorySize))
+                        M_UNLIKELY
+                        {
+                            perror("Error clearing error history directory after realloc");
+                        }
                     scsi_Read_Buffer(device, 0x1C, 0, 0, errorHistorySize, errorHistoryDirectory);
                     directoryLength = M_BytesTo2ByteValue(errorHistoryDirectory[30], errorHistoryDirectory[31]);
                 }
@@ -4192,8 +4274,9 @@ OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_I
             for (uint32_t iter = UINT32_C(32); iter < (directoryLength + UINT32_C(32)) && iter < errorHistorySize;
                  iter += UINT32_C(8))
             {
-#define DATA_FORMAT_STRING_LENGTH 16
+#define DATA_FORMAT_STRING_LENGTH 17
                 DECLARE_ZERO_INIT_ARRAY(char, dataFormatString, DATA_FORMAT_STRING_LENGTH);
+                errno_t  error        = 0;
                 uint8_t  bufferID     = errorHistoryDirectory[iter + 0];
                 uint8_t  bufferFormat = errorHistoryDirectory[iter + 1];
                 uint32_t maximumLengthAvailable =
@@ -4202,17 +4285,21 @@ OPENSEA_OPERATIONS_API eReturnValues print_Supported_SCSI_Error_History_Buffer_I
                 switch (bufferFormat)
                 {
                 case 0: // vendor specific data
-                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Vendor Specific");
+                    error = safe_strcpy(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Vendor Specific");
                     break;
                 case 1: // current internal status parameter data
-                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Current ISL");
+                    error = safe_strcpy(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Current ISL");
                     break;
                 case 2: // saved internal status parameter data
-                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Saved ISL");
+                    error = safe_strcpy(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Saved ISL");
                     break;
                 default: // unknown or reserved
-                    snprintf_err_handle(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Reserved");
+                    error = safe_strcpy(dataFormatString, DATA_FORMAT_STRING_LENGTH, "Reserved");
                     break;
+                }
+                if (error != 0)
+                {
+                    perror("Error coping date format string for error history output!\n");
                 }
                 printf("  %3" PRIu8 " (%02" PRIX8 "h)      :  %-16s :    %" PRIu32 "\n", bufferID, bufferID,
                        dataFormatString, maximumLengthAvailable);
@@ -4363,13 +4450,21 @@ OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Log(const tDevice* M_NONNULL d
     DECLARE_ZERO_INIT_ARRAY(char, logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH);
     if (get_Device_DriveType(device) == SCSI_DRIVE && subpage != 0)
     {
-        snprintf_err_handle(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH, "GENERIC_LOG-%u-%u",
-                            logNum, subpage);
+        if (0 > snprintf_err_handle(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH,
+                                    "GENERIC_LOG-%u-%u", logNum, subpage))
+        {
+            perror("Error formatting log file name for generic log pull!");
+            return MEMORY_FAILURE;
+        }
     }
     else
     {
-        snprintf_err_handle(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH, "GENERIC_LOG-%u",
-                            logNum);
+        if (0 > snprintf_err_handle(logFileName, GENERIC_LOG_FILE_NAME_LENGTH + LOG_NUMBER_POST_FIX_LENGTH,
+                                    "GENERIC_LOG-%u", logNum))
+        {
+            perror("Error formatting log file name for generic log pull!");
+            return MEMORY_FAILURE;
+        }
     }
 #ifdef _DEBUG
     printf("%s: Log to Pull %d, mode %d, device type %d\n", __FUNCTION__, logNum, C_CAST(uint8_t, mode),
@@ -4409,8 +4504,12 @@ OPENSEA_OPERATIONS_API eReturnValues pull_Generic_Error_History(const tDevice* M
 #define ERROR_HISTORY_FILENAME_LENGTH 30
 #define ERROR_HISTORY_POST_FIX_LENGTH 10
     DECLARE_ZERO_INIT_ARRAY(char, errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH + ERROR_HISTORY_POST_FIX_LENGTH);
-    snprintf_err_handle(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH + ERROR_HISTORY_POST_FIX_LENGTH,
-                        "GENERIC_ERROR_HISTORY-%" PRIu8, bufferID);
+    if (0 > snprintf_err_handle(errorHistoryFileName, ERROR_HISTORY_FILENAME_LENGTH + ERROR_HISTORY_POST_FIX_LENGTH,
+                                "GENERIC_ERROR_HISTORY-%" PRIu8, bufferID))
+    {
+        perror("Error formatting error history file name!");
+        return MEMORY_FAILURE;
+    }
     bool rb16 = is_SCSI_Read_Buffer_16_Supported(device);
 
     switch (mode)
@@ -4481,7 +4580,12 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL 
             return NOT_SUPPORTED;
         case PULL_LOG_BIN_FILE_MODE:
         default:
-            snprintf_err_handle(logType, OPENSEA_PATH_MAX, "FARM_PAGE_%d", logPage);
+            if (0 > snprintf_err_handle(logType, OPENSEA_PATH_MAX, "FARM_PAGE_%d", logPage))
+            {
+                perror("Error formatting FARM log name for saving the file!");
+                safe_free_aligned(&logBuffer);
+                return MEMORY_FAILURE;
+            }
             if (get_Device_InterfaceType(device) != USB_INTERFACE &&
                 get_Device_InterfaceType(device) != IEEE_1394_INTERFACE)
             {

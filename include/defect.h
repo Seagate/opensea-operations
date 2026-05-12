@@ -90,9 +90,9 @@ extern "C"
         bool multiAddressDescriptorStart;
     } physicalSectorAddress;
 
-    //! \def SCSI_DEFECT_LIST_VERSION
-    //! \brief Version number for the \a scsiDefectList structure
-    #define SCSI_DEFECT_LIST_VERSION 1
+//! \def SCSI_DEFECT_LIST_VERSION
+//! \brief Version number for the \a scsiDefectList structure
+#define SCSI_DEFECT_LIST_VERSION 1
 
     //! \struct scsiDefectList
     //! \brief Output structure holding the requested SCSI defect list from \a get_SCSI_Defect_List()

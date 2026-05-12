@@ -41,7 +41,7 @@ static eReturnValues scsi_Enable_Disable_EPC_Feature(const tDevice* M_NONNULL de
     eReturnValues ret = UNKNOWN;
     // setup the structure and send these changes to the drive.
     powerConditionTimers powerTimers;
-    safe_memset(&powerTimers, sizeof(powerConditionTimers), 0, sizeof(powerConditionTimers));
+    M_INITIALIZE_STRUCTURE(&powerTimers, sizeof(powerConditionTimers));
 
     if (lba_field == ENABLE_EPC)
     {
@@ -312,7 +312,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Current_Power_Mode(cons
             if (issuetur == true)
             {
                 scsiStatus returnedStatus;
-                safe_memset(&returnedStatus, sizeof(scsiStatus), 0, sizeof(scsiStatus));
+                M_INITIALIZE_STRUCTURE(&returnedStatus, sizeof(scsiStatus));
                 ret = scsi_Test_Unit_Ready(device, &returnedStatus);
                 if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
                 {
@@ -387,11 +387,11 @@ static eReturnValues ata_Transition_EPC_Power_State(const tDevice* M_NONNULL dev
         break;
     case PWR_CND_IDLE_UNLOAD: // send idle immediate - unload
         if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
-                    le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT13) ||
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT13) ||
             (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
-                    le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT13))
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT13))
         {
             ret = ata_Idle_Immediate(device, true);
         }
@@ -433,11 +433,11 @@ static eReturnValues ata_Transition_Legacy_Power_State(const tDevice* M_NONNULL 
         break;
     case PWR_CND_IDLE_UNLOAD: // send idle immediate - unload
         if ((is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
-                    le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT13) ||
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word084)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word084) & BIT13) ||
             (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(
-                    le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
-                le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT13))
+                 le16_to_host(device->drive_info.IdentifyData.ata.Word087)) &&
+             le16_to_host(device->drive_info.IdentifyData.ata.Word087) & BIT13))
         {
             ret = ata_Idle_Immediate(device, true);
         }
@@ -465,18 +465,17 @@ static eReturnValues ata_Transition_Legacy_Power_State(const tDevice* M_NONNULL 
 M_PARAM_RO(1)
 static eReturnValues ata_Transition_Power_State(const tDevice* M_NONNULL device, ePowerConditionID newState)
 {
-    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word119))
-        && (le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT7)
-        && is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word120))
-        && (le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT7)
-        )
+    if (is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word119)) &&
+        (le16_to_host(device->drive_info.IdentifyData.ata.Word119) & BIT7) &&
+        is_ATA_Identify_Word_Valid_With_Bits_14_And_15(le16_to_host(device->drive_info.IdentifyData.ata.Word120)) &&
+        (le16_to_host(device->drive_info.IdentifyData.ata.Word120) & BIT7))
     {
-        //EPC
+        // EPC
         return ata_Transition_EPC_Power_State(device, newState);
     }
     else
     {
-        //non-EPC
+        // non-EPC
         return ata_Transition_Legacy_Power_State(device, newState);
     }
 }
@@ -572,7 +571,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Power_States(const tDevice* M_NONN
         ret = SUCCESS;
         // use cached NVMe identify ctrl data since this won't change.
         uint16_t driveMaxPowerStates = NVME_0_BASED(device->drive_info.IdentifyData.nvme.ctrl.npss);
-        safe_memset(nvmps, sizeof(nvmeSupportedPowerStates), 0, sizeof(nvmeSupportedPowerStates));
+        M_INITIALIZE_STRUCTURE(nvmps, sizeof(nvmeSupportedPowerStates));
         for (uint16_t powerIter = UINT16_C(0); powerIter < driveMaxPowerStates && powerIter < MAXIMUM_NVME_POWER_STATES;
              ++powerIter)
         {
@@ -736,36 +735,45 @@ convert_NVM_Latency_To_HR_Time_Str(uint64_t timeInNanoSeconds,
         ++unitCounter;
     }
 #define NVM_LAT_UNIT_STR_LEN 3
+    errno_t error = 0;
     DECLARE_ZERO_INIT_ARRAY(char, units, NVM_LAT_UNIT_STR_LEN);
     switch (unitCounter)
     {
     case 6: // we shouldn't get to a days value, but room for future large drives I guess...-TJE
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "d");
+        error = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "d");
         break;
     case 5:
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "h");
+        error = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "h");
         break;
     case 4:
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "m");
+        error = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "m");
         break;
     case 3:
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "s");
+        error = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "s");
         break;
     case 2:
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "ms");
+        error = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "ms");
         break;
     case 1:
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "us");
+        error = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "us");
         break;
     case 0:
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "ns");
+        error = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "ns");
         break;
     default: // couldn't get a good conversion or something weird happened so show original nanoseconds.
-        snprintf_err_handle(units, NVM_LAT_UNIT_STR_LEN, "ns");
+        error     = safe_strcpy(units, NVM_LAT_UNIT_STR_LEN, "ns");
         printTime = C_CAST(double, timeInNanoSeconds);
         break;
     }
-    snprintf_err_handle(timeStr, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "%0.02f %s", printTime, units);
+    if (error != 0)
+        M_UNLIKELY
+        {
+            perror("Error coping NVMe Latency time unit string");
+        }
+    if (0 > snprintf_err_handle(timeStr, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "%0.02f %s", printTime, units))
+    {
+        perror("Error formatting NVMe latency time string");
+    }
     return ctimestr;
 }
 
@@ -798,7 +806,9 @@ OPENSEA_OPERATIONS_API void print_NVM_Power_States(ptrNVMeSupportedPowerStates M
         for (uint16_t psIter = UINT16_C(0); psIter < nvmps->numberOfPowerStates && psIter < MAXIMUM_NVME_POWER_STATES;
              ++psIter)
         {
-            char flags[3] = {' ', ' ', '\0'};
+            int     snprintfres = 0;
+            errno_t error       = 0;
+            char    flags[3]    = {' ', ' ', '\0'};
             DECLARE_ZERO_INIT_ARRAY(char, maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN);
             DECLARE_ZERO_INIT_ARRAY(char, idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN);
             DECLARE_ZERO_INIT_ARRAY(char, activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN);
@@ -816,47 +826,97 @@ OPENSEA_OPERATIONS_API void print_NVM_Power_States(ptrNVMeSupportedPowerStates M
             }
             if (nvmps->powerState[psIter].maxPowerValid)
             {
-                snprintf_err_handle(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
-                                    (nvmps->powerState[psIter].maxPowerMilliWatts / 1000.0));
+                snprintfres = snprintf_err_handle(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
+                                                  (nvmps->powerState[psIter].maxPowerMilliWatts / 1000.0));
             }
             else
             {
-                snprintf_err_handle(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+                error = safe_strcpy(maxPowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
             }
+            if (error != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping NVMe maxPowerWatts");
+                }
+            if (snprintfres < 0)
+                M_UNLIKELY
+                {
+                    perror("Error formatting NVMe maxPowerWatts");
+                }
             if (nvmps->powerState[psIter].idlePowerValid)
             {
-                snprintf_err_handle(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
-                                    (nvmps->powerState[psIter].idlePowerMilliWatts / 1000.0));
+                snprintfres = snprintf_err_handle(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
+                                                  (nvmps->powerState[psIter].idlePowerMilliWatts / 1000.0));
             }
             else
             {
-                snprintf_err_handle(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+                error = safe_strcpy(idlePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
             }
+            if (error != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping NVMe idlePowerWatts");
+                }
+            if (snprintfres < 0)
+                M_UNLIKELY
+                {
+                    perror("Error formatting NVMe idlePowerWatts");
+                }
             if (nvmps->powerState[psIter].activePowerValid)
             {
-                snprintf_err_handle(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
-                                    (nvmps->powerState[psIter].activePowerMilliWatts / 1000.0));
+                snprintfres = snprintf_err_handle(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "%.4f W",
+                                                  (nvmps->powerState[psIter].activePowerMilliWatts / 1000.0));
             }
             else
             {
-                snprintf_err_handle(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
+                error = safe_strcpy(activePowerWatts, NVM_POWER_WATTS_MAX_STR_LEN, "NR");
             }
+            if (error != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping NVMe activePowerWatts");
+                }
+            if (snprintfres < 0)
+                M_UNLIKELY
+                {
+                    perror("Error formatting NVMe activePowerWatts");
+                }
             if (nvmps->powerState[psIter].entryLatency > 0)
             {
                 convert_NVM_Latency_To_HR_Time_Str(nvmps->powerState[psIter].entryLatency * UINT64_C(1000), entryTime);
             }
             else
             {
-                snprintf_err_handle(entryTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
+                error = safe_strcpy(entryTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
             }
+            if (error != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping NVMe entryLatency");
+                }
+            if (snprintfres < 0)
+                M_UNLIKELY
+                {
+                    perror("Error formatting NVMe entryLatency");
+                }
             if (nvmps->powerState[psIter].exitLatency > 0)
             {
                 convert_NVM_Latency_To_HR_Time_Str(nvmps->powerState[psIter].exitLatency * UINT64_C(1000), exitTime);
             }
             else
             {
-                snprintf_err_handle(exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
+                error = safe_strcpy(exitTime, NVM_POWER_ENT_EX_TIME_MAX_STR_LEN, "NR");
             }
+            if (error != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping NVMe exitLatency");
+                }
+            if (snprintfres < 0)
+                M_UNLIKELY
+                {
+                    perror("Error formatting NVMe exitLatency");
+                }
             printf("%s%2" PRIu16 " %10s  %10s    %10s %4" PRIu8 " %4" PRIu8 " %4" PRIu8 " %4" PRIu8 "  %10s %10s\n",
                    flags, nvmps->powerState[psIter].powerStateNumber, maxPowerWatts, idlePowerWatts, activePowerWatts,
                    calculate_Relative_NVM_Latency_Or_Throughput(nvmps->powerState[psIter].relativeReadThroughput,
@@ -879,7 +939,7 @@ OPENSEA_OPERATIONS_API eReturnValues transition_NVM_Power_State(const tDevice* M
     if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
-        safe_memset(&cmdOpts, sizeof(cmdOpts), 0, sizeof(cmdOpts));
+        M_INITIALIZE_STRUCTURE(&cmdOpts, sizeof(cmdOpts));
         cmdOpts.featSetGetValue = newState;
         cmdOpts.fid             = NVME_FEAT_POWER_MGMT_;
         cmdOpts.sel             = NVME_CURRENT_FEAT_SEL;
@@ -1352,7 +1412,7 @@ static eReturnValues ata_Set_EPC_Power_Conditions(const tDevice* M_NONNULL      
             if (restoreAllToDefaults)
             {
                 powerConditionSettings allSettings;
-                safe_memset(&allSettings, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
+                M_INITIALIZE_STRUCTURE(&allSettings, sizeof(powerConditionSettings));
                 allSettings.powerConditionValid = true;
                 allSettings.restoreToDefault    = true;
                 ret = ata_Set_EPC_Power_Mode(device, PWR_CND_ALL, &allSettings, saveChanges);
@@ -1447,7 +1507,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_Power_State(const tDevice* M_NONNULL de
     if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt cmdOpts;
-        safe_memset(&cmdOpts, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&cmdOpts, sizeof(nvmeFeaturesCmdOpt));
         switch (selectValue)
         {
         case CURRENT_VALUE:
@@ -1753,24 +1813,30 @@ static void ata_Print_Power_Consumption_Identifiers(const ptrPowerConsumptionIde
                         currentConsumption /= 1000.0;
                         --currentUnit; // change the unit
                     }
-
+                    errno_t error = 0;
                     // now print the units
                     switch (currentUnit)
                     {
                     case 3: // watts
-                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
+                        error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
                         break;
                     case 4: // milliwatts
-                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
+                        error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
                         break;
                     case 5: // microwatts
-                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
+                        error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
                         break;
                     default:
-                        snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH,
-                                            "unknown unit of measure");
+                        error =
+                            safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "unknown unit of measure");
                         break;
                     }
+
+                    if (error != 0)
+                        M_UNLIKELY
+                        {
+                            perror("Error coping power consumption units for output!");
+                        }
                     printf("Current Power Consumption Value: %g %s\n", currentConsumption, currentUnits);
                 }
                 // even though active level is set to control identifier, logpage 59h is not returning valid identifier,
@@ -1861,32 +1927,37 @@ static void scsi_Print_Power_Consumption_Identifiers(const ptrPowerConsumptionId
                     currentConsumption /= 1000.0;
                     --currentUnit; // change the unit
                 }
-
+                errno_t error = 0;
                 // now print the units
                 switch (currentUnit)
                 {
                 case 0: // gigawatts
-                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Gigawatts");
+                    error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Gigawatts");
                     break;
                 case 1: // megawatts
-                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Megawatts");
+                    error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Megawatts");
                     break;
                 case 2: // kilowatts
-                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Kilowatts");
+                    error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Kilowatts");
                     break;
                 case 3: // watts
-                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
+                    error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Watts");
                     break;
                 case 4: // milliwatts
-                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
+                    error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Milliwatts");
                     break;
                 case 5: // microwatts
-                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
+                    error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "Microwatts");
                     break;
                 default:
-                    snprintf_err_handle(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "unknown unit of measure");
+                    error = safe_strcpy(currentUnits, POWER_CONSUMPTION_UNIT_BUFFER_LENGTH, "unknown unit of measure");
                     break;
                 }
+                if (error != 0)
+                    M_UNLIKELY
+                    {
+                        perror("Error coping power consumption unit string!");
+                    }
                 printf("Current Power Consumption Value: %g %s\n", currentConsumption, currentUnits);
             }
             else
@@ -2115,7 +2186,7 @@ map_Watt_Value_To_Power_Consumption_Identifier(const tDevice* M_NONNULL device,
 {
     eReturnValues               ret = NOT_SUPPORTED;
     powerConsumptionIdentifiers identifiers;
-    safe_memset(&identifiers, sizeof(powerConsumptionIdentifiers), 0, sizeof(powerConsumptionIdentifiers));
+    M_INITIALIZE_STRUCTURE(&identifiers, sizeof(powerConsumptionIdentifiers));
     *powerConsumptionIdentifier = 0xFF; // invalid
 
     ret = get_Power_Consumption_Identifiers(device, &identifiers);
@@ -2538,8 +2609,12 @@ static eReturnValues scsi_Get_EPC_Settings(const tDevice* M_NONNULL device, ptrE
     for (eScsiModePageControl modePageControl = MPC_CURRENT_VALUES; modePageControl <= MPC_SAVED_VALUES;
          ++modePageControl)
     {
-        safe_memset(epcModePage, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, 0,
-                    MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN);
+        if (0 != safe_memset(epcModePage, MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN, 0,
+                             MP_POWER_CONDITION_LEN + MODE_PARAMETER_HEADER_10_LEN))
+            M_UNLIKELY
+            {
+                return MEMORY_FAILURE;
+            }
         bool    gotData      = false;
         uint8_t headerLength = MODE_PARAMETER_HEADER_10_LEN;
         if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONDTION,
@@ -2834,15 +2909,24 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Legacy_Power_Conditions(const tDev
         return BAD_PARAMETER;
     }
     powerConditionTimers pwrConditions;
-    safe_memset(&pwrConditions, sizeof(powerConditionTimers), 0, sizeof(powerConditionTimers));
+    M_INITIALIZE_STRUCTURE(&pwrConditions, sizeof(powerConditionTimers));
     if (standbyTimer != M_NULLPTR)
     {
-        safe_memcpy(&pwrConditions.standby, sizeof(powerConditionSettings), standbyTimer,
-                    sizeof(powerConditionSettings));
+        if (0 != safe_memcpy(&pwrConditions.standby, sizeof(powerConditionSettings), standbyTimer,
+                             sizeof(powerConditionSettings)))
+            M_UNLIKELY
+            {
+                return MEMORY_FAILURE;
+            }
     }
     if (idleTimer != M_NULLPTR)
     {
-        safe_memcpy(&pwrConditions.idle, sizeof(powerConditionSettings), idleTimer, sizeof(powerConditionSettings));
+        if (0 !=
+            safe_memcpy(&pwrConditions.idle, sizeof(powerConditionSettings), idleTimer, sizeof(powerConditionSettings)))
+            M_UNLIKELY
+            {
+                return MEMORY_FAILURE;
+            }
     }
     return scsi_Set_Power_Conditions(device, restoreAllToDefaults, &pwrConditions, saveChanges);
 }
@@ -2915,7 +2999,7 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Standby_Timer_State(const tDevice*
                                                                   bool                     saveChanges)
 {
     powerConditionSettings standbyTimer;
-    safe_memset(&standbyTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
+    M_INITIALIZE_STRUCTURE(&standbyTimer, sizeof(powerConditionSettings));
     standbyTimer.powerConditionValid = true;
     standbyTimer.enableValid         = true;
     standbyTimer.enable              = enable;
@@ -2943,7 +3027,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_Standby_Timer(const tDevice* M_NONNULL 
     else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         powerConditionSettings standbyTimer;
-        safe_memset(&standbyTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
+        M_INITIALIZE_STRUCTURE(&standbyTimer, sizeof(powerConditionSettings));
         standbyTimer.powerConditionValid = true;
         if (restoreToDefault)
         {
@@ -2967,7 +3051,7 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Idle_Timer_State(const tDevice* M_
                                                                bool                     saveChanges)
 {
     powerConditionSettings idleTimer;
-    safe_memset(&idleTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
+    M_INITIALIZE_STRUCTURE(&idleTimer, sizeof(powerConditionSettings));
     idleTimer.powerConditionValid = true;
     idleTimer.enableValid         = true;
     idleTimer.enable              = enable;
@@ -2985,7 +3069,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_Idle_Timer(const tDevice* M_NONNULL dev
     if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         powerConditionSettings idleTimer;
-        safe_memset(&idleTimer, sizeof(powerConditionSettings), 0, sizeof(powerConditionSettings));
+        M_INITIALIZE_STRUCTURE(&idleTimer, sizeof(powerConditionSettings));
         idleTimer.powerConditionValid = true;
         if (restoreToDefault)
         {

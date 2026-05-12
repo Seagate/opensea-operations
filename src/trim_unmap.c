@@ -69,7 +69,10 @@ static bool is_ATA_Data_Set_Management_XL_Supported(const tDevice* M_NONNULL dev
             }
             if (supportedCapabilitiesPage)
             {
-                safe_memset(logBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(logBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error clearing log buffer before reading supported capabilities page");
+                }
                 if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
                                                          ATA_ID_DATA_LOG_SUPPORTED_CAPABILITIES, logBuffer,
                                                          LEGACY_DRIVE_SEC_SIZE, 0))
@@ -263,8 +266,9 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(const tDevice* M_NONN
         uint32_t contextAttributes =
             0; // this is here in case we want to enable setting these bits some time later. - TJE
 #define NVME_DEALLOCATE_BUFFER_SIZE UINT32_C(4096)
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, deallocate,
-                                NVME_DEALLOCATE_BUFFER_SIZE); // This will hold the maximum number of ranges/descriptors we can.
+        DECLARE_ZERO_INIT_ARRAY(
+            uint8_t, deallocate,
+            NVME_DEALLOCATE_BUFFER_SIZE); // This will hold the maximum number of ranges/descriptors we can.
         uint32_t deallocateRange = C_CAST(uint32_t, M_Min(M_Min(range, UINT32_MAX), maxLBACount));
         uint64_t finalLBA        = startLBA + range;
         uint32_t descriptorCount = UINT32_C(0);
@@ -275,7 +279,8 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Deallocate_Range(const tDevice* M_NONN
             os_Unmount_File_Systems_On_Device(device);
         }
         for (uint64_t deallocateLBA = startLBA, offset = 0;
-             deallocateLBA < finalLBA && descriptorCount < maxTrimOrUnmapBlockDescriptors && offset < NVME_DEALLOCATE_BUFFER_SIZE;
+             deallocateLBA < finalLBA && descriptorCount < maxTrimOrUnmapBlockDescriptors &&
+             offset < NVME_DEALLOCATE_BUFFER_SIZE;
              deallocateLBA += deallocateRange, offset += 16)
         {
             // context attributes
@@ -556,7 +561,10 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(const tDevice* M_NONNULL d
                     return MEMORY_FAILURE;
                 }
                 unmapCommandBuffer = temp;
-                safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen);
+                if (0 != safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen))
+                {
+                    perror("Error clearing unmap command buffer before use after realloc");
+                }
             }
             // fill in the data buffer for a UNMAP command with the header
             // unmap data length
@@ -572,8 +580,13 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(const tDevice* M_NONNULL d
             unmapCommandBuffer[6] = RESERVED;
             unmapCommandBuffer[7] = RESERVED;
             // now copy the number of descriptors for this command into the allocated buffer
-            safe_memcpy(&unmapCommandBuffer[8], unmapCommandDataLen - 8, &unmapBuffer[unmapOffset],
-                        (unmapCommandDataLen - 8));
+            if (0 != safe_memcpy(&unmapCommandBuffer[8], unmapCommandDataLen - 8, &unmapBuffer[unmapOffset],
+                                 (unmapCommandDataLen - 8)))
+            {
+                perror("Error copying unmap descriptors into command buffer");
+                ret = MEMORY_FAILURE;
+                break;
+            }
             // send the command
             if (SUCCESS != scsi_Unmap(device, false, 0, C_CAST(uint16_t, unmapCommandDataLen), unmapCommandBuffer))
             {
@@ -585,7 +598,12 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Unmap_Range(const tDevice* M_NONNULL d
                 ret = SUCCESS;
             }
             unmapOffset += (unmapCommandDataLen - 8);
-            safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen);
+            if (0 != safe_memset(unmapCommandBuffer, unmapCommandDataLen, 0, unmapCommandDataLen))
+            {
+                perror("Error clearing unmap command buffer before reuse");
+                ret = MEMORY_FAILURE;
+                break;
+            }
         }
         os_Unlock_Device(device);
         if (ret == SUCCESS)

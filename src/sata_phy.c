@@ -196,89 +196,172 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_SATA_Phy_Event_Counters(ptrSATAP
             if (counters->counters[iter].vendorUnique)
             {
                 vendorEvent = 'V';
-                snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                    "Vendor Unique Event %04" PRIX16 "h", counters->counters[iter].rawID);
+                if (0 > snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                            "Vendor Unique Event %04" PRIX16 "h", counters->counters[iter].rawID))
+                {
+                    print_error_format("Error formatting vendor unique SATA Phy event string");
+                }
             }
             else
             {
                 switch (counters->counters[iter].eventID)
                 {
                 case SATA_PHY_EVENT_COMMAND_ICRC:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "Command failed with iCRC error");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Command failed with iCRC error"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_DATA_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for data FIS");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for data FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_D2H_DATA_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for D2H data FIS");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for D2H data FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_H2D_DATA_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for H2D data FIS");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for H2D data FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_NON_DATA_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for non-data FIS");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "R_ERR response for non-data FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_D2H_NON_DATA_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for D2H non-data FIS");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "R_ERR response for D2H non-data FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_FOR_H2D_NON_DATA_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for H2D non-data FIS");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "R_ERR response for H2D non-data FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_D2H_NON_DATA_FIS_RETRIES:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "D2H non-data FIS retries");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "D2H non-data FIS retries"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_TRANSITIONS_FROM_PHYRDY_2_PHYRDYN:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "Transitions from PHYRDY to PHYRDYn");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "Transitions from PHYRDY to PHYRDYn"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_H2D_FISES_SENT_DUE_TO_COMRESET:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "H2D FISes sent due to COMRESET");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "H2D FISes sent due to COMRESET"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_CRC_ERRORS_WITHIN_H2D_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "CRC errors withing H2D FIS");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "CRC errors withing H2D FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_NON_CRC_ERRORS_WITHIN_H2D_FIS:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "Non-CRC errors within H2D FIS");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Non-CRC errors within H2D FIS"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_DATA_FIS_CRC:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for H2D data FIS CRC");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "R_ERR response for H2D data FIS CRC"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_DATA_FIS_NONCRC:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for H2D data FIS non-CRC");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "R_ERR response for H2D data FIS non-CRC"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_NONDATA_FIS_CRC:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for H2D non-data FIS CRC");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "R_ERR response for H2D non-data FIS CRC"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_R_ERR_RESPONSE_H2D_NONDATA_FIS_NONCRC:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "R_ERR response for H2D non-data FIS non-CRC");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "R_ERR response for H2D non-data FIS non-CRC"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_PM_H2D_NONDATA_FIS_R_ERR_END_STAT_COLLISION:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "PM H2D non-data FIS R_ERR ending status from collision");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "PM H2D non-data FIS R_ERR ending status from collision"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_PM_SIGNATURE_REGISTER_D2H_FISES:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "PM signature register D2H FISes");
+                    if (0 !=
+                        safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "PM signature register D2H FISes"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 case SATA_PHY_EVENT_PM_CORRUPT_CRC_PROPAGATION_D2H_FISES:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
-                                        "PM corrupt CRC propagation D2H FISes");
+                    if (0 != safe_strcpy(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                         "PM corrupt CRC propagation D2H FISes"))
+                        M_UNLIKELY
+                        {
+                            print_error_format("Error copying string for SATA Phy event in %s", __func__);
+                        }
                     break;
                 default:
-                    snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN, "Unknown Event %04" PRIX16 "h",
-                                        counters->counters[iter].rawID);
+                    if (0 > snprintf_err_handle(counterDescription, PHY_COUNTER_DESCRIPTION_LEN,
+                                                "Unknown Event %04" PRIX16 "h", counters->counters[iter].rawID))
+                    {
+                        print_error_format("Error formatting unknown SATA Phy event string");
+                    }
                     break;
                 }
             }

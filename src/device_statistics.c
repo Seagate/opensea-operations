@@ -1037,7 +1037,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
     if (dummyUpLogPages)
     {
         subpagesSupported = true;
-        safe_memset(supportedLogPages, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+        if (0 != safe_memset(supportedLogPages, SIZE_OF_STACK_ARRAY(supportedLogPages), 0, LEGACY_DRIVE_SEC_SIZE))
+        {
+            perror("Error: Failed to clear supportedLogPages buffer");
+            return MEMORY_FAILURE;
+        }
         supportedLogPages[0] = 0;
         supportedLogPages[1] = 0;
         // page length
@@ -1107,7 +1111,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_WRITE_ERROR_COUNTERS:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -1535,7 +1543,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -1823,7 +1835,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             ret = SUCCESS;
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -2250,7 +2266,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -2534,7 +2554,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_READ_REVERSE_ERROR_COUNTERS:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -2970,7 +2994,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -3268,7 +3296,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_VERIFY_ERROR_COUNTERS:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -3696,7 +3728,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -3987,7 +4023,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_NON_MEDIUM_ERROR:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -4066,7 +4106,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -4128,7 +4172,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_FORMAT_STATUS_LOG_PAGE:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -4454,7 +4502,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -4631,7 +4683,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_LOGICAL_BLOCK_PROVISIONING:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -4850,7 +4906,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -4951,7 +5011,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             switch (subpageCode)
             {
             case 0: // temperature
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -5037,7 +5101,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -5081,7 +5149,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                 }
                 break;
             case 1: // environmental reporting
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -5326,7 +5398,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                 }
                 break;
             case 2: // environmental limits
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -5557,7 +5633,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             switch (subpageCode)
             {
             case 0: // start stop cycle counter
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -5781,7 +5861,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -5888,7 +5972,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                 }
                 break;
             case 1: // utilization
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -5976,7 +6064,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -6031,7 +6123,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_SOLID_STATE_MEDIA:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -6086,7 +6182,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -6125,7 +6225,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             switch (subpageCode)
             {
             case 0: // background scan results
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -6171,7 +6275,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -6227,7 +6335,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                 }
                 break;
             case 1: // pending defects
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -6283,7 +6395,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -6322,7 +6438,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             case 2: // background operaton
                 break;
             case 3: // lps misalignment
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -6378,7 +6498,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -6420,7 +6544,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         case LP_NON_VOLITILE_CACHE:
             if (subpageCode == 0)
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -6508,7 +6636,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0000, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -6558,7 +6690,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             switch (subpageCode)
             {
             case 0: // general statistics and performance
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -6977,7 +7113,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -7201,7 +7341,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                 break;
                 // group statistics (1 - 1f)
             case 0x20: // cache memory statistics
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -7417,7 +7561,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
                         }
                     }
                     // thresholds
-                    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_THRESHOLD_VALUES, pageCode, subpageCode,
                                                       0x0001, tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                     {
@@ -7511,7 +7659,11 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             {
             case 0x01: // ZBD statistics
             {
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                {
+                    perror("Error: Failed to clear tempLogBuf buffer");
+                    return MEMORY_FAILURE;
+                }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0001,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -7654,7 +7806,12 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
             switch (subpageCode)
             {
             case 0:
-                safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+                if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+                    M_UNLIKELY
+                    {
+                        perror("Error: Failed to clear tempLogBuf buffer");
+                        return MEMORY_FAILURE;
+                    }
                 if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, pageCode, subpageCode, 0x0000,
                                                   tempLogBuf, LEGACY_DRIVE_SEC_SIZE))
                 {
@@ -8083,7 +8240,12 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         }
     }
     // get the SAS timestamp
-    safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+    if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+        M_UNLIKELY
+        {
+            perror("Error: Failed to clear tempLogBuf buffer");
+            return MEMORY_FAILURE;
+        }
     if (SUCCESS == scsi_Report_Timestamp(device, LEGACY_DRIVE_SEC_SIZE, tempLogBuf))
     {
         deviceStats->sasStatistics.timeStampSupported                  = true;
@@ -8113,7 +8275,12 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         // If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
         // NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = UINT32_C(0);
-        safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+        if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+            M_UNLIKELY
+            {
+                perror("Error: Failed to clear tempLogBuf buffer");
+                return MEMORY_FAILURE;
+            }
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 &&
             (defectRet = scsi_Read_Defect_Data_12(device, false, true, C_CAST(uint8_t, defectFormat), 0, 8,
                                                   tempLogBuf)) == SUCCESS)
@@ -8172,7 +8339,12 @@ static eReturnValues get_SCSI_DeviceStatistics(const tDevice* M_NONNULL      dev
         // If the drive has a large LBA (>32b max) then use extended formats, otherwise use short formats
         // NOTE: SBC2 and later added extended formats
         uint32_t defectListLength = UINT32_C(0);
-        safe_memset(tempLogBuf, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+        if (0 != safe_memset(tempLogBuf, SIZE_OF_STACK_ARRAY(tempLogBuf), 0, LEGACY_DRIVE_SEC_SIZE))
+            M_UNLIKELY
+            {
+                perror("Error: Failed to clear tempLogBuf buffer");
+                return MEMORY_FAILURE;
+            }
         if (device->drive_info.scsiVersion > SCSI_VERSION_SCSI2 &&
             (defectRet = scsi_Read_Defect_Data_12(device, true, false, C_CAST(uint8_t, defectFormat), 0, 8,
                                                   tempLogBuf)) == SUCCESS)
@@ -8355,35 +8527,64 @@ static void print_Count_Statistic(statistic              theStatistic,
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8416,35 +8617,64 @@ static void print_Workload_Utilization_Statistic(statistic theStatistic, const c
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8482,35 +8712,64 @@ static void print_Utilization_Usage_Rate_Statistic(statistic theStatistic, const
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8579,35 +8838,64 @@ static void print_Resource_Availability_Statistic(statistic theStatistic, const 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8637,35 +8925,64 @@ static void print_Random_Write_Resources_Used_Statistic(statistic theStatistic, 
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8702,35 +9019,64 @@ static void print_Non_Volatile_Time_Statistic(statistic theStatistic, const char
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8773,35 +9119,64 @@ static void print_Temperature_Statistic(statistic theStatistic, const char* M_NO
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8830,42 +9205,71 @@ static void print_Date_And_Time_Timestamp_Statistic(statistic theStatistic, cons
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
         {
             struct tm time;
             DECLARE_ZERO_INIT_ARRAY(char, timestr, TIME_STRING_LENGTH);
-            safe_memset(&time, sizeof(struct tm), 0, sizeof(struct tm));
+            M_INITIALIZE_STRUCTURE(&time, sizeof(struct tm));
             eConstraintHandler handler = set_Constraint_Handler(ERR_IGNORE);
             if (0 == safe_asctime(timestr, TIME_STRING_LENGTH,
                                   milliseconds_Since_Unix_Epoch_To_Struct_TM(theStatistic.statisticValue, &time)))
@@ -8907,35 +9311,64 @@ static void print_Time_Minutes_Statistic(statistic theStatistic, const char* M_N
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s", displayThreshold);
         if (theStatistic.isValueValid)
@@ -8979,35 +9412,64 @@ static void print_Time_Microseconds_Statistic(statistic theStatistic, const char
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s", displayThreshold);
         if (theStatistic.isValueValid)
@@ -9037,35 +9499,64 @@ static void print_SCSI_Date_Statistic(statistic theStatistic, const char* M_NONN
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -9111,35 +9602,64 @@ static void print_SCSI_Time_Interval_Statistic(statistic theStatistic, const cha
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -9206,35 +9726,64 @@ static void print_Environmental_Temperature_Statistic(statistic             theS
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -9278,35 +9827,64 @@ static void print_Humidity_Statistic(statistic theStatistic, const char* M_NONNU
             switch (theStatistic.threshType)
             {
             case THRESHOLD_TYPE_ALWAYS_TRIGGER_ON_UPDATE:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
-                                    "%" PRIu64 " (Always Trigger)", theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64 " (Always Trigger)", theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to  (Always Trigger) in %s",
+                                           __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to = in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_NOT_EQUAL:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "!=%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "!=%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to != in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_GREATER:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, ">%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            ">%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to > in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_TRIGGER_WHEN_LESS:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "<%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "<%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to < in %s", __func__);
+                    }
                 break;
             case THRESHOLD_TYPE_NO_TRIGGER:
             default:
-                snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "%" PRIu64,
-                                    theStatistic.threshold);
+                if (0 > snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH,
+                                            "%" PRIu64, theStatistic.threshold))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error setting device statistics threshold to No Trigger in %s", __func__);
+                    }
                 break;
             }
         }
         else
         {
-            snprintf_err_handle(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A");
+            if (0 != safe_strcpy(displayThreshold, DEVICE_STATISTICS_DISPLAY_THRESHOLD_STRING_LENGTH, "N/A"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error setting device statistics threshold to N/A in %s", __func__);
+                }
         }
         printf(" %-16s ", displayThreshold);
         if (theStatistic.isValueValid)
@@ -9350,7 +9928,12 @@ static eReturnValues print_ATA_DeviceStatistics(const tDevice* M_NONNULL      de
         return MEMORY_FAILURE;
     }
     DECLARE_ZERO_INIT_ARRAY(char, flagPad, DEVICE_STATISTIC_FLAGS_LEN + 1);
-    safe_memset(flagPad, DEVICE_STATISTIC_FLAGS_LEN + 1, ' ', DEVICE_STATISTIC_FLAGS_LEN);
+    if (0 != safe_memset(flagPad, SIZE_OF_STACK_ARRAY(flagPad), ' ', DEVICE_STATISTIC_FLAGS_LEN))
+        M_UNLIKELY
+        {
+            perror("Error: Failed to clear flagPad buffer");
+            return MEMORY_FAILURE;
+        }
     print_str("===Device Statistics===\n");
     print_str("\t* = condition monitored with threshold (DSN Feature)\n");
     print_str("\t! = monitored condition met\n");
@@ -9490,19 +10073,31 @@ static eReturnValues print_ATA_DeviceStatistics(const tDevice* M_NONNULL      de
             {
                 // Only print out the per-range info when multiple ranges are supported.
                 // Otherwise these represent the whole device
-                snprintf_err_handle(rangeID, RANGE_ID_STR_LEN, "Range %" PRIu8, rangeIter);
+                if (0 > snprintf_err_handle(rangeID, RANGE_ID_STR_LEN, "Range %" PRIu8, rangeIter))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error formatting rangeID for %" PRIu8 " \n", rangeIter);
+                    }
             }
             else
             {
-                snprintf_err_handle(rangeID, RANGE_ID_STR_LEN, "Device");
+                if (0 != safe_strcpy(rangeID, RANGE_ID_STR_LEN, "Device"))
+                {
+                    print_str("Error copying string for rangeID (whole device)\n");
+                }
             }
 #define CDL_POLICY_STR_LEN 60
             // Loop through r1-r7 stat a
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat A", rangeID,
-                                    policyIter);
+                if (0 > snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat A", rangeID,
+                                            policyIter))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error formatting policyName for Read Policy %" PRIu8 " Stat A\n",
+                                           policyIter);
+                    }
                 print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.readPolicy[policyIter],
                                       policyName, "Invocations");
             }
@@ -9510,8 +10105,13 @@ static eReturnValues print_ATA_DeviceStatistics(const tDevice* M_NONNULL      de
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat A", rangeID,
-                                    policyIter);
+                if (0 > snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat A",
+                                            rangeID, policyIter))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error formatting policyName for Write Policy %" PRIu8 " Stat A\n",
+                                           policyIter);
+                    }
                 print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupA.writePolicy[policyIter],
                                       policyName, "Invocations");
             }
@@ -9519,8 +10119,13 @@ static eReturnValues print_ATA_DeviceStatistics(const tDevice* M_NONNULL      de
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat B", rangeID,
-                                    policyIter);
+                if (0 > snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Read Policy %" PRIu8 " Stat B", rangeID,
+                                            policyIter))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error formatting policyName for Read Policy %" PRIu8 " Stat B\n",
+                                           policyIter);
+                    }
                 print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.readPolicy[policyIter],
                                       policyName, "Invocations");
             }
@@ -9528,8 +10133,13 @@ static eReturnValues print_ATA_DeviceStatistics(const tDevice* M_NONNULL      de
             for (uint8_t policyIter = UINT8_C(0); policyIter < MAX_CDL_RW_POLICIES; ++policyIter)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, policyName, CDL_POLICY_STR_LEN);
-                snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat B", rangeID,
-                                    policyIter);
+                if (0 > snprintf_err_handle(policyName, CDL_POLICY_STR_LEN, "%s Write Policy %" PRIu8 " Stat B",
+                                            rangeID, policyIter))
+                    M_UNLIKELY
+                    {
+                        print_error_format("Error formatting policyName for Write Policy %" PRIu8 " Stat B\n",
+                                           policyIter);
+                    }
                 print_Count_Statistic(deviceStats->sataStatistics.cdlRange[rangeIter].groupB.writePolicy[policyIter],
                                       policyName, "Invocations");
             }
@@ -9552,41 +10162,53 @@ static eReturnValues print_ATA_DeviceStatistics(const tDevice* M_NONNULL      de
         {
 #define VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH 64
             DECLARE_ZERO_INIT_ARRAY(char, statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH);
+            int snprintfres = 0;
             if (SEAGATE == is_Seagate_Family(device))
             {
+                errno_t error = 0;
                 switch (vendorSpecificIter + 1)
                 {
                 case 5:
-                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                    error = safe_strcpy(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
                                         "Servo Activation Stop Timestamp");
                     break;
                 case 4:
-                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                    error = safe_strcpy(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
                                         "Servo Activation Start Timestamp");
                     break;
                 case 3:
-                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                    error = safe_strcpy(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
                                         "Read Error Rate Head Failure Bit Map");
                     break;
                 case 2:
-                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                    error = safe_strcpy(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
                                         "Number of Servo Unloads");
                     break;
                 case 1:
-                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                    error = safe_strcpy(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
                                         "Pressure Min/Max Reached");
                     break;
                 default:
-                    snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
-                                        "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
+                    snprintfres = snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                                                      "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
                     break;
                 }
+                if (error != 0)
+                    M_UNLIKELY
+                    {
+                        perror("Error setting Seagate vendor specific statistic name");
+                    }
             }
             else
             {
-                snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
-                                    "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
+                snprintfres = snprintf_err_handle(statisticName, VENDOR_UNIQUE_DEVICE_STATISTIC_NAME_STRING_LENGTH,
+                                                  "Vendor Specific Statistic %" PRIu8, vendorSpecificIter + 1);
             }
+            if (snprintfres < 0)
+                M_UNLIKELY
+                {
+                    perror("Error formatting vendor specific statistic name (generic mode)");
+                }
             if (deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter].isSupported)
             {
                 print_Count_Statistic(deviceStats->sataStatistics.vendorSpecificStatistics[vendorSpecificIter],
@@ -10032,7 +10654,11 @@ static M_INLINE bool is_ATA_Timestamp_Supported(const tDevice* M_NONNULL device)
         if (generalStatsSupported)
         {
             // Now read this page and find the timestamp statistic to make sure it is supported.
-            safe_memset(devStats, ATA_LOG_PAGE_LEN_BYTES, 0, ATA_LOG_PAGE_LEN_BYTES);
+            if (0 != safe_memset(devStats, SIZE_OF_STACK_ARRAY(devStats), 0, ATA_LOG_PAGE_LEN_BYTES))
+            {
+                perror("Error: Failed to clear devStats buffer");
+                return false;
+            }
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_DEVICE_STATISTICS, ATA_DEVICE_STATS_LOG_GENERAL,
                                                      devStats, ATA_LOG_PAGE_LEN_BYTES, 0))
             {
@@ -10041,7 +10667,7 @@ static M_INLINE bool is_ATA_Timestamp_Supported(const tDevice* M_NONNULL device)
                     M_Word0(le64_to_host(*qwordPtr)) == ATA_DEV_STATS_VERSION_1)
                 {
                     statistic dateAndTime;
-                    safe_memset(&dateAndTime, sizeof(statistic), 0, sizeof(statistic));
+                    M_INITIALIZE_STRUCTURE(&dateAndTime, sizeof(statistic));
                     if (set_ATA_Dev_Stat_Info(le64_to_host(*(qwordPtr + 7)), &dateAndTime))
                     {
                         supported = dateAndTime.isSupported;
@@ -10138,7 +10764,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_Date_And_Time_Timestamp(const tDevice* 
         {
             nvmeFeaturesCmdOpt setTimestamp;
             DECLARE_ZERO_INIT_ARRAY(uint8_t, timestampData, 8);
-            safe_memset(&setTimestamp, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+            M_INITIALIZE_STRUCTURE(&setTimestamp, sizeof(nvmeFeaturesCmdOpt));
             timestampData[0]             = M_Byte0(time);
             timestampData[1]             = M_Byte1(time);
             timestampData[2]             = M_Byte2(time);

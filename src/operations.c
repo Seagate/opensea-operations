@@ -106,7 +106,13 @@ OPENSEA_OPERATIONS_API eReturnValues change_Ready_LED(const tDevice* M_NONNULL d
                     readyLEDOnOff = true; // set to true so that we turn the bit on
                 }
             }
-            safe_memset(modeSelect, 24, 0, 24);
+            if (0 != safe_memset(modeSelect, 24, 0, 24))
+                M_UNLIKELY
+                {
+                    perror("Failed clearing mode page buffer before reading default values for ready LED");
+                    safe_free_aligned(&modeSelect);
+                    return MEMORY_FAILURE;
+                }
         }
         if (SUCCESS == scsi_Mode_Sense_10(device, 0x19, 24, 0, true, false, MPC_CURRENT_VALUES, modeSelect))
         {
@@ -381,7 +387,7 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Set_Write_Cache(const tDevice* M_NONNU
         BIT0) // This bit must be set to 1 to control whether write caching is enabled or disabled.
     {
         nvmeFeaturesCmdOpt featuresOptions;
-        safe_memset(&featuresOptions, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&featuresOptions, sizeof(nvmeFeaturesCmdOpt));
         if (writeCacheEnableDisable)
         {
             featuresOptions.featSetGetValue = BIT0;
@@ -454,8 +460,13 @@ OPENSEA_OPERATIONS_API bool scsi_Is_Read_Look_Ahead_Supported(const tDevice* M_N
             supported = true;
         }
     }
-    safe_memset(cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0,
-                MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    if (0 != safe_memset(cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0,
+                         MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN))
+    {
+        perror("Failed clearing mode page buffer before reading default values");
+        safe_free_aligned(&cachingModePage);
+        return false;
+    }
     // check default to see if it is enabled and just cannot be disabled (unlikely)
     if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN,
                                                     0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
@@ -659,8 +670,14 @@ OPENSEA_OPERATIONS_API bool scsi_Is_Write_Cache_Supported(const tDevice* M_NONNU
             supported = true;
         }
     }
-    safe_memset(cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0,
-                MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN);
+    if (0 != safe_memset(cachingModePage, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN, 0,
+                         MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN))
+        M_UNLIKELY
+        {
+            perror("Failed clearing mode page buffer before reading default values");
+            safe_free_aligned(&cachingModePage);
+            return false;
+        }
     // check default to see if it is enabled and just cannot be disabled (unlikely)
     if (!supported && SUCCESS == scsi_Mode_Sense_10(device, MP_CACHING, MP_CACHING_LEN + MODE_PARAMETER_HEADER_10_LEN,
                                                     0, true, false, MPC_DEFAULT_VALUES, cachingModePage))
@@ -696,7 +713,7 @@ OPENSEA_OPERATIONS_API bool nvme_Is_Write_Cache_Enabled(const tDevice* M_NONNULL
     {
         // get the feature identifier
         nvmeFeaturesCmdOpt featuresOptions;
-        safe_memset(&featuresOptions, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&featuresOptions, sizeof(nvmeFeaturesCmdOpt));
         featuresOptions.fid = NVME_FEAT_VOLATILE_WC_;
         featuresOptions.sel = 0; // getting current settings
         if (SUCCESS == nvme_Get_Features(device, &featuresOptions))
@@ -872,13 +889,23 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     {
         *overwriteEraseTimeEstimateMinutes = UINT32_C(0); // start off with zero
     }
-    safe_memset(&sanitizeInfo, sizeof(sanitizeFeaturesSupported), 0, sizeof(sanitizeFeaturesSupported));
-    safe_memset(&ataSecurityInfo, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
-    safe_memset(&nvmeFormatInfo, sizeof(nvmeFormatSupport), 0, sizeof(nvmeFormatSupport));
-    safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
+    M_INITIALIZE_STRUCTURE(&sanitizeInfo, sizeof(sanitizeFeaturesSupported));
+    M_INITIALIZE_STRUCTURE(&ataSecurityInfo, sizeof(ataSecurityStatus));
+    M_INITIALIZE_STRUCTURE(&nvmeFormatInfo, sizeof(nvmeFormatSupport));
+    M_INITIALIZE_STRUCTURE(&writeAfterEraseRequirements, sizeof(writeAfterErase));
     // first make sure the list is initialized to all 1's (to help sorting later)
-    safe_memset(currentErase, sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS, 0xFF,
-                sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS);
+    if (0 != safe_memset(currentErase, sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS, 0xFF,
+                         sizeof(eraseMethod) * MAX_SUPPORTED_ERASE_METHODS))
+        M_UNLIKELY
+        {
+            ret = MEMORY_FAILURE;
+            return ret;
+        }
+
+    errno_t currentOSSupportWarningError = 0;
+    errno_t osSupportWarningError        = 0;
+    errno_t eraseNameError               = 0;
+    errno_t eraseWarningError            = 0;
 
     get_Sanitize_Device_Features(device, &sanitizeInfo);
 
@@ -891,6 +918,7 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     // fastest will be sanitize crypto
     if (sanitizeInfo.crypto)
     {
+        errno_t sanitizeWarningError = 0;
         DECLARE_ZERO_INIT_ARRAY(char, sanitizeWarning, MAX_ERASE_WARNING_LENGTH);
         DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
 
@@ -898,23 +926,39 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
         {
             if (writeAfterEraseRequirements.cryptoErase == WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE)
             {
-                snprintf_err_handle(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
-                                    "PI formatting may require write after crypto erase.");
+                sanitizeWarningError = safe_strcpy(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
+                                                   "PI formatting may require write after crypto erase.");
             }
             else
             {
-                snprintf_err_handle(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
-                                    "Cannot be stopped, even with a power cycle. Write after crypto erase required.");
+                sanitizeWarningError =
+                    safe_strcpy(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
+                                "Cannot be stopped, even with a power cycle. Write after crypto erase required.");
             }
         }
         else
         {
-            snprintf_err_handle(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
-                                "Cannot be stopped, even with a power cycle.");
+            sanitizeWarningError =
+                safe_strcpy(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
         }
         currentErase->eraseIdentifier = ERASE_SANITIZE_CRYPTO;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Crypto Erase");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
+        eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Crypto Erase");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for Sanitize Crypto Erase (truncation likely)");
+            }
+        eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, sanitizeWarning);
+        if (0 != sanitizeWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying sanitizeWarning string (truncation likely)");
+            }
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase Warning string for Sanitize Crypto Erase (truncation likely)");
+            }
 #if defined(_WIN32)
         if (get_Device_DriveType(device) == NVME_DRIVE)
         {
@@ -940,10 +984,21 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
 
         if (!currentErase->osSupported)
         {
-            snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                                "Sanitize Crypto Erase is not supported on this OS");
+            osSupportWarningError = safe_strcpy(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
+                                                "Sanitize Crypto Erase is not supported on this OS");
+            if (0 != osSupportWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying OS support warning for Sanitize Crypto Erase (truncation likely)");
+                }
         }
-        snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+        currentOSSupportWarningError =
+            safe_strcpy(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, osSupportWarning);
+        if (0 != currentOSSupportWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying ossupport Warning string for Sanitize Crypto Erase (truncation likely)");
+            }
         currentErase->warningValid      = true;
         currentErase->eraseWeight       = 0;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -955,28 +1010,44 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     {
         DECLARE_ZERO_INIT_ARRAY(char, sanitizeWarning, MAX_ERASE_WARNING_LENGTH);
         DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
-
+        errno_t sanitizeWarningError = 0;
         if (writeAfterEraseRequirements.blockErase >= WAEREQ_MEDIUM_ERROR_OTHER_ASC)
         {
             if (writeAfterEraseRequirements.blockErase == WAEREQ_PI_FORMATTED_MAY_REQUIRE_OVERWRITE)
             {
-                snprintf_err_handle(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
-                                    "PI formatting may require write after block erase.");
+                sanitizeWarningError = safe_strcpy(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
+                                                   "PI formatting may require write after block erase.");
             }
             else
             {
-                snprintf_err_handle(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
-                                    "Cannot be stopped, even with a power cycle. Write after block erase required.");
+                sanitizeWarningError =
+                    safe_strcpy(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
+                                "Cannot be stopped, even with a power cycle. Write after block erase required.");
             }
         }
         else
         {
-            snprintf_err_handle(sanitizeWarning, MAX_ERASE_WARNING_LENGTH,
-                                "Cannot be stopped, even with a power cycle.");
+            sanitizeWarningError =
+                safe_strcpy(sanitizeWarning, MAX_ERASE_WARNING_LENGTH, "Cannot be stopped, even with a power cycle.");
         }
         currentErase->eraseIdentifier = ERASE_SANITIZE_BLOCK;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Block Erase");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "%s", sanitizeWarning);
+        eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Block Erase");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for Sanitize Block Erase (truncation likely)");
+            }
+        eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, sanitizeWarning);
+        if (0 != sanitizeWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying sanitizeWarning string (truncation likely)");
+            }
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase Warning string for Sanitize Block Erase (truncation likely)");
+            }
 
 #if defined(_WIN32)
         if (get_Device_DriveType(device) == NVME_DRIVE)
@@ -1003,10 +1074,21 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
 
         if (!currentErase->osSupported)
         {
-            snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                                "Sanitize Block Erase is not supported on this OS");
+            osSupportWarningError = safe_strcpy(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
+                                                "Sanitize Block Erase is not supported on this OS");
+            if (0 != osSupportWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying OS support warning for Sanitize Block Erase (truncation likely)");
+                }
         }
-        snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+        currentOSSupportWarningError =
+            safe_strcpy(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, osSupportWarning);
+        if (0 != currentOSSupportWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying ossupport Warning string for Sanitize Block Erase (truncation likely)");
+            }
         currentErase->warningValid      = true;
         currentErase->eraseWeight       = 1;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -1017,9 +1099,19 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     if (isFormatUnitSupported && get_Device_DriveType(device) == SCSI_DRIVE && !formatUnitAdded && is_SSD(device))
     {
         currentErase->eraseIdentifier = ERASE_FORMAT_UNIT;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Format Unit");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                            "If interrupted, must be restarted from the beginning.");
+        eraseNameError                = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Format Unit");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for Format Unit (truncation likely)");
+            }
+        eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                        "If interrupted, must be restarted from the beginning.");
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase warning for Format Unit (truncation likely)");
+            }
         currentErase->warningValid      = true;
         currentErase->eraseWeight       = 2;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR; // While an SSD may do a block erase, there is no
@@ -1035,7 +1127,12 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
         {
             DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
             currentErase->eraseIdentifier = ERASE_NVM_FORMAT_CRYPTO_SECURE_ERASE;
-            snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: Crypto Erase");
+            eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: Crypto Erase");
+            if (0 != eraseNameError)
+                M_UNLIKELY
+                {
+                    perror("Error copying erase name for NVM Format Crypto Erase (truncation likely)");
+                }
 
             // NVMe Format - in windows : some USB could support, and if drive is connected to PCIe slot, then not
             // supported in linux : for all NVMe connected to PCIe slot it's supported, and USB - all except JM 0x0BC2 -
@@ -1086,10 +1183,21 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
 
             if (!currentErase->osSupported)
             {
-                snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                                    "NVM Format: Crypto Erase is not supported on this OS");
+                osSupportWarningError = safe_strcpy(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
+                                                    "NVM Format: Crypto Erase is not supported on this OS");
+                if (0 != osSupportWarningError)
+                    M_UNLIKELY
+                    {
+                        perror("Error copying OS support warning for NVM Format Crypto Erase (truncation likely)");
+                    }
             }
-            snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+            currentOSSupportWarningError =
+                safe_strcpy(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, osSupportWarning);
+            if (0 != currentOSSupportWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying ossupport Warning string for NVM Format Crypto Erase (truncation likely)");
+                }
 
             currentErase->eraseWeight       = 0;
             currentErase->warningValid      = false;
@@ -1103,7 +1211,12 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
         {
             DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
             currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
-            snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
+            eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
+            if (0 != eraseNameError)
+                M_UNLIKELY
+                {
+                    perror("Error copying erase name for NVM Format User Data Erase (truncation likely)");
+                }
             currentErase->eraseWeight = 1;
 #if defined(_WIN32)
             if (get_Device_InterfaceType(device) == USB_INTERFACE)
@@ -1151,10 +1264,21 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
 
             if (!currentErase->osSupported)
             {
-                snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                                    "NVM Format: User Data Erase is not supported on this OS");
+                osSupportWarningError = safe_strcpy(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
+                                                    "NVM Format: User Data Erase is not supported on this OS");
+                if (0 != osSupportWarningError)
+                    M_UNLIKELY
+                    {
+                        perror("Error copying OS support warning for NVM Format User Data Erase (truncation likely)");
+                    }
             }
-            snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+            currentOSSupportWarningError =
+                safe_strcpy(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, osSupportWarning);
+            if (0 != currentOSSupportWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying ossupport Warning string for NVM Format User Data Erase (truncation likely)");
+                }
 
             currentErase->warningValid = false;
             currentErase->sanitizationLevel =
@@ -1178,17 +1302,27 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     {
         enhancedEraseAddedToList      = true;
         currentErase->eraseIdentifier = ERASE_ATA_SECURITY_ENHANCED;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
+        eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for ATA Enhanced Security Erase (truncation likely)");
+            }
         if (ataSecurityInfo.securityEnabled)
         {
-            snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                                "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
+            eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                            "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
         }
         else
         {
-            snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                                "Requires setting device password. Password cleared upon success.");
+            eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                            "Requires setting device password. Password cleared upon success.");
         }
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase warning for ATA Enhanced Security Erase (truncation likely)");
+            }
         currentErase->warningValid      = true;
         currentErase->eraseWeight       = 5;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -1203,9 +1337,19 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
         DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
 
         currentErase->eraseIdentifier = ERASE_SANITIZE_OVERWRITE;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Overwrite Erase");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                            "Cannot be stopped, even with a power cycle.");
+        eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Sanitize Overwrite Erase");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for Sanitize Overwrite Erase (truncation likely)");
+            }
+        eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                        "Cannot be stopped, even with a power cycle.");
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase warning for Sanitize Overwrite Erase (truncation likely)");
+            }
 
 #if defined(_WIN32)
         if (get_Device_DriveType(device) == NVME_DRIVE)
@@ -1231,10 +1375,21 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
 #endif
         if (!currentErase->osSupported)
         {
-            snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                                "Sanitize Overwrite Erase is not supported on this OS");
+            osSupportWarningError = safe_strcpy(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
+                                                "Sanitize Overwrite Erase is not supported on this OS");
+            if (0 != osSupportWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying OS support warning for Sanitize Overwrite Erase (truncation likely)");
+                }
         }
-        snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+        currentOSSupportWarningError =
+            safe_strcpy(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, osSupportWarning);
+        if (0 != currentOSSupportWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying ossupport Warning string for Sanitize Overwrite Erase (truncation likely)");
+            }
         currentErase->warningValid      = true;
         currentErase->eraseWeight       = 7;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -1245,9 +1400,19 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     if (isFormatUnitSupported && get_Device_DriveType(device) == SCSI_DRIVE && !formatUnitAdded)
     {
         currentErase->eraseIdentifier = ERASE_FORMAT_UNIT;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Format Unit");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                            "If interupted, must be restarted from the beginning.");
+        eraseNameError                = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Format Unit");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for Format Unit (truncation likely)");
+            }
+        eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                        "If interupted, must be restarted from the beginning.");
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase warning for Format Unit (truncation likely)");
+            }
         currentErase->warningValid = true;
         currentErase->eraseWeight  = 8;
         currentErase->sanitizationLevel =
@@ -1261,7 +1426,12 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     {
         DECLARE_ZERO_INIT_ARRAY(char, osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH);
         currentErase->eraseIdentifier = ERASE_NVM_FORMAT_USER_SECURE_ERASE;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
+        eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "NVM Format: User Data Erase");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for NVM Format User Data Erase (second instance, truncation likely)");
+            }
         currentErase->eraseWeight = 8; // assuming that this will do a full drive overwrite format which will be slow
         // NOTE: If crypto is supported, a request for user secure erase may run a crypto erase, but no way to know for
         // sure-TJE
@@ -1313,10 +1483,21 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
 
         if (!currentErase->osSupported)
         {
-            snprintf_err_handle(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
-                                "NVM Format: User Data Erase is not supported on this OS");
+            osSupportWarningError = safe_strcpy(osSupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH,
+                                                "NVM Format: User Data Erase is not supported on this OS");
+            if (0 != osSupportWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying OS support warning for NVM Format User Data Erase (truncation likely)");
+                }
         }
-        snprintf_err_handle(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, "%s", osSupportWarning);
+        currentOSSupportWarningError =
+            safe_strcpy(currentErase->ossupportWarning, MAX_OS_SUPPORT_WARNING_LENGTH, osSupportWarning);
+        if (0 != currentOSSupportWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying ossupport Warning string for NVM Format User Data Erase (truncation likely)");
+            }
 
         currentErase->warningValid      = true;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
@@ -1330,9 +1511,19 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
     if (isWriteSameSupported)
     {
         currentErase->eraseIdentifier = ERASE_WRITE_SAME;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Write Same Erase");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                            "Host may abort erase with disc access.");
+        eraseNameError                = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Write Same Erase");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for Write Same Erase (truncation likely)");
+            }
+        eraseWarningError =
+            safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "Host may abort erase with disc access.");
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase warning for Write Same Erase (truncation likely)");
+            }
         currentErase->warningValid      = true;
         currentErase->eraseWeight       = 9;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
@@ -1349,17 +1540,27 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
             // add enhanced erase
             enhancedEraseAddedToList      = true;
             currentErase->eraseIdentifier = ERASE_ATA_SECURITY_ENHANCED;
-            snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
+            eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
+            if (0 != eraseNameError)
+                M_UNLIKELY
+                {
+                    perror("Error copying erase name for ATA Enhanced Security Erase (truncation likely)");
+                }
             if (ataSecurityInfo.securityEnabled)
             {
-                snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                                    "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
+                eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                                "Use the password set in the BIOS/UEFI or disable it from BIOS/UEFI.");
             }
             else
             {
-                snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                                    "Requires setting device password. Password cleared upon success.");
+                eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                                "Requires setting device password. Password cleared upon success.");
             }
+            if (0 != eraseWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying erase warning for ATA Enhanced Security Erase (truncation likely)");
+                }
             currentErase->warningValid      = true;
             currentErase->eraseWeight       = 10;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -1367,9 +1568,19 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
         }
         // add normal erase
         currentErase->eraseIdentifier = ERASE_ATA_SECURITY_NORMAL;
-        snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Security Erase");
-        snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                            "Requires setting device password. Password cleared upon success.");
+        eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Security Erase");
+        if (0 != eraseNameError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase name for ATA Security Erase (truncation likely)");
+            }
+        eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                        "Requires setting device password. Password cleared upon success.");
+        if (0 != eraseWarningError)
+            M_UNLIKELY
+            {
+                perror("Error copying erase warning for ATA Security Erase (truncation likely)");
+            }
         currentErase->warningValid      = true;
         currentErase->eraseWeight       = 11;
         currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
@@ -1383,9 +1594,21 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
             // add enhanced erase
             enhancedEraseAddedToList      = true;
             currentErase->eraseIdentifier = ERASE_ATA_SECURITY_ENHANCED;
-            snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
-            snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
-                                "Requires setting device password. Password cleared upon success.");
+            eraseNameError = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "ATA Enhanced Security Erase");
+            if (0 != eraseNameError)
+                M_UNLIKELY
+                {
+                    perror("Error copying erase name for ATA Enhanced Security Erase (second instance, truncation "
+                           "likely)");
+                }
+            eraseWarningError = safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH,
+                                            "Requires setting device password. Password cleared upon success.");
+            if (0 != eraseWarningError)
+                M_UNLIKELY
+                {
+                    perror("Error copying erase warning for ATA Enhanced Security Erase (second instance, truncation "
+                           "likely)");
+                }
             currentErase->warningValid      = true;
             currentErase->eraseWeight       = 12;
             currentErase->sanitizationLevel = ERASE_SANITIZATION_PURGE;
@@ -1407,8 +1630,13 @@ get_Supported_Erase_Methods(const tDevice* M_NONNULL device,
 
     // overwrite (always available and always the slowest)
     currentErase->eraseIdentifier = ERASE_OVERWRITE;
-    snprintf_err_handle(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Overwrite Erase");
-    // snprintf_err_handle(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "");
+    eraseNameError                = safe_strcpy(currentErase->eraseName, MAX_ERASE_NAME_LENGTH, "Overwrite Erase");
+    if (0 != eraseNameError)
+        M_UNLIKELY
+        {
+            perror("Error copying erase name for Overwrite Erase (truncation likely)");
+        }
+    // safe_strcpy(currentErase->eraseWarning, MAX_ERASE_WARNING_LENGTH, "");
     currentErase->warningValid      = false;
     currentErase->eraseWeight       = 13;
     currentErase->sanitizationLevel = ERASE_SANITIZATION_CLEAR;
@@ -1500,22 +1728,28 @@ void print_Supported_Erase_Methods(const tDevice* M_NONNULL device,
         case ERASE_SANITIZE_OVERWRITE:
             break;
         }
+        errno_t error = 0;
         switch (eraseMethodList[counter].sanitizationLevel)
         {
         case ERASE_SANITIZATION_UNKNOWN:
-            snprintf_err_handle(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Unknown");
+            error = safe_strcpy(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Unknown");
             break;
         case ERASE_SANITIZATION_CLEAR:
-            snprintf_err_handle(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Clear");
+            error = safe_strcpy(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Clear");
             break;
         case ERASE_SANITIZATION_POSSIBLE_PURGE:
-            snprintf_err_handle(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN,
-                                "Clear, Possible Purge");
+            error =
+                safe_strcpy(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Clear, Possible Purge");
             break;
         case ERASE_SANITIZATION_PURGE:
-            snprintf_err_handle(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Purge");
+            error = safe_strcpy(eraseDataCapabilities, ERASE_SANITIZATION_CAPABILITIES_STR_LEN, "Purge");
             break;
         }
+        if (error != 0)
+            M_UNLIKELY
+            {
+                perror("Error copying data sanitization capability string for output\n");
+            }
         if (eraseMethodList[counter].warningValid)
         {
             printf("%2" PRIu8 " %-*s (%s)\n\tNOTE: %-*s\n", counter + 1, MAX_ERASE_NAME_LENGTH,
@@ -1739,7 +1973,7 @@ M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API void show_Test_Unit_Ready_Status(const tDevice* M_NONNULL device)
 {
     scsiStatus returnedStatus;
-    safe_memset(&returnedStatus, sizeof(scsiStatus), 0, sizeof(scsiStatus));
+    M_INITIALIZE_STRUCTURE(&returnedStatus, sizeof(scsiStatus));
     eReturnValues ret = scsi_Test_Unit_Ready(device, &returnedStatus);
     if ((ret == SUCCESS) && (returnedStatus.senseKey == SENSE_KEY_NO_ERROR))
     {
@@ -1970,8 +2204,13 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(const tDevice* M_NONN
                         {
                             // copy header and block descriptors (if any)
                             currentPageOffset = MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength;
-                            safe_memcpy(currentPageToSet, currentPageToSetLength, &modeData[0],
-                                        MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength);
+                            if (0 != safe_memcpy(currentPageToSet, currentPageToSetLength, &modeData[0],
+                                                 MODE_PARAMETER_HEADER_6_LEN + blockDescriptorLength))
+                            {
+                                ret = MEMORY_FAILURE;
+                                safe_free_aligned(&modeData);
+                                return ret;
+                            }
                             // now zero out the reserved bytes for the mode select command
                             currentPageToSet[0] = 0; // mode data length is reserved for mode select commands
                             // leave medium type alone
@@ -1982,8 +2221,13 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(const tDevice* M_NONN
                         {
                             // copy header and block descriptors (if any)
                             currentPageOffset = MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength;
-                            safe_memcpy(currentPageToSet, currentPageToSetLength, &modeData[0],
-                                        MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength);
+                            if (0 != safe_memcpy(currentPageToSet, currentPageToSetLength, &modeData[0],
+                                                 MODE_PARAMETER_HEADER_10_LEN + blockDescriptorLength))
+                            {
+                                ret = MEMORY_FAILURE;
+                                safe_free_aligned(&modeData);
+                                return ret;
+                            }
                             // now zero out the reserved bytes for the mode select command
                             currentPageToSet[0] = 0; // mode data length is reserved for mode select commands
                             currentPageToSet[1] = 0;
@@ -1992,8 +2236,14 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(const tDevice* M_NONN
                             // leave block descriptor length alone in case we got some.
                         }
                         // now we need to copy the default data over now, then send it to the drive.
-                        safe_memcpy(&currentPageToSet[currentPageOffset], currentPageToSetLength - currentPageOffset,
-                                    &modeData[offset], currentPageLength);
+                        if (0 != safe_memcpy(&currentPageToSet[currentPageOffset],
+                                             currentPageToSetLength - currentPageOffset, &modeData[offset],
+                                             currentPageLength))
+                        {
+                            ret = MEMORY_FAILURE;
+                            safe_free_aligned(&modeData);
+                            return ret;
+                        }
                         bool pageFormat =
                             currentPage == 0 ? false : true;        // set to false when reading vendor unique page zero
                         bool savable = modeData[offset + 0] & BIT7; // use this to save pages. This bit says whether the
@@ -2205,7 +2455,12 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Mode_Page(const tDevice* M_NONNULL
             }
             offset += blockDescriptorLength;
             // copy the incoming buffer (which is ONLY mode page data)
-            safe_memcpy(&modeData[offset], modePageLength - offset, modePageData, modeDataLength);
+            if (0 != safe_memcpy(&modeData[offset], modePageLength - offset, modePageData, modeDataLength))
+            {
+                ret = MEMORY_FAILURE;
+                safe_free_aligned(&modeData);
+                return ret;
+            }
             // now send the mode select command
             bool pageFormat = modePage == 0 ? false : true; // set to false when reading vendor unique page zero
             // bool savable = modeData[offset + 0] & BIT7;// use this to save pages. This bit says whether the
@@ -2252,7 +2507,9 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Mode_Page(const tDevice* M_NONNULL
 M_PARAM_WO(4)
 static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t subpage, char* M_NONNULL mpName)
 {
-    scsiDeviceType = get_bit_range_uint8(scsiDeviceType, 4, 0); // strip off the qualifier if it was passed
+    int     snprintfres = 0;
+    errno_t error       = 0;
+    scsiDeviceType      = get_bit_range_uint8(scsiDeviceType, 4, 0); // strip off the qualifier if it was passed
     switch (modePage)
     {
     case 0x00: // vendor unique
@@ -2261,7 +2518,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // read-write error recovery
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Read-Write Error Recovery");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Read-Write Error Recovery");
             break;
         default:
             // unknown
@@ -2272,7 +2529,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // disconnect-reconnect
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Disconnect-Reconnect");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Disconnect-Reconnect");
             break;
         default:
             // unknown
@@ -2287,10 +2544,10 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
             {
             case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
             case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Format Device");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Format Device");
                 break;
             case PERIPHERAL_CD_DVD_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "MRW CD-RW");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "MRW CD-RW");
                 break;
             default:
                 break;
@@ -2305,7 +2562,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // Rigid Disk Geometry
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Rigid Disk Geometry");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Rigid Disk Geometry");
             break;
         default:
             // unknown
@@ -2316,7 +2573,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // flexible disk
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Flexible Disk");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Flexible Disk");
             break;
         default:
             // unknown
@@ -2330,10 +2587,10 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
             switch (scsiDeviceType)
             {
             case PERIPHERAL_OPTICAL_MEMORY_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Optical Memory");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Optical Memory");
                 break;
             case PERIPHERAL_SIMPLIFIED_DIRECT_ACCESS_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "RBC Device Parameters");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "RBC Device Parameters");
                 break;
             default:
                 break;
@@ -2348,7 +2605,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // verify error recovery
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Verify Error Recovery");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Verify Error Recovery");
             break;
         default:
             // unknown
@@ -2359,7 +2616,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // Caching
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Caching");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Caching");
             break;
         default:
             // unknown
@@ -2370,7 +2627,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // peripheral device
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Peripheral Device");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Peripheral Device");
             break;
         default:
             // unknown
@@ -2381,31 +2638,31 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // control
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control");
             break;
         case 0x01: // control extension
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Extension");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Extension");
             break;
         case 0x02: // application tag
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Application Tag");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Application Tag");
             break;
         case 0x03: // command duration limit A
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit A");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit A");
             break;
         case 0x04: // command duration limit B
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit B");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Command Duration Limit B");
             break;
         case 0x05: // IO Advice Hints Grouping
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "IO Advice Hints Grouping");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "IO Advice Hints Grouping");
             break;
         case 0x06: // Background Operation Control
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Operation Control");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Operation Control");
             break;
         case 0xF0: // Control Data Protection
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Data Protection");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Control Data Protection");
             break;
         case 0xF1: // PATA Control
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "PATA Control");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "PATA Control");
             break;
         default:
             // unknown
@@ -2416,7 +2673,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // Medium Types Supported
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Types Supported");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Types Supported");
             break;
         default:
             // unknown
@@ -2427,7 +2684,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // notch and partition
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Notch And Partition");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Notch And Partition");
             break;
         default:
             // unknown
@@ -2442,10 +2699,10 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
             {
             case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
             case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
                 break;
             case PERIPHERAL_CD_DVD_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Device Parameters");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Device Parameters");
                 break;
             default:
                 break;
@@ -2460,19 +2717,19 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // CD Audio Control
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Audio Control");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Audio Control");
             break;
         case 0x01: // Target Device
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device");
             break;
         case 0x02: // DT Device Primary Port
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "DT Devuce Primary Port");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "DT Device Primary Port");
             break;
         case 0x03: // Logical Unit
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Unit");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Unit");
             break;
         case 0x04: // Target Device Serial Number
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device Serial Number");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Target Device Serial Number");
             break;
         default:
             // unknown
@@ -2483,7 +2740,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // Data Compression
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Data Compression");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Data Compression");
             break;
         default:
             // unknown
@@ -2498,17 +2755,17 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
             {
             case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
             case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "XOR Control");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "XOR Control");
                 break;
             case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration");
                 break;
             default:
                 break;
             }
             break;
         case 0x01: // Device Configuration Extension
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration Extension");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Configuration Extension");
             break;
         default:
             // unknown
@@ -2519,7 +2776,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // Medium Partition (1)
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Partition (1)");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Partition (1)");
             break;
         default:
             // unknown
@@ -2531,7 +2788,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // enclosure services management
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Enclosure Services Management");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Enclosure Services Management");
             break;
         default:
             // unknown
@@ -2540,31 +2797,33 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         break;
     case 0x15: // Extended
         // all subpages
-        snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Extended - %" PRIu8, subpage);
+        snprintfres = snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Extended - %" PRIu8, subpage);
         break;
     case 0x16: // Extended Device-Type specific
         // all subpages
-        snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Extended Device Type Specific - %" PRIu8, subpage);
+        snprintfres = snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH,
+                                          "Extended Device Type Specific - %" PRIu8, subpage);
         break;
         // 17h is in spec, but not named
     case 0x18: // protocol specific logical unit
-        snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Logical Unit - %" PRIu8,
-                            subpage);
+        snprintfres = snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH,
+                                          "Protocol Specific Logical Unit - %" PRIu8, subpage);
         break;
     case 0x19: // protocol specific port
-        snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Port - %" PRIu8, subpage);
+        snprintfres =
+            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Protocol Specific Port - %" PRIu8, subpage);
         break;
     case 0x1A:
         switch (subpage)
         {
         case 0x00: // Power Condition
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Condition");
             break;
         case 0x01: // Power Consumption
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Consumption");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Power Consumption");
             break;
         case 0xF1: // ATA Power Condition
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "ATA Power Condition");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "ATA Power Condition");
             break;
         default:
             // unknown
@@ -2575,7 +2834,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // LUN Mapping
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "LUN Mapping");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "LUN Mapping");
             break;
         default:
             // unknown
@@ -2591,25 +2850,25 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
             case PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE:
             case PERIPHERAL_DIRECT_ACCESS_BLOCK_DEVICE:
             case PERIPHERAL_OPTICAL_MEMORY_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control");
                 break;
             case PERIPHERAL_CD_DVD_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Fault/Failure Reporting");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Fault/Failure Reporting");
                 break;
             case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
             case PERIPHERAL_AUTOMATION_DRIVE_INTERFACE:
             case PERIPHERAL_MEDIUM_CHANGER_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control (Tape)");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Informational Exceptions Control (Tape)");
                 break;
             default:
                 break;
             }
             break;
         case 0x01: // background control
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Control");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Background Control");
             break;
         case 0x02: // logical block provisioning
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Block Provisioning");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Logical Block Provisioning");
             break;
         default:
             // unknown
@@ -2623,13 +2882,13 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
             switch (scsiDeviceType)
             {
             case PERIPHERAL_CD_DVD_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "C/DVD Time-Out And Protect");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "C/DVD Time-Out And Protect");
                 break;
             case PERIPHERAL_SEQUENTIAL_ACCESS_BLOCK_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Configuration");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Medium Configuration");
                 break;
             case PERIPHERAL_MEDIUM_CHANGER_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Element Address Assignments");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Element Address Assignments");
                 break;
             default:
                 break;
@@ -2644,7 +2903,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // transport geometry parameters
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Transport Geometry Parameters");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Transport Geometry Parameters");
             break;
         default:
             // unknown
@@ -2655,7 +2914,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         switch (subpage)
         {
         case 0x00: // device capabilities
-            snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Capabilities");
+            error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "Device Capabilities");
             break;
         default:
             // unknown
@@ -2669,7 +2928,7 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
             switch (scsiDeviceType)
             {
             case PERIPHERAL_CD_DVD_DEVICE:
-                snprintf_err_handle(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Capabilities and Mechanical Status");
+                error = safe_strcpy(mpName, SCSI_MODE_PAGE_NAME_MAX_LENGTH, "CD Capabilities and Mechanical Status");
                 break;
             default:
                 break;
@@ -2684,6 +2943,16 @@ static void get_SCSI_MP_Name(uint8_t scsiDeviceType, uint8_t modePage, uint8_t s
         // unknown
         break;
     }
+    if (error != 0)
+        M_UNLIKELY
+        {
+            perror("Error copying mode page name to buffer");
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            perror("Error formatting mode page name to buffer");
+        }
 }
 
 // this should only have the mode data. NO block descriptors or mode page header (4 or 8 bytes before the mode page
@@ -3033,7 +3302,7 @@ static bool reset_Specific_Log_Page_Supported(const tDevice* M_NONNULL device)
     if (device->drive_info.scsiVersion >= SCSI_VERSION_SPC_3)
     {
         scsiOperationCodeInfoRequest logSenseSupReq;
-        safe_memset(&logSenseSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+        M_INITIALIZE_STRUCTURE(&logSenseSupReq, sizeof(scsiOperationCodeInfoRequest));
         logSenseSupReq.operationCode      = LOG_SELECT_CMD;
         logSenseSupReq.serviceActionValid = false;
         eSCSICmdSupport logSenseSupport   = is_SCSI_Operation_Code_Supported(device, &logSenseSupReq);
@@ -3097,7 +3366,7 @@ OPENSEA_OPERATIONS_API eMLU get_MLU_Value_For_SCSI_Operation(const tDevice* M_NO
 {
     eMLU                         mlu = MLU_NOT_REPORTED;
     scsiOperationCodeInfoRequest mluSupReq;
-    safe_memset(&mluSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    M_INITIALIZE_STRUCTURE(&mluSupReq, sizeof(scsiOperationCodeInfoRequest));
     mluSupReq.operationCode      = operationCode;
     mluSupReq.serviceActionValid = false;
     if (serviceAction != 0)
@@ -3440,8 +3709,10 @@ OPENSEA_OPERATIONS_API void print_Write_Read_Verify_Info(ptrWRVInfo M_NONNULL in
                 }
                 else
                 {
-                    snprintf_err_handle(capUnit, UNIT_STRING_LENGTH, "B");
-                    snprintf_err_handle(metUnit, UNIT_STRING_LENGTH, "B");
+                    M_IGNORE_SAFE_ERRNO_CALL(safe_strcpy(capUnit, UNIT_STRING_LENGTH, "B"),
+                                             "Single character will always fit withing unit string which is 4 bytes");
+                    M_IGNORE_SAFE_ERRNO_CALL(safe_strcpy(metUnit, UNIT_STRING_LENGTH, "B"),
+                                             "Single character will always fit withing unit string which is 4 bytes");
                 }
                 switch (info->currentWRVMode)
                 {

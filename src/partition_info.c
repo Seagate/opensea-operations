@@ -176,13 +176,39 @@ static eReturnValues fill_MBR_Data(uint8_t* M_NONNULL mbrDataBuf, uint32_t mbrDa
             // note: these are in reverse order of the "normal" 4 partition order
             mbr->mbrType = MBR_TYPE_AST_NEC_SPEEDSTOR;
             // swap first 4 before filling in any others to fix the order of the partitions
-            safe_memcpy(&temp, sizeof(mbrPartitionEntry), &mbr->partition[0], sizeof(mbrPartitionEntry));
-            safe_memcpy(&mbr->partition[0], sizeof(mbrPartitionEntry), &mbr->partition[3], sizeof(mbrPartitionEntry));
-            safe_memcpy(&mbr->partition[3], sizeof(mbrPartitionEntry), &temp, sizeof(mbrPartitionEntry));
+            if (0 != safe_memcpy(&temp, sizeof(mbrPartitionEntry), &mbr->partition[0], sizeof(mbrPartitionEntry)))
+                M_UNLIKELY
+                {
+                    perror("Error swapping ast/nes SM-DOS and Speedstor partitions around in memory");
+                }
+            if (0 != safe_memcpy(&mbr->partition[0], sizeof(mbrPartitionEntry), &mbr->partition[3],
+                                 sizeof(mbrPartitionEntry)))
+                M_UNLIKELY
+                {
+                    perror("Error swapping ast/nes SM-DOS and Speedstor partitions around in memory");
+                }
+            if (0 != safe_memcpy(&mbr->partition[3], sizeof(mbrPartitionEntry), &temp, sizeof(mbrPartitionEntry)))
+                M_UNLIKELY
+                {
+                    perror("Error swapping ast/nes SM-DOS and Speedstor partitions around in memory");
+                }
             // 1 and 4 swapped, now 2 and 3
-            safe_memcpy(&temp, sizeof(mbrPartitionEntry), &mbr->partition[1], sizeof(mbrPartitionEntry));
-            safe_memcpy(&mbr->partition[1], sizeof(mbrPartitionEntry), &mbr->partition[2], sizeof(mbrPartitionEntry));
-            safe_memcpy(&mbr->partition[2], sizeof(mbrPartitionEntry), &temp, sizeof(mbrPartitionEntry));
+            if (0 != safe_memcpy(&temp, sizeof(mbrPartitionEntry), &mbr->partition[1], sizeof(mbrPartitionEntry)))
+                M_UNLIKELY
+                {
+                    perror("Error swapping ast/nes SM-DOS and Speedstor partitions around in memory");
+                }
+            if (0 != safe_memcpy(&mbr->partition[1], sizeof(mbrPartitionEntry), &mbr->partition[2],
+                                 sizeof(mbrPartitionEntry)))
+                M_UNLIKELY
+                {
+                    perror("Error swapping ast/nes SM-DOS and Speedstor partitions around in memory");
+                }
+            if (0 != safe_memcpy(&mbr->partition[2], sizeof(mbrPartitionEntry), &temp, sizeof(mbrPartitionEntry)))
+                M_UNLIKELY
+                {
+                    perror("Error swapping ast/nes SM-DOS and Speedstor partitions around in memory");
+                }
             // now fill in the remaining entries
             for (; partitionTableOffset < UINT32_C(512) && partitionOffset < MBR_MAX_PARTITIONS &&
                    partitionTableOffset >= 380;
@@ -649,8 +675,11 @@ static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
         }
 
         DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN + RSIZE_T_C(1));
-        safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + RSIZE_T_C(1), &gptDataBuf[gptHeaderOffset],
-                    GPT_SIGNATURE_STR_LEN);
+        if (0 != safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + RSIZE_T_C(1), &gptDataBuf[gptHeaderOffset],
+                             GPT_SIGNATURE_STR_LEN))
+        {
+            perror("Error copying GPT signature");
+        }
         gptSignature[GPT_SIGNATURE_STR_LEN] = '\0';
         if (strcmp(gptSignature, "EFI PART") == 0)
         {
@@ -693,8 +722,11 @@ static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
                                     gptDataBuf[gptHeaderOffset + 81], gptDataBuf[gptHeaderOffset + 80]);
             // before going any further, validate the CRC
             // first zero out the CRC as specified in UEFI spec
-            safe_memset(&gptDataBuf[gptHeaderOffset + UINT32_C(16)], gptDataSize - (gptHeaderOffset + UINT32_C(16)), 0,
-                        RSIZE_T_C(4));
+            if (0 != safe_memset(&gptDataBuf[gptHeaderOffset + UINT32_C(16)],
+                                 gptDataSize - (gptHeaderOffset + UINT32_C(16)), 0, RSIZE_T_C(4)))
+            {
+                perror("Error zeroing out CRC in GPT header");
+            }
             // now calculate the CRC for the length (gpt header size)
             if (crc32HeaderValue == gpt_CRC_32(&gptDataBuf[gptHeaderOffset], gptHeaderSize))
             {
@@ -771,8 +803,11 @@ static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
                                       &gpt->partition[partIter].partitionTypeGUID.guid);
                         if (!gptGUIDsSorted)
                         {
-                            safe_qsort(gptGUIDNameLookup, SIZE_OF_STACK_ARRAY(gptGUIDNameLookup),
-                                       sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID);
+                            if (0 != safe_qsort(gptGUIDNameLookup, SIZE_OF_STACK_ARRAY(gptGUIDNameLookup),
+                                                sizeof(gptGUIDNameLookup[0]), cmp_GPT_Part_GUID))
+                            {
+                                perror("Error sorting GPT GUID name lookup");
+                            }
                             gptGUIDsSorted = true;
                         }
 
@@ -785,8 +820,11 @@ static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
                         if (gptName != M_NULLPTR)
                         {
                             // found a match, so set the partition info in the structure to the matched data
-                            safe_memcpy(&gpt->partition[partIter].partitionTypeGUID, sizeof(gptPartitionTypeName),
-                                        gptName, sizeof(gptPartitionTypeName));
+                            if (0 != safe_memcpy(&gpt->partition[partIter].partitionTypeGUID,
+                                                 sizeof(gptPartitionTypeName), gptName, sizeof(gptPartitionTypeName)))
+                            {
+                                perror("Error copying GPT partition type GUID");
+                            }
                         }
 
                         copy_GPT_GUID(&gptPartitionArray[dataOffset + GPT_GUID_LEN_BYTES],
@@ -806,8 +844,12 @@ static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
                                                 gptPartitionArray[dataOffset + 53], gptPartitionArray[dataOffset + 52],
                                                 gptPartitionArray[dataOffset + 51], gptPartitionArray[dataOffset + 50],
                                                 gptPartitionArray[dataOffset + 49], gptPartitionArray[dataOffset + 48]);
-                        safe_memcpy(&gpt->partition[partIter].partitionName[0], GPT_PARTITION_NAME_LENGTH_BYTES,
-                                    &gptPartitionArray[dataOffset + 56], GPT_PARTITION_NAME_LENGTH_BYTES);
+                        if (0 != safe_memcpy(&gpt->partition[partIter].partitionName[0],
+                                             GPT_PARTITION_NAME_LENGTH_BYTES, &gptPartitionArray[dataOffset + 56],
+                                             GPT_PARTITION_NAME_LENGTH_BYTES))
+                        {
+                            perror("Error copying GPT partition name");
+                        }
                         if (!is_Empty(
                                 &gpt->partition[partIter].partitionTypeGUID,
                                 GPT_GUID_LEN_BYTES)) // this should be ok, but may want a different way of doing this
@@ -853,14 +895,23 @@ OPENSEA_OPERATIONS_API ptrPartitionInfo M_NULLABLE get_Partition_Info(const tDev
                 DECLARE_ZERO_INIT_ARRAY(char, gptSignature, GPT_SIGNATURE_STR_LEN + 1);
                 if (lba == 0)
                 {
-                    safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1, &dataBuffer[get_Device_BlockSize(device)],
-                                GPT_SIGNATURE_STR_LEN);
+                    if (0 != safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1,
+                                         &dataBuffer[device->drive_info.deviceBlockSize], GPT_SIGNATURE_STR_LEN))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying GPT signature");
+                        }
                 }
                 else
                 {
                     // check for backup GPT
-                    safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1,
-                                &dataBuffer[dataSize - get_Device_BlockSize(device)], GPT_SIGNATURE_STR_LEN);
+                    if (0 != safe_memcpy(gptSignature, GPT_SIGNATURE_STR_LEN + 1,
+                                         &dataBuffer[dataSize - device->drive_info.deviceBlockSize],
+                                         GPT_SIGNATURE_STR_LEN))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying backup GPT signature");
+                        }
                 }
                 // First check for an MBR. This is most common to find, then check if APM is in sector 1. If neither are
                 // found, check if a GPT table exists even without a protective MBR First check the signature bytes
@@ -901,8 +952,11 @@ OPENSEA_OPERATIONS_API ptrPartitionInfo M_NULLABLE get_Partition_Info(const tDev
                 }
                 if (lba == 0 && partitionData->partitionDataType == PARTITION_TABLE_NOT_FOUND)
                 {
-                    safe_memset(dataBuffer, dataSize, 0,
-                                dataSize); // clear out any old data in case something weird happens
+                    if (0 != safe_memset(dataBuffer, dataSize, 0, dataSize))
+                        M_UNLIKELY
+                        {
+                            perror("Error clearing data buffer before reassessing partition table");
+                        }
                     // change the LBA to read from to maxLBA - 32KiB
                     lba = return_Device_MaxLba(device) - (dataSize / get_Device_BlockSize(device)) +
                           1; // 1 corrects the LBA offset to be able to find the backup GPT partition -TJE

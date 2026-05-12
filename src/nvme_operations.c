@@ -95,7 +95,7 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tD
     for (featureID = 1; featureID <= 0xFF; featureID++)
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, featData, 4096);
-        safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
         featureCmd.fid        = C_CAST(uint8_t, featureID);
         featureCmd.sel        = C_CAST(uint8_t, selectType);
         featureCmd.dataLength = 4096;
@@ -132,7 +132,7 @@ static eReturnValues nvme_Print_Arbitration_Feature_Details(const tDevice* M_NON
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ARBITRATION_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -166,7 +166,7 @@ static eReturnValues nvme_Print_Temperature_Feature_Details(const tDevice* M_NON
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_TEMP_THRESH_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     print_str("\n\tTemperature Threshold Feature\n");
@@ -219,7 +219,7 @@ static eReturnValues nvme_Print_PM_Feature_Details(const tDevice* M_NONNULL devi
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_POWER_MGMT_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -246,7 +246,7 @@ static eReturnValues nvme_Print_Error_Recovery_Feature_Details(const tDevice* M_
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ERR_RECOVERY_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -274,7 +274,7 @@ static eReturnValues nvme_Print_WCE_Feature_Details(const tDevice* M_NONNULL dev
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_VOLATILE_WC_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -300,7 +300,7 @@ static eReturnValues nvme_Print_NumberOfQueues_Feature_Details(const tDevice* M_
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_NUM_QUEUES_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -330,7 +330,7 @@ static eReturnValues nvme_Print_Intr_Coalescing_Feature_Details(const tDevice* M
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_IRQ_COALESCE_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -357,7 +357,7 @@ static eReturnValues nvme_Print_Intr_Config_Feature_Details(const tDevice* M_NON
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_IRQ_CONFIG_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -384,7 +384,7 @@ static eReturnValues nvme_Print_Write_Atomicity_Feature_Details(const tDevice* M
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_WRITE_ATOMIC_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -419,7 +419,7 @@ static eReturnValues nvme_Print_Async_Config_Feature_Details(const tDevice* M_NO
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid = NVME_FEAT_ASYNC_EVENT_;
     featureCmd.sel = C_CAST(uint8_t, selectType);
     ret            = nvme_Get_Features(device, &featureCmd);
@@ -446,7 +446,7 @@ static eReturnValues nvme_Print_HMB_Feature_Info(const tDevice* M_NONNULL device
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&featureCmd, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+    M_INITIALIZE_STRUCTURE(&featureCmd, sizeof(nvmeFeaturesCmdOpt));
     featureCmd.fid        = NVME_FEAT_HOST_MEMORY_BUFFER_;
     featureCmd.sel        = C_CAST(uint8_t, selectType);
     featureCmd.dataPtr    = hmbData;
@@ -566,7 +566,7 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Get_Log_Size(const tDevice* M_NONNULL 
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, logPageHeader, UINT32_C(16));
         nvmeGetLogPageCmdOpts getLogHeader;
-        safe_memset(&getLogHeader, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+        M_INITIALIZE_STRUCTURE(&getLogHeader, sizeof(nvmeGetLogPageCmdOpts));
         getLogHeader.addr    = logPageHeader;
         getLogHeader.dataLen = UINT32_C(16);
         getLogHeader.nsid    = NVME_ALL_NAMESPACES; // change this as needed when calculating sizes below
@@ -741,7 +741,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(c
 #ifdef _DEBUG
     printf("-->%s\n", __FUNCTION__);
 #endif
-    safe_memset(&fwSlotsLogInfo, sizeof(nvmeFirmwareSlotInfo), 0, sizeof(nvmeFirmwareSlotInfo));
+    M_INITIALIZE_STRUCTURE(&fwSlotsLogInfo, sizeof(nvmeFirmwareSlotInfo));
     ret =
         nvme_Get_FWSLOTS_Log_Page(device, M_REINTERPRET_CAST(uint8_t*, &fwSlotsLogInfo), sizeof(nvmeFirmwareSlotInfo));
     if (ret == SUCCESS)
@@ -764,7 +764,11 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(c
         {
             if (fwSlotsLogInfo.FSR[slot - 1])
             {
-                safe_memcpy(fwRev, 9, M_REINTERPRET_CAST(char*, &fwSlotsLogInfo.FSR[slot - 1]), 8);
+                if (0 != safe_memcpy(fwRev, 9, M_REINTERPRET_CAST(char*, &fwSlotsLogInfo.FSR[slot - 1]), 8))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying firmware revision for slot list");
+                    }
                 fwRev[8] = '\0';
                 printf(" Slot %d : %s\n", slot, fwRev);
             }
@@ -809,7 +813,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_CmdSptEfft_Log_Pag
     printf("-->%s\n", __FUNCTION__);
 #endif
 
-    safe_memset(&effectsLogInfo, sizeof(nvmeEffectsLog), 0, sizeof(nvmeEffectsLog));
+    M_INITIALIZE_STRUCTURE(&effectsLogInfo, sizeof(nvmeEffectsLog));
     ret = nvme_Get_CmdSptEfft_Log_Page(device, M_REINTERPRET_CAST(uint8_t*, &effectsLogInfo), sizeof(nvmeEffectsLog));
     if (ret == SUCCESS)
     {
@@ -865,7 +869,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_DevSelfTest_Log_Pa
     printf("-->%s\n", __FUNCTION__);
 #endif
 
-    safe_memset(&selfTestLogInfo, sizeof(nvmeSelfTestLog), 0, sizeof(nvmeSelfTestLog));
+    M_INITIALIZE_STRUCTURE(&selfTestLogInfo, sizeof(nvmeSelfTestLog));
     ret =
         nvme_Get_DevSelfTest_Log_Page(device, M_REINTERPRET_CAST(uint8_t*, &selfTestLogInfo), sizeof(nvmeSelfTestLog));
     if (ret == SUCCESS)
@@ -983,7 +987,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Nvme_Ctrl_Regs(const tD
 
     nvmeBarCtrlRegisters ctrlRegs;
 
-    safe_memset(&ctrlRegs, sizeof(nvmeBarCtrlRegisters), 0, sizeof(nvmeBarCtrlRegisters));
+    M_INITIALIZE_STRUCTURE(&ctrlRegs, sizeof(nvmeBarCtrlRegisters));
 
     print_str("\n=====CONTROLLER REGISTERS=====\n");
 

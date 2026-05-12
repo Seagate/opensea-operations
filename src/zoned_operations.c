@@ -182,23 +182,47 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
         switch (zoneDescriptor.zoneType)
         {
         case ZONE_TYPE_CONVENTIONAL:
-            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "CONV");
+            if (0 != safe_strcpy(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "CONV"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone type");
+                }
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_REQUIRED:
-            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWR");
+            if (0 != safe_strcpy(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWR"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone type");
+                }
             break;
         case ZONE_TYPE_SEQUENTIAL_WRITE_PREFERRED:
-            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWP");
+            if (0 != safe_strcpy(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SWP"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone type");
+                }
             break;
         case ZONE_TYPE_SEQUENTIAL_OR_BEFORE_REQUIRED:
-            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SOBR");
+            if (0 != safe_strcpy(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "SOBR"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone type");
+                }
             break;
         case ZONE_TYPE_GAP:
-            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "GAP");
+            if (0 != safe_strcpy(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "GAP"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone type");
+                }
             break;
         case ZONE_TYPE_RESERVED:
         default:
-            snprintf_err_handle(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "RESV");
+            if (0 != safe_strcpy(zoneTypeString, ZONE_TYPE_STRING_LENGTH, "RESV"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone type");
+                }
             break;
         }
 #define ZONE_CONDITION_STRING_LENGTH 18
@@ -206,61 +230,125 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
         switch (zoneDescriptor.zoneCondition)
         {
         case ZONE_CONDITION_NOT_WRITE_POINTER:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Not Write Pointer");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Not Write Pointer"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_EMPTY:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Empty");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Empty"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_IMLICITLY_OPENED:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Implicitly Opened");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Implicitly Opened"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_EXPLICITYLE_OPENED:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Explicitly Opened");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Explicitly Opened"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_CLOSED:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Closed");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Closed"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_INACTIVE:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Inactive");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Inactive"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_READ_ONLY:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Read Only");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Read Only"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_FULL:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Full");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Full"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         case ZONE_CONDITION_OFFLINE:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Offline");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Offline"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         default:
-            snprintf_err_handle(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Reserved");
+            if (0 != safe_strcpy(zoneCondition, ZONE_CONDITION_STRING_LENGTH, "Reserved"))
+                M_UNLIKELY
+                {
+                    perror("Error writing zone condition");
+                }
             break;
         }
 #define ZONE_ATTR_OTHER_FLAGS_LENGTH 4
         DECLARE_ZERO_INIT_ARRAY(char, otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH);
         if (zoneDescriptor.resetBit)
         {
-            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "R");
+            if (0 != safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "R"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating zoned descriptor flags");
+                }
         }
         else
         {
-            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+            if (0 != safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating zoned descriptor flags");
+                }
         }
         if (zoneDescriptor.nonseqBit)
         {
-            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "N");
+            if (0 != safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "N"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating zoned descriptor flags");
+                }
         }
         else
         {
-            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+            if (0 != safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating zoned descriptor flags");
+                }
         }
         if (zoneDescriptor.predictedUnRecErrBit)
         {
-            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "P");
+            if (0 != safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "P"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating zoned descriptor flags");
+                }
         }
         else
         {
-            safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-");
+            if (0 != safe_strcat(otherFlags, ZONE_ATTR_OTHER_FLAGS_LENGTH, "-"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating zoned descriptor flags");
+                }
         }
         // zone start and WP LBA could be at max FFFFFFFFFFFFh which is 15 digits in decimal
         // typical zone length is 524288 (256MiB) which is 6 digits, and +1 in case extend in future
@@ -288,46 +376,53 @@ OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       r
     print_str("\t  P - PREDICTED UNRECOVERED ERRORS bit, Predicted Unrecovered Errors Present\n");
     print_str("--------------------------------------------------------------------------------\n");
 #define SHOWING_ZONES_STRING_LENGTH 40
+    errno_t showingzoneserror = 0;
     DECLARE_ZERO_INIT_ARRAY(char, showingZones, SHOWING_ZONES_STRING_LENGTH);
     switch (reportingOptions)
     {
     case ZONE_REPORT_LIST_ALL_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "All Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "All Zones");
         break;
     case ZONE_REPORT_LIST_EMPTY_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Empty Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Empty Zones");
         break;
     case ZONE_REPORT_LIST_IMPLICIT_OPEN_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Implicitly Open Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Implicitly Open Zones");
         break;
     case ZONE_REPORT_LIST_EXPLICIT_OPEN_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Explicitly Open Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Explicitly Open Zones");
         break;
     case ZONE_REPORT_LIST_CLOSED_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Closed Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Closed Zones");
         break;
     case ZONE_REPORT_LIST_FULL_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Full Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Full Zones");
         break;
     case ZONE_REPORT_LIST_READ_ONLY_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Read Only Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Read Only Zones");
         break;
     case ZONE_REPORT_LIST_OFFLINE_ZONES:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Offline Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Offline Zones");
         break;
     case ZONE_REPORT_LIST_ZONES_WITH_RESET_SET_TO_ONE:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Reset Recommended Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Reset Recommended Zones");
         break;
     case ZONE_REPORT_LIST_ZONES_WITH_NON_SEQ_SET_TO_ONE:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Non-Sequential Resource Active Zones");
+        showingzoneserror =
+            safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Non-Sequential Resource Active Zones");
         break;
     case ZONE_REPORT_LIST_ALL_ZONES_THAT_ARE_NOT_WRITE_POINTERS:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Not Write Pointer Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Not Write Pointer Zones");
         break;
     default:
-        snprintf_err_handle(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
+        showingzoneserror = safe_strcpy(showingZones, SHOWING_ZONES_STRING_LENGTH, "Unknown/Reserved Zones");
         break;
     }
+    if (showingzoneserror != 0)
+        M_UNLIKELY
+        {
+            perror("Error copying zone reporting options string");
+        }
 
     if (zoneDescriptors == M_NULLPTR)
     {

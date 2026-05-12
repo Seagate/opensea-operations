@@ -48,7 +48,10 @@ static bool add_Feature_To_Supported_List(char        featuresSupported[MAX_FEAT
     {
         if ((*numberOfFeaturesSupported) < MAX_FEATURES)
         {
-            snprintf_err_handle(featuresSupported[*numberOfFeaturesSupported], MAX_FEATURE_LENGTH, "%s", featureString);
+            if (0 != safe_strcpy(featuresSupported[*numberOfFeaturesSupported], MAX_FEATURE_LENGTH, featureString))
+            {
+                perror("Error copying feature string to features supported list (Likely truncation)");
+            }
             (*numberOfFeaturesSupported) += 1;
         }
         else
@@ -78,8 +81,11 @@ static bool add_Specification_To_Supported_List(char        specificationsSuppor
     {
         if ((*numberOfSpecificationsSupported) < MAX_SPECS)
         {
-            snprintf_err_handle(specificationsSupported[*numberOfSpecificationsSupported], MAX_SPEC_LENGTH, "%s",
-                                specificationString);
+            if (0 != safe_strcpy(specificationsSupported[*numberOfSpecificationsSupported], MAX_SPEC_LENGTH,
+                                 specificationString))
+            {
+                perror("Error copying specification string to specifications supported list (Likely truncation)");
+            }
             (*numberOfSpecificationsSupported) += 1;
         }
         else
@@ -147,25 +153,45 @@ static void add_Sanitize_Feature_To_Drive_Info(char     featuresSupported[MAX_FE
     if (block)
     {
         // block
-        safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Block");
+        if (0 != safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Block"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating Sanitize features");
+            }
     }
     if (overwrite)
     {
         // overwrite
         if (safe_strnlen(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN) > 0)
         {
-            safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", ");
+            if (0 != safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", "))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating Sanitize features");
+                }
         }
-        safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Overwrite");
+        if (0 != safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Overwrite"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating Sanitize features");
+            }
     }
     if (crypto)
     {
         // crypto
         if (safe_strnlen(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN) > 0)
         {
-            safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", ");
+            if (0 != safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", "))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating Sanitize features");
+                }
         }
-        safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Crypto");
+        if (0 != safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Crypto"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating Sanitize features");
+            }
     }
     // Note: Turning this off for now since it is only for ATA drives.
     // if (antifreeze)
@@ -173,9 +199,15 @@ static void add_Sanitize_Feature_To_Drive_Info(char     featuresSupported[MAX_FE
     //     // antifreeze
     //     if (safe_strnlen(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN) > 0)
     //     {
-    //         safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", ");
+    //         if (0 != safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, ", ")) M_UNLIKELY
+    //         {
+    //             perror("Error concatenating Sanitize features");
+    //         }
     //     }
-    //     safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Antifreeze");
+    //     if (0 != safe_strcat(sanitizeFeatures, SANITIZE_CMDS_FEATURES_LEN, "Antifreeze")) M_UNLIKELY
+    //     {
+    //         perror("Error concatenating Sanitize features");
+    //     }
     // }
     M_USE_UNUSED(antifreeze);
     char* sanitizeFeatureString = M_NULLPTR;
@@ -312,7 +344,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     // Prefer word 64 over this if it is supported
     if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[51])))
     {
-        uint8_t pioCycleTime = M_Byte1(le16_to_host(wordPtr[51]));
+        errno_t piomaxcycletimeerror = 0;
+        uint8_t pioCycleTime         = M_Byte1(le16_to_host(wordPtr[51]));
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
         {
             clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
@@ -324,24 +357,29 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         case 2: // PIO-2
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
+            piomaxcycletimeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                               PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
             break;
         case 1: // PIO-1
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 5.2;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
+            piomaxcycletimeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                               PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
             break;
         case 0: // PIO-0
         default:
             // all others are reserved, treat as PIO-0 in this case
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 3.3;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
+            piomaxcycletimeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                               PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
             break;
         }
+        if (piomaxcycletimeerror != 0)
+            M_UNLIKELY
+            {
+                perror("Error copying PIO max mode name");
+            }
     }
     // else PIO-0 for really old backwards compatibility
     // If SN is invalid, or all ASCII zeroes, then this is likely an ESDI drive managed by an ATA compatible controller.
@@ -349,49 +387,56 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
 
     // prefer words 62/63 (DW/MW DMA) if they ae supported
     if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[52])))
-    {
-        // retired by ATA/ATAPI 4
-        uint8_t dmaCycleTime = M_Byte1(le16_to_host(wordPtr[52]));
-        if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
+        M_UNLIKELY
         {
-            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
-            driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
-            driveInfo->interfaceSpeedInfo.speedIsValid = true;
+            // retired by ATA/ATAPI 4
+            errno_t swdmamaxmodeerror = 0;
+            uint8_t dmaCycleTime      = M_Byte1(le16_to_host(wordPtr[52]));
+            if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
+            {
+                clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
+                driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
+                driveInfo->interfaceSpeedInfo.speedIsValid = true;
+            }
+            // NOTE: SWDMA may NOT be faster than PIO and it is unlikely to be used.
+            switch (M_STATIC_CAST(eSWDMAModes, dmaCycleTime))
+            {
+            case SWDMA_MODE_2: // SWDMA-2
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    swdmamaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                }
+                break;
+            case SWDMA_MODE_1: // SWDMA-1
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
+                {
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    swdmamaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                }
+                break;
+            case SWDMA_MODE_0: // SWDMA-0
+            default:
+                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 2.1)
+                {
+                    // all others are reserved, treat as SWDMA-0 in this case
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                    swdmamaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                }
+                break;
+            }
+            if (swdmamaxmodeerror != 0)
+                M_UNLIKELY
+                {
+                    perror("Error copying SWDMA max mode name");
+                }
         }
-        // NOTE: SWDMA may NOT be faster than PIO and it is unlikely to be used.
-        switch (dmaCycleTime)
-        {
-        case SWDMA_MODE_2: // SWDMA-2
-            if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
-            {
-                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
-                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
-            }
-            break;
-        case SWDMA_MODE_1: // SWDMA-1
-            if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
-            {
-                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
-                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
-            }
-            break;
-        case SWDMA_MODE_0: // SWDMA-0
-        default:
-            if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 2.1)
-            {
-                // all others are reserved, treat as SWDMA-0 in this case
-                driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
-                driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
-            }
-            break;
-        }
-    }
     else if (dmaSupported)
     {
         if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
@@ -406,8 +451,12 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             // this will be changed later for any drives supporting the other MWDMA/UDMA fields
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+            if (0 != safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                 PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0"))
+                M_UNLIKELY
+                {
+                    perror("Error copying SWDMA max mode name");
+                }
         }
     }
 
@@ -462,106 +511,110 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     // interface speed: NOTE: for old drives, word 51 indicates highest supported  PIO mode 0-2 supported
     //                        word 52 indicates highest supported single word DMA mode 0, 1, 2 supported
     //                  See ATA-2
+    // This if marked as unlikely since this mode has been obsolete or retired for a VERY long time.
     if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[62])))
-    {
-        // SWDMA (obsolete since MW is so much faster...) (word 52 also holds the max supported value, but is also long
-        // obsolete...it can be checked if word 62 is not supported)
-        uint8_t swdmaSupported = get_8bit_range_uint16(le16_to_host(wordPtr[62]), 2, 0);
-        uint8_t swdmaSelected  = get_8bit_range_uint16(le16_to_host(wordPtr[62]), 10, 8);
-        if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
+        M_UNLIKELY
         {
-            clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
-            driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
-            driveInfo->interfaceSpeedInfo.speedIsValid = true;
-        }
-        if (swdmaSupported > 0 && swdmaSupported < UINT8_MAX)
-        {
-            int8_t counter = INT8_C(-1);
-            while (swdmaSupported > 0)
+            // SWDMA (obsolete since MW is so much faster...) (word 52 also holds the max supported value, but is also
+            // long obsolete...it can be checked if word 62 is not supported)
+            uint8_t swdmaSupported = get_8bit_range_uint16(le16_to_host(wordPtr[62]), 2, 0);
+            uint8_t swdmaSelected  = get_8bit_range_uint16(le16_to_host(wordPtr[62]), 10, 8);
+            if (driveInfo->interfaceSpeedInfo.speedType != INTERFACE_SPEED_PARALLEL)
             {
-                swdmaSupported = swdmaSupported >> 1;
-                ++counter;
+                clear_Interface_Speed_Data(&driveInfo->interfaceSpeedInfo);
+                driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
+                driveInfo->interfaceSpeedInfo.speedIsValid = true;
             }
-            switch (counter)
+            if (swdmaSupported > 0 && swdmaSupported < UINT8_MAX)
             {
-            case SWDMA_MODE_2:
-                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
-                {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
-                }
-                break;
-            case SWDMA_MODE_1:
-                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
-                {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
-                }
-                break;
-            case SWDMA_MODE_0:
-                if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 2.1)
-                {
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
-                    driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
-                }
-                break;
-            }
-            // now check selected
-            if (swdmaSelected > 0)
-            {
-                driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-                counter                                                     = -1;
-                while (swdmaSelected > 0)
-                {
-                    swdmaSelected = swdmaSelected >> 1;
-                    ++counter;
-                }
-                switch (counter)
+                errno_t      swdmamaxerror = 0;
+                unsigned int counter       = first_leading_one(swdmaSelected) - 1U;
+                switch (M_STATIC_CAST(eSWDMAModes, counter))
                 {
                 case SWDMA_MODE_2:
-                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid ||
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 8.3)
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 8.3)
                     {
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 8.3;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        swdmamaxerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
                     }
                     break;
                 case SWDMA_MODE_1:
-                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid ||
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 4.2)
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 4.2)
                     {
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 4.2;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        swdmamaxerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
                     }
                     break;
                 case SWDMA_MODE_0:
-                    if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid ||
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 2.1)
+                    if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 2.1)
                     {
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 2.1;
-                        driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 2.1;
+                        driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+                        swdmamaxerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
                     }
                     break;
                 }
+                if (swdmamaxerror != 0)
+                    M_UNLIKELY
+                    {
+                        perror("Error copying SWDMA max mode string\n");
+                    }
+                // now check selected
+                if (swdmaSelected > 0)
+                {
+                    errno_t swdmanegerror                                       = 0;
+                    driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
+                    counter                                                     = first_leading_one(swdmaSelected) - 1U;
+                    switch (M_STATIC_CAST(eSWDMAModes, counter))
+                    {
+                    case SWDMA_MODE_2:
+                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid ||
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 8.3)
+                        {
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 8.3;
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                            swdmanegerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-2");
+                        }
+                        break;
+                    case SWDMA_MODE_1:
+                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid ||
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 4.2)
+                        {
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 4.2;
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                            swdmanegerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-1");
+                        }
+                        break;
+                    case SWDMA_MODE_0:
+                        if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid ||
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed < 2.1)
+                        {
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 2.1;
+                            driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
+                            swdmanegerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "SWDMA-0");
+                        }
+                        break;
+                    }
+                    if (swdmanegerror != 0)
+                        M_UNLIKELY
+                        {
+                            perror("Error copying SWDMA negotiated mode string\n");
+                        }
+                }
             }
         }
-    }
 
     if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[63])))
     {
-        int8_t counter = INT8_C(-1);
+        unsigned int counter = 0;
         // MWDMA
         uint8_t mwdmaSupported = get_8bit_range_uint16(le16_to_host(wordPtr[63]), 2, 0);
         uint8_t mwdmaSelected  = get_8bit_range_uint16(le16_to_host(wordPtr[63]), 10, 8);
@@ -573,20 +626,17 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         }
         if (mwdmaSupported > 0 && mwdmaSupported < UINT8_MAX)
         {
-            while (mwdmaSupported > 0)
-            {
-                mwdmaSupported = mwdmaSupported >> 1;
-                ++counter;
-            }
-            switch (counter)
+            errno_t mwdmamaxmodeerror = 0;
+            counter                   = first_leading_one(mwdmaSupported) - 1U;
+            switch (M_STATIC_CAST(eMWDMAModes, counter))
             {
             case MWDMA_MODE_2:
                 if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
+                    mwdmamaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
                 }
                 break;
             case MWDMA_MODE_1:
@@ -594,8 +644,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 13.3;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
+                    mwdmamaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
                 }
                 break;
             case MWDMA_MODE_0:
@@ -603,22 +653,23 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 4.2;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
+                    mwdmamaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
                 }
                 break;
             }
+            if (mwdmamaxmodeerror != 0)
+                M_UNLIKELY
+                {
+                    perror("Error copying MWDMA max mode string\n");
+                }
             // now check selected
             if (mwdmaSelected > 0)
             {
+                errno_t mwdmanegmodeerror                                   = 0;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-                counter                                                     = -1;
-                while (mwdmaSelected > 0)
-                {
-                    mwdmaSelected = mwdmaSelected >> 1;
-                    ++counter;
-                }
-                switch (counter)
+                counter                                                     = first_leading_one(mwdmaSelected) - 1U;
+                switch (M_STATIC_CAST(eMWDMAModes, counter))
                 {
                 case MWDMA_MODE_2:
                     if (!driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid ||
@@ -626,8 +677,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 16.7;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
+                        mwdmanegmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-2");
                     }
                     break;
                 case MWDMA_MODE_1:
@@ -636,8 +687,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 13.3;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
+                        mwdmanegmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-1");
                     }
                     break;
                 case MWDMA_MODE_0:
@@ -646,11 +697,16 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                     {
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 4.2;
                         driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                        snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                            PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
+                        mwdmanegmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "MWDMA-0");
                     }
                     break;
                 }
+                if (mwdmanegmodeerror != 0)
+                    M_UNLIKELY
+                    {
+                        perror("Error copying MWDMA negotiated mode string\n");
+                    }
             }
         }
     }
@@ -669,14 +725,15 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[64])))
         {
             // PIO - from cycle time & mode3/4 support bits
+            errno_t piomaxmodeerror = 0;
             if (le16_to_host(wordPtr[64]) & BIT1)
             {
                 if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
+                    piomaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                  PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
                 }
             }
             else if (le16_to_host(wordPtr[64]) & BIT0)
@@ -685,10 +742,15 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 11.1;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
+                    piomaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                  PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
                 }
             }
+            if (piomaxmodeerror != 0)
+                M_UNLIKELY
+                {
+                    perror("Error copying PIO maximum mode string\n");
+                }
         }
         // 65 = mwdma transfer cycle time per word
         // 66 = manufacturers recommended mwdma cycle time
@@ -697,16 +759,17 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[68])))
         {
             // determine maximum from cycle times?
-            uint16_t pioCycleTime = le16_to_host(wordPtr[68]);
-            switch (pioCycleTime)
+            uint16_t pioCycleTime    = le16_to_host(wordPtr[68]);
+            errno_t  piomaxmodeerror = 0;
+            switch (M_STATIC_CAST(ePIOCycleTimeIORDY, pioCycleTime))
             {
             case PIO_4_IORDY_CYCLE_TIME: // PIO4
                 if (driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed < 16.7)
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
+                    piomaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                  PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-4");
                 }
                 break;
             case PIO_3_IORDY_CYCLE_TIME: // PIO3
@@ -714,8 +777,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 11.1;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
+                    piomaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                  PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-3");
                 }
                 break;
             case PIO_2_IORDY_CYCLE_TIME: // PIO2
@@ -723,8 +786,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 8.3;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
+                    piomaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                  PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-2");
                 }
                 break;
             case PIO_1_IORDY_CYCLE_TIME: // PIO1
@@ -732,8 +795,8 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 5.2;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
+                    piomaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                  PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-1");
                 }
                 break;
             case PIO_0_IORDY_CYCLE_TIME: // PIO0
@@ -741,11 +804,16 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
                 {
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 3.3;
                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
+                    piomaxmodeerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                  PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "PIO-0");
                 }
                 break;
             }
+            if (piomaxmodeerror != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping PIO maximum mode string\n");
+                }
         }
         if (is_ATA_Identify_Word_Valid(le16_to_host(wordPtr[69])))
         {
@@ -815,7 +883,11 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (le16_to_host(wordPtr[76]) & BIT8)
         {
             DECLARE_ZERO_INIT_ARRAY(char, ncqFeatureString, MAX_FEATURE_LENGTH);
-            snprintf_err_handle(ncqFeatureString, MAX_FEATURE_LENGTH, "SATA NCQ [QD=%" PRIu8 "]", queueDepth);
+            if (0 > snprintf_err_handle(ncqFeatureString, MAX_FEATURE_LENGTH, "SATA NCQ [QD=%" PRIu8 "]", queueDepth))
+                M_UNLIKELY
+                {
+                    perror("Error formatting SATA NCQ feature string");
+                }
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           ncqFeatureString);
         }
@@ -1471,7 +1543,11 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (le16_to_host(wordPtr[83]) & BIT1 || le16_to_host(wordPtr[86]) & BIT1)
         {
             DECLARE_ZERO_INIT_ARRAY(char, tcqFeatureString, MAX_FEATURE_LENGTH);
-            snprintf_err_handle(tcqFeatureString, MAX_FEATURE_LENGTH, "TCQ [QD=%" PRIu8 "]", queueDepth);
+            if (0 > snprintf_err_handle(tcqFeatureString, MAX_FEATURE_LENGTH, "TCQ [QD=%" PRIu8 "]", queueDepth))
+                M_UNLIKELY
+                {
+                    perror("Error formatting TCQ feature string");
+                }
             add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                           tcqFeatureString);
         }
@@ -1495,8 +1571,12 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
     if ((word84Valid && le16_to_host(wordPtr[84]) & BIT8) || (word87Valid && le16_to_host(wordPtr[87]) & BIT8))
     {
         driveInfo->worldWideNameSupported = true;
-        safe_memcpy(&driveInfo->worldWideName, sizeof(uint64_t), &wordPtr[108],
-                    8);                          // copy the 8 bytes into the world wide name
+        // copy the 8 bytes into the world wide name
+        if (0 != safe_memcpy(&driveInfo->worldWideName, sizeof(uint64_t), &wordPtr[108], 8))
+            M_UNLIKELY
+            {
+                perror("Error copying world wide name");
+            }
         word_Swap_64(&driveInfo->worldWideName); // byte swap to make useful
     }
     if ((word84Valid && le16_to_host(wordPtr[84]) & BIT5) || (word87Valid && le16_to_host(wordPtr[87]) & BIT5))
@@ -1534,126 +1614,128 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
             driveInfo->interfaceSpeedInfo.speedType    = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.speedIsValid = true;
         }
-        uint8_t supported = M_Byte0(le16_to_host(wordPtr[88]));
-        uint8_t selected  = M_Byte1(le16_to_host(wordPtr[88]));
-        int8_t  counter   = -1;
-        while (supported > 0)
-        {
-            supported = supported >> 1;
-            ++counter;
-        }
-        switch (counter)
+        uint8_t      supported    = M_Byte0(le16_to_host(wordPtr[88]));
+        uint8_t      selected     = M_Byte1(le16_to_host(wordPtr[88]));
+        unsigned int counter      = first_leading_one(supported) - 1U;
+        errno_t      udmaSupError = 0;
+        switch (M_STATIC_CAST(eUDMAModes, counter))
         {
         case UDMA_MODE_7: // compact flash only
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 167;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
             break;
         case UDMA_MODE_6:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 133;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
             break;
         case UDMA_MODE_5:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 100;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
             break;
         case UDMA_MODE_4:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 66.7;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
             break;
         case UDMA_MODE_3:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 44.4;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
             break;
         case UDMA_MODE_2:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 33.3;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
             break;
         case UDMA_MODE_1:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 25;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
             break;
         case UDMA_MODE_0:
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed         = 16.7;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
+            udmaSupError = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                       PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
             break;
         }
+        if (udmaSupError != 0)
+            M_UNLIKELY
+            {
+                perror("Error copying UDMA supported mode name");
+            }
         // now check selected
         if (selected > 0)
         {
+            errno_t udmaerror                                           = 0;
             driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedValid = true;
-            counter                                                     = -1;
-            while (selected > 0)
-            {
-                selected = selected >> 1;
-                ++counter;
-            }
-            switch (counter)
+            counter                                                     = first_leading_one(selected) - 1U;
+            switch (M_STATIC_CAST(eUDMAModes, counter))
             {
             case UDMA_MODE_7: // compact flash only
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 167;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-7");
                 break;
             case UDMA_MODE_6:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 133;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-6");
                 break;
             case UDMA_MODE_5:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 100;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-5");
                 break;
             case UDMA_MODE_4:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 66.7;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-4");
                 break;
             case UDMA_MODE_3:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 44.4;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-3");
                 break;
             case UDMA_MODE_2:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 33.3;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-2");
                 break;
             case UDMA_MODE_1:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 25;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-1");
                 break;
             case UDMA_MODE_0:
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed  = 16.7;
                 driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
-                snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
+                udmaerror = safe_strcpy(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "UDMA-0");
                 break;
             }
+            if (udmaerror != 0)
+                M_UNLIKELY
+                {
+                    perror("Error copying UDMA mode name string for output\n");
+                }
         }
     }
 
@@ -1902,21 +1984,27 @@ static eReturnValues get_ATA_Drive_Info_From_Identify(ptrDriveInformationSAS_SAT
         if (le16_to_host(wordPtr[169]) & BIT0)
         {
             // add additional info for deterministic and zeroes
+            errno_t error = 0;
             DECLARE_ZERO_INIT_ARRAY(char, trimDetails, 30);
             if (deterministicTrim || zeroesAfterTrim)
             {
                 if (deterministicTrim && zeroesAfterTrim)
                 {
-                    snprintf_err_handle(trimDetails, 30, "TRIM [Deterministic, Zeroes]");
+                    error = safe_strcpy(trimDetails, 30, "TRIM [Deterministic, Zeroes]");
                 }
                 else if (deterministicTrim)
                 {
-                    snprintf_err_handle(trimDetails, 30, "TRIM [Deterministic]");
+                    error = safe_strcpy(trimDetails, 30, "TRIM [Deterministic]");
                 }
                 else if (zeroesAfterTrim)
                 {
-                    snprintf_err_handle(trimDetails, 30, "TRIM [Zeroes]");
+                    error = safe_strcpy(trimDetails, 30, "TRIM [Zeroes]");
                 }
+                if (error != 0)
+                    M_UNLIKELY
+                    {
+                        perror("Error copying Trim details string for output\n");
+                    }
                 add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                               trimDetails);
             }
@@ -2548,36 +2636,46 @@ static eReturnValues get_ATA_Drive_Info_From_ID_Data_Log(ptrDriveInformationSAS_
                 }
                 if (versionQWord & ATA_ID_DATA_QWORD_VALID_BIT)
                 {
-                    DECLARE_ZERO_INIT_ARRAY(char, zacMinorVersion, 36);
+                    int     snprintfres = 0;
+                    errno_t error       = 0;
+#define DRIVE_INFO_ZAC_MINOR_REV_STR_LEN 36
+                    DECLARE_ZERO_INIT_ARRAY(char, zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN);
                     switch (M_Word0(versionQWord))
                     {
                     case ZAC_MINOR_VERSION_ZAC_REV_5:
-                        snprintf_err_handle(zacMinorVersion, 36, "ZAC (Revision 5)");
+                        error = safe_strcpy(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN, "ZAC (Revision 5)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC2_REV_15:
-                        snprintf_err_handle(zacMinorVersion, 36, "ZAC-2 (Revision 15)");
+                        error = safe_strcpy(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN, "ZAC-2 (Revision 15)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC2_REV_1B:
-                        snprintf_err_handle(zacMinorVersion, 36, "ZAC-2 (Revision 1B)");
+                        error = safe_strcpy(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN, "ZAC-2 (Revision 1B)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC_REV_4:
-                        snprintf_err_handle(zacMinorVersion, 36, "ZAC (Revision 4)");
+                        error = safe_strcpy(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN, "ZAC (Revision 4)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC2_REV12:
-                        snprintf_err_handle(zacMinorVersion, 36, "ZAC-2 (Revision 12)");
+                        error = safe_strcpy(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN, "ZAC-2 (Revision 12)");
                         break;
                     case ZAC_MINOR_VERSION_ZAC_REV_1:
-                        snprintf_err_handle(zacMinorVersion, 36, "ZAC (Revision 1)");
+                        error = safe_strcpy(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN, "ZAC (Revision 1)");
                         break;
                     case ZAC_MINOR_VERSION_NOT_REPORTED:
                     case ZAC_MINOR_VERSION_NOT_REPORTED_2:
-                        snprintf_err_handle(zacMinorVersion, 36, "ZAC / minor version not reported");
+                        error = safe_strcpy(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN,
+                                            "ZAC / minor version not reported");
                         break;
                     default:
-                        snprintf_err_handle(zacMinorVersion, 36, "Unknown ZAC Minor version: %04" PRIX16,
-                                            M_Word0(versionQWord));
+                        snprintfres =
+                            snprintf_err_handle(zacMinorVersion, DRIVE_INFO_ZAC_MINOR_REV_STR_LEN,
+                                                "Unknown ZAC Minor version: %04" PRIX16, M_Word0(versionQWord));
                         break;
                     }
+                    if (error != 0 || snprintfres < 0)
+                        M_UNLIKELY
+                        {
+                            perror("Error formatting ZAC Minor version");
+                        }
                     add_Specification_To_Supported_List(driveInfo->specificationsSupported,
                                                         &driveInfo->numberOfSpecificationsSupported, zacMinorVersion);
                 }
@@ -3264,16 +3362,20 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice* M_
     eReturnValues                  ret                         = SUCCESS;
     bool                           smartStatusFromSCTStatusLog = false;
     idDataCapabilitiesForDriveInfo ataCap;
-    safe_memset(&ataCap, sizeof(idDataCapabilitiesForDriveInfo), 0, sizeof(idDataCapabilitiesForDriveInfo));
+    M_INITIALIZE_STRUCTURE(&ataCap, sizeof(idDataCapabilitiesForDriveInfo));
 
     if (driveInfo == M_NULLPTR)
     {
         return BAD_PARAMETER;
     }
 
-    safe_memset(driveInfo, sizeof(driveInformationSAS_SATA), 0, sizeof(driveInformationSAS_SATA));
-    safe_memcpy(&driveInfo->adapterInformation, sizeof(adapterInfo), &device->drive_info.adapter_info,
-                sizeof(adapterInfo));
+    M_INITIALIZE_STRUCTURE(driveInfo, sizeof(driveInformationSAS_SATA));
+    if (0 != safe_memcpy(&driveInfo->adapterInformation, sizeof(adapterInfo), &device->drive_info.adapter_info,
+                         sizeof(adapterInfo)))
+        M_UNLIKELY
+        {
+            perror("Error copying adapter information");
+        }
     ataCap.seagateFamily = is_Seagate_Family(device);
     DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
     if (SUCCESS == ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE))
@@ -3394,7 +3496,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice* M_
         if (extSelfTest > 0 || smartSelfTest > 0)
         {
             dstLogEntries dstEntries;
-            safe_memset(&dstEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
+            M_INITIALIZE_STRUCTURE(&dstEntries, sizeof(dstLogEntries));
             if (SUCCESS == get_DST_Log_Entries(device, &dstEntries))
             {
                 // setup dst info from most recent dst log entry.
@@ -3419,7 +3521,10 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice* M_
         }
         if (ataCap.sctSupported && sctStatus > 0) // GPL or SMART
         {
-            safe_memset(logBuffer, logBufferSize, 0, LEGACY_DRIVE_SEC_SIZE);
+            if (0 != safe_memset(logBuffer, logBufferSize, 0, LEGACY_DRIVE_SEC_SIZE))
+            {
+                perror("Error clearing log buffer before reading SCT status log");
+            }
             // Read the SCT status log
             if (SUCCESS == get_ATA_Log(device, ATA_SCT_COMMAND_STATUS, M_NULLPTR, M_NULLPTR, true, true, true,
                                        logBuffer, ATA_LOG_PAGE_LEN_BYTES, M_NULLPTR, 0, 0))
@@ -3469,7 +3574,10 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Drive_Information(const tDevice* M_
         }
         if (ataCap.gplSupported && concurrentRangesSize)
         {
-            safe_memset(logBuffer, logBufferSize, 0, logBufferSize);
+            if (0 != safe_memset(logBuffer, logBufferSize, 0, logBufferSize))
+            {
+                perror("Error clearing log buffer before reading ATA concurrent positioning ranges");
+            }
             // NOTE: Only reading first 512B since this has the counter we need. Max log size is 1024 in ACS5 - TJE
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_CONCURRENT_POSITIONING_RANGES, 0, logBuffer,
                                                      LEGACY_DRIVE_SEC_SIZE, 0))
@@ -3662,11 +3770,23 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA M_NONNULL
         scsiInfo->peripheralQualifier  = get_bit_range_uint8(inquiryData[0], 7, 5);
         scsiInfo->peripheralDeviceType = get_bit_range_uint8(inquiryData[0], 4, 0);
         // Vendor ID
-        safe_memcpy(&driveInfo->vendorID, T10_VENDOR_ID_LEN + 1, &inquiryData[8], INQ_DATA_T10_VENDOR_ID_LEN);
+        if (0 !=
+            safe_memcpy(driveInfo->vendorID, sizeof(driveInfo->vendorID), &inquiryData[8], INQ_DATA_T10_VENDOR_ID_LEN))
+        {
+            perror("Error copying vendor ID from inquiry data");
+        }
         // MN-product identification
-        safe_memcpy(driveInfo->modelNumber, MODEL_NUM_LEN + 1, &inquiryData[16], INQ_DATA_PRODUCT_ID_LEN);
+        if (0 != safe_memcpy(driveInfo->modelNumber, sizeof(driveInfo->modelNumber), &inquiryData[16],
+                             INQ_DATA_PRODUCT_ID_LEN))
+        {
+            perror("Error copying model number from inquiry data");
+        }
         // FWRev
-        safe_memcpy(driveInfo->firmwareRevision, FW_REV_LEN + 1, &inquiryData[32], INQ_DATA_PRODUCT_REV_LEN);
+        if (0 != safe_memcpy(driveInfo->firmwareRevision, sizeof(driveInfo->firmwareRevision), &inquiryData[32],
+                             INQ_DATA_PRODUCT_REV_LEN))
+        {
+            perror("Error copying firmware revision from inquiry data");
+        }
         // Version (SPC version device conforms to)
         scsiInfo->version = inquiryData[2];
         if (responseFormat == INQ_RESPONSE_FMT_CCS)
@@ -3755,7 +3875,8 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA M_NONNULL
                 if (versionDescriptor > 0)
                 {
                     DECLARE_ZERO_INIT_ARRAY(char, versionDescriptorString, MAX_VERSION_DESCRIPTOR_STRING_LENGTH + 1);
-                    decypher_SCSI_Version_Descriptors(versionDescriptor, versionDescriptorString);
+                    decypher_SCSI_Version_Descriptors_Len(versionDescriptor, versionDescriptorString,
+                                                          SIZE_OF_STACK_ARRAY(versionDescriptorString));
                     remove_Leading_And_Trailing_Whitespace(versionDescriptorString);
                     add_Specification_To_Supported_List(driveInfo->specificationsSupported,
                                                         &driveInfo->numberOfSpecificationsSupported,
@@ -3766,7 +3887,10 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA M_NONNULL
         if (strcmp(driveInfo->vendorID, "SEAGATE ") == 0)
         {
             driveInfo->copyrightValid = true;
-            safe_memcpy(&driveInfo->copyrightInfo[0], 50, &inquiryData[97], 48);
+            if (0 != safe_memcpy(&driveInfo->copyrightInfo[0], 50, &inquiryData[97], 48))
+            {
+                perror("Error copying copyright info from inquiry data");
+            }
             driveInfo->copyrightInfo[49] = '\0';
             remove_Leading_And_Trailing_Control_Char_Len(driveInfo->copyrightInfo, 50);
         }
@@ -3883,7 +4007,10 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice* M_NONNULL              dev
                 safe_free_aligned(&tempBuf);
                 return MEMORY_FAILURE;
             }
-            safe_memcpy(supportedVPDPages, supportedVPDPagesLength, &tempBuf[4], supportedVPDPagesLength);
+            if (0 != safe_memcpy(supportedVPDPages, supportedVPDPagesLength, &tempBuf[4], supportedVPDPagesLength))
+            {
+                perror("Error copying supported VPD pages from temporary buffer");
+            }
             // now loop through and read pages as we need to, only reading the pages that we care about
             uint16_t vpdIter = UINT16_C(0);
             for (vpdIter = 0;
@@ -3914,18 +4041,31 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice* M_NONNULL              dev
                                                             // the SCSI commands reference manual
                             {
                                 // get the SN and PCBA SN separetly. This is unique to Seagate drives at this time.
-                                safe_memcpy(driveInfo->serialNumber, SERIAL_NUM_LEN, &unitSerialNumber[4], 8);
+                                if (0 != safe_memcpy(driveInfo->serialNumber, sizeof(driveInfo->serialNumber),
+                                                     &unitSerialNumber[4], 8))
+                                    M_UNLIKELY
+                                    {
+                                        perror("Error copying serial number from unit serial number VPD page");
+                                    }
                                 driveInfo->serialNumber[8] = '\0';
                                 remove_Leading_And_Trailing_Whitespace_Len(driveInfo->serialNumber, 8);
                                 // remaining is PCBA SN
-                                safe_memcpy(driveInfo->pcbaSerialNumber, SERIAL_NUM_LEN, &unitSerialNumber[12], 12);
+                                if (0 != safe_memcpy(driveInfo->pcbaSerialNumber, sizeof(driveInfo->pcbaSerialNumber),
+                                                     &unitSerialNumber[12], 12))
+                                    M_UNLIKELY
+                                    {
+                                        perror("Error copying PCBA serial number from unit serial number VPD page");
+                                    }
                                 driveInfo->pcbaSerialNumber[12] = '\0';
                                 remove_Leading_And_Trailing_Whitespace_Len(driveInfo->pcbaSerialNumber, 12);
                             }
                             else
                             {
-                                safe_memcpy(driveInfo->serialNumber, SERIAL_NUM_LEN, &unitSerialNumber[4],
-                                            M_Min(SERIAL_NUM_LEN, serialNumberLength));
+                                if (0 != safe_memcpy(driveInfo->serialNumber, SERIAL_NUM_LEN, &unitSerialNumber[4],
+                                                     M_Min(SERIAL_NUM_LEN, serialNumberLength)))
+                                {
+                                    perror("Error copying serial number from unit serial number VPD page");
+                                }
                                 driveInfo->serialNumber[M_Min(SERIAL_NUM_LEN, serialNumberLength)] = '\0';
                                 remove_Leading_And_Trailing_Whitespace_Len(driveInfo->serialNumber, SERIAL_NUM_LEN);
                                 for (uint8_t iter = UINT8_C(0); iter < SERIAL_NUM_LEN; ++iter)
@@ -4245,27 +4385,34 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice* M_NONNULL              dev
                             uint8_t lbprz = get_bit_range_uint8(logicalBlockProvisioning[5], 4, 2);
                             if (logicalBlockProvisioning[5] & BIT1 || lbprz)
                             {
+                                errno_t error       = 0;
+                                int     snprintfres = 0;
                                 DECLARE_ZERO_INIT_ARRAY(char, lbprzStr, 22);
                                 if (lbprz == 0)
                                 {
                                     // vendor unique
-                                    snprintf_err_handle(lbprzStr, 22, "Vendor Pattern");
+                                    error = safe_strcpy(lbprzStr, 22, "Vendor Pattern");
                                 }
                                 else if (lbprz & BIT0)
                                 {
-                                    snprintf_err_handle(lbprzStr, 22, "Zeros");
+                                    error = safe_strcpy(lbprzStr, 22, "Zeros");
                                 }
                                 else if (lbprz == 0x02)
                                 {
-                                    snprintf_err_handle(lbprzStr, 22, "Provisioning Pattern");
+                                    error = safe_strcpy(lbprzStr, 22, "Provisioning Pattern");
                                 }
                                 if (logicalBlockProvisioning[5] & BIT1)
                                 {
-                                    snprintf_err_handle(unmapDetails, 48, "UNMAP [Deterministic, %s]", lbprzStr);
+                                    snprintfres =
+                                        snprintf_err_handle(unmapDetails, 48, "UNMAP [Deterministic, %s]", lbprzStr);
                                 }
                                 else if (safe_strlen(lbprzStr))
                                 {
-                                    snprintf_err_handle(unmapDetails, 48, "UNMAP [%s]", lbprzStr);
+                                    snprintfres = snprintf_err_handle(unmapDetails, 48, "UNMAP [%s]", lbprzStr);
+                                }
+                                if (error != 0 || snprintfres < 0)
+                                {
+                                    perror("Error formatting UNMAP details");
                                 }
                                 add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                               &driveInfo->numberOfFeaturesSupported, unmapDetails);
@@ -4335,9 +4482,24 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice* M_NONNULL              dev
                     {
                         add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                       &driveInfo->numberOfFeaturesSupported, "SAT");
-                        safe_memcpy(driveInfo->satVendorID, T10_VENDOR_ID_LEN + 1, &ataInformation[8], 8);
-                        safe_memcpy(driveInfo->satProductID, MODEL_NUM_LEN + 1, &ataInformation[16], 16);
-                        safe_memcpy(driveInfo->satProductRevision, FW_REV_LEN + 1, &ataInformation[32], 4);
+                        if (0 !=
+                            safe_memcpy(driveInfo->satVendorID, sizeof(driveInfo->satVendorID), &ataInformation[8], 8))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying SAT Vendor ID from ATA Information VPD page");
+                            }
+                        if (0 != safe_memcpy(driveInfo->satProductID, sizeof(driveInfo->satProductID),
+                                             &ataInformation[16], 16))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying SAT Product ID from ATA Information VPD page");
+                            }
+                        if (0 != safe_memcpy(driveInfo->satProductRevision, sizeof(driveInfo->satProductRevision),
+                                             &ataInformation[32], 4))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying SAT Product Revision from ATA Information VPD page");
+                            }
                     }
                     safe_free_aligned(&ataInformation);
                     break;
@@ -4404,8 +4566,12 @@ static eReturnValues get_SCSI_VPD_Data(const tDevice* M_NONNULL              dev
         else
         {
             // SCSI(1)/SASI/CCS don't have VPD pages. Try getting the SN from here (and that's all you get!)
-            safe_memcpy(driveInfo->serialNumber, SERIAL_NUM_LEN + 1, &device->drive_info.scsiVpdData.inquiryData[36],
-                        SERIAL_NUM_LEN);
+            if (0 != safe_memcpy(driveInfo->serialNumber, sizeof(driveInfo->serialNumber),
+                                 &device->drive_info.scsiVpdData.inquiryData[36], SERIAL_NUM_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying serial number from SCSI inquiry data as backup method (pre-VPD pages)");
+                }
             driveInfo->serialNumber[SERIAL_NUM_LEN] = '\0';
         }
         safe_free_aligned(&tempBuf);
@@ -4487,7 +4653,11 @@ static eReturnValues get_SCSI_Log_Data(const tDevice* M_NONNULL              dev
                         subpagesSupported = true;
                         increment         = 2;
                     }
-                    safe_memset(scsiLogBuf, 512, 0, LEGACY_DRIVE_SEC_SIZE);
+                    if (0 != safe_memset(scsiLogBuf, 512, 0, LEGACY_DRIVE_SEC_SIZE))
+                        M_UNLIKELY
+                        {
+                            perror("Error clearing SCSI log buffer before using for dummied data");
+                        }
                     scsiLogBuf[0] = 0;
                     scsiLogBuf[1] = 0;
 
@@ -5115,7 +5285,7 @@ static eReturnValues get_SCSI_Read_Capacity_Data(const tDevice* M_NONNULL       
     if (device && driveInfo && scsiInfo)
     {
         readCapacityData readCapData;
-        safe_memset(&readCapData, sizeof(readCapacityData), 0, sizeof(readCapacityData));
+        M_INITIALIZE_STRUCTURE(&readCapData, sizeof(readCapacityData));
         uint8_t protectionTypeEnabled = UINT8_C(0); // default to type 0
         driveInfo->physicalSectorSize = 0;          // make sure zero now and will be checked again later
         switch (scsiInfo->peripheralDeviceType)
@@ -5423,13 +5593,21 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                         if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
-                                            safe_memset(awreString, awreStringLength, 0, awreStringLength);
+                                            if (0 != safe_memset(awreString, awreStringLength, 0, awreStringLength))
+                                                M_UNLIKELY
+                                                {
+                                                    perror("Error clearing AWRE string before using");
+                                                }
                                         }
                                     }
                                     if (awreString != M_NULLPTR && awreStringLength >= 30)
                                     {
-                                        snprintf_err_handle(awreString, awreStringLength,
-                                                            "Automatic Write Reassignment");
+                                        if (0 !=
+                                            safe_strcpy(awreString, awreStringLength, "Automatic Write Reassignment"))
+                                            M_UNLIKELY
+                                            {
+                                                perror("Error copying AWRE string");
+                                            }
                                     }
                                 }
                                 // arre
@@ -5450,13 +5628,21 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                         if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
-                                            safe_memset(arreString, arreStringLength, 0, arreStringLength);
+                                            if (0 != safe_memset(arreString, arreStringLength, 0, arreStringLength))
+                                                M_UNLIKELY
+                                                {
+                                                    perror("Error clearing ARRE string before using");
+                                                }
                                         }
                                     }
                                     if (arreString != M_NULLPTR && arreStringLength >= 30)
                                     {
-                                        snprintf_err_handle(arreString, arreStringLength,
-                                                            "Automatic Read Reassignment");
+                                        if (0 != safe_strcpy(arreString, arreStringLength,
+                                                             "Automatic Read Reassignment [Enabled]"))
+                                            M_UNLIKELY
+                                            {
+                                                perror("Error copying ARRE string");
+                                            }
                                     }
                                 }
                             }
@@ -5506,13 +5692,21 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                         if (temp != M_NULLPTR)
                                         {
                                             awreString = temp;
-                                            safe_memset(awreString, awreStringLength, 0, awreStringLength);
+                                            if (0 != safe_memset(awreString, awreStringLength, 0, awreStringLength))
+                                                M_UNLIKELY
+                                                {
+                                                    perror("Error clearing AWRE string before using");
+                                                }
                                         }
                                     }
                                     if (awreString != M_NULLPTR && awreStringLength >= 40)
                                     {
-                                        snprintf_err_handle(awreString, awreStringLength,
-                                                            "Automatic Write Reassignment [Enabled]");
+                                        if (0 != safe_strcpy(awreString, awreStringLength,
+                                                             "Automatic Write Reassignment [Enabled]"))
+                                            M_UNLIKELY
+                                            {
+                                                perror("Error copying AWRE string");
+                                            }
                                     }
                                 }
                                 // arre
@@ -5533,13 +5727,20 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                         if (temp != M_NULLPTR)
                                         {
                                             arreString = temp;
-                                            safe_memset(arreString, arreStringLength, 0, arreStringLength);
+                                            if (0 != safe_memset(arreString, arreStringLength, 0, arreStringLength))
+                                                M_UNLIKELY
+                                                {
+                                                    perror("Error clearing ARRE string before using");
+                                                }
                                         }
                                     }
                                     if (arreString != M_NULLPTR && arreStringLength >= 40)
                                     {
-                                        snprintf_err_handle(arreString, arreStringLength,
-                                                            "Automatic Read Reassignment [Enabled]");
+                                        if (0 != safe_strcpy(arreString, arreStringLength,
+                                                             "Automatic Read Reassignment [Enabled]"))
+                                        {
+                                            perror("Error copying ARRE string");
+                                        }
                                     }
                                 }
                             }
@@ -5667,8 +5868,11 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                             if (!driveInfo->writeCacheSupported || !driveInfo->readLookAheadSupported)
                             {
                                 // we didn't get is supported from above, so check the changable page
-                                safe_memset(cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, 0,
-                                            20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH);
+                                if (0 != safe_memset(cachingPage, 20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH, 0,
+                                                     20 + SCSI_MODE_PAGE_MIN_HEADER_LENGTH))
+                                {
+                                    perror("Error clearing caching page before using");
+                                }
                                 pageRead = false; // reset to false before reading the changable values page
                                 if (SUCCESS == get_SCSI_Mode_Page(device, MPC_CHANGABLE_VALUES, pageCode, subPageCode,
                                                                   M_NULLPTR, M_NULLPTR, true, cachingPage,
@@ -5833,12 +6037,19 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         dlcString = temp;
-                                        safe_memset(dlcString, dlcStringLength, 0, dlcStringLength);
+                                        if (0 != safe_memset(dlcString, dlcStringLength, 0, dlcStringLength))
+                                        {
+                                            perror("Error clearing DLC string before using");
+                                        }
                                     }
                                 }
                                 if (dlcString != M_NULLPTR && dlcStringLength >= 50)
                                 {
-                                    snprintf_err_handle(dlcString, dlcStringLength, "Device Life Control");
+                                    if (0 != safe_strcpy(dlcString, dlcStringLength, "Device Life Control"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying DLC string");
+                                        }
                                 }
                             }
                         }
@@ -5887,12 +6098,20 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         dlcString = temp;
-                                        safe_memset(dlcString, dlcStringLength, 0, dlcStringLength);
+                                        if (0 != safe_memset(dlcString, dlcStringLength, 0, dlcStringLength))
+                                            M_UNLIKELY
+                                            {
+                                                perror("Error clearing DLC string before using");
+                                            }
                                     }
                                 }
                                 if (dlcString != M_NULLPTR && dlcStringLength >= 50)
                                 {
-                                    snprintf_err_handle(dlcString, dlcStringLength, "Device Life Control [Enabled]");
+                                    if (0 != safe_strcpy(dlcString, dlcStringLength, "Device Life Control [Enabled]"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying DLC string");
+                                        }
                                 }
                             }
                         }
@@ -6369,9 +6588,12 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negotiatedSpeed =
                                         C_CAST(double, scalingMultiplier) *
                                         (C_CAST(double, transferWidthExponent) + UINT32_C(1));
-                                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
-                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "",
-                                                        scalingMultiplier);
+                                    if (0 > snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.negModeName,
+                                                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
+                                                                "FAST-%" PRIu16 "", scalingMultiplier))
+                                    {
+                                        perror("Error formatting old scsi interface speed");
+                                    }
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.negModeNameValid = true;
                                 }
                             }
@@ -6476,9 +6698,13 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed =
                                         C_CAST(double, scalingMultiplier) *
                                         (C_CAST(double, transferWidthExponent) + UINT32_C(1));
-                                    snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-%" PRIu16 "",
-                                                        scalingMultiplier);
+                                    if (0 > snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH,
+                                                                "FAST-%" PRIu16 "", scalingMultiplier))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error formatting old scsi interface speed");
+                                        }
                                     driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
                                 }
                             }
@@ -6558,13 +6784,20 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
-                                        safe_memset(epcFeatureString, epcFeatureStringLength, 0,
-                                                    epcFeatureStringLength);
+                                        if (0 != safe_memset(epcFeatureString, epcFeatureStringLength, 0,
+                                                             epcFeatureStringLength))
+                                        {
+                                            perror("Error clearing EPC feature string before using");
+                                        }
                                     }
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 4)
                                 {
-                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength, "EPC");
+                                    if (0 != safe_strcpy(epcFeatureString, epcFeatureStringLength, "EPC"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying EPC string");
+                                        }
                                 }
                             }
                             else
@@ -6584,13 +6817,20 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
-                                        safe_memset(epcFeatureString, epcFeatureStringLength, 0,
-                                                    epcFeatureStringLength);
+                                        if (0 != safe_memset(epcFeatureString, epcFeatureStringLength, 0,
+                                                             epcFeatureStringLength))
+                                        {
+                                            perror("Error clearing EPC feature string before using");
+                                        }
                                     }
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 17)
                                 {
-                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength, "Power Conditions");
+                                    if (0 != safe_strcpy(epcFeatureString, epcFeatureStringLength, "Power Conditions"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying EPC string");
+                                        }
                                 }
                             }
                         }
@@ -6641,13 +6881,20 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
-                                        safe_memset(epcFeatureString, epcFeatureStringLength, 0,
-                                                    epcFeatureStringLength);
+                                        if (0 != safe_memset(epcFeatureString, epcFeatureStringLength, 0,
+                                                             epcFeatureStringLength))
+                                        {
+                                            perror("Error clearing EPC feature string before using");
+                                        }
                                     }
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 14)
                                 {
-                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]");
+                                    if (0 != safe_strcpy(epcFeatureString, epcFeatureStringLength, "EPC [Enabled]"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying EPC string");
+                                        }
                                 }
                             }
                             else if (powerConditions[3 + headerLength] & BIT0 ||
@@ -6668,14 +6915,21 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         epcFeatureString = temp;
-                                        safe_memset(epcFeatureString, epcFeatureStringLength, 0,
-                                                    epcFeatureStringLength);
+                                        if (0 != safe_memset(epcFeatureString, epcFeatureStringLength, 0,
+                                                             epcFeatureStringLength))
+                                        {
+                                            perror("Error clearing EPC feature string before using");
+                                        }
                                     }
                                 }
                                 if (epcFeatureString != M_NULLPTR && epcFeatureStringLength >= 27)
                                 {
-                                    snprintf_err_handle(epcFeatureString, epcFeatureStringLength,
-                                                        "Power Conditions [Enabled]");
+                                    if (0 != safe_strcpy(epcFeatureString, epcFeatureStringLength,
+                                                         "Power Conditions [Enabled]"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying EPC string");
+                                        }
                                 }
                             }
                         }
@@ -6778,8 +7032,14 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                         if (pageRead && modeDataLen > 0)
                         {
                             DECLARE_ZERO_INIT_ARRAY(char, temp, MAX_FEATURE_LENGTH);
-                            snprintf_err_handle(temp, MAX_FEATURE_LENGTH, "Informational Exceptions [Mode %" PRIu8 "]",
-                                                M_Nibble0(informationalExceptions[headerLength + 3]));
+                            if (0 > snprintf_err_handle(temp, MAX_FEATURE_LENGTH,
+                                                        "Informational Exceptions [Mode %" PRIu8 "]",
+                                                        M_Nibble0(informationalExceptions[headerLength + 3])))
+                                M_UNLIKELY
+                                {
+                                    perror("Error formatting informational exceptions string before adding to features "
+                                           "list");
+                                }
                             add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                           &driveInfo->numberOfFeaturesSupported, temp);
                         }
@@ -6844,12 +7104,19 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsString = temp;
-                                        safe_memset(bmsString, bmsStringLength, 0, bmsStringLength);
+                                        if (0 != safe_memset(bmsString, bmsStringLength, 0, bmsStringLength))
+                                        {
+                                            perror("Error clearing BMS string before using");
+                                        }
                                     }
                                 }
                                 if (bmsString != M_NULLPTR && bmsStringLength >= 50)
                                 {
-                                    snprintf_err_handle(bmsString, bmsStringLength, "Background Media Scan");
+                                    if (0 != safe_strcpy(bmsString, bmsStringLength, "Background Media Scan"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying BMS string");
+                                        }
                                 }
                             }
                             // bms-ps
@@ -6870,12 +7137,19 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
-                                        safe_memset(bmsPSString, bmsPSStringLength, 0, bmsPSStringLength);
+                                        if (0 != safe_memset(bmsPSString, bmsPSStringLength, 0, bmsPSStringLength))
+                                        {
+                                            perror("Error clearing BMS PS string before using");
+                                        }
                                     }
                                 }
                                 if (bmsPSString != M_NULLPTR && bmsPSStringLength >= 50)
                                 {
-                                    snprintf_err_handle(bmsPSString, bmsPSStringLength, "Background Pre-Scan");
+                                    if (0 != safe_strcpy(bmsPSString, bmsPSStringLength, "Background Pre-Scan"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying BMS PS string");
+                                        }
                                 }
                             }
                         }
@@ -6922,12 +7196,19 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsString = temp;
-                                        safe_memset(bmsString, bmsStringLength, 0, bmsStringLength);
+                                        if (0 != safe_memset(bmsString, bmsStringLength, 0, bmsStringLength))
+                                        {
+                                            perror("Error clearing BMS string before using");
+                                        }
                                     }
                                 }
                                 if (bmsString != M_NULLPTR && bmsStringLength >= 50)
                                 {
-                                    snprintf_err_handle(bmsString, bmsStringLength, "Background Media Scan [Enabled]");
+                                    if (0 != safe_strcpy(bmsString, bmsStringLength, "Background Media Scan [Enabled]"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying BMS string");
+                                        }
                                 }
                             }
                             // bms-ps
@@ -6948,13 +7229,20 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     if (temp != M_NULLPTR)
                                     {
                                         bmsPSString = temp;
-                                        safe_memset(bmsPSString, bmsPSStringLength, 0, bmsPSStringLength);
+                                        if (0 != safe_memset(bmsPSString, bmsPSStringLength, 0, bmsPSStringLength))
+                                        {
+                                            perror("Error clearing BMS PS string before using");
+                                        }
                                     }
                                 }
                                 if (bmsPSString != M_NULLPTR && bmsPSStringLength >= 50)
                                 {
-                                    snprintf_err_handle(bmsPSString, bmsPSStringLength,
-                                                        "Background Pre-Scan [Enabled]");
+                                    if (0 !=
+                                        safe_strcpy(bmsPSString, bmsPSStringLength, "Background Pre-Scan [Enabled]"))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying BMS PS string");
+                                        }
                                 }
                             }
                         }
@@ -7029,7 +7317,11 @@ static eReturnValues get_SCSI_Diagnostic_Data(const tDevice* M_NONNULL          
                 {
                     // old backwards compatible way to request the diag data is to send a send diagnostic with all
                     // zeroes to request the supported pages in the subsequent receive
-                    safe_memset(supportedDiagnostics, supportedDiagsLength, 0, supportedDiagsLength);
+                    if (0 != safe_memset(supportedDiagnostics, supportedDiagsLength, 0, supportedDiagsLength))
+                        M_UNLIKELY
+                        {
+                            perror("Error clearing SCSI supported diagnostics before using");
+                        }
                     if (scsiInfo->version >= 2 &&
                         SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, 4, supportedDiagnostics, 4, 15))
                     {
@@ -7116,8 +7408,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                 // supported one at a time instead of asking for everything all at once. Format unit
                 bool                         fastFormatSupported = false;
                 scsiOperationCodeInfoRequest supportedOpRequest;
-                safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
-                            sizeof(scsiOperationCodeInfoRequest));
+                M_INITIALIZE_STRUCTURE(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest));
                 supportedOpRequest.operationCode      = SCSI_FORMAT_UNIT_CMD;
                 supportedOpRequest.serviceActionValid = false;
                 eSCSICmdSupport formatSupported       = is_SCSI_Operation_Code_Supported(device, &supportedOpRequest);
@@ -7167,8 +7458,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                                                   "Fast Format");
                 }
 
-                safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
-                            sizeof(scsiOperationCodeInfoRequest));
+                M_INITIALIZE_STRUCTURE(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest));
                 supportedOpRequest.operationCode      = SCSI_FORMAT_WITH_PRESET_CMD;
                 supportedOpRequest.serviceActionValid = false;
                 eSCSICmdSupport formatPresetSupported = is_SCSI_Operation_Code_Supported(device, &supportedOpRequest);
@@ -7178,8 +7468,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                                                   "Format With Preset");
                 }
 
-                safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
-                            sizeof(scsiOperationCodeInfoRequest));
+                M_INITIALIZE_STRUCTURE(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest));
                 supportedOpRequest.operationCode      = SANITIZE_CMD;
                 supportedOpRequest.serviceActionValid = true;
                 supportedOpRequest.serviceAction      = SCSI_SANITIZE_OVERWRITE;
@@ -7200,8 +7489,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                         sanitizeCryptoSupported == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD, false, false);
                 }
 
-                safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
-                            sizeof(scsiOperationCodeInfoRequest));
+                M_INITIALIZE_STRUCTURE(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest));
                 supportedOpRequest.operationCode      = 0x9E;
                 supportedOpRequest.serviceActionValid = true;
                 supportedOpRequest.serviceAction      = 0x17;
@@ -7245,8 +7533,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                 if (scsiInfo->zoneDomainsOrRealms &&
                     scsiInfo->peripheralDeviceType == PERIPHERAL_HOST_MANAGED_ZONED_BLOCK_DEVICE)
                 {
-                    safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
-                                sizeof(scsiOperationCodeInfoRequest));
+                    M_INITIALIZE_STRUCTURE(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest));
                     supportedOpRequest.operationCode      = 0x95;
                     supportedOpRequest.serviceActionValid = true;
                     supportedOpRequest.serviceAction      = 0x07;
@@ -7270,8 +7557,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                 {
                     // Check security protocol in case the earlier attempt did not work to detect when the
                     // OS/driver/HBA are blocking these commands
-                    safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
-                                sizeof(scsiOperationCodeInfoRequest));
+                    M_INITIALIZE_STRUCTURE(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest));
                     supportedOpRequest.operationCode      = 0xA2;
                     supportedOpRequest.serviceActionValid = false;
                     eSCSICmdSupport secProtSupported = is_SCSI_Operation_Code_Supported(device, &supportedOpRequest);
@@ -7286,7 +7572,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
 
                 // check write buffer (firmware download) call info firmware download.h for this information.
                 supportedDLModes supportedDLModes;
-                safe_memset(&supportedDLModes, sizeof(supportedDLModes), 0, sizeof(supportedDLModes));
+                M_INITIALIZE_STRUCTURE(&supportedDLModes, sizeof(supportedDLModes));
                 supportedDLModes.size    = sizeof(supportedDLModes);
                 supportedDLModes.version = SUPPORTED_FWDL_MODES_VERSION;
                 // change the device type to scsi before we enter here! Doing this so that --satinfo is correct!
@@ -7303,8 +7589,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                 }
                 set_Device_DriveType(M_CONST_CAST(tDevice*, device), tempDevType); // set it back to what it was before
                 // ATA Passthrough commands
-                safe_memset(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest), 0,
-                            sizeof(scsiOperationCodeInfoRequest));
+                M_INITIALIZE_STRUCTURE(&supportedOpRequest, sizeof(scsiOperationCodeInfoRequest));
                 supportedOpRequest.operationCode      = ATA_PASS_THROUGH_12;
                 supportedOpRequest.serviceActionValid = false;
                 eSCSICmdSupport ataPT12               = is_SCSI_Operation_Code_Supported(device, &supportedOpRequest);
@@ -7348,10 +7633,9 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice* M
     {
         return BAD_PARAMETER;
     }
-
-    safe_memset(driveInfo, sizeof(driveInformationSAS_SATA), 0, sizeof(driveInformationSAS_SATA));
+    M_INITIALIZE_STRUCTURE(driveInfo, sizeof(driveInformationSAS_SATA));
     scsiIdentifyInfo scsiInfo;
-    safe_memset(&scsiInfo, sizeof(scsiIdentifyInfo), 0, sizeof(scsiIdentifyInfo));
+    M_INITIALIZE_STRUCTURE(&scsiInfo, sizeof(scsiIdentifyInfo));
     // start with standard inquiry data
     uint8_t* inquiryData = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(255, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
@@ -7363,8 +7647,12 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice* M
         }
         safe_free_aligned(&inquiryData);
     }
-    safe_memcpy(&driveInfo->adapterInformation, sizeof(adapterInfo), &device->drive_info.adapter_info,
-                sizeof(adapterInfo));
+    if (0 != safe_memcpy(&driveInfo->adapterInformation, sizeof(adapterInfo), &device->drive_info.adapter_info,
+                         sizeof(adapterInfo)))
+        M_UNLIKELY
+        {
+            perror("Error copying adapter information from device info structure to drive info structure");
+        }
 
     // TODO: add checking peripheral device type as well to make sure it's only direct access and zoned block devices?
     if ((get_Device_InterfaceType(device) == SCSI_INTERFACE || get_Device_InterfaceType(device) == RAID_INTERFACE) &&
@@ -7476,8 +7764,13 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice* M
                     {
                         add_Feature_To_Supported_List(driveInfo->featuresSupported,
                                                       &driveInfo->numberOfFeaturesSupported, "ATA Security");
-                        safe_memcpy(&driveInfo->ataSecurityInformation, sizeof(ataSecurityStatus),
-                                    &driveInfo->securityInfo.ataSecurityInfo, sizeof(ataSecurityStatus));
+                        if (0 != safe_memcpy(&driveInfo->ataSecurityInformation, sizeof(ataSecurityStatus),
+                                             &driveInfo->securityInfo.ataSecurityInfo, sizeof(ataSecurityStatus)))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying ATA security information from security info structure to drive "
+                                       "info structure");
+                            }
                     }
                 }
             }
@@ -7502,14 +7795,15 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice* M
 
     if (!driveInfo->interfaceSpeedInfo.speedIsValid)
     {
+        int snprintfres = 0;
         // these old standards didn't report it, but we can reasonably guess the speed
         if (scsiInfo.version == 1)
         {
             driveInfo->interfaceSpeedInfo.speedIsValid           = true;
             driveInfo->interfaceSpeedInfo.speedType              = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 5.0;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-5");
+            snprintfres = snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                              PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-5");
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
         }
         else if (scsiInfo.version >= 2 && scsiInfo.version <= 4)
@@ -7517,9 +7811,13 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Drive_Information(const tDevice* M
             driveInfo->interfaceSpeedInfo.speedIsValid           = true;
             driveInfo->interfaceSpeedInfo.speedType              = INTERFACE_SPEED_PARALLEL;
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxSpeed = 10.0;
-            snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
-                                PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-10");
+            snprintfres = snprintf_err_handle(driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeName,
+                                              PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH, "FAST-10");
             driveInfo->interfaceSpeedInfo.parallelSpeed.maxModeNameValid = true;
+        }
+        if (snprintfres < 0)
+        {
+            perror("Error formatting interface speed mode name (Old SCSI)");
         }
     }
 
@@ -7547,13 +7845,28 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice* M_NONNULL 
         return BAD_PARAMETER;
     }
     // MN
-    safe_memcpy(driveInfo->controllerData.modelNumber, MODEL_NUM_LEN + 1, &nvmeIdentifyData[24], 40);
+    if (0 != safe_memcpy(driveInfo->controllerData.modelNumber, sizeof(driveInfo->controllerData.modelNumber),
+                         &nvmeIdentifyData[24], 40))
+        M_UNLIKELY
+        {
+            perror("Error copying model number from NVMe identify data to drive info structure");
+        }
     remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.modelNumber);
     // SN
-    safe_memcpy(driveInfo->controllerData.serialNumber, SERIAL_NUM_LEN + 1, &nvmeIdentifyData[4], 20);
+    if (0 != safe_memcpy(driveInfo->controllerData.serialNumber, sizeof(driveInfo->controllerData.serialNumber),
+                         &nvmeIdentifyData[4], 20))
+        M_UNLIKELY
+        {
+            perror("Error copying serial number from NVMe identify data to drive info structure");
+        }
     remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.serialNumber);
     // FW
-    safe_memcpy(driveInfo->controllerData.firmwareRevision, FW_REV_LEN + 1, &nvmeIdentifyData[64], 8);
+    if (0 != safe_memcpy(driveInfo->controllerData.firmwareRevision, sizeof(driveInfo->controllerData.firmwareRevision),
+                         &nvmeIdentifyData[64], 8))
+        M_UNLIKELY
+        {
+            perror("Error copying firmware revision from NVMe identify data to drive info structure");
+        }
     remove_Leading_And_Trailing_Whitespace(driveInfo->controllerData.firmwareRevision);
     // vid
     driveInfo->controllerData.pciVendorID = M_BytesTo2ByteValue(nvmeIdentifyData[1], nvmeIdentifyData[0]);
@@ -7582,7 +7895,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice* M_NONNULL 
         driveInfo->controllerData.hostIdentifierSupported = true;
         // host identifier is supported
         nvmeFeaturesCmdOpt getHostIdentifier;
-        safe_memset(&getHostIdentifier, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&getHostIdentifier, sizeof(nvmeFeaturesCmdOpt));
         getHostIdentifier.fid = 0x81;
         getHostIdentifier.sel = 0; // current data
         DECLARE_ZERO_INIT_ARRAY(uint8_t, hostIdentifier, 16);
@@ -7590,7 +7903,9 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice* M_NONNULL 
         getHostIdentifier.dataLength = 16;
         if (SUCCESS == nvme_Get_Features(device, &getHostIdentifier))
         {
-            safe_memcpy(&driveInfo->controllerData.hostIdentifier, 16, hostIdentifier, 16);
+            M_IGNORE_SAFE_ERRNO_CALL(
+                safe_memcpy(&driveInfo->controllerData.hostIdentifier, 16, hostIdentifier, 16),
+                "Copying host identifier from get features data to drive info structure that is always the same size");
             if (getHostIdentifier.featSetGetValue & BIT0)
             {
                 driveInfo->controllerData.hostIdentifierIs128Bits = true;
@@ -7643,7 +7958,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice* M_NONNULL 
         // Read the NVMe DST log
         DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeDSTLog, 564);
         nvmeGetLogPageCmdOpts dstLogOpts;
-        safe_memset(&dstLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+        M_INITIALIZE_STRUCTURE(&dstLogOpts, sizeof(nvmeGetLogPageCmdOpts));
         dstLogOpts.addr    = nvmeDSTLog;
         dstLogOpts.dataLen = 564;
         dstLogOpts.lid     = 6;
@@ -7693,7 +8008,7 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice* M_NONNULL 
     {
         driveInfo->controllerData.volatileWriteCacheSupported = true;
         nvmeFeaturesCmdOpt getWriteCache;
-        safe_memset(&getWriteCache, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&getWriteCache, sizeof(nvmeFeaturesCmdOpt));
         getWriteCache.fid = 0x06;
         getWriteCache.sel = 0; // current data
         if (SUCCESS == nvme_Get_Features(device, &getWriteCache))
@@ -7713,7 +8028,11 @@ static eReturnValues get_NVMe_Controller_Identify_Data(const tDevice* M_NONNULL 
         }
     }
     // nvm subsystem qualified name
-    safe_memcpy(driveInfo->controllerData.nvmSubsystemNVMeQualifiedName, 257, &nvmeIdentifyData[768], 256);
+    M_IGNORE_SAFE_ERRNO_CALL(safe_memcpy(driveInfo->controllerData.nvmSubsystemNVMeQualifiedName,
+                                         sizeof(driveInfo->controllerData.nvmSubsystemNVMeQualifiedName),
+                                         &nvmeIdentifyData[768], 256),
+                             "Copying NVM Subsystem NVMe Qualified Name from identify data to drive info structure "
+                             "that is always 1 larger that source");
     driveInfo->controllerData.nvmSubsystemNVMeQualifiedName[256] = '\0';
     // firmware slots
     driveInfo->controllerData.numberOfFirmwareSlots = get_bit_range_uint8(nvmeIdentifyData[260], 3, 1);
@@ -8007,7 +8326,7 @@ static eReturnValues get_NVMe_Log_Data(const tDevice* M_NONNULL device, ptrDrive
     // Data from SMART log page
     DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeSMARTData, 512);
     nvmeGetLogPageCmdOpts smartLogOpts;
-    safe_memset(&smartLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+    M_INITIALIZE_STRUCTURE(&smartLogOpts, sizeof(nvmeGetLogPageCmdOpts));
     smartLogOpts.addr    = nvmeSMARTData;
     smartLogOpts.dataLen = 512;
     smartLogOpts.lid     = 2;
@@ -8061,7 +8380,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(const tDevice* M
         return BAD_PARAMETER;
     }
 
-    safe_memset(driveInfo, sizeof(driveInformationNVMe), 0, sizeof(driveInformationNVMe));
+    M_INITIALIZE_STRUCTURE(driveInfo, sizeof(driveInformationNVMe));
     // changing ret to success since we have passthrough available
     ret                       = SUCCESS;
     uint8_t* nvmeIdentifyData = C_CAST(uint8_t*, safe_calloc_aligned(NVME_IDENTIFY_DATA_LEN, sizeof(uint8_t),
@@ -8074,7 +8393,8 @@ OPENSEA_OPERATIONS_API eReturnValues get_NVMe_Drive_Information(const tDevice* M
     {
         get_NVMe_Controller_Identify_Data(device, driveInfo, nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN);
     }
-    safe_memset(nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN, 0, NVME_IDENTIFY_DATA_LEN);
+    M_IGNORE_SAFE_ERRNO_CALL(safe_memset(nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN, 0, NVME_IDENTIFY_DATA_LEN),
+                             "Resetting NVMe identify data buffer to exact allocated size. Will never fail");
     if (SUCCESS == nvme_Identify(device, nvmeIdentifyData, device->drive_info.namespaceID, NVME_IDENTIFY_NS))
     {
         get_NVMe_Namespace_Identify_Data(driveInfo, nvmeIdentifyData, NVME_IDENTIFY_DATA_LEN);
@@ -8421,8 +8741,10 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDrive
         }
         if (driveInfo->namespaceData.nvmCapacityD > 0)
         {
-            safe_memset(mCapUnits, UNIT_STRING_LENGTH, 0, UNIT_STRING_LENGTH * sizeof(char));
-            safe_memset(capUnits, UNIT_STRING_LENGTH, 0, UNIT_STRING_LENGTH * sizeof(char));
+            M_IGNORE_SAFE_ERRNO_CALL(safe_memset(mCapUnits, UNIT_STRING_LENGTH, 0, UNIT_STRING_LENGTH * sizeof(char)),
+                                     "Always initializing unit string to exact allocation size. Will never fail");
+            M_IGNORE_SAFE_ERRNO_CALL(safe_memset(capUnits, UNIT_STRING_LENGTH, 0, UNIT_STRING_LENGTH * sizeof(char)),
+                                     "Always initializing unit string to exact allocation size. Will never fail");
             double mCapacity = driveInfo->namespaceData.nvmCapacityD;
             double capacity  = mCapacity;
             metric_Unit_Convert(&mCapacity, &mCapUnit);
@@ -8434,7 +8756,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void print_NVMe_Device_Information(ptrDrive
         {
             for (uint8_t i = UINT8_C(0); i < 16; ++i)
             {
-                printf("%02" PRIX8, driveInfo->controllerData.fguid[i]);
+                printf("%02" PRIX8, driveInfo->namespaceData.namespaceGloballyUniqueIdentifier[i]);
             }
             print_str("\n");
         }
@@ -9480,20 +9802,56 @@ OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformat
     if (externalDriveInfo != M_NULLPTR && scsiDriveInfo != M_NULLPTR && ataDriveInfo != M_NULLPTR)
     {
         // take data from each of the inputs, and plug it into a new one, then call the standard print function
-        safe_memcpy(externalDriveInfo, sizeof(driveInformationSAS_SATA), ataDriveInfo,
-                    sizeof(driveInformationSAS_SATA));
+        if (0 != safe_memcpy(externalDriveInfo, sizeof(driveInformationSAS_SATA), ataDriveInfo,
+                             sizeof(driveInformationSAS_SATA)))
+        {
+            perror("Error copying ATA drive info to external drive info for base USB information");
+        }
         // we have a copy of the ata info, now just change the stuff we want to show from scsi info
-        safe_memset(externalDriveInfo->vendorID, T10_VENDOR_ID_LEN + 1, 0, T10_VENDOR_ID_LEN);
-        safe_memcpy(externalDriveInfo->vendorID, T10_VENDOR_ID_LEN + 1, scsiDriveInfo->vendorID, T10_VENDOR_ID_LEN);
-        safe_memset(externalDriveInfo->modelNumber, MODEL_NUM_LEN + 1, 0, MODEL_NUM_LEN);
-        safe_memcpy(externalDriveInfo->modelNumber, MODEL_NUM_LEN, scsiDriveInfo->modelNumber,
-                    safe_strlen(scsiDriveInfo->modelNumber));
-        safe_memset(externalDriveInfo->serialNumber, SERIAL_NUM_LEN + 1, 0, SERIAL_NUM_LEN);
-        safe_memcpy(externalDriveInfo->serialNumber, SERIAL_NUM_LEN, scsiDriveInfo->serialNumber,
-                    safe_strlen(scsiDriveInfo->serialNumber));
-        safe_memset(externalDriveInfo->firmwareRevision, FW_REV_LEN + 1, 0, FW_REV_LEN);
-        safe_memcpy(externalDriveInfo->firmwareRevision, FW_REV_LEN, scsiDriveInfo->firmwareRevision,
-                    safe_strlen(scsiDriveInfo->firmwareRevision));
+        if (0 != safe_memset(externalDriveInfo->vendorID, T10_VENDOR_ID_LEN + 1, 0, T10_VENDOR_ID_LEN))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
+        if (0 !=
+            safe_memcpy(externalDriveInfo->vendorID, T10_VENDOR_ID_LEN + 1, scsiDriveInfo->vendorID, T10_VENDOR_ID_LEN))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
+        if (0 != safe_memset(externalDriveInfo->modelNumber, MODEL_NUM_LEN + 1, 0, MODEL_NUM_LEN))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
+        if (0 != safe_memcpy(externalDriveInfo->modelNumber, MODEL_NUM_LEN, scsiDriveInfo->modelNumber,
+                             safe_strlen(scsiDriveInfo->modelNumber)))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
+        if (0 != safe_memset(externalDriveInfo->serialNumber, SERIAL_NUM_LEN + 1, 0, SERIAL_NUM_LEN))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
+        if (0 != safe_memcpy(externalDriveInfo->serialNumber, SERIAL_NUM_LEN, scsiDriveInfo->serialNumber,
+                             safe_strlen(scsiDriveInfo->serialNumber)))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
+        if (0 != safe_memset(externalDriveInfo->firmwareRevision, FW_REV_LEN + 1, 0, FW_REV_LEN))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
+        if (0 != safe_memcpy(externalDriveInfo->firmwareRevision, FW_REV_LEN, scsiDriveInfo->firmwareRevision,
+                             safe_strlen(scsiDriveInfo->firmwareRevision)))
+            M_UNLIKELY
+            {
+                perror("Error setting SCSI reported drive info for base USB drive info output");
+            }
         externalDriveInfo->maxLBA             = scsiDriveInfo->maxLBA;
         externalDriveInfo->nativeMaxLBA       = scsiDriveInfo->nativeMaxLBA;
         externalDriveInfo->logicalSectorSize  = scsiDriveInfo->logicalSectorSize;
@@ -9526,8 +9884,11 @@ OPENSEA_OPERATIONS_API void generate_External_Drive_Information(ptrDriveInformat
         for (; extSpecNumber < MAX_SPECS && scsiSpecNumber < scsiDriveInfo->numberOfSpecificationsSupported;
              ++extSpecNumber, ++scsiSpecNumber)
         {
-            safe_memcpy(&externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
-                        &scsiDriveInfo->specificationsSupported[scsiSpecNumber], MAX_SPEC_LENGTH);
+            if (0 != safe_memcpy(&externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
+                                 &scsiDriveInfo->specificationsSupported[scsiSpecNumber], MAX_SPEC_LENGTH))
+            {
+                perror("Error copying specification to external drive info");
+            }
             ++(externalDriveInfo->numberOfSpecificationsSupported);
         }
     }
@@ -9548,8 +9909,11 @@ OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(
     if (externalDriveInfo != M_NULLPTR && scsiDriveInfo != M_NULLPTR && nvmeDriveInfo != M_NULLPTR)
     {
         // take data from each of the inputs, and plug it into a new one, then call the standard print function
-        safe_memcpy(externalDriveInfo, sizeof(driveInformationSAS_SATA), scsiDriveInfo,
-                    sizeof(driveInformationSAS_SATA));
+        if (0 != safe_memcpy(externalDriveInfo, sizeof(driveInformationSAS_SATA), scsiDriveInfo,
+                             sizeof(driveInformationSAS_SATA)))
+        {
+            perror("Error copying SCSI drive info to external drive info for base reported information");
+        }
         // Keep the SCSI information, minus a few things to copy from NVMe if the NVMe info needed was read properly
         if (nvmeDriveInfo->smartData.valid)
         {
@@ -9576,8 +9940,12 @@ OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(
             externalDriveInfo->smartStatus          = nvmeDriveInfo->smartData.smartStatus;
         }
 
-        safe_memcpy(&externalDriveInfo->dstInfo, sizeof(lastDSTInformation), &nvmeDriveInfo->dstInfo,
-                    sizeof(lastDSTInformation));
+        if (0 != safe_memcpy(&externalDriveInfo->dstInfo, sizeof(lastDSTInformation), &nvmeDriveInfo->dstInfo,
+                             sizeof(lastDSTInformation)))
+            M_UNLIKELY
+            {
+                perror("Error copying DST information to external drive info");
+            }
         externalDriveInfo->longDSTTimeMinutes = nvmeDriveInfo->controllerData.longDSTTimeMinutes;
 
         if (!externalDriveInfo->writeCacheSupported)
@@ -9591,15 +9959,21 @@ OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(
         if (nvmeDriveInfo->controllerData.majorVersion > 0 || nvmeDriveInfo->controllerData.minorVersion > 0 ||
             nvmeDriveInfo->controllerData.tertiaryVersion > 0)
         {
-            snprintf_err_handle(externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
-                                "NVMe %" PRIu16 ".%" PRIu8 ".%" PRIu8 "\n", nvmeDriveInfo->controllerData.majorVersion,
-                                nvmeDriveInfo->controllerData.minorVersion,
-                                nvmeDriveInfo->controllerData.tertiaryVersion);
+            if (0 > snprintf_err_handle(
+                        externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
+                        "NVMe %" PRIu16 ".%" PRIu8 ".%" PRIu8 "\n", nvmeDriveInfo->controllerData.majorVersion,
+                        nvmeDriveInfo->controllerData.minorVersion, nvmeDriveInfo->controllerData.tertiaryVersion))
+            {
+                perror("Error formatting NVMe specification version");
+            }
         }
         else
         {
-            snprintf_err_handle(externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
-                                "NVMe 1.1 or older\n");
+            if (0 > snprintf_err_handle(externalDriveInfo->specificationsSupported[extSpecNumber], MAX_SPEC_LENGTH,
+                                        "NVMe 1.1 or older\n"))
+            {
+                perror("Error formatting NVMe specification version for 1.1 or older");
+            }
         }
         ++(externalDriveInfo->numberOfSpecificationsSupported);
 
@@ -9612,8 +9986,12 @@ OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(
              extFeatNumber < MAX_FEATURES && nvmeFeatNumber < nvmeDriveInfo->controllerData.numberOfControllerFeatures;
              ++extFeatNumber, ++nvmeFeatNumber)
         {
-            safe_memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], MAX_FEATURE_LENGTH,
-                        &nvmeDriveInfo->controllerData.controllerFeaturesSupported[nvmeFeatNumber], MAX_FEATURE_LENGTH);
+            if (0 != safe_memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], MAX_FEATURE_LENGTH,
+                                 &nvmeDriveInfo->controllerData.controllerFeaturesSupported[nvmeFeatNumber],
+                                 MAX_FEATURE_LENGTH))
+            {
+                perror("Error copying controller feature to external drive info");
+            }
             if (strcmp(nvmeDriveInfo->controllerData.controllerFeaturesSupported[nvmeFeatNumber], "Firmware Update") ==
                 0)
             {
@@ -9631,9 +10009,12 @@ OPENSEA_OPERATIONS_API void generate_External_NVMe_Drive_Information(
                    nvmeFeatNumber < nvmeDriveInfo->namespaceData.numberOfNamespaceFeatures;
                  ++extFeatNumber, ++nvmeFeatNumber)
             {
-                safe_memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], MAX_FEATURE_LENGTH,
-                            &nvmeDriveInfo->namespaceData.namespaceFeaturesSupported[nvmeFeatNumber],
-                            MAX_FEATURE_LENGTH);
+                if (0 != safe_memcpy(&externalDriveInfo->featuresSupported[extFeatNumber], MAX_FEATURE_LENGTH,
+                                     &nvmeDriveInfo->namespaceData.namespaceFeaturesSupported[nvmeFeatNumber],
+                                     MAX_FEATURE_LENGTH))
+                {
+                    perror("Error copying namespace feature to external drive info");
+                }
                 ++(externalDriveInfo->numberOfFeaturesSupported);
             }
         }
@@ -9879,7 +10260,7 @@ OPENSEA_OPERATIONS_API eReturnValues print_Drive_Information(const tDevice* M_NO
     return ret;
 }
 
-M_RETURNS_NONNULL M_PARAM_RO(1) const char* print_drive_type(const tDevice* M_NONNULL device)
+M_RETURNS_NONNULL M_PARAM_RO(1) const char* M_NONNULL print_drive_type(const tDevice* M_NONNULL device)
 {
     if (device != M_NULLPTR)
     {

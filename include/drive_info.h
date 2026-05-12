@@ -171,11 +171,15 @@ extern "C"
         speedInfo->parallelSpeed.negotiatedSpeed  = 0.0;
         speedInfo->parallelSpeed.maxSpeed         = 0.0;
         speedInfo->parallelSpeed.negModeNameValid = false;
-        safe_memset(speedInfo->parallelSpeed.negModeName, sizeof(speedInfo->parallelSpeed.negModeName), 0,
-                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH);
+        M_IGNORE_SAFE_ERRNO_CALL(
+            safe_memset(speedInfo->parallelSpeed.negModeName, sizeof(speedInfo->parallelSpeed.negModeName), 0,
+                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH),
+            "Memset length is using same macro for size as the field being zeroed. Will not overflow.");
         speedInfo->parallelSpeed.maxModeNameValid = false;
-        safe_memset(speedInfo->parallelSpeed.maxModeName, sizeof(speedInfo->parallelSpeed.maxModeName), 0,
-                    PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH);
+        M_IGNORE_SAFE_ERRNO_CALL(
+            safe_memset(speedInfo->parallelSpeed.maxModeName, sizeof(speedInfo->parallelSpeed.maxModeName), 0,
+                        PARALLEL_INTERFACE_MODE_NAME_MAX_LENGTH),
+            "Memset length is using same macro for size as the field being zeroed. Will not overflow.");
     }
 
     // This struct is only for ATA drives...more specifically legacy drives. Can be used if any ATA drive that populates
@@ -607,7 +611,8 @@ extern "C"
                                                                ptrDriveInformation M_NONNULL* M_NULLABLE usbDriveInfo,
                                                                eDriveTypeForPrintInfo* M_NULLABLE        driveType);
 
-    M_RETURNS_NONNULL M_PARAM_RO(1) const char* M_NONNULL print_drive_type(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API M_RETURNS_NONNULL M_PARAM_RO(1) const char* M_NONNULL
+        print_drive_type(const tDevice* M_NONNULL device);
 
     //-----------------------------------------------------------------------------
     //
@@ -622,7 +627,7 @@ extern "C"
     //!   \return VOID
     //
     //-----------------------------------------------------------------------------
-    M_PARAM_RO(1) eReturnValues print_Nvme_Ctrl_Information(const tDevice* M_NONNULL device);
+    OPENSEA_OPERATIONS_API M_PARAM_RO(1) eReturnValues print_Nvme_Ctrl_Information(const tDevice* M_NONNULL device);
 
 #if defined(__cplusplus)
 }

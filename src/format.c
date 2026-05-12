@@ -44,7 +44,7 @@ OPENSEA_OPERATIONS_API bool is_Format_Unit_Supported(const tDevice* M_NONNULL de
         *fastFormatSupported = false; // make sure this defaults to false
     }
     scsiOperationCodeInfoRequest formatUnitSupReq;
-    safe_memset(&formatUnitSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    M_INITIALIZE_STRUCTURE(&formatUnitSupReq, sizeof(scsiOperationCodeInfoRequest));
     formatUnitSupReq.operationCode      = SCSI_FORMAT_UNIT_CMD;
     formatUnitSupReq.serviceActionValid = false;
     eSCSICmdSupport formatUnitSupport   = is_SCSI_Operation_Code_Supported(device, &formatUnitSupReq);
@@ -320,13 +320,24 @@ OPENSEA_OPERATIONS_API eReturnValues run_Format_Unit(const tDevice* M_NONNULL de
         if (formatParameters.pattern && formatParameters.patternLength > 0)
         {
             // copy pattern into buffer
-            safe_memcpy(&dataBuf[offset], dataSize - offset, formatParameters.pattern, formatParameters.patternLength);
+            if (0 != safe_memcpy(&dataBuf[offset], dataSize - offset, formatParameters.pattern,
+                                 formatParameters.patternLength))
+            {
+                perror("Error copying initialization pattern into buffer");
+                safe_free_aligned(&dataBuf);
+                return MEMORY_FAILURE;
+            }
             offset += formatParameters.patternLength;
         }
     }
     if (formatParameters.gList)
     {
-        safe_memcpy(&dataBuf[offset], dataSize - offset, formatParameters.gList, formatParameters.glistSize);
+        if (0 != safe_memcpy(&dataBuf[offset], dataSize - offset, formatParameters.gList, formatParameters.glistSize))
+        {
+            perror("Error copying G-List into buffer");
+            safe_free_aligned(&dataBuf);
+            return MEMORY_FAILURE;
+        }
         offset += formatParameters.glistSize;
     }
     dataSize = offset;
@@ -335,8 +346,8 @@ OPENSEA_OPERATIONS_API eReturnValues run_Format_Unit(const tDevice* M_NONNULL de
     {
         modifyScsiBlkDescFields modifications;
         modifyScsiBlkDescFields results;
-        safe_memset(&modifications, sizeof(modifyScsiBlkDescFields), 0, sizeof(modifyScsiBlkDescFields));
-        safe_memset(&results, sizeof(modifyScsiBlkDescFields), 0, sizeof(modifyScsiBlkDescFields));
+        M_INITIALIZE_STRUCTURE(&modifications, sizeof(modifyScsiBlkDescFields));
+        M_INITIALIZE_STRUCTURE(&results, sizeof(modifyScsiBlkDescFields));
         if (formatParameters.newMaxLBA)
         {
             modifications.modifyNumBlocks       = true;
@@ -1252,20 +1263,39 @@ static eReturnValues scsi_Get_Supported_Formats(const tDevice* M_NONNULL device,
                 if (get_Device_BlockSize(device) < SEC_SIZE_4096)
                 {
                     // memset away the 4k sizes
-                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
-                                sizeof(sectorSize) * formats->numberOfSectorSizes, 0,
-                                sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    if (0 != safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                         sizeof(sectorSize) * (formats->numberOfSectorSizes -
+                                                               M_STATIC_CAST(uint32_t, SCSI_ENT_SECT_SIZE_4096)),
+                                         0,
+                                         sizeof(sectorSize) * (formats->numberOfSectorSizes -
+                                                               M_STATIC_CAST(uint32_t, SCSI_ENT_SECT_SIZE_4096))))
+                        M_UNLIKELY
+                        {
+                            perror("Error clearing 4k sector sizes\n");
+                        }
                 }
                 else
                 {
                     // move 4k sizes to front, removing 5xx sizes
-                    safe_memmove(&formats->sectorSizes[0], sizeof(sectorSize) * formats->numberOfSectorSizes,
-                                 &formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
-                                 sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    if (0 != safe_memmove(&formats->sectorSizes[0], sizeof(sectorSize) * formats->numberOfSectorSizes,
+                                          &formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                          sizeof(sectorSize) * (formats->numberOfSectorSizes -
+                                                                M_STATIC_CAST(uint32_t, SCSI_ENT_SECT_SIZE_4096))))
+                        M_UNLIKELY
+                        {
+                            perror("Error moving 4k sector sizes to front");
+                        }
                     // now memset away old stuff so it doesn't look duplicated
-                    safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
-                                sizeof(sectorSize) * formats->numberOfSectorSizes, 0,
-                                sizeof(sectorSize) * formats->numberOfSectorSizes);
+                    if (0 != safe_memset(&formats->sectorSizes[SCSI_ENT_SECT_SIZE_4096],
+                                         sizeof(sectorSize) * (formats->numberOfSectorSizes -
+                                                               M_STATIC_CAST(uint32_t, SCSI_ENT_SECT_SIZE_4096)),
+                                         0,
+                                         sizeof(sectorSize) * (formats->numberOfSectorSizes -
+                                                               M_STATIC_CAST(uint32_t, SCSI_ENT_SECT_SIZE_4096))))
+                        M_UNLIKELY
+                        {
+                            perror("Error clearing old sector sizes\n");
+                        }
                 }
             }
         }
@@ -1354,7 +1384,7 @@ static eReturnValues nvme_Get_Supported_Formats(const tDevice* M_NONNULL device,
         }
     }
 
-    uint8_t  flbas  = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
+    uint8_t flbas = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
     if (NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) > 16)
     {
         // need to append 2 more bits to interpret this correctly since number of formats > 16
@@ -1362,14 +1392,16 @@ static eReturnValues nvme_Get_Supported_Formats(const tDevice* M_NONNULL device,
     }
 
     // This should not happen or trigger on a real valid device, but adding this to assist in debugging too.
-    assert(flbas < formats->numberOfSectorSizes && "Current LBA format out of range for number of device reported formats. Drive bug or malicious device detected.");
+    assert(flbas < formats->numberOfSectorSizes && "Current LBA format out of range for number of device reported "
+                                                   "formats. Drive bug or malicious device detected.");
 
     // Max formats in NVMe is 64 which is the same as this value, so it *should never* go out of bounds.
-    if (flbas < MAX_SECTOR_SIZES_ARRAY && flbas < formats->numberOfSectorSizes) M_LIKELY
-    {
-        // set current format
-        formats->sectorSizes[flbas].currentFormat = true;
-    }
+    if (flbas < MAX_SECTOR_SIZES_ARRAY && flbas < formats->numberOfSectorSizes)
+        M_LIKELY
+        {
+            // set current format
+            formats->sectorSizes[flbas].currentFormat = true;
+        }
     return SUCCESS;
 }
 
@@ -1432,8 +1464,16 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFor
 #define META_STRING_SIZE 10
             DECLARE_ZERO_INIT_ARRAY(char, perf, PERF_STRING_SIZE);
             DECLARE_ZERO_INIT_ARRAY(char, metaSize, META_STRING_SIZE);
-            snprintf_err_handle(perf, PERF_STRING_SIZE, "N/A");
-            snprintf_err_handle(metaSize, META_STRING_SIZE, "N/A");
+            if (0 != safe_strcpy(perf, PERF_STRING_SIZE, "N/A"))
+                M_UNLIKELY
+                {
+                    perror("Error setting performance string\n");
+                }
+            if (0 != safe_strcpy(metaSize, META_STRING_SIZE, "N/A"))
+                M_UNLIKELY
+                {
+                    perror("Error setting metadata size string\n");
+                }
             if (formats->protectionInformationSupported.deviceSupportsProtection)
             {
                 pi0 = 'Y';
@@ -1518,28 +1558,52 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Supported_Formats(ptrSupportedFor
             switch (formats->sectorSizes[iter].additionalInformationType)
             {
             case SECTOR_SIZE_ADDITIONAL_INFO_NVME:
-                safe_memset(perf, PERF_STRING_SIZE, 0, PERF_STRING_SIZE);
+                M_INITIALIZE_STRUCTURE(perf, PERF_STRING_SIZE);
                 switch (formats->sectorSizes[iter].nvmeSectorBits.relativePerformance)
                 {
                 case 0:
-                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Best");
+                    if (0 != safe_strcpy(perf, PERF_STRING_SIZE, "Best"))
+                        M_UNLIKELY
+                        {
+                            perror("Error setting performance string\n");
+                        }
                     break;
                 case 1:
-                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Better");
+                    if (0 != safe_strcpy(perf, PERF_STRING_SIZE, "Better"))
+                        M_UNLIKELY
+                        {
+                            perror("Error setting performance string\n");
+                        }
                     break;
                 case 2:
-                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Good");
+                    if (0 != safe_strcpy(perf, PERF_STRING_SIZE, "Good"))
+                        M_UNLIKELY
+                        {
+                            perror("Error setting performance string\n");
+                        }
                     break;
                 case 3:
-                    snprintf_err_handle(perf, PERF_STRING_SIZE, "Degraded");
+                    if (0 != safe_strcpy(perf, PERF_STRING_SIZE, "Degraded"))
+                        M_UNLIKELY
+                        {
+                            perror("Error setting performance string\n");
+                        }
                     break;
                 default:
-                    snprintf_err_handle(perf, PERF_STRING_SIZE, "N/A");
+                    if (0 != safe_strcpy(perf, PERF_STRING_SIZE, "N/A"))
+                        M_UNLIKELY
+                        {
+                            perror("Error setting performance string\n");
+                        }
                     break;
                 }
-                safe_memset(metaSize, META_STRING_SIZE, 0, META_STRING_SIZE);
-                snprintf_err_handle(metaSize, META_STRING_SIZE, "%" PRIu16,
-                                    formats->sectorSizes[iter].nvmeSectorBits.metadataSize);
+                M_INITIALIZE_STRUCTURE(metaSize, META_STRING_SIZE);
+                if (0 > snprintf_err_handle(metaSize, META_STRING_SIZE, "%" PRIu16,
+                                            formats->sectorSizes[iter].nvmeSectorBits.metadataSize))
+                    M_UNLIKELY
+                    {
+                        perror("Error formatting metadata size string\n");
+                    }
                 break;
             default:
                 break;
@@ -1630,7 +1694,7 @@ OPENSEA_OPERATIONS_API eReturnValues ata_Map_Sector_Size_To_Descriptor_Check(con
         {
             return MEMORY_FAILURE;
         }
-        safe_memset(formats, formatsDataSize, 0, formatsDataSize);
+        M_INITIALIZE_STRUCTURE(formats, formatsDataSize);
         ret = get_Supported_Formats(device, formats);
         if (SUCCESS == ret)
         {
@@ -1972,7 +2036,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_Sector_Configuration_With_Force(const t
         else // Assume SCSI
         {
             runFormatUnitParameters formatUnitParameters;
-            safe_memset(&formatUnitParameters, sizeof(runFormatUnitParameters), 0, sizeof(runFormatUnitParameters));
+            M_INITIALIZE_STRUCTURE(&formatUnitParameters, sizeof(runFormatUnitParameters));
             formatUnitParameters.formatType           = FORMAT_FAST_WRITE_NOT_REQUIRED;
             formatUnitParameters.currentBlockSize     = false;
             formatUnitParameters.newBlockSize         = C_CAST(uint16_t, sectorSize);
@@ -2151,7 +2215,7 @@ OPENSEA_OPERATIONS_API eReturnValues run_NVMe_Format(const tDevice* M_NONNULL de
 {
     eReturnValues     ret = SUCCESS;
     nvmeFormatCmdOpts formatCmdOptions;
-    safe_memset(&formatCmdOptions, sizeof(nvmeFormatCmdOpts), 0, sizeof(nvmeFormatCmdOpts));
+    M_INITIALIZE_STRUCTURE(&formatCmdOptions, sizeof(nvmeFormatCmdOpts));
     // Set metadata, PI, PIL settings to current device settings to start
     formatCmdOptions.ms  = (device->drive_info.IdentifyData.nvme.ns.mc & BIT0) ? UINT8_C(1) : UINT8_C(0);
     formatCmdOptions.pil = (device->drive_info.IdentifyData.nvme.ns.dps & BIT3) ? UINT8_C(1) : UINT8_C(0);

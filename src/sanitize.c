@@ -123,7 +123,7 @@ static eReturnValues get_NVMe_Sanitize_Progress(const tDevice* M_NONNULL   devic
     nvmeGetLogPageCmdOpts getLogOpts;
     uint16_t              sprog = UINT16_C(0);
     uint16_t              sstat = UINT16_C(0);
-    safe_memset(&getLogOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+    M_INITIALIZE_STRUCTURE(&getLogOpts, sizeof(nvmeGetLogPageCmdOpts));
     getLogOpts.dataLen = 512;
     getLogOpts.lid     = 0x81;
     getLogOpts.addr    = sanitizeStatusLog;
@@ -367,7 +367,7 @@ get_SCSI_Sanitize_Supported_Features(const tDevice* M_NONNULL             device
             return NOT_SUPPORTED;
         }
         scsiOperationCodeInfoRequest sanitizeSupReq;
-        safe_memset(&sanitizeSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+        M_INITIALIZE_STRUCTURE(&sanitizeSupReq, sizeof(scsiOperationCodeInfoRequest));
         sanitizeSupReq.operationCode      = SANITIZE_CMD;
         sanitizeSupReq.serviceActionValid = true;
         sanitizeSupReq.serviceAction      = SCSI_SANITIZE_OVERWRITE;
@@ -419,7 +419,7 @@ get_SCSI_Sanitize_Supported_Features(const tDevice* M_NONNULL             device
             sanitizeOptions->exitFailMode = false;
         }
         writeAfterErase writeAfterEraseRequirements;
-        safe_memset(&writeAfterEraseRequirements, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
+        M_INITIALIZE_STRUCTURE(&writeAfterEraseRequirements, sizeof(writeAfterErase));
         if (SUCCESS == is_Write_After_Erase_Required(device, &writeAfterEraseRequirements))
         {
             sanitizeOptions->writeAfterBlockErase  = writeAfterEraseRequirements.blockErase;
@@ -479,7 +479,7 @@ get_NVMe_Sanitize_Supported_Features(const tDevice* M_NONNULL             device
         {
             // get the sanitize config feature status to know which mode it is operating in.
             nvmeFeaturesCmdOpt feat;
-            safe_memset(&feat, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+            M_INITIALIZE_STRUCTURE(&feat, sizeof(nvmeFeaturesCmdOpt));
             feat.fid        = NVME_FEAT_SANITIZE_CONFIG_;
             feat.nsid       = NVME_ALL_NAMESPACES;
             feat.sel        = NVME_CURRENT_FEAT_SEL;
@@ -606,7 +606,7 @@ M_DEPRECATED M_PARAM_RO(1) M_NONNULL_IF_NONZERO_PARAM(4, 5) M_PARAM_RO_SIZE(4, 5
 {
     // convert to calling new functions since this one is obsolete.
     sanitizeOperationOptions sanitizeOptions;
-    safe_memset(&sanitizeOptions, sizeof(sanitizeOperationOptions), 0, sizeof(sanitizeOperationOptions));
+    M_INITIALIZE_STRUCTURE(&sanitizeOptions, sizeof(sanitizeOperationOptions));
     sanitizeOptions.version                                     = SANITIZE_OPERATION_OPTIONS_VERSION;
     sanitizeOptions.size                                        = sizeof(sanitizeOperationOptions);
     sanitizeOptions.commonOptions.allowUnrestrictedSanitizeExit = false;
@@ -627,8 +627,12 @@ M_DEPRECATED M_PARAM_RO(1) M_NONNULL_IF_NONZERO_PARAM(4, 5) M_PARAM_RO_SIZE(4, 5
         sanitizeOptions.overwriteOptions.numberOfPasses             = UINT8_C(1);
         if (pattern != M_NULLPTR)
         {
-            safe_memcpy(&sanitizeOptions.overwriteOptions.pattern, sizeof(uint32_t), pattern,
-                        M_Min(patternLength, sizeof(uint32_t)));
+            if (0 != safe_memcpy(&sanitizeOptions.overwriteOptions.pattern, sizeof(uint32_t), pattern,
+                                 M_Min(patternLength, sizeof(uint32_t))))
+                M_UNLIKELY
+                {
+                    perror("failed to copy pattern for overwrite sanitize operation!\n");
+                }
         }
         else
         {
@@ -697,7 +701,7 @@ static eReturnValues sanitize_Poll_For_Progress(const tDevice* M_NONNULL device,
     if (sanitizeInProgress == SANITIZE_STATUS_SUCCESS)
     {
         writeAfterErase writeReq;
-        safe_memset(&writeReq, sizeof(writeAfterErase), 0, sizeof(writeAfterErase));
+        M_INITIALIZE_STRUCTURE(&writeReq, sizeof(writeAfterErase));
         if (SUCCESS == is_Write_After_Erase_Required(device, &writeReq))
         {
             if (sanitizeEraseOperation == OVERWRITE_ERASE ||

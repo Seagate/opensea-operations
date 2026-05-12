@@ -353,8 +353,12 @@ get_Persistent_Reservations_Capabilities(const tDevice* M_NONNULL               
                 else
                 {
                     prCapabilities->reservationTypesSupportedValid = false;
-                    safe_memset(&prCapabilities->reservationsCapabilities, sizeof(reservationTypesSupported), 0,
-                                sizeof(reservationTypesSupported));
+                    if (0 != safe_memset(&prCapabilities->reservationsCapabilities, sizeof(reservationTypesSupported),
+                                         0, sizeof(reservationTypesSupported)))
+                        M_UNLIKELY
+                        {
+                            perror("Error initializing reservation capabilities structure");
+                        }
                 }
             }
             else
@@ -366,7 +370,7 @@ get_Persistent_Reservations_Capabilities(const tDevice* M_NONNULL               
     else if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         nvmeFeaturesCmdOpt getReservatinPersistence;
-        safe_memset(&getReservatinPersistence, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&getReservatinPersistence, sizeof(nvmeFeaturesCmdOpt));
         getReservatinPersistence.fid  = NVME_FEAT_RESERVATION_PERSISTANCE_;
         getReservatinPersistence.nsid = device->drive_info.namespaceID;
         prCapabilities->replaceLostReservationCapable =
@@ -1005,6 +1009,8 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData 
         for (uint32_t resIter = UINT32_C(0); resIter < UINT16_MAX && resIter < reservations->numberOfReservations;
              ++resIter)
         {
+            errno_t resscopeerror = 0;
+            errno_t restypeerror  = 0;
 #define RES_SCOPE_BUF_LEN 9
             DECLARE_ZERO_INIT_ARRAY(char, scopeBuf, RES_SCOPE_BUF_LEN);
             char* scope = &scopeBuf[0];
@@ -1014,56 +1020,67 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Reservations(ptrReservationsData 
             switch (reservations->reservation[resIter].scope)
             {
             case RESERVATION_SCOPE_LOGICAL_UNIT:
-                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "LU");
+                resscopeerror = safe_strcpy(scope, RES_SCOPE_BUF_LEN, "LU");
                 break;
             case RESERVATION_SCOPE_EXTENT:
-                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "Extent");
+                resscopeerror = safe_strcpy(scope, RES_SCOPE_BUF_LEN, "Extent");
                 break;
             case RESERVATION_SCOPE_ELEMENT:
-                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "Element");
+                resscopeerror = safe_strcpy(scope, RES_SCOPE_BUF_LEN, "Element");
                 break;
             case RESERVATION_SCOPE_UNKNOWN:
             default:
-                snprintf_err_handle(scope, RES_SCOPE_BUF_LEN, "Unknown");
+                resscopeerror = safe_strcpy(scope, RES_SCOPE_BUF_LEN, "Unknown");
                 break;
             }
             switch (reservations->reservation[resIter].type)
             {
             case RES_TYPE_NO_RESERVATION:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "None");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "None");
                 break;
             case RES_TYPE_READ_SHARED:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Shared");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Read Shared");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Write Exclusive");
                 break;
             case RES_TYPE_READ_EXCLUSIVE:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Exclusive");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Read Exclusive");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Exclusive Access");
                 break;
             case RES_TYPE_SHARED_ACCESS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Shared Access");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Shared Access");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
                 break;
             case RES_TYPE_UNKNOWN:
             default:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Unknown");
+                restypeerror = safe_strcpy(type, RES_TYPE_BUF_LEN, "Unknown");
                 break;
             }
+            if (restypeerror != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping reservation type string!\n");
+                }
+            if (resscopeerror != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping reservation scope string!\n");
+                }
+
             printf("%16" PRIX64 "h  %7s  %20s", reservations->reservation[resIter].reservationKey, scope, type);
         }
         if (reservations->numberOfReservations == 0)
@@ -1315,12 +1332,20 @@ OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(const tDevice* M_NONNULL   
                     if (offsetAdditionalLength > 0)
                     {
                         // copy the transport ID, if any, up to 24 bytes
-                        safe_memcpy(fullReservation->reservationKey[keyIter].transportID, 24,
-                                    &fullStatusData[offset + 24], M_Min(24, offsetAdditionalLength));
+                        if (0 != safe_memcpy(fullReservation->reservationKey[keyIter].transportID, 24,
+                                             &fullStatusData[offset + 24], M_Min(24, offsetAdditionalLength)))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying transport ID data to internal structure");
+                            }
                     }
                     else
                     {
-                        safe_memset(fullReservation->reservationKey[keyIter].transportID, 24, 0, 24);
+                        if (0 != safe_memset(fullReservation->reservationKey[keyIter].transportID, 24, 0, 24))
+                            M_UNLIKELY
+                            {
+                                perror("Error initializing transport ID data to internal structure");
+                            }
                     }
                 }
             }
@@ -1372,7 +1397,11 @@ OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(const tDevice* M_NONNULL   
                         // initialize the following to zeros since they don't map
                         fullReservation->reservationKey[keyIter].allTargetPorts               = false;
                         fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier = 0;
-                        safe_memset(fullReservation->reservationKey[keyIter].transportID, 24, 0, 24);
+                        if (0 != safe_memset(fullReservation->reservationKey[keyIter].transportID, 24, 0, 24))
+                            M_UNLIKELY
+                            {
+                                perror("Error initializing transport ID data to internal structure");
+                            }
                         fullReservation->reservationKey[keyIter].transportIDLength = 0;
                         // initialize the following fields before we check the reservations data
                         fullReservation->reservationKey[keyIter].reservationHolder = false;
@@ -1471,7 +1500,11 @@ OPENSEA_OPERATIONS_API eReturnValues get_Full_Status(const tDevice* M_NONNULL   
                     fullReservation->reservationKey[keyIter].type = RES_TYPE_NO_RESERVATION;
                 }
                 // host id/transport id
-                safe_memcpy(fullReservation->reservationKey[keyIter].transportID, 24, &nvmeFullData[offset + 8], 8);
+                if (!safe_memcpy(fullReservation->reservationKey[keyIter].transportID, 24, &nvmeFullData[offset + 8],
+                                 8))
+                {
+                    perror("Error copying transport ID data to internal structure");
+                }
                 fullReservation->reservationKey[keyIter].transportIDLength = 8;
                 // finally, the key
                 fullReservation->reservationKey[keyIter].key =
@@ -1497,8 +1530,10 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInf
         print_str("      Key        | ATP | Res Holder | Scope |         Type         |  RTPID  | Transport ID \n");
         for (uint32_t keyIter = UINT32_C(0); keyIter < UINT16_MAX && keyIter < fullReservation->numberOfKeys; ++keyIter)
         {
-            char atp       = 'N';
-            char resHolder = 'N';
+            errno_t scopeError = 0;
+            errno_t typeError  = 0;
+            char    atp        = 'N';
+            char    resHolder  = 'N';
             DECLARE_ZERO_INIT_ARRAY(char, scopeBuf, RES_SCOPE_BUF_LEN);
             char* scope = &scopeBuf[0];
             DECLARE_ZERO_INIT_ARRAY(char, typeBuf, RES_TYPE_BUF_LEN);
@@ -1514,56 +1549,66 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API void show_Full_Status(ptrFullReservationInf
             switch (fullReservation->reservationKey[keyIter].scope)
             {
             case RESERVATION_SCOPE_LOGICAL_UNIT:
-                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "LU");
+                scopeError = safe_strcpy(type, RES_SCOPE_BUF_LEN, "LU");
                 break;
             case RESERVATION_SCOPE_EXTENT:
-                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "Extent");
+                scopeError = safe_strcpy(type, RES_SCOPE_BUF_LEN, "Extent");
                 break;
             case RESERVATION_SCOPE_ELEMENT:
-                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "Element");
+                scopeError = safe_strcpy(type, RES_SCOPE_BUF_LEN, "Element");
                 break;
             case RESERVATION_SCOPE_UNKNOWN:
             default:
-                snprintf_err_handle(type, RES_SCOPE_BUF_LEN, "Unknown");
+                scopeError = safe_strcpy(type, RES_SCOPE_BUF_LEN, "Unknown");
                 break;
             }
             switch (fullReservation->reservationKey[keyIter].type)
             {
             case RES_TYPE_NO_RESERVATION:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "None");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "None");
                 break;
             case RES_TYPE_READ_SHARED:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Shared");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Read Shared");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Write Exclusive");
                 break;
             case RES_TYPE_READ_EXCLUSIVE:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Read Exclusive");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Read Exclusive");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Exclusive Access");
                 break;
             case RES_TYPE_SHARED_ACCESS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Shared Access");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Shared Access");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_REGISTRANTS_ONLY:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Write Exclusive - RO");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_REGISTRANTS_ONLY:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Exclusive Access - RO");
                 break;
             case RES_TYPE_WRITE_EXCLUSIVE_ALL_REGISTRANTS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Write Exclusive - AR");
                 break;
             case RES_TYPE_EXCLUSIVE_ACCESS_ALL_REGISTRANTS:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Exclusive Access - AR");
                 break;
             case RES_TYPE_UNKNOWN:
             default:
-                snprintf_err_handle(type, RES_TYPE_BUF_LEN, "Unknown");
+                typeError = safe_strcpy(type, RES_TYPE_BUF_LEN, "Unknown");
                 break;
             }
+            if (scopeError != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping reservation scope translation string");
+                }
+            if (typeError != 0)
+                M_UNLIKELY
+                {
+                    perror("Error coping reservation type translation string");
+                }
             printf("%16" PRIX64 "h  %c        %c      %7s  %23s  %08" PRIX16 "h ",
                    fullReservation->reservationKey[keyIter].key, atp, resHolder, scope, type,
                    fullReservation->reservationKey[keyIter].relativeTargetPortIdentifier);
@@ -1677,8 +1722,12 @@ static void format_Basic_Info(uint8_t* M_NULLABLE                    ptrData,
             ptrData[26] = M_Byte1(basicInfo->transportIDLength);
             ptrData[27] = M_Byte0(basicInfo->transportIDLength);
             // now copy remaining data to the buffer...already checked the size above
-            safe_memcpy(&ptrData[28], dataLength, basicInfo->transportID,
-                        M_Min(dataLength - 28, basicInfo->transportIDLength));
+            if (0 != safe_memcpy(&ptrData[28], dataLength, basicInfo->transportID,
+                                 M_Min(dataLength - 28, basicInfo->transportIDLength)))
+                M_UNLIKELY
+                {
+                    perror("Error copying transport ID data to internal structure");
+                }
         }
     }
 }
@@ -1695,7 +1744,7 @@ OPENSEA_OPERATIONS_API eReturnValues register_Key(const tDevice* M_NONNULL devic
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
-        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
+        M_INITIALIZE_STRUCTURE(&prData, sizeof(persistentReserveOutBasic));
         prData.reservationKey                  = 0; // when registering, set this to zero to begin.
         prData.serviceActionReservationKey     = registrationKey;
         prData.allTargetPorts                  = allTargetPorts;
@@ -1737,7 +1786,7 @@ OPENSEA_OPERATIONS_API eReturnValues unregister_Key(const tDevice* M_NONNULL dev
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, registerData, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
-        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
+        M_INITIALIZE_STRUCTURE(&prData, sizeof(persistentReserveOutBasic));
         prData.reservationKey              = currentRegistrationKey;
         prData.serviceActionReservationKey = 0;
         format_Basic_Info(registerData, PR_OUT_BASIC_MIN_LENGTH, &prData);
@@ -1771,7 +1820,7 @@ OPENSEA_OPERATIONS_API eReturnValues acquire_Reservation(const tDevice* M_NONNUL
         DECLARE_ZERO_INIT_ARRAY(uint8_t, acquireRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t                   scsiReservationType = UINT8_C(0);
         persistentReserveOutBasic prData;
-        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
+        M_INITIALIZE_STRUCTURE(&prData, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
         format_Basic_Info(acquireRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
         switch (resType)
@@ -1862,7 +1911,7 @@ OPENSEA_OPERATIONS_API eReturnValues release_Reservation(const tDevice* M_NONNUL
         DECLARE_ZERO_INIT_ARRAY(uint8_t, releaseRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t                   scsiReservationType = UINT8_C(0);
         persistentReserveOutBasic prData;
-        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
+        M_INITIALIZE_STRUCTURE(&prData, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
         format_Basic_Info(releaseRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
         switch (resType)
@@ -1950,7 +1999,7 @@ OPENSEA_OPERATIONS_API eReturnValues clear_Reservations(const tDevice* M_NONNULL
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, clearRes, PR_OUT_BASIC_MIN_LENGTH);
         persistentReserveOutBasic prData;
-        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
+        M_INITIALIZE_STRUCTURE(&prData, sizeof(persistentReserveOutBasic));
         prData.reservationKey = key;
         format_Basic_Info(clearRes, PR_OUT_BASIC_MIN_LENGTH, &prData);
         ret = scsi_Persistent_Reserve_Out(device, SCSI_PERSISTENT_RESERVE_OUT_CLEAR, 0, 0, PR_OUT_BASIC_MIN_LENGTH,
@@ -1985,7 +2034,7 @@ OPENSEA_OPERATIONS_API eReturnValues preempt_Reservation(const tDevice* M_NONNUL
         DECLARE_ZERO_INIT_ARRAY(uint8_t, preemptRes, PR_OUT_BASIC_MIN_LENGTH);
         uint8_t                   scsiReservationType = UINT8_C(0);
         persistentReserveOutBasic prData;
-        safe_memset(&prData, sizeof(persistentReserveOutBasic), 0, sizeof(persistentReserveOutBasic));
+        M_INITIALIZE_STRUCTURE(&prData, sizeof(persistentReserveOutBasic));
         prData.reservationKey              = key;
         prData.serviceActionReservationKey = preemptKey;
         format_Basic_Info(preemptRes, PR_OUT_BASIC_MIN_LENGTH, &prData);

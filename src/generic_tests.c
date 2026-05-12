@@ -111,10 +111,16 @@ OPENSEA_OPERATIONS_API eReturnValues sequential_RWV(const tDevice* M_NONNULL dev
                     return MEMORY_FAILURE;
                 }
                 dataBuf = temp;
-                safe_memset(
-                    dataBuf,
-                    uint64_to_sizet(sectorCount) * uint32_to_sizet(get_Device_BlockSize(device)) * sizeof(uint8_t), 0,
-                    uint64_to_sizet(sectorCount) * uint32_to_sizet(get_Device_BlockSize(device)) * sizeof(uint8_t));
+                if (0 !=
+                    safe_memset(
+                        dataBuf,
+                        uint64_to_sizet(sectorCount) * uint32_to_sizet(get_Device_BlockSize(device)) * sizeof(uint8_t),
+                        0,
+                        uint64_to_sizet(sectorCount) * uint32_to_sizet(get_Device_BlockSize(device)) * sizeof(uint8_t)))
+                    M_UNLIKELY
+                    {
+                        perror("failed to set memory to zero for reallocated memory buffer!\n");
+                    }
             }
         }
         if (updateFunction != M_NULLPTR)
@@ -312,7 +318,8 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
                                                         void* M_NULLABLE         updateData,
                                                         bool                     hideLBACounter)
 {
-    eReturnValues ret = SUCCESS;
+    int           snprintfres = 0;
+    eReturnValues ret         = SUCCESS;
     DECLARE_ZERO_INIT_ARRAY(char, message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH);
     uint16_t  randomLBACount = UINT16_C(5000);
     uint64_t* randomLBAList  = M_REINTERPRET_CAST(uint64_t*, safe_calloc(randomLBACount, sizeof(uint64_t)));
@@ -339,30 +346,37 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
     switch (rwvCommand)
     {
     case RWV_COMMAND_READ:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Sequential Read Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Sequential Read Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     case RWV_COMMAND_VERIFY:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Sequential Verify Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Sequential Verify Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     case RWV_COMMAND_WRITE:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Sequential Write Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Sequential Write Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     default:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Unknown Sequential Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Unknown Sequential Test at OD for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     }
-    if (updateFunction != M_NULLPTR)
+    if (snprintfres >= 0)
     {
-        op_emit_step_cb(updateFunction, updateData, "short generic_test - OD", message);
+        if (updateFunction != M_NULLPTR)
+        {
+            op_emit_step_cb(updateFunction, updateData, "short generic_test - OD", message);
+        }
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            print_str(message);
+            print_str("\n");
+        }
     }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    else
     {
-        print_str(message);
-        print_str("\n");
+        perror("Error formatting message for sequential test at OD");
     }
     if (SUCCESS != sequential_RWV(device, rwvCommand, 0, onePercentOfDrive, sectorCount, &failingLBA, M_NULLPTR,
                                   M_NULLPTR, hideLBACounter))
@@ -371,33 +385,41 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Read failed within OD sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Read failed within OD sequential read");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                "Verify failed within OD sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Verify failed within OD sequential read");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                "Write failed within OD sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Write failed within OD sequential read");
             break;
         default:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                "Unknown failed within OD sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Unknown failed within OD sequential read");
             break;
         }
-        if (updateFunction != M_NULLPTR)
+        if (snprintfres >= 0)
         {
-            op_emit_lba_cb(updateFunction, updateData, "short generic_test - OD", failingLBA,
-                           rwvCommand == RWV_COMMAND_READ
-                               ? "reading"
-                               : (rwvCommand == RWV_COMMAND_WRITE ? "writing" : "verifying"));
+            if (updateFunction != M_NULLPTR)
+            {
+                op_emit_lba_cb(updateFunction, updateData, "short generic_test - OD", failingLBA,
+                               rwvCommand == RWV_COMMAND_READ
+                                   ? "reading"
+                                   : (rwvCommand == RWV_COMMAND_WRITE ? "writing" : "verifying"));
+            }
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                print_str("\n");
+                print_str(message);
+                print_str("\n");
+            }
         }
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        else
         {
-            print_str("\n");
-            print_str(message);
-            print_str("\n");
+            perror("Error formatting message for sequential test failure at OD");
         }
         safe_free(&randomLBAList);
         return ret;
@@ -410,31 +432,38 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
     switch (rwvCommand)
     {
     case RWV_COMMAND_READ:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Sequential Read Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Sequential Read Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     case RWV_COMMAND_VERIFY:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Sequential Verify Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Sequential Verify Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     case RWV_COMMAND_WRITE:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Sequential Write Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Sequential Write Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     default:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Unknown Sequential Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
+        snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                          "Unknown Sequential Test at ID for %" PRIu64 " LBAs", onePercentOfDrive);
         break;
     }
-    if (updateFunction != M_NULLPTR)
+    if (snprintfres >= 0)
     {
-        op_emit_step_cb(updateFunction, updateData, "short generic_test - ID", message);
+        if (updateFunction != M_NULLPTR)
+        {
+            op_emit_step_cb(updateFunction, updateData, "short generic_test - ID", message);
+        }
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            print_str("\n");
+            print_str(message);
+            print_str("\n");
+        }
     }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    else
     {
-        print_str("\n");
-        print_str(message);
-        print_str("\n");
+        perror("Error formatting message for sequential test at ID");
     }
     if (SUCCESS != sequential_RWV(device, rwvCommand, return_Device_MaxLba(device) - onePercentOfDrive,
                                   onePercentOfDrive, sectorCount, &failingLBA, M_NULLPTR, M_NULLPTR, hideLBACounter))
@@ -443,34 +472,42 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
         switch (rwvCommand)
         {
         case RWV_COMMAND_READ:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Read failed within ID sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Read failed within ID sequential read");
             break;
         case RWV_COMMAND_VERIFY:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                "Verify failed within ID sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Verify failed within ID sequential read");
             break;
         case RWV_COMMAND_WRITE:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                "Write failed within ID sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Write failed within ID sequential read");
             break;
         default:
-            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                "Unknown failed within ID sequential read");
+            snprintfres = snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                              "Unknown failed within ID sequential read");
             break;
         }
-        if (updateFunction != M_NULLPTR)
+        if (snprintfres >= 0)
         {
-            op_emit_lba_cb(updateFunction, updateData, "short generic_test - ID", failingLBA,
-                           rwvCommand == RWV_COMMAND_READ
-                               ? "reading"
-                               : (rwvCommand == RWV_COMMAND_WRITE ? "writing" : "verifying"));
-        }
+            if (updateFunction != M_NULLPTR)
+            {
+                op_emit_lba_cb(updateFunction, updateData, "short generic_test - ID", failingLBA,
+                               rwvCommand == RWV_COMMAND_READ
+                                   ? "reading"
+                                   : (rwvCommand == RWV_COMMAND_WRITE ? "writing" : "verifying"));
+            }
 
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                print_str("\n");
+                print_str(message);
+                print_str("\n");
+            }
+        }
+        else
         {
-            print_str("\n");
-            print_str(message);
-            print_str("\n");
+            perror("Error formatting message for sequential test failure at ID");
         }
         safe_free(&randomLBAList);
         return ret;
@@ -483,27 +520,38 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
     switch (rwvCommand)
     {
     case RWV_COMMAND_READ:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read Test of 5000 LBAs");
+        snprintfres =
+            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read Test of 5000 LBAs");
         break;
     case RWV_COMMAND_VERIFY:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify Test of 5000 LBAs");
+        snprintfres =
+            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify Test of 5000 LBAs");
         break;
     case RWV_COMMAND_WRITE:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write Test of 5000 LBAs");
+        snprintfres =
+            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write Test of 5000 LBAs");
         break;
     default:
-        snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Unknown Test of 5000 LBAs");
+        snprintfres =
+            snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Unknown Test of 5000 LBAs");
         break;
     }
-    if (updateFunction != M_NULLPTR)
+    if (snprintfres >= 0)
     {
-        op_emit_step_cb(updateFunction, updateData, "short generic_test - random", message);
+        if (updateFunction != M_NULLPTR)
+        {
+            op_emit_step_cb(updateFunction, updateData, "short generic_test - random", message);
+        }
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            print_str("\n");
+            print_str(message);
+            print_str("\n");
+        }
     }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    else
     {
-        print_str("\n");
-        print_str(message);
-        print_str("\n");
+        perror("Error formatting message for random test");
     }
     if (rwvCommand != RWV_COMMAND_VERIFY)
     {
@@ -517,6 +565,29 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
     }
     for (iterator = 0; iterator < randomLBACount; iterator++)
     {
+        switch (rwvCommand)
+        {
+        case RWV_COMMAND_READ:
+            snprintfres =
+                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Reading LBA: %-20" PRIu64 "",
+                                    randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
+            break;
+        case RWV_COMMAND_VERIFY:
+            snprintfres =
+                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Verify LBA: %-20" PRIu64 "",
+                                    randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
+            break;
+        case RWV_COMMAND_WRITE:
+            snprintfres =
+                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Write LBA: %-20" PRIu64 "",
+                                    randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
+            break;
+        default:
+            snprintfres =
+                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown LBA: %-20" PRIu64 "",
+                                    randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
+            break;
+        }
         if (updateFunction != M_NULLPTR)
         {
             op_emit_lba_cb(updateFunction, updateData, "short generic_test - random", randomLBAList[iterator],
@@ -525,59 +596,54 @@ OPENSEA_OPERATIONS_API eReturnValues short_Generic_Test(const tDevice* M_NONNULL
         // print out the current LBA we are reading
         if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
         {
-            switch (rwvCommand)
-            {
-            case RWV_COMMAND_READ:
-                printf("\rReading LBA: %-20" PRIu64 "",
-                       randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
-                break;
-            case RWV_COMMAND_VERIFY:
-                printf("\rVerify LBA: %-20" PRIu64 "",
-                       randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
-                break;
-            case RWV_COMMAND_WRITE:
-                printf("\rWrite LBA: %-20" PRIu64 "",
-                       randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
-                break;
-            default:
-                printf("\rUnknown LBA: %-20" PRIu64 "",
-                       randomLBAList[iterator]); // 20 wide is the max width for a unsigned 64bit number
-                break;
-            }
+            print_str("\r");
+            print_str(message);
             flush_stdout();
         }
+
         if (SUCCESS != read_Write_Seek_Command(device, rwvCommand, randomLBAList[iterator], dataBuf,
                                                C_CAST(uint32_t, 1 * get_Device_BlockSize(device))))
         {
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                    "\nRead error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintfres =
+                    snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                        "\nRead error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_VERIFY:
-                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                    "\nVerify error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintfres =
+                    snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                        "\nVerify error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             case RWV_COMMAND_WRITE:
-                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                    "\nWrite error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintfres =
+                    snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                        "\nWrite error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             default:
-                snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                                    "\nUnknown error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
+                snprintfres =
+                    snprintf_err_handle(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                        "\nUnknown error occurred at LBA %-20" PRIu64 "", randomLBAList[iterator]);
                 break;
             }
-            if (updateFunction != M_NULLPTR)
+            if (snprintfres >= 0)
             {
-                op_emit_error_lba_cb(updateFunction, updateData, "short generic_test - random", randomLBAList[iterator],
-                                     M_STATIC_CAST(int, FAILURE), message);
+                if (updateFunction != M_NULLPTR)
+                {
+                    op_emit_error_lba_cb(updateFunction, updateData, "short generic_test - random",
+                                         randomLBAList[iterator], M_STATIC_CAST(int, FAILURE), message);
+                }
+                if (device->deviceVerbosity > VERBOSITY_QUIET)
+                {
+                    print_str("\n");
+                    print_str(message);
+                    print_str("\n");
+                }
             }
-            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            else
             {
-                print_str("\n");
-                print_str(message);
-                print_str("\n");
+                perror("Error formatting message for random test failure");
             }
             ret = FAILURE;
             break;
@@ -640,6 +706,9 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
                                                              void* M_NULLABLE         updateData,
                                                              bool                     hideLBACounter)
 {
+    errno_t msgerror       = 0;
+    int     seqTimeStrRes  = 0;
+    int     randTimeStrRes = 0;
     DECLARE_ZERO_INIT_ARRAY(char, message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH);
     DECLARE_ZERO_INIT_ARRAY(char, idodTimeString, TIME_STRING_LENGTH);
     DECLARE_ZERO_INIT_ARRAY(char, randomTimeString, TIME_STRING_LENGTH);
@@ -655,9 +724,9 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
     uint64_t           ODEndingLBA            = UINT64_C(0);
     uint64_t           randomLBA              = UINT64_C(0);
     performanceNumbers idTest, odTest, randomTest;
-    safe_memset(&idTest, sizeof(performanceNumbers), 0, sizeof(performanceNumbers));
-    safe_memset(&odTest, sizeof(performanceNumbers), 0, sizeof(performanceNumbers));
-    safe_memset(&randomTest, sizeof(performanceNumbers), 0, sizeof(performanceNumbers));
+    M_INITIALIZE_STRUCTURE(&idTest, sizeof(performanceNumbers));
+    M_INITIALIZE_STRUCTURE(&odTest, sizeof(performanceNumbers));
+    M_INITIALIZE_STRUCTURE(&randomTest, sizeof(performanceNumbers));
     DECLARE_SEATIMER(idTestTimer);
     DECLARE_SEATIMER(odTestTimer);
     DECLARE_SEATIMER(randomTestTimer);
@@ -674,34 +743,42 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
         }
     }
     // set the ioodtime string and random time string for reporting (seconds only for now)
-    snprintf_err_handle(idodTimeString, TIME_STRING_LENGTH, " %" PRIu8 " seconds", IDODTimeSeconds);
-    snprintf_err_handle(randomTimeString, TIME_STRING_LENGTH, " %" PRIu8 " seconds", randomTimeSeconds);
+    seqTimeStrRes = snprintf_err_handle(idodTimeString, TIME_STRING_LENGTH, " %" PRIu8 " seconds", IDODTimeSeconds);
+    randTimeStrRes =
+        snprintf_err_handle(randomTimeString, TIME_STRING_LENGTH, " %" PRIu8 " seconds", randomTimeSeconds);
     switch (rwvCommand)
     {
     case RWV_COMMAND_READ:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at OD for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at OD for ~");
         break;
     case RWV_COMMAND_VERIFY:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at OD for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at OD for ~");
         break;
     case RWV_COMMAND_WRITE:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at OD for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at OD for ~");
         break;
     default:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Unknown Test at OD for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Unknown Test at OD for ~");
         break;
     }
     // read at OD for 2 minutes...remember the LBA count to use for the ID
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    if (device->deviceVerbosity > VERBOSITY_QUIET && msgerror == 0)
     {
         print_str(message);
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &IDODTimeSeconds);
         print_str("\n");
     }
-    if (updateFunction != M_NULLPTR)
+    if (updateFunction != M_NULLPTR && msgerror == 0 && seqTimeStrRes >= 0)
     {
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, idodTimeString);
-        op_emit_step_cb(updateFunction, updateData, "sequential_RWV", message);
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, idodTimeString);
+        if (msgerror == 0)
+        {
+            op_emit_step_cb(updateFunction, updateData, "sequential_RWV", message);
+        }
+        else
+        {
+            perror("Error formatting message for sequential test at OD");
+        }
     }
     odTest.asyncCommandsUsed    = false;
     odTest.fastestCommandTimeNS = UINT64_MAX; // set this to a max so that it gets readjusted later...-TJE
@@ -749,26 +826,29 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Read failed within OD sequential read");
+                msgerror =
+                    safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Read failed within OD sequential read");
                 break;
             case RWV_COMMAND_VERIFY:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Verify failed within OD sequential read");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                       "Verify failed within OD sequential read");
                 break;
             case RWV_COMMAND_WRITE:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Write failed within OD sequential read");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                       "Write failed within OD sequential read");
                 break;
             default:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Unknown OP failed within OD sequential read");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                       "Unknown OP failed within OD sequential read");
                 break;
             }
-            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET && msgerror == 0)
             {
                 print_str("\n");
                 print_str(message);
                 print_str("\n");
             }
-            if (updateFunction != M_NULLPTR)
+            if (updateFunction != M_NULLPTR && msgerror == 0)
             {
                 op_emit_step_cb(updateFunction, updateData, "generic_test", message);
             }
@@ -800,29 +880,36 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
     switch (rwvCommand)
     {
     case RWV_COMMAND_READ:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at ID for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at ID for ~");
         break;
     case RWV_COMMAND_VERIFY:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at ID for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at ID for ~");
         break;
     case RWV_COMMAND_WRITE:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at ID for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at ID for ~");
         break;
     default:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Unknown Test at ID for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Unknown Test at ID for ~");
         break;
     }
-    if (updateFunction != M_NULLPTR)
-    {
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, idodTimeString);
-        op_emit_step_cb(updateFunction, updateData, "sequential_RWV", message);
-    }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    if (device->deviceVerbosity > VERBOSITY_QUIET && msgerror == 0)
     {
         print_str(message);
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &IDODTimeSeconds);
         print_str("\n");
     }
+    if (updateFunction != M_NULLPTR && msgerror == 0)
+    {
+        if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, idodTimeString))
+        {
+            op_emit_step_cb(updateFunction, updateData, "sequential_RWV", message);
+        }
+        else
+        {
+            perror("Error formatting message for sequential test at ID");
+        }
+    }
+
     IDStartLBA                  = return_Device_MaxLba(device) - ODEndingLBA;
     idTest.asyncCommandsUsed    = false;
     idTest.fastestCommandTimeNS = UINT64_MAX; // set this to a max so that it gets readjusted later...-TJE
@@ -868,24 +955,27 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Read failed within ID sequential read");
+                msgerror =
+                    safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Read failed within ID sequential read");
                 break;
             case RWV_COMMAND_VERIFY:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Verify failed within ID sequential read");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                       "Verify failed within ID sequential read");
                 break;
             case RWV_COMMAND_WRITE:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Write failed within ID sequential read");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                       "Write failed within ID sequential read");
                 break;
             default:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
-                            "Unknown OP failed within ID sequential read");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH,
+                                       "Unknown OP failed within ID sequential read");
                 break;
             }
-            if (updateFunction != M_NULLPTR)
+            if (updateFunction != M_NULLPTR && msgerror == 0)
             {
                 op_emit_step_cb(updateFunction, updateData, "generic_test", message);
             }
-            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET && msgerror == 0)
             {
                 print_str("\n");
                 print_str(message);
@@ -921,28 +1011,30 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
     switch (rwvCommand)
     {
     case RWV_COMMAND_READ:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read Test for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read Test for ~");
         break;
     case RWV_COMMAND_VERIFY:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify Test for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify Test for ~");
         break;
     case RWV_COMMAND_WRITE:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write Test for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write Test for ~");
         break;
     default:
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Unknown Test for ~");
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Unknown Test for ~");
         break;
     }
-    if (updateFunction != M_NULLPTR)
-    {
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, randomTimeString);
-        op_emit_step_cb(updateFunction, updateData, "two_minute_test", message);
-    }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
+    if (device->deviceVerbosity > VERBOSITY_QUIET && msgerror == 0)
     {
         print_str(message);
         print_Time_To_Screen(M_NULLPTR, M_NULLPTR, M_NULLPTR, M_NULLPTR, &randomTimeSeconds);
         print_str("\n");
+    }
+    if (updateFunction != M_NULLPTR && msgerror == 0 && randTimeStrRes >= 0)
+    {
+        if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, randomTimeString))
+        {
+            op_emit_step_cb(updateFunction, updateData, "two_minute_test", message);
+        }
     }
     randomTest.asyncCommandsUsed    = false;
     randomTest.fastestCommandTimeNS = UINT64_MAX; // set this to a max so that it gets readjusted later...-TJE
@@ -986,19 +1078,19 @@ OPENSEA_OPERATIONS_API eReturnValues two_Minute_Generic_Test(const tDevice* M_NO
             switch (rwvCommand)
             {
             case RWV_COMMAND_READ:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read failed");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read failed");
                 break;
             case RWV_COMMAND_VERIFY:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify failed");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify failed");
                 break;
             case RWV_COMMAND_WRITE:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write failed");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write failed");
                 break;
             default:
-                safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Unknown OP failed");
+                msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Unknown OP failed");
                 break;
             }
-            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            if (device->deviceVerbosity > VERBOSITY_QUIET && msgerror == 0)
             {
                 print_str("\n");
                 print_str(message);
@@ -1658,22 +1750,22 @@ OPENSEA_OPERATIONS_API eReturnValues user_Timed_Test(const tDevice* M_NONNULL de
     return ret;
 }
 
-eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*     device,
-                                   eRWVCommandType                   rwvCommand,
-                                   uint64_t                          startingLBA,
-                                   uint64_t                          range,
-                                   uint16_t                          errorLimit,
-                                   bool                              stopOnError,
-                                   bool                              repairOnTheFly,
-                                   bool                              repairAtEnd,
-                                   M_ATTR_UNUSED custom_Update       updateFunction,
-                                   M_ATTR_UNUSED void*               updateData,
-                                   bool                              hideLBACounter,
-                                   errorLBA**                        errorList,
-                                   uint16_t*                         errorListSize)
+eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*              device,
+                                                  eRWVCommandType             rwvCommand,
+                                                  uint64_t                    startingLBA,
+                                                  uint64_t                    range,
+                                                  uint16_t                    errorLimit,
+                                                  bool                        stopOnError,
+                                                  bool                        repairOnTheFly,
+                                                  bool                        repairAtEnd,
+                                                  M_ATTR_UNUSED custom_Update updateFunction,
+                                                  M_ATTR_UNUSED void*         updateData,
+                                                  bool                        hideLBACounter,
+                                                  errorLBA**                  errorList,
+                                                  uint16_t*                   errorListSize)
 {
     eReturnValues ret               = SUCCESS;
-    uint64_t      errorIndex        = UINT64_C(0);
+    uint16_t      errorIndex        = UINT16_C(0);
     bool          errorLimitReached = false;
     uint32_t      sectorCount       = get_Sector_Count_For_Read_Write(device);
 
@@ -1703,20 +1795,21 @@ eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*     device,
         return MEMORY_FAILURE;
     }
     (*errorList)[0].errorAddress = UINT64_MAX;
-    
+
     bool autoReadReassign  = false;
     bool autoWriteReassign = false;
     if (SUCCESS != get_Automatic_Reallocation_Support(device, &autoWriteReassign, &autoReadReassign))
     {
         autoWriteReassign = true; // just in case this fails, default to previous behavior
     }
-    
+
     // this is essentially a loop over the sequential read function
     uint64_t endingLBA = startingLBA + range;
     while (!errorLimitReached)
     {
         if (SUCCESS != sequential_RWV(device, rwvCommand, startingLBA, range, sectorCount,
-                                      &(*errorList)[errorIndex].errorAddress, updateFunction, updateData, hideLBACounter))
+                                      &(*errorList)[errorIndex].errorAddress, updateFunction, updateData,
+                                      hideLBACounter))
         {
             if (device->deviceVerbosity > VERBOSITY_QUIET)
             {
@@ -1749,7 +1842,7 @@ eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*     device,
     {
         print_str("\n");
     }
-    
+
     if (repairAtEnd)
     {
         // go through and repair the LBAs
@@ -1776,12 +1869,12 @@ eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*     device,
             }
         }
     }
-    
+
     if (stopOnError && (*errorList)[0].errorAddress != UINT64_MAX)
     {
         if (device->deviceVerbosity > VERBOSITY_QUIET)
         {
-            printf("\nError occured at LBA %" PRIu64 "\n", (*errorList)[0].errorAddress);
+            printf("\nError occurred at LBA %" PRIu64 "\n", (*errorList)[0].errorAddress);
         }
     }
     else
@@ -1792,7 +1885,7 @@ eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*     device,
             {
                 if (errorLimit != 0)
                 {
-                    printf("\nFound %" PRIu64 " bad LBAs\n", errorIndex);
+                    printf("\nFound %" PRIu16 " bad LBAs\n", errorIndex);
                 }
                 else
                 {
@@ -1806,11 +1899,11 @@ eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice*     device,
             }
         }
     }
-    
+
     // Populate output parameter with error count
     // Caller is responsible for freeing the errorList using safe_free_error_lba()
     *errorListSize = errorIndex;
-    
+
     return ret;
 }
 
@@ -2131,6 +2224,7 @@ OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(const tDevi
                                                                      custom_Update M_NULLABLE updateFunction,
                                                                      void* M_NULLABLE         updateData)
 {
+    errno_t msgerror = 0;
     DECLARE_ZERO_INIT_ARRAY(char, message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH);
     DECLARE_ZERO_INIT_ARRAY(char, timeStr, TIME_STRING_LENGTH);
     uint8_t* dataBuf            = M_NULLPTR;
@@ -2144,7 +2238,7 @@ OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(const tDevi
     uint32_t sectorCount        = get_Sector_Count_For_Read_Write(device);
     uint32_t currentSectorCount = sectorCount;
     // set timestr to time in seconds for reporting
-    snprintf_err_handle(timeStr, TIME_STRING_LENGTH, " %" PRIu32 " seconds", timePerTestSeconds);
+    int timestrformat = snprintf_err_handle(timeStr, TIME_STRING_LENGTH, " %" PRIu32 " seconds", timePerTestSeconds);
     if (device->deviceVerbosity > VERBOSITY_QUIET)
     {
         print_str("\n");
@@ -2162,39 +2256,48 @@ OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(const tDevi
         }
         if (testMode == RWV_COMMAND_WRITE)
         {
-            safe_memset(dataBuf, dataBufSize, 0, dataBufSize);
+            if (0 != safe_memset(dataBuf, dataBufSize, 0, dataBufSize))
+                M_UNLIKELY
+                {
+                    perror("failed to set memory to zero for writes!\n");
+                }
         }
     }
     switch (testMode)
     {
     case RWV_COMMAND_READ:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at OD for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at OD for ~");
         break;
     case RWV_COMMAND_WRITE:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at OD for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at OD for ~");
         break;
     case RWV_COMMAND_VERIFY:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at OD for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at OD for ~");
         break;
     default:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Sequential Test at OD for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Sequential Test at OD for ~");
         break;
     }
-    if (updateFunction != M_NULLPTR)
+    if (msgerror == 0)
     {
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr);
-        op_emit_step_cb(updateFunction, updateData, "timed_test", message);
-    }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
-    {
-        uint16_t days    = UINT16_C(0);
-        uint8_t  hours   = UINT8_C(0);
-        uint8_t  minutes = UINT8_C(0);
-        uint8_t  seconds = UINT8_C(0);
-        print_str(message);
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_str("\n");
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            uint16_t days    = UINT16_C(0);
+            uint8_t  hours   = UINT8_C(0);
+            uint8_t  minutes = UINT8_C(0);
+            uint8_t  seconds = UINT8_C(0);
+            print_str(message);
+            convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_str("\n");
+        }
+        if (updateFunction != M_NULLPTR && timestrformat >= 0)
+        {
+            if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr))
+            {
+                op_emit_step_cb(updateFunction, updateData, "timed_test", message);
+            }
+        }
     }
     startTime = time(M_NULLPTR);
     while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds && ODEndingLBA < return_Device_MaxLba(device))
@@ -2242,33 +2345,38 @@ OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(const tDevi
     switch (testMode)
     {
     case RWV_COMMAND_READ:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at ID for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Read Test at ID for ~");
         break;
     case RWV_COMMAND_WRITE:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at ID for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Write Test at ID for ~");
         break;
     case RWV_COMMAND_VERIFY:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at ID for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Sequential Verify Test at ID for ~");
         break;
     default:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Sequential Test at ID for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Sequential Test at ID for ~");
         break;
     }
-    if (updateFunction != M_NULLPTR)
+    if (msgerror == 0)
     {
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr);
-        op_emit_step_cb(updateFunction, updateData, "timed_test", message);
-    }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
-    {
-        uint16_t days    = UINT16_C(0);
-        uint8_t  hours   = UINT8_C(0);
-        uint8_t  minutes = UINT8_C(0);
-        uint8_t  seconds = UINT8_C(0);
-        print_str(message);
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_str("\n");
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            uint16_t days    = UINT16_C(0);
+            uint8_t  hours   = UINT8_C(0);
+            uint8_t  minutes = UINT8_C(0);
+            uint8_t  seconds = UINT8_C(0);
+            print_str(message);
+            convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_str("\n");
+        }
+        if (updateFunction != M_NULLPTR && timestrformat >= 0)
+        {
+            if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr))
+            {
+                op_emit_step_cb(updateFunction, updateData, "timed_test", message);
+            }
+        }
     }
     IDStartLBA = return_Device_MaxLba(device) - ODEndingLBA;
     startTime  = time(M_NULLPTR);
@@ -2321,33 +2429,38 @@ OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(const tDevi
     switch (testMode)
     {
     case RWV_COMMAND_READ:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Read Test for ~");
         break;
     case RWV_COMMAND_WRITE:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Write Test for ~");
         break;
     case RWV_COMMAND_VERIFY:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Random Verify Test for ~");
         break;
     default:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Random Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Random Test for ~");
         break;
     }
-    if (updateFunction != M_NULLPTR)
+    if (msgerror == 0)
     {
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr);
-        op_emit_step_cb(updateFunction, updateData, "random_test", message);
-    }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
-    {
-        uint16_t days    = UINT16_C(0);
-        uint8_t  hours   = UINT8_C(0);
-        uint8_t  minutes = UINT8_C(0);
-        uint8_t  seconds = UINT8_C(0);
-        print_str(message);
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_str("\n");
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            uint16_t days    = UINT16_C(0);
+            uint8_t  hours   = UINT8_C(0);
+            uint8_t  minutes = UINT8_C(0);
+            uint8_t  seconds = UINT8_C(0);
+            print_str(message);
+            convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_str("\n");
+        }
+        if (updateFunction != M_NULLPTR && timestrformat >= 0)
+        {
+            if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr))
+            {
+                op_emit_step_cb(updateFunction, updateData, "random_test", message);
+            }
+        }
     }
     startTime = time(M_NULLPTR);
     while (difftime(time(M_NULLPTR), startTime) < timePerTestSeconds)
@@ -2400,33 +2513,38 @@ OPENSEA_OPERATIONS_API eReturnValues read_Write_Or_Verify_Timed_Test(const tDevi
     switch (testMode)
     {
     case RWV_COMMAND_READ:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Butterfly Read Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Butterfly Read Test for ~");
         break;
     case RWV_COMMAND_WRITE:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Butterfly Write Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Butterfly Write Test for ~");
         break;
     case RWV_COMMAND_VERIFY:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Butterfly Verify Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Butterfly Verify Test for ~");
         break;
     default:
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Butterfly Test for ~");
+        msgerror = safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Unknown Butterfly Test for ~");
         break;
     }
-    if (updateFunction != M_NULLPTR)
+    if (msgerror == 0)
     {
-        safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr);
-        op_emit_step_cb(updateFunction, updateData, "user_sequential", message);
-    }
-    if (device->deviceVerbosity > VERBOSITY_QUIET)
-    {
-        uint16_t days    = UINT16_C(0);
-        uint8_t  hours   = UINT8_C(0);
-        uint8_t  minutes = UINT8_C(0);
-        uint8_t  seconds = UINT8_C(0);
-        print_str(message);
-        convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-        print_str("\n");
+        if (device->deviceVerbosity > VERBOSITY_QUIET)
+        {
+            uint16_t days    = UINT16_C(0);
+            uint8_t  hours   = UINT8_C(0);
+            uint8_t  minutes = UINT8_C(0);
+            uint8_t  seconds = UINT8_C(0);
+            print_str(message);
+            convert_Seconds_To_Displayable_Time(timePerTestSeconds, M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+            print_str("\n");
+        }
+        if (updateFunction != M_NULLPTR && timestrformat >= 0)
+        {
+            if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr))
+            {
+                op_emit_step_cb(updateFunction, updateData, "user_sequential", message);
+            }
+        }
     }
     currentSectorCount = sectorCount = get_Sector_Count_For_Read_Write(device);
     startTime                        = time(M_NULLPTR);
@@ -3014,6 +3132,7 @@ OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Time(const tDevice* M_NONNULL
                                                         custom_Update M_NULLABLE updateFunction,
                                                         void* M_NULLABLE         updateData)
 {
+    errno_t msgerror = 0;
     DECLARE_ZERO_INIT_ARRAY(char, message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH);
     DECLARE_ZERO_INIT_ARRAY(char, timeStr, TIME_STRING_LENGTH);
     eReturnValues ret       = SUCCESS;
@@ -3024,9 +3143,6 @@ OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Time(const tDevice* M_NONNULL
     {
         return BAD_PARAMETER;
     }
-    // eReturnValues user_Sequential_Test(const tDevice *device, eRWVCommandType rwvCommand, uint64_t startingLBA,
-    // uint64_t range, uint16_t errorLimit, bool stopOnError, bool repairOnTheFly, bool repairAtEnd, custom_Update
-    // updateFunction, void *updateData)
     errorLBA* errorList   = M_REINTERPRET_CAST(errorLBA*, safe_calloc(errorLimit * sizeof(errorLBA), sizeof(errorLBA)));
     uint16_t  errorOffset = UINT16_C(0);
     uint64_t  odOrMdLBAsAccessed = UINT64_C(0);
@@ -3037,22 +3153,28 @@ OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Time(const tDevice* M_NONNULL
     convert_Seconds_To_Displayable_Time(timeInSecondsPerDiameter, M_NULLPTR, &days, &hours, &minutes, &seconds);
 
     // set time string seconds only
-    snprintf_err_handle(timeStr, TIME_STRING_LENGTH, "%" PRIu64 " seconds", timeInSecondsPerDiameter);
+    int timestrformat =
+        snprintf_err_handle(timeStr, TIME_STRING_LENGTH, "%" PRIu64 " seconds", timeInSecondsPerDiameter);
 
     // OD
     if (outer && (ret == SUCCESS || (errorOffset < errorLimit && !stopOnError)))
     {
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Outer Diameter Test for ");
-        if (updateFunction != M_NULLPTR)
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Outer Diameter Test for ");
+        if (msgerror == 0)
         {
-            safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr);
-            op_emit_step_cb(updateFunction, updateData, "diameter_Test", message);
-        }
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
-        {
-            print_str(message);
-            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-            print_str("\n");
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                print_str(message);
+                print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+                print_str("\n");
+            }
+            if (updateFunction != M_NULLPTR && timestrformat >= 0)
+            {
+                if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr))
+                {
+                    op_emit_step_cb(updateFunction, updateData, "diameter_Test", message);
+                }
+            }
         }
         outerRet = diameter_Test_RWV_Time(device, testMode, 0, timeInSecondsPerDiameter, errorLimit, errorList,
                                           &errorOffset, stopOnError, repairOnTheFly, &odOrMdLBAsAccessed,
@@ -3071,17 +3193,22 @@ OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Time(const tDevice* M_NONNULL
     {
         uint64_t  mdLBAsAccessed = UINT64_C(0);
         uint64_t* countPointer   = &mdLBAsAccessed;
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Middle Diameter Test for ");
-        if (updateFunction != M_NULLPTR)
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Middle Diameter Test for ");
+        if (msgerror == 0)
         {
-            safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr);
-            op_emit_step_cb(updateFunction, updateData, "diameter_Test", message);
-        }
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
-        {
-            print_str(message);
-            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-            print_str("\n");
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                print_str(message);
+                print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+                print_str("\n");
+            }
+            if (updateFunction != M_NULLPTR && timestrformat >= 0)
+            {
+                if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr))
+                {
+                    op_emit_step_cb(updateFunction, updateData, "diameter_Test", message);
+                }
+            }
         }
         if (odOrMdLBAsAccessed == 0)
         {
@@ -3118,17 +3245,22 @@ OPENSEA_OPERATIONS_API eReturnValues diameter_Test_Time(const tDevice* M_NONNULL
                               1000000) /*now convert to LBAs*/
                              / get_Device_BlockSize(device));
         }
-        safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Inner Diameter Test for ");
-        if (updateFunction != M_NULLPTR)
+        msgerror = safe_strcpy(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, "Inner Diameter Test for ");
+        if (msgerror == 0)
         {
-            safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr);
-            op_emit_step_cb(updateFunction, updateData, "diameter_Test", message);
-        }
-        if (device->deviceVerbosity > VERBOSITY_QUIET)
-        {
-            print_str(message);
-            print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
-            print_str("\n");
+            if (device->deviceVerbosity > VERBOSITY_QUIET)
+            {
+                print_str(message);
+                print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
+                print_str("\n");
+            }
+            if (updateFunction != M_NULLPTR && timestrformat >= 0)
+            {
+                if (0 == safe_strcat(message, JSON_REPORT_TEST_STEP_MESSAGE_LENGTH, timeStr))
+                {
+                    op_emit_step_cb(updateFunction, updateData, "diameter_Test", message);
+                }
+            }
         }
         innerRet = diameter_Test_RWV_Time(device, testMode, idStartingLBA, timeInSecondsPerDiameter, errorLimit,
                                           errorList, &errorOffset, stopOnError, repairOnTheFly, M_NULLPTR,

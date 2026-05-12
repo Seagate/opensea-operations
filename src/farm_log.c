@@ -97,12 +97,27 @@ static void addDataSetEntry(int32_t   subPageType,
 {
     // farm current signature
     DECLARE_ZERO_INIT_ARRAY(char, signature, FARM_DATASET_SIGNATURE_LENGTH + 1);
-    snprintf_err_handle(signature, FARM_DATASET_SIGNATURE_LENGTH + 1, "%-*s", FARM_DATASET_SIGNATURE_LENGTH,
-                        farmSubPageSignatureId[subPageType]);
-    safe_memcpy(dataSetHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, &signature, FARM_DATASET_SIGNATURE_LENGTH);
-    safe_memcpy(dataSetHeader + 12, FARMC_LOG_DATA_SET_HEADER_LENGTH - 12, &dataSetLength, sizeof(uint32_t));
-    safe_memcpy(dataSetHeader + 16, FARMC_LOG_DATA_SET_HEADER_LENGTH - 16, &startTimeStamp, sizeof(uint64_t));
-    safe_memcpy(dataSetHeader + 24, FARMC_LOG_DATA_SET_HEADER_LENGTH - 24, &endTimeStamp, sizeof(uint64_t));
+    if (0 > snprintf_err_handle(signature, FARM_DATASET_SIGNATURE_LENGTH + 1, "%-*s", FARM_DATASET_SIGNATURE_LENGTH,
+                                farmSubPageSignatureId[subPageType]))
+    {
+        perror("Error formatting data set entry signature");
+    }
+    if (0 != safe_memcpy(dataSetHeader, FARMC_LOG_DATA_SET_HEADER_LENGTH, &signature, FARM_DATASET_SIGNATURE_LENGTH))
+    {
+        perror("Error adding data set entry to FARM combined header");
+    }
+    if (0 != safe_memcpy(dataSetHeader + 12, FARMC_LOG_DATA_SET_HEADER_LENGTH - 12, &dataSetLength, sizeof(uint32_t)))
+    {
+        perror("Error adding data set entry to FARM combined header");
+    }
+    if (0 != safe_memcpy(dataSetHeader + 16, FARMC_LOG_DATA_SET_HEADER_LENGTH - 16, &startTimeStamp, sizeof(uint64_t)))
+    {
+        perror("Error adding data set entry to FARM combined header");
+    }
+    if (0 != safe_memcpy(dataSetHeader + 24, FARMC_LOG_DATA_SET_HEADER_LENGTH - 24, &endTimeStamp, sizeof(uint64_t)))
+    {
+        perror("Error adding data set entry to FARM combined header");
+    }
 
     *numberOfDataSets += 1;
     *headerLength += FARMC_LOG_DATA_SET_HEADER_LENGTH;
@@ -111,7 +126,11 @@ static void addDataSetEntry(int32_t   subPageType,
 
 M_PARAM_RW(1) static void updateDataSetEntryOffset(uint8_t* M_NONNULL dataSetHeader, uint32_t dataSetOffset)
 {
-    safe_memcpy(dataSetHeader + 8, FARMC_LOG_DATA_SET_HEADER_LENGTH - 8, &dataSetOffset, sizeof(uint32_t));
+    if (0 != safe_memcpy(dataSetHeader + 8, FARMC_LOG_DATA_SET_HEADER_LENGTH - 8, &dataSetOffset, sizeof(uint32_t)))
+        M_UNLIKELY
+        {
+            perror("Error updating dataset entry offset");
+        }
 }
 
 typedef struct s_farmPtrAndLen
@@ -273,8 +292,11 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
                 // copy 16 Time series frames into log buffer
-                safe_memcpy(farmTimeSeriesLog.ptr, farmTimeSeriesLog.alloclen, farmTimeSeriesFramesLog,
-                            farmTimeSeriesLog.alloclen);
+                if (0 != safe_memcpy(farmTimeSeriesLog.ptr, farmTimeSeriesLog.alloclen, farmTimeSeriesFramesLog,
+                                     farmTimeSeriesLog.alloclen))
+                {
+                    perror("Error copying 16 Time series frames to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_TIMESERIES, farmTimeSeriesHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmTimeSeriesLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -297,8 +319,11 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
 #endif
 
                 // copy 2 Long term saved frames into log buffer
-                safe_memcpy(farmLongSavedLog.ptr, farmLongSavedLog.alloclen,
-                            farmTimeSeriesFramesLog + farmTimeSeriesLog.alloclen, farmLongSavedLog.alloclen);
+                if (0 != safe_memcpy(farmLongSavedLog.ptr, farmLongSavedLog.alloclen,
+                                     farmTimeSeriesFramesLog + farmTimeSeriesLog.alloclen, farmLongSavedLog.alloclen))
+                {
+                    perror("Error copying 2 Long term saved frames to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_LONG_SAVE, farmLongSavedHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmLongSavedLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -321,9 +346,12 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
 #endif
 
                 // copy 6 Sticky frames into log buffer
-                safe_memcpy(farmStickyLog.ptr, farmStickyLog.alloclen,
-                            farmTimeSeriesFramesLog + (farmTimeSeriesLog.alloclen + farmLongSavedLog.alloclen),
-                            farmStickyLog.alloclen);
+                if (0 != safe_memcpy(farmStickyLog.ptr, farmStickyLog.alloclen,
+                                     farmTimeSeriesFramesLog + (farmTimeSeriesLog.alloclen + farmLongSavedLog.alloclen),
+                                     farmStickyLog.alloclen))
+                {
+                    perror("Error copying 6 Sticky frames to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_STICKY, farmStickyHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmStickyLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -366,8 +394,11 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
                 // copy 2048 KB of meaningful data in log buffer
-                safe_memcpy(farmWorkLoadTraceLog.ptr, farmWorkLoadTraceLog.alloclen, farmWorkloadTraceFramesLog,
-                            farmWorkLoadTraceLog.alloclen);
+                if (0 != safe_memcpy(farmWorkLoadTraceLog.ptr, farmWorkLoadTraceLog.alloclen,
+                                     farmWorkloadTraceFramesLog, farmWorkLoadTraceLog.alloclen))
+                {
+                    perror("Error copying 2048 KB of meaningful data to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_WORKLOAD_TRACE, farmWorkLoadTraceHeader, &numberOfDataSets,
                                 &headerLength, &farmContentField,
                                 M_STATIC_CAST(uint32_t, farmWorkLoadTraceLog.alloclen), startTimeInMilliSecs,
@@ -416,8 +447,11 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
                 // copy Farm current into log buffer
-                safe_memcpy(farmCurrentLog.ptr, farmCurrentLog.alloclen, farmTimeSeriesFramesLog,
-                            farmCurrentLog.alloclen);
+                if (0 != safe_memcpy(farmCurrentLog.ptr, farmCurrentLog.alloclen, farmTimeSeriesFramesLog,
+                                     farmCurrentLog.alloclen))
+                {
+                    perror("Error copying Farm Current into log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_CURRENT, farmCurrentHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmCurrentLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -440,8 +474,11 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
 #endif
 
                 // copy Farm Saved into log buffer
-                safe_memcpy(farmSavedLog.ptr, farmSavedLog.alloclen, farmTimeSeriesFramesLog + farmCurrentLog.alloclen,
-                            farmSavedLog.alloclen);
+                if (0 != safe_memcpy(farmSavedLog.ptr, farmSavedLog.alloclen,
+                                     farmTimeSeriesFramesLog + farmCurrentLog.alloclen, farmSavedLog.alloclen))
+                {
+                    perror("Error copying Farm Saved into log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_SAVE, farmSavedHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmSavedLog.alloclen), startTimeInMilliSecs,
                                 endTimeInMilliSecs);
@@ -464,9 +501,12 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
 #endif
 
                 // copy 16 Timeseries frame into log buffer
-                safe_memcpy(farmTimeSeriesLog.ptr, farmTimeSeriesLog.alloclen,
-                            farmTimeSeriesFramesLog + (farmCurrentLog.alloclen + farmSavedLog.alloclen),
-                            farmTimeSeriesLog.alloclen);
+                if (0 != safe_memcpy(farmTimeSeriesLog.ptr, farmTimeSeriesLog.alloclen,
+                                     farmTimeSeriesFramesLog + (farmCurrentLog.alloclen + farmSavedLog.alloclen),
+                                     farmTimeSeriesLog.alloclen))
+                {
+                    perror("Error copying 16 Timeseries frames to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_TIMESERIES, farmTimeSeriesHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmTimeSeriesLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -489,10 +529,13 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
 #endif
 
                 // copy 2 Long term saved frame into log buffer
-                safe_memcpy(farmLongSavedLog.ptr, farmLongSavedLog.alloclen,
-                            farmTimeSeriesFramesLog +
-                                (farmCurrentLog.alloclen + farmSavedLog.alloclen + farmTimeSeriesLog.alloclen),
-                            farmLongSavedLog.alloclen);
+                if (0 != safe_memcpy(farmLongSavedLog.ptr, farmLongSavedLog.alloclen,
+                                     farmTimeSeriesFramesLog +
+                                         (farmCurrentLog.alloclen + farmSavedLog.alloclen + farmTimeSeriesLog.alloclen),
+                                     farmLongSavedLog.alloclen))
+                {
+                    perror("Error copying 2 Long term saved frames to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_LONG_SAVE, farmLongSavedHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmLongSavedLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -515,10 +558,13 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
 #endif
 
                 // copy 6 sticky frame into log buffer
-                safe_memcpy(farmStickyLog.ptr, farmStickyLog.alloclen,
-                            farmTimeSeriesFramesLog + (farmCurrentLog.alloclen + farmSavedLog.alloclen +
-                                                       farmTimeSeriesLog.alloclen + farmLongSavedLog.alloclen),
-                            farmStickyLog.alloclen);
+                if (0 != safe_memcpy(farmStickyLog.ptr, farmStickyLog.alloclen,
+                                     farmTimeSeriesFramesLog + (farmCurrentLog.alloclen + farmSavedLog.alloclen +
+                                                                farmTimeSeriesLog.alloclen + farmLongSavedLog.alloclen),
+                                     farmStickyLog.alloclen))
+                {
+                    perror("Error copying 6 sticky frames to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_STICKY, farmStickyHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmStickyLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -541,11 +587,14 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
 #endif
 
                 // copy Farm factory into log buffer
-                safe_memcpy(farmFactoryLog.ptr, farmFactoryLog.alloclen,
-                            farmTimeSeriesFramesLog +
-                                (farmCurrentLog.alloclen + farmSavedLog.alloclen + farmTimeSeriesLog.alloclen +
-                                 farmLongSavedLog.alloclen + farmStickyLog.alloclen),
-                            farmFactoryLog.alloclen);
+                if (0 != safe_memcpy(farmFactoryLog.ptr, farmFactoryLog.alloclen,
+                                     farmTimeSeriesFramesLog +
+                                         (farmCurrentLog.alloclen + farmSavedLog.alloclen + farmTimeSeriesLog.alloclen +
+                                          farmLongSavedLog.alloclen + farmStickyLog.alloclen),
+                                     farmFactoryLog.alloclen))
+                {
+                    perror("Error copying Farm factory into log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_FACTORY, farmFactoryHeader, &numberOfDataSets, &headerLength,
                                 &farmContentField, M_STATIC_CAST(uint32_t, farmFactoryLog.alloclen),
                                 startTimeInMilliSecs, endTimeInMilliSecs);
@@ -588,8 +637,11 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
                 endTimeInMilliSecs = get_Milliseconds_Since_Unix_Epoch();
 
                 // copy 2048 KB of meaningful data in log buffer
-                safe_memcpy(farmWorkLoadTraceLog.ptr, farmWorkLoadTraceLog.alloclen, farmWorkloadTraceFramesLog,
-                            farmWorkLoadTraceLog.alloclen);
+                if (0 != safe_memcpy(farmWorkLoadTraceLog.ptr, farmWorkLoadTraceLog.alloclen,
+                                     farmWorkloadTraceFramesLog, farmWorkLoadTraceLog.alloclen))
+                {
+                    perror("Error copying 2048 KB of meaningful data to log buffer");
+                }
                 addDataSetEntry(SUBPAGE_TYPE_FARM_WORKLOAD_TRACE, farmWorkLoadTraceHeader, &numberOfDataSets,
                                 &headerLength, &farmContentField,
                                 M_STATIC_CAST(uint32_t, farmWorkLoadTraceLog.alloclen), startTimeInMilliSecs,
@@ -713,13 +765,25 @@ static eReturnValues pullATAFarmLogs(const tDevice*          device,
         datasetOffset += ATA_WORKLOAD_TRACE_PAGE_SIZE;
     }
 
-    // copy remaing fields for header information
-    safe_memcpy(header + 116, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(116), &headerLength,
-                sizeof(uint16_t));
-    safe_memcpy(header + 118, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(118), &farmContentField,
-                sizeof(uint32_t));
-    safe_memcpy(header + 252, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(252), &numberOfDataSets,
-                sizeof(uint16_t));
+    // copy remaining fields for header information
+    if (0 != safe_memcpy(header + 116, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(116), &headerLength,
+                         sizeof(uint16_t)))
+        M_UNLIKELY
+        {
+            perror("Error coping remaining fields to FARM header");
+        }
+    if (0 != safe_memcpy(header + 118, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(118), &farmContentField,
+                         sizeof(uint32_t)))
+        M_UNLIKELY
+        {
+            perror("Error coping remaining fields to FARM header");
+        }
+    if (0 != safe_memcpy(header + 252, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(252), &numberOfDataSets,
+                         sizeof(uint16_t)))
+        M_UNLIKELY
+        {
+            perror("Error coping remaining fields to FARM header");
+        }
 
     return SUCCESS;
 }
@@ -1061,13 +1125,25 @@ static eReturnValues pullSCSIFarmLogs(const tDevice* M_NONNULL device,
         datasetOffset += stickyLogLength;
     }
 
-    // copy remaing fields for header information
-    safe_memcpy(header + 116, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(116), &headerLength,
-                sizeof(uint16_t));
-    safe_memcpy(header + 118, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(118), &farmContentField,
-                sizeof(uint32_t));
-    safe_memcpy(header + 252, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(252), &numberOfDataSets,
-                sizeof(uint16_t));
+    // copy remaining fields for header information
+    if (0 != safe_memcpy(header + 116, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(116), &headerLength,
+                         sizeof(uint16_t)))
+        M_UNLIKELY
+        {
+            perror("Error coping remaining fields to FARM header");
+        }
+    if (0 != safe_memcpy(header + 118, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(118), &farmContentField,
+                         sizeof(uint32_t)))
+        M_UNLIKELY
+        {
+            perror("Error coping remaining fields to FARM header");
+        }
+    if (0 != safe_memcpy(header + 252, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(252), &numberOfDataSets,
+                         sizeof(uint16_t)))
+        M_UNLIKELY
+        {
+            perror("Error coping remaining fields to FARM header");
+        }
 
     return SUCCESS;
 }
@@ -1164,57 +1240,127 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Combined_Log(const tDevice* M_NON
     uint8_t*               farmLongSavedZeroPaddingBuffer  = M_NULLPTR;
     uint8_t*               farmStickyZeroPaddingBuffer     = M_NULLPTR;
     tZeroPaddingBufferSize zeroPaddingBufferSize;
-    safe_memset(&zeroPaddingBufferSize, sizeof(tZeroPaddingBufferSize), 0, sizeof(tZeroPaddingBufferSize));
+    M_INITIALIZE_STRUCTURE(&zeroPaddingBufferSize, sizeof(tZeroPaddingBufferSize));
 
     // set signature
     DECLARE_ZERO_INIT_ARRAY(char, signature, FARM_SIGNATURE_LENGTH + 1);
-    snprintf_err_handle(signature, FARM_SIGNATURE_LENGTH + 1, "%-*s", FARM_SIGNATURE_LENGTH, FARMC_SIGNATURE_ID);
-    safe_memcpy(header, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH), &signature, FARM_SIGNATURE_LENGTH);
+    if (0 >
+        snprintf_err_handle(signature, FARM_SIGNATURE_LENGTH + 1, "%-*s", FARM_SIGNATURE_LENGTH, FARMC_SIGNATURE_ID))
+        M_UNLIKELY
+        {
+            perror("Error setting FARM signature string to buffer");
+        }
+    if (0 != safe_memcpy(header, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH), &signature, FARM_SIGNATURE_LENGTH))
+        M_UNLIKELY
+        {
+            perror("Error copying FARM signature to header");
+        }
 
     // set the version number - major.minor.revision
     uint16_t majorVersion = FARMC_LOG_MAJOR_VERSION;
     uint16_t minorVersion = FARMC_LOG_MINOR_VERSION;
     uint16_t patchVersion = FARMC_LOG_PATCH_VERSION;
-    safe_memcpy(header + 22, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(22), &majorVersion, sizeof(uint16_t));
-    safe_memcpy(header + 20, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(20), &minorVersion, sizeof(uint16_t));
-    safe_memcpy(header + 18, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(18), &patchVersion, sizeof(uint16_t));
+    if (0 != safe_memcpy(header + 22, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(22), &majorVersion,
+                         sizeof(uint16_t)))
+    {
+        perror("Error setting FARM Combined version");
+    }
+    if (0 != safe_memcpy(header + 20, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(20), &minorVersion,
+                         sizeof(uint16_t)))
+    {
+        perror("Error setting FARM Combined version");
+    }
+    if (0 != safe_memcpy(header + 18, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(18), &patchVersion,
+                         sizeof(uint16_t)))
+    {
+        perror("Error setting FARM Combined version");
+    }
 
     // set interface type
     DECLARE_ZERO_INIT_ARRAY(char, interfaceType, 4 + 1);
     if (get_Device_DriveType(device) == ATA_DRIVE)
     {
-        snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SATA");
+        if (0 > snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SATA"))
+            M_UNLIKELY
+            {
+                perror("Error setting FARM interface string");
+            }
     }
     else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
-        snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SAS");
+        if (0 > snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "SAS"))
+            M_UNLIKELY
+            {
+                perror("Error setting FARM interface string");
+            }
     }
     else
     {
-        snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "NVMe");
+        if (0 > snprintf_err_handle(interfaceType, 4 + 1, "%-*s", 4, "NVMe"))
+            M_UNLIKELY
+            {
+                perror("Error setting FARM interface string");
+            }
     }
-    safe_memcpy(header + 24, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(24), &interfaceType, 4);
+    if (0 != safe_memcpy(header + 24, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(24), &interfaceType, 4))
+        M_UNLIKELY
+        {
+            perror("Error copying interface type to header");
+        }
 
     // set model#
     DECLARE_ZERO_INIT_ARRAY(char, modelNumber, MODEL_NUM_LEN + 1);
-    snprintf_err_handle(modelNumber, MODEL_NUM_LEN + 1, "%-*s", MODEL_NUM_LEN,
-                        device->drive_info.product_identification);
-    safe_memcpy(header + 32, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(32), &modelNumber, MODEL_NUM_LEN);
+    if (0 > snprintf_err_handle(modelNumber, MODEL_NUM_LEN + 1, "%-*s", MODEL_NUM_LEN,
+                                device->drive_info.product_identification))
+        M_UNLIKELY
+        {
+            perror("Error formatting model number");
+        }
+    if (0 !=
+        safe_memcpy(header + 32, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(32), &modelNumber, MODEL_NUM_LEN))
+        M_UNLIKELY
+        {
+            perror("Error copying model number to header");
+        }
 
     // set serial#
     DECLARE_ZERO_INIT_ARRAY(char, serialNumber, SERIAL_NUM_LEN + 1);
-    snprintf_err_handle(serialNumber, SERIAL_NUM_LEN + 1, "%-*s", SERIAL_NUM_LEN, device->drive_info.serialNumber);
-    safe_memcpy(header + 80, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(80), &serialNumber, SERIAL_NUM_LEN);
+    if (0 >
+        snprintf_err_handle(serialNumber, SERIAL_NUM_LEN + 1, "%-*s", SERIAL_NUM_LEN, device->drive_info.serialNumber))
+        M_UNLIKELY
+        {
+            perror("Error formatting serial number");
+        }
+    if (0 != safe_memcpy(header + 80, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(80), &serialNumber,
+                         SERIAL_NUM_LEN))
+        M_UNLIKELY
+        {
+            perror("Error copying serial number to header");
+        }
 
     // set firmware revision
     DECLARE_ZERO_INIT_ARRAY(char, firmwareVersion, FW_REV_LEN + 1);
-    snprintf_err_handle(firmwareVersion, FW_REV_LEN + 1, "%-*s", FW_REV_LEN, device->drive_info.product_revision);
-    safe_memcpy(header + 104, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(104), &firmwareVersion, FW_REV_LEN);
+    if (0 >
+        snprintf_err_handle(firmwareVersion, FW_REV_LEN + 1, "%-*s", FW_REV_LEN, device->drive_info.product_revision))
+        M_UNLIKELY
+        {
+            perror("Error formatting firmware version");
+        }
+    if (0 != safe_memcpy(header + 104, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(104), &firmwareVersion,
+                         FW_REV_LEN))
+        M_UNLIKELY
+        {
+            perror("Error copying firmware version to header");
+        }
 
     // set dataset length
     uint16_t dataSetLength = FARMC_LOG_DATA_SET_HEADER_LENGTH;
-    safe_memcpy(header + 254, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(254), &dataSetLength,
-                sizeof(uint16_t));
+    if (0 != safe_memcpy(header + 254, uint16_to_sizet(FARMC_LOG_HEADER_LENGTH) - RSIZE_T_C(254), &dataSetLength,
+                         sizeof(uint16_t)))
+        M_UNLIKELY
+        {
+            perror("Error copying dataset length to header");
+        }
 
     do
     {
@@ -1861,7 +2007,11 @@ static farmGenericPage* generic_SATA_Read_FARM_Log(uint8_t* ptrData, uint32_t da
         // qwordptr since all fields are qwords
         uint64_t* qwordptr = M_REINTERPRET_CAST(uint64_t*, ptrData);
         // start by zeroing it all out
-        safe_memset(farmStruct, sizeof(farmGenericPage), 0, sizeof(farmGenericPage));
+        if (0 != safe_memset(farmStruct, sizeof(farmGenericPage), 0, sizeof(farmGenericPage)))
+            M_UNLIKELY
+            {
+                perror("Error zeroing FARM structure");
+            }
         // set page # and copy #
         farmStruct->pageNumber = le64_to_host(qwordptr[0]);
         farmStruct->copyNumber = le64_to_host(qwordptr[1]);
@@ -2791,7 +2941,10 @@ static void single_qword_print_Stat_If_Supported_And_Valid_ASCII(const char* M_N
     {
         size_t   asciioffset = SIZE_T_C(0);
         uint32_t rawdata     = b_swap_32(M_DoubleWord0(firstqword));
-        safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
+        if (0 != safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t)))
+        {
+            perror("Error while getting FARM single Qword ASCII data");
+        }
         farmASCIIData[asciilen - 1] = 0;
         print_Statistic_Name(statisticname);
         printf("\t\t%s\n", farmASCIIData);
@@ -2825,7 +2978,10 @@ static void print_Stat_If_Supported_And_Valid_ASCII(const char* M_NULLABLE    st
                 for (uint8_t qwordIter = UINT8_C(0); qwordIter < numQwords; ++qwordIter, asciioffset += 4)
                 {
                     uint32_t rawdata = w_swap_32(b_swap_32(M_DoubleWord0(firstqword[qwordIter])));
-                    safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
+                    if (0 != safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t)))
+                    {
+                        perror("Error while getting FARM ASCII data");
+                    }
                 }
                 farmASCIIData[asciilen] = 0;
                 print_Statistic_Name(statisticname);
@@ -2844,17 +3000,26 @@ static void print_Stat_If_Supported_And_Valid_Date_Of_Assembly(uint64_t doaQword
     {
         size_t   asciioffset = SIZE_T_C(0);
         uint32_t rawdata     = M_DoubleWord0(doaQword);
-        safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t));
+        if (0 != safe_memcpy(&farmASCIIData[asciioffset], asciilen, &rawdata, sizeof(uint32_t)))
+        {
+            perror("Error while getting FARM date of assembly");
+        }
         farmASCIIData[asciilen - 1] = 0;
         print_Statistic_Name("Date Of Assembly\t\t");
         // first 2 digits are year
         DECLARE_ZERO_INIT_ARRAY(char, year, 5);
         year[0] = '2';
         year[1] = '0';
-        safe_memcpy(&year[2], 3, farmASCIIData, 2);
+        if (0 != safe_memcpy(&year[2], 3, farmASCIIData, 2))
+        {
+            perror("Error while getting FARM date of assembly");
+        }
         // second 2 digits are week of the year
         DECLARE_ZERO_INIT_ARRAY(char, week, 3);
-        safe_memcpy(&week[0], 3, &farmASCIIData[2], 2);
+        if (0 != safe_memcpy(&week[0], 3, &farmASCIIData[2], 2))
+        {
+            perror("Error while getting FARM date of assembly");
+        }
         printf("Week %s, %s\n", week, year);
         safe_free(&farmASCIIData);
     }
@@ -2990,13 +3155,20 @@ static bool print_Stat_If_Supported_And_Valid_By_Head(const char* M_NULLABLE  st
             char* byheadstatname = safe_calloc(byheadstatstrlen, sizeof(char));
             if (byheadstatname != M_NULLPTR)
             {
+                int snprintfres = 0;
                 if (statisticname != M_NULLPTR)
                 {
-                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "%s Head %2" PRIu64, statisticname, headiter);
+                    snprintfres = snprintf_err_handle(byheadstatname, byheadstatstrlen, "%s Head %2" PRIu64,
+                                                      statisticname, headiter);
                 }
                 else
                 {
-                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "Unknown Statistic Head %2" PRIu64, headiter);
+                    snprintfres = snprintf_err_handle(byheadstatname, byheadstatstrlen,
+                                                      "Unknown Statistic Head %2" PRIu64, headiter);
+                }
+                if (snprintfres < 0)
+                {
+                    perror("Error formatting by-head statistic name");
                 }
             }
             bool printed = false;
@@ -3360,14 +3532,19 @@ static char* M_NULLABLE get_Farm_FLED_Info_String(char* M_NULLABLE str, size_t s
     uint64_t fled           = get_Farm_Qword_Data(fledqword);
     if (str != M_NULLPTR)
     {
+        int snprintfres = 0;
         if ((fledInfoStatus & FARM_FIELD_SUPPORTED_BIT) > UINT8_C(0) &&
             (fledInfoStatus & FARM_FIELD_VALID_BIT) > UINT8_C(0))
         {
-            snprintf_err_handle(str, strlen, "%" PRIu64, fled);
+            snprintfres = snprintf_err_handle(str, strlen, "%" PRIu64, fled);
         }
         else
         {
-            snprintf_err_handle(str, strlen, "-");
+            snprintfres = snprintf_err_handle(str, strlen, "-");
+        }
+        if (snprintfres < 0)
+        {
+            perror("Error formatting FLED info string");
         }
     }
     return str;
@@ -3683,18 +3860,23 @@ static bool print_Stat_If_Supported_And_Valid_Unit_Or_Percent_Delta_By_Head(
     char* fieldNameAndUnit = M_STATIC_CAST(char*, safe_calloc(len, sizeof(char)));
     if (fieldNameAndUnit != M_NULLPTR)
     {
+        int snprintfres = 0;
         if (get_Farm_Float_Bits(byhead[0]) & FARM_FLOAT_PERCENT_DELTA_FACTORY_BIT ||
             get_Farm_Float_Bits(byhead[0]) & FARM_FLOAT_NEGATIVE_BIT)
         {
-            snprintf_err_handle(fieldNameAndUnit, len, "%s (%% delta)", fieldStr);
-            printed = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
-                                                                FARM_BY_HEAD_FLOAT, 0.0);
+            snprintfres = snprintf_err_handle(fieldNameAndUnit, len, "%s (%% delta)", fieldStr);
+            printed     = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
+                                                                    FARM_BY_HEAD_FLOAT, 0.0);
         }
         else
         {
-            snprintf_err_handle(fieldNameAndUnit, len, "%s (%s)", fieldStr, unitStr);
-            printed = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
-                                                                FARM_BY_HEAD_UINT64, 0.001);
+            snprintfres = snprintf_err_handle(fieldNameAndUnit, len, "%s (%s)", fieldStr, unitStr);
+            printed     = print_Stat_If_Supported_And_Valid_By_Head(fieldNameAndUnit, byhead, numberOfHeads,
+                                                                    FARM_BY_HEAD_UINT64, 0.001);
+        }
+        if (snprintfres < 0)
+        {
+            perror("Error formatting field name and unit");
         }
     }
     return printed;
@@ -3826,13 +4008,20 @@ static bool print_3_Stat_If_Supported_And_Valid_By_Head(const char* M_NONNULL st
             char* byheadstatname = safe_calloc(byheadstatstrlen, sizeof(char));
             if (byheadstatname != M_NULLPTR)
             {
+                int snprintfres = 0;
                 if (statisticname != M_NULLPTR)
                 {
-                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "%s Head %2" PRIu64, statisticname, headiter);
+                    snprintfres = snprintf_err_handle(byheadstatname, byheadstatstrlen, "%s Head %2" PRIu64,
+                                                      statisticname, headiter);
                 }
                 else
                 {
-                    snprintf_err_handle(byheadstatname, byheadstatstrlen, "Unknown Statistic Head %2" PRIu64, headiter);
+                    snprintfres = snprintf_err_handle(byheadstatname, byheadstatstrlen,
+                                                      "Unknown Statistic Head %2" PRIu64, headiter);
+                }
+                if (snprintfres < 0)
+                {
+                    perror("Error formatting by-head statistic name");
                 }
             }
             bool printed = false;

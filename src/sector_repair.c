@@ -157,8 +157,12 @@ static eReturnValues update_LBA_Reassign_List(uint8_t* M_NONNULL* M_NULLABLE rea
             *listLength += (C_CAST(uint32_t, logicalPerPhysical) * C_CAST(uint32_t, increment)) +
                            REASSIGN_BLOCKS_LIST_HEADER_LENGTH;
             // zero out new memory
-            safe_memset(&(*reassignList)[fullListLength], *listLength - fullListLength, 0,
-                        *listLength - fullListLength);
+            if (0 != safe_memset(&(*reassignList)[fullListLength], *listLength - fullListLength, 0,
+                                 *listLength - fullListLength))
+                M_UNLIKELY
+                {
+                    perror("Error zeroing out new memory for reassign list.");
+                }
         }
         // First read current LBA in the list, then determine where we need to place the new one/remove it from the list
         if (*longLBA)
@@ -181,8 +185,12 @@ static eReturnValues update_LBA_Reassign_List(uint8_t* M_NONNULL* M_NULLABLE rea
                 {
                     // move the list for an insertion
                     uint32_t bytesToMove = currentListLength + REASSIGN_BLOCKS_LIST_HEADER_LENGTH - offset;
-                    safe_memmove(&(*reassignList)[offset + increment], *listLength - (offset + increment),
-                                 &(*reassignList)[offset], bytesToMove);
+                    if (0 != safe_memmove(&(*reassignList)[offset + increment], *listLength - (offset + increment),
+                                          &(*reassignList)[offset], bytesToMove))
+                        M_UNLIKELY
+                        {
+                            perror("Error moving reassign list entries to insert LBA(s).");
+                        }
                 }
                 // offset is at an empty location, so add the LBA here
                 if (*longLBA)
@@ -218,10 +226,18 @@ static eReturnValues update_LBA_Reassign_List(uint8_t* M_NONNULL* M_NULLABLE rea
             {
                 // need to remove this LBA from the list (shift existing list to overwrite this, then zero out end)
                 uint32_t bytesToMove = currentListLength + REASSIGN_BLOCKS_LIST_HEADER_LENGTH - (offset + increment);
-                safe_memmove(&(*reassignList)[offset], *listLength - offset, &(*reassignList)[offset + increment],
-                             bytesToMove);
+                if (0 != safe_memmove(&(*reassignList)[offset], *listLength - offset,
+                                      &(*reassignList)[offset + increment], bytesToMove))
+                    M_UNLIKELY
+                    {
+                        perror("Error moving reassign list entries to remove LBA(s).");
+                    }
                 // zero out the end of the list that was just moved up
-                safe_memset(&(*reassignList)[*listLength - increment], increment, 0, increment);
+                if (0 != safe_memset(&(*reassignList)[*listLength - increment], increment, 0, increment))
+                    M_UNLIKELY
+                    {
+                        perror("Error zeroing out end of reassign list after removing LBA(s).");
+                    }
                 currentListLength -= increment;
                 continue; // go to next entry in the list and figure out if it needs removing or not.
             }
@@ -363,7 +379,7 @@ eReturnValues reallocate_LBAs(const tDevice* M_NONNULL device, ptrErrorLBA M_NON
         else
         {
             senseDataFields senseFields;
-            safe_memset(&senseFields, sizeof(senseDataFields), 0, sizeof(senseDataFields));
+            M_INITIALIZE_STRUCTURE(&senseFields, sizeof(senseDataFields));
             get_Sense_Data_Fields(device->drive_info.lastCommandSenseData, SPC3_SENSE_LEN, &senseFields);
             if (senseFields.validStructure)
             {
@@ -494,7 +510,10 @@ OPENSEA_OPERATIONS_API eReturnValues repair_LBA(const tDevice* M_NONNULL device,
                 return MEMORY_FAILURE;
             }
             dataBuf = temp;
-            safe_memset(dataBuf, dataSize, 0, dataSize);
+            if (0 != safe_memset(dataBuf, dataSize, 0, dataSize))
+            {
+                perror("Error setting data buffer to zero after reallocation for pass-through write (USB).");
+            }
         }
         ret = ata_Write(device, LBA->errorAddress, false, dataBuf, dataSize);
         if (ret == SUCCESS)
@@ -584,7 +603,7 @@ OPENSEA_OPERATIONS_API eReturnValues repair_LBA(const tDevice* M_NONNULL device,
     return ret;
 }
 
-const char* get_Repair_Status_String(eRepairStatus status)
+OPENSEA_OPERATIONS_API const char* M_NULLABLE get_Repair_Status_String(eRepairStatus status)
 {
     const char* statusString = M_NULLPTR;
     switch (status)
@@ -620,7 +639,7 @@ OPENSEA_OPERATIONS_API void print_LBA_Error_List(constPtrErrorLBA M_NONNULL LBAs
     for (errorIter = 1; errorIter <= numberOfErrors; errorIter++)
     {
         const char* repairString = M_NULLPTR;
-        repairString = get_Repair_Status_String(LBAs[errorIter - 1].repairStatus);
+        repairString             = get_Repair_Status_String(LBAs[errorIter - 1].repairStatus);
         if (LBAs[errorIter - 1].repairStatus == UNABLE_TO_REPAIR_ACCESS_DENIED)
         {
             showAccessDeniedNote = true;
@@ -758,7 +777,6 @@ M_PARAM_RW(2)
 OPENSEA_OPERATIONS_API
 void sort_Error_LBA_List(ptrErrorLBA M_NONNULL LBAList, uint32_t* M_NONNULL numberOfLBAsInTheList)
 {
-
     if (LBAList == M_NULLPTR || numberOfLBAsInTheList == M_NULLPTR)
     {
         return;
@@ -768,7 +786,10 @@ void sort_Error_LBA_List(ptrErrorLBA M_NONNULL LBAList, uint32_t* M_NONNULL numb
     {
         uint32_t duplicatesDetected = UINT32_C(0);
         // Sort the list.
-        safe_qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare);
+        if (0 != safe_qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare))
+        {
+            perror("Error pre-sorting LBA list.");
+        }
         // Remove duplicates and update the number of items in the list (local var only). This should be easy since
         // we've already sorted the list
         uint64_t tempLBA = LBAList[0].errorAddress;
@@ -787,7 +808,10 @@ void sort_Error_LBA_List(ptrErrorLBA M_NONNULL LBAList, uint32_t* M_NONNULL numb
         if (duplicatesDetected > UINT32_C(0))
         {
             // Sort the list one more time.
-            safe_qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare);
+            if (0 != safe_qsort(LBAList, *numberOfLBAsInTheList, sizeof(errorLBA), errorLBACompare))
+            {
+                perror("Error post-sorting LBA list.");
+            }
             // set number of LBAs in the list
             (*numberOfLBAsInTheList) -= duplicatesDetected;
         }

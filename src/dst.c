@@ -117,7 +117,11 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Get_DST_Progress(const tDevice* M_NONN
     {
         *status = M_Nibble0(temp_buf[8]);
         // check the progress since the test is still running
-        safe_memset(temp_buf, temp_buf_size, 0, temp_buf_size);
+        if (0 != safe_memset(temp_buf, temp_buf_size, 0, temp_buf_size))
+            M_UNLIKELY
+            {
+                perror("Error clearing temp buffer for SCSI DST progress\n");
+            }
         scsi_Request_Sense_Cmd(device, false, temp_buf, SPC3_SENSE_LEN);
         *percentComplete = get_SCSI_Progress_Indicator_Percent(M_BytesTo2ByteValue(temp_buf[16], temp_buf[17]));
     }
@@ -135,7 +139,7 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Get_DST_Progress(const tDevice* M_NONN
     eReturnValues result = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeSelfTestLogBuf, NVME_LOG_SIZE_SELF_TEST);
     nvmeGetLogPageCmdOpts getDSTLog;
-    safe_memset(&getDSTLog, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+    M_INITIALIZE_STRUCTURE(&getDSTLog, sizeof(nvmeGetLogPageCmdOpts));
     getDSTLog.addr    = nvmeSelfTestLogBuf;
     getDSTLog.dataLen = NVME_LOG_SIZE_SELF_TEST;
     getDSTLog.lid     = NVME_LOG_DEV_SELF_TEST_ID;
@@ -213,60 +217,66 @@ OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t         statu
 
     if (translatedString != M_NULLPTR)
     {
-        safe_memset(translatedString, MAX_DST_STATUS_STRING_LENGTH, 0, MAX_DST_STATUS_STRING_LENGTH);
+        int     snprintfres = 0;
+        errno_t error       = 0;
+        if (0 != safe_memset(translatedString, MAX_DST_STATUS_STRING_LENGTH, 0, MAX_DST_STATUS_STRING_LENGTH))
+            M_UNLIKELY
+            {
+                perror("Error clearing DST status translation string before setting translation");
+            }
         if (isNVMeDrive)
         {
             switch (status)
             {
             case 0x00:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "Operation completed without error.");
+                error =
+                    safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation completed without error.");
                 break;
             case 0x01:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                     "Operation was aborted by a Device Self-test command.");
                 break;
             case 0x02:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                     "Operation was aborted by a Controller Level Reset.");
                 break;
             case 0x03:
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "Operation was aborted due to a removal of a namespace from the namespace inventory.");
+                error =
+                    safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                "Operation was aborted due to a removal of a namespace from the namespace inventory.");
                 break;
             case 0x04:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                     "Operation was aborted due to the processing of a Format NVM command.");
                 break;
             case 0x05:
-                snprintf_err_handle(
+                error = safe_strcpy(
                     translatedString, MAX_DST_STATUS_STRING_LENGTH,
                     "A fatal error or unknown test error occurred while the controller was executing the device "
                     "self-test operation and the operation did not complete.");
                 break;
             case 0x06:
-                snprintf_err_handle(
+                error = safe_strcpy(
                     translatedString, MAX_DST_STATUS_STRING_LENGTH,
                     "Operation completed with a segment that failed and the segment that failed is not known.");
                 break;
             case 0x07:
-                snprintf_err_handle(
+                error = safe_strcpy(
                     translatedString, MAX_DST_STATUS_STRING_LENGTH,
                     "Operation completed with one or more failed segments and the first segment that failed is "
                     "indicated in the Segment Number field.");
                 break;
             case 0x08:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                     "Operation was aborted for unknown reason.");
                 break;
             case 0x0F: // NOTE: The spec says that this is NOT used. We are dummying this up to work with existing
                        // SAS/SATA code which is why this is here - TJE
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation in progress.");
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Operation in progress.");
                 break;
             default:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "Error, unknown status: %" PRIX8 "h.", status);
+                snprintfres = snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                                  "Error, unknown status: %" PRIX8 "h.", status);
                 break;
             }
         }
@@ -277,28 +287,28 @@ OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t         statu
             case 0x00:
                 if (justRanDST)
                 {
-                    snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                         "The self-test routine completed without error.");
                 }
                 else
                 {
-                    snprintf_err_handle(
-                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                        "The previous self-test routine completed without error or no self-test has ever been run.");
+                    error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                        "The previous self-test routine completed without error or no self-test has "
+                                        "ever been run.");
                 }
                 break;
             case 0x01:
 
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                     "The self-test routine was aborted by the host.");
                 break;
             case 0x02:
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The self-test routine was interrupted by the host with a hardware or software reset.");
+                error =
+                    safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                "The self-test routine was interrupted by the host with a hardware or software reset.");
                 break;
             case 0x03:
-                snprintf_err_handle(
+                error = safe_strcpy(
                     translatedString, MAX_DST_STATUS_STRING_LENGTH,
                     "A fatal error or unknown test error occurred while the device was executing its self-test "
                     "routine and the device was unable to complete the self-test routine.");
@@ -306,28 +316,28 @@ OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t         statu
             case 0x04:
                 if (justRanDST)
                 {
-                    snprintf_err_handle(
-                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                        "The self-test completed having a test element that failed and the test element that failed "
-                        "is not known.");
+                    error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                        "The self-test completed having a test element that failed and the test "
+                                        "element that failed "
+                                        "is not known.");
                 }
                 else
                 {
-                    snprintf_err_handle(
-                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                        "The previous self-test completed having a test element that failed and the test element that "
-                        "failed is not known.");
+                    error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                        "The previous self-test completed having a test element that failed and the "
+                                        "test element that "
+                                        "failed is not known.");
                 }
                 break;
             case 0x05:
                 if (justRanDST)
                 {
-                    snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                         "The self-test completed having the electrical element of the test failed.");
                 }
                 else
                 {
-                    snprintf_err_handle(
+                    error = safe_strcpy(
                         translatedString, MAX_DST_STATUS_STRING_LENGTH,
                         "The previous self-test completed having the electrical element of the test failed.");
                 }
@@ -335,13 +345,13 @@ OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t         statu
             case 0x06:
                 if (justRanDST)
                 {
-                    snprintf_err_handle(
+                    error = safe_strcpy(
                         translatedString, MAX_DST_STATUS_STRING_LENGTH,
                         "The self-test completed having the servo (and/or seek) test element of the test failed.");
                 }
                 else
                 {
-                    snprintf_err_handle(
+                    error = safe_strcpy(
                         translatedString, MAX_DST_STATUS_STRING_LENGTH,
                         "The previous self-test completed having the servo (and/or seek) test element of the test "
                         "failed.");
@@ -350,26 +360,26 @@ OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t         statu
             case 0x07:
                 if (justRanDST)
                 {
-                    snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                         "The self-test completed having the read element of the test failed.");
                 }
                 else
                 {
-                    snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                    error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
                                         "The previous self-test completed having the read element of the test failed.");
                 }
                 break;
             case 0x08:
                 if (justRanDST)
                 {
-                    snprintf_err_handle(
+                    error = safe_strcpy(
                         translatedString, MAX_DST_STATUS_STRING_LENGTH,
                         "The self-test completed having a test element that failed and the device is suspected of "
                         "having handling damage.");
                 }
                 else
                 {
-                    snprintf_err_handle(
+                    error = safe_strcpy(
                         translatedString, MAX_DST_STATUS_STRING_LENGTH,
                         "The previous self-test completed having a test element that failed and the device is "
                         "suspected of having handling damage.");
@@ -381,15 +391,24 @@ OPENSEA_OPERATIONS_API void translate_DST_Status_To_String(uint8_t         statu
             case 0x0C:
             case 0x0D:
             case 0x0E:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
                 break;
             case 0x0F:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Self-test in progress.");
+                error = safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Self-test in progress.");
                 break;
             default:
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "Error, unknown status: %" PRIX8 "h.", status);
+                snprintfres = snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                                  "Error, unknown status: %" PRIX8 "h.", status);
+                break;
             }
+        }
+        if (error != 0)
+        {
+            perror("Error coping DST status code translation");
+        }
+        if (snprintfres < 0)
+        {
+            perror("Error formatting DST status code translation");
         }
     }
 }
@@ -958,7 +977,7 @@ M_PARAM_RO(1)
 static dstTiming get_DST_Polling_Interval(const tDevice* M_NONNULL device, eDSTType DSTType, bool captiveForeground)
 {
     dstTiming timing;
-    safe_memset(&timing, sizeof(dstTiming), 0, sizeof(dstTiming));
+    M_INITIALIZE_STRUCTURE(&timing, sizeof(dstTiming));
     // time to start the DST
     timing.pollingInterval          = UINT32_C(5);             // assume 5 second delay between progress checks
     timing.commandTimeout           = DEFAULT_COMMAND_TIMEOUT; // start with this default timeout value - TJE
@@ -1209,7 +1228,7 @@ OPENSEA_OPERATIONS_API eReturnValues run_DST(const tDevice* M_NONNULL device,
                     {
                         // otherwise, read the DST log to figure out the results
                         dstLogEntries logEntries;
-                        safe_memset(&logEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
+                        M_INITIALIZE_STRUCTURE(&logEntries, sizeof(dstLogEntries));
                         // read the DST log for the result to avoid any SATL issues...
                         if (SUCCESS == get_DST_Log_Entries(device, &logEntries))
                         {
@@ -1438,7 +1457,7 @@ OPENSEA_OPERATIONS_API bool get_Error_LBA_From_DST_Log(const tDevice* M_NONNULL 
     bool isValidLBA = false;
     *lba            = UINT64_MAX; // set to something crazy in case caller ignores return type
     dstLogEntries dstEntries;
-    safe_memset(&dstEntries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
+    M_INITIALIZE_STRUCTURE(&dstEntries, sizeof(dstLogEntries));
     if (get_DST_Log_Entries(device, &dstEntries) == SUCCESS)
     {
         if (dstEntries.numberOfEntries > 0 && dstEntries.dstEntry[0].descriptorValid &&
@@ -1808,8 +1827,12 @@ static eReturnValues get_ATA_Extended_DST_Log_Entries(const tDevice* M_NONNULL  
                             entries->dstEntry[entries->numberOfEntries].lbaOfFailure = UINT64_MAX;
                         }
 
-                        safe_memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], 15,
-                                    &selfTestResults[offset + 11], 15);
+                        if (0 != safe_memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], 15,
+                                             &selfTestResults[offset + 11], 15))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying ATA vendor specific data for DST entry");
+                            }
                         // dummy up sense data...
                         switch (M_Nibble1(entries->dstEntry[entries->numberOfEntries].selfTestExecutionStatus))
                         {
@@ -1981,8 +2004,12 @@ static eReturnValues get_ATA_SMART_DST_Log_Entries(const tDevice* M_NONNULL devi
                         entries->dstEntry[entries->numberOfEntries].lbaOfFailure =
                             M_BytesTo4ByteValue(selfTestResults[offset + 8], selfTestResults[offset + 7],
                                                 selfTestResults[offset + 6], selfTestResults[offset + 5]);
-                        safe_memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], 15,
-                                    &selfTestResults[offset + 9], 15);
+                        if (0 != safe_memcpy(&entries->dstEntry[entries->numberOfEntries].ataVendorSpecificData[0], 15,
+                                             &selfTestResults[offset + 9], 15))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying ATA vendor specific data for DST entry");
+                            }
                         // if LBA field is all F's, this is meant to signify an invalid value like T10 specs say to do -
                         // TJE filtering 28bit all F's and 32bit all F's since it is not clear exactly how many drives
                         // will report this invalid value -TJE
@@ -2178,7 +2205,7 @@ static eReturnValues get_NVMe_DST_Log_Entries(const tDevice* M_NONNULL device, p
     if (is_Self_Test_Supported(device))
     {
         nvmeGetLogPageCmdOpts dstLogParms;
-        safe_memset(&dstLogParms, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+        M_INITIALIZE_STRUCTURE(&dstLogParms, sizeof(nvmeGetLogPageCmdOpts));
         DECLARE_ZERO_INIT_ARRAY(uint8_t, nvmeDSTLog, NVME_LOG_SIZE_SELF_TEST);
         dstLogParms.addr    = nvmeDSTLog;
         dstLogParms.dataLen = NVME_LOG_SIZE_SELF_TEST;
@@ -2266,7 +2293,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_DST_Log_Entries(const tDevice* M_NONNUL
 
         if (entries != M_NULLPTR)
         {
-            safe_memset(entries, sizeof(dstLogEntries), 0, sizeof(dstLogEntries));
+            M_INITIALIZE_STRUCTURE(entries, sizeof(dstLogEntries));
         }
 
         return NOT_SUPPORTED;
@@ -2278,47 +2305,58 @@ static void get_ATA_Self_Test_Code_String(uint8_t selfTestRun, char* M_NONNULL s
 {
     if (selfTestRunString != M_NULLPTR && maxLength > SIZE_T_C(0))
     {
+        int     snprintfres = 0;
+        errno_t error       = 0;
         switch (selfTestRun)
         {
         case ATA_SMART_OFFLINE_DATA_COLLECTION:
-            snprintf_err_handle(selfTestRunString, maxLength, "Offline Data Collect");
+            error = safe_strcpy(selfTestRunString, maxLength, "Offline Data Collect");
             break;
         case ATA_SMART_OFFLINE_SHORT_SELF_TEST: // short
-            snprintf_err_handle(selfTestRunString, maxLength, "Short (offline)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Short (offline)");
             break;
         case ATA_SMART_OFFLINE_EXTENDED_SELF_TEST: // extended
-            snprintf_err_handle(selfTestRunString, maxLength, "Extended (offline)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Extended (offline)");
             break;
         case ATA_SMART_OFFLINE_CONVEYANCE_SELF_TEST: // conveyance
-            snprintf_err_handle(selfTestRunString, maxLength, "Conveyance (offline)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Conveyance (offline)");
             break;
         case ATA_SMART_OFFLINE_SELECTIVE_SELF_TEST: // selective
-            snprintf_err_handle(selfTestRunString, maxLength, "Selective (offline)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Selective (offline)");
             break;
         case ATA_SMART_OFFLINE_CAPTIVE_SHORT_SELF_TEST: // short
-            snprintf_err_handle(selfTestRunString, maxLength, "Short (captive)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Short (captive)");
             break;
         case ATA_SMART_OFFLINE_CAPTIVE_EXTENDED_SELF_TEST: // extended
-            snprintf_err_handle(selfTestRunString, maxLength, "Extended (captive)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Extended (captive)");
             break;
         case ATA_SMART_OFFLINE_CAPTIVE_CONVEYANCE_SELF_TEST: // conveyance
-            snprintf_err_handle(selfTestRunString, maxLength, "Conveyance (captive)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Conveyance (captive)");
             break;
         case ATA_SMART_OFFLINE_CAPTIVE_SELECTIVE_SELF_TEST: // selective
-            snprintf_err_handle(selfTestRunString, maxLength, "Selective (captive)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Selective (captive)");
             break;
         default:
             if ((selfTestRun >= ATA_SMART_OFFLINE_VENDOR_SPECIFIC_40 &&
                  selfTestRun <= ATA_SMART_OFFLINE_VENDOR_SPECIFIC_7E) ||
                 (selfTestRun >= ATA_SMART_OFFLINE_CAPTIVE_VENDOR_SPECIFIC_90 /*&& selfTestRun <= 0xFF*/))
             {
-                snprintf_err_handle(selfTestRunString, maxLength, "Vendor Specific - %" PRIX8 "h", selfTestRun);
+                snprintfres =
+                    snprintf_err_handle(selfTestRunString, maxLength, "Vendor Specific - %" PRIX8 "h", selfTestRun);
             }
             else
             {
-                snprintf_err_handle(selfTestRunString, maxLength, "Unknown - %" PRIX8 "h", selfTestRun);
+                snprintfres = snprintf_err_handle(selfTestRunString, maxLength, "Unknown - %" PRIX8 "h", selfTestRun);
             }
             break;
+        }
+        if (error != 0)
+        {
+            perror("Error copying self-test string");
+        }
+        if (snprintfres < 0)
+        {
+            perror("Error formatting self-test string");
         }
     }
 }
@@ -2328,26 +2366,36 @@ static void get_SCSI_Self_Test_Code_String(uint8_t selfTestRun, char* M_NONNULL 
 {
     if (selfTestRunString != M_NULLPTR && maxLength > SIZE_T_C(0))
     {
+        int     snprintfres = 0;
+        errno_t error       = 0;
         switch (selfTestRun)
         {
         case SCSI_STC_UNUSED:
-            snprintf_err_handle(selfTestRunString, maxLength, "Unknown (Not in spec)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Unknown (Not in spec)");
             break;
         case SCSI_STC_BACKGROUND_SHORT_SELF_TEST: // short
-            snprintf_err_handle(selfTestRunString, maxLength, "Short (background)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Short (background)");
             break;
         case SCSI_STC_BACKGROUND_EXTENDED_SELF_TEST: // extended
-            snprintf_err_handle(selfTestRunString, maxLength, "Extended (background)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Extended (background)");
             break;
         case SCSI_STC_FOREGROUND_SHORT_SELF_TEST: // short
-            snprintf_err_handle(selfTestRunString, maxLength, "Short (foreground)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Short (foreground)");
             break;
         case SCSI_STC_FOREGROUND_EXTENDED_SELF_TEST: // extended
-            snprintf_err_handle(selfTestRunString, maxLength, "Extended (foreground)");
+            error = safe_strcpy(selfTestRunString, maxLength, "Extended (foreground)");
             break;
         default:
-            snprintf_err_handle(selfTestRunString, maxLength, "Unknown - %" PRIX8 "h", selfTestRun);
+            snprintfres = snprintf_err_handle(selfTestRunString, maxLength, "Unknown - %" PRIX8 "h", selfTestRun);
             break;
+        }
+        if (error != 0)
+        {
+            perror("Error copying self-test string");
+        }
+        if (snprintfres < 0)
+        {
+            perror("Error formatting self-test string");
         }
     }
 }
@@ -2357,23 +2405,33 @@ static void get_NVMe_Self_Test_Code_String(uint8_t selfTestRun, char* M_NONNULL 
 {
     if (selfTestRunString != M_NULLPTR && maxLength > SIZE_T_C(0))
     {
+        int     snprintfres = 0;
+        errno_t error       = 0;
         switch (selfTestRun)
         {
         case NVME_STC_RESERVED:
-            snprintf_err_handle(selfTestRunString, maxLength, "Reserved");
+            error = safe_strcpy(selfTestRunString, maxLength, "Reserved");
             break;
         case NVME_STC_SHORT: // short
-            snprintf_err_handle(selfTestRunString, maxLength, "Short");
+            error = safe_strcpy(selfTestRunString, maxLength, "Short");
             break;
         case NVME_STC_EXTENDED: // extended
-            snprintf_err_handle(selfTestRunString, maxLength, "Extended");
+            error = safe_strcpy(selfTestRunString, maxLength, "Extended");
             break;
         case NVME_STC_VENDOR: // vendor specific
-            snprintf_err_handle(selfTestRunString, maxLength, "Vendor Specific");
+            error = safe_strcpy(selfTestRunString, maxLength, "Vendor Specific");
             break;
         default:
-            snprintf_err_handle(selfTestRunString, maxLength, "Unknown - %" PRIX8 "h", selfTestRun);
+            snprintfres = snprintf_err_handle(selfTestRunString, maxLength, "Unknown - %" PRIX8 "h", selfTestRun);
             break;
+        }
+        if (error != 0)
+        {
+            perror("Error copying self-test string");
+        }
+        if (snprintfres < 0)
+        {
+            perror("Error formatting self-test string");
         }
     }
 }
@@ -2387,39 +2445,41 @@ static void get_Selftest_Execution_Status_String(dstLogType      logtype,
 {
     if (status != M_NULLPTR && maxLength > SIZE_T_C(0))
     {
+        int     snprintfres = 0;
+        errno_t error       = 0;
         if (logtype == DST_LOG_TYPE_NVME)
         {
             switch (M_Nibble1(selfTestExecutionStatus))
             {
             case 0:
-                snprintf_err_handle(status, maxLength, "No Error");
+                error = safe_strcpy(status, maxLength, "No Error");
                 break;
             case 1:
-                snprintf_err_handle(status, maxLength, "Aborted by command");
+                error = safe_strcpy(status, maxLength, "Aborted by command");
                 break;
             case 2:
-                snprintf_err_handle(status, maxLength, "Aborted by controller reset");
+                error = safe_strcpy(status, maxLength, "Aborted by controller reset");
                 break;
             case 3:
-                snprintf_err_handle(status, maxLength, "Aborted by namespace removal");
+                error = safe_strcpy(status, maxLength, "Aborted by namespace removal");
                 break;
             case 4:
-                snprintf_err_handle(status, maxLength, "Aborted by NVM format");
+                error = safe_strcpy(status, maxLength, "Aborted by NVM format");
                 break;
             case 5:
-                snprintf_err_handle(status, maxLength, "Unknown/Fatal Error");
+                error = safe_strcpy(status, maxLength, "Unknown/Fatal Error");
                 break;
             case 6:
-                snprintf_err_handle(status, maxLength, "Unknown Segment Failure");
+                error = safe_strcpy(status, maxLength, "Unknown Segment Failure");
                 break;
             case 7:
-                snprintf_err_handle(status, maxLength, "Failed on segment %" PRIu8 "", segmentNumber);
+                snprintfres = snprintf_err_handle(status, maxLength, "Failed on segment %" PRIu8 "", segmentNumber);
                 break;
             case 8:
-                snprintf_err_handle(status, maxLength, "Aborted for Unknown Reason");
+                error = safe_strcpy(status, maxLength, "Aborted for Unknown Reason");
                 break;
             default:
-                snprintf_err_handle(status, maxLength, "Reserved");
+                error = safe_strcpy(status, maxLength, "Reserved");
                 break;
             }
         }
@@ -2428,39 +2488,47 @@ static void get_Selftest_Execution_Status_String(dstLogType      logtype,
             switch (M_Nibble1(selfTestExecutionStatus))
             {
             case 0:
-                snprintf_err_handle(status, maxLength, "Success");
+                error = safe_strcpy(status, maxLength, "Success");
                 break;
             case 1:
-                snprintf_err_handle(status, maxLength, "Aborted by host");
+                error = safe_strcpy(status, maxLength, "Aborted by host");
                 break;
             case 2:
-                snprintf_err_handle(status, maxLength, "Interrupted by reset");
+                error = safe_strcpy(status, maxLength, "Interrupted by reset");
                 break;
             case 3:
-                snprintf_err_handle(status, maxLength, "Fatal Error - Unknown");
+                error = safe_strcpy(status, maxLength, "Fatal Error - Unknown");
                 break;
             case 4:
-                snprintf_err_handle(status, maxLength, "Unknown Failure Type");
+                error = safe_strcpy(status, maxLength, "Unknown Failure Type");
                 break;
             case 5:
-                snprintf_err_handle(status, maxLength, "Electrical Failure");
+                error = safe_strcpy(status, maxLength, "Electrical Failure");
                 break;
             case 6:
-                snprintf_err_handle(status, maxLength, "Servo/Seek Failure");
+                error = safe_strcpy(status, maxLength, "Servo/Seek Failure");
                 break;
             case 7:
-                snprintf_err_handle(status, maxLength, "Read Failure");
+                error = safe_strcpy(status, maxLength, "Read Failure");
                 break;
             case 8:
-                snprintf_err_handle(status, maxLength, "Handling Damage");
+                error = safe_strcpy(status, maxLength, "Handling Damage");
                 break;
             case 0xF:
-                snprintf_err_handle(status, maxLength, "In progress");
+                error = safe_strcpy(status, maxLength, "In progress");
                 break;
             default:
-                snprintf_err_handle(status, maxLength, "Reserved");
+                error = safe_strcpy(status, maxLength, "Reserved");
                 break;
             }
+        }
+        if (error != 0)
+        {
+            print_str("Error copying DST status string\n");
+        }
+        if (snprintfres < 0)
+        {
+            print_str("Error formatting DST status string\n");
         }
     }
 }
@@ -2536,8 +2604,11 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_DST_Log_Entries(ptrDstL
             }
             else // print the number
             {
-                snprintf_err_handle(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %" PRIX8 "h",
-                                    entries->dstEntry[iter].selfTestRun);
+                if (0 > snprintf_err_handle(selfTestRunString, SELF_TEST_RUN_STRING_MAX_LENGTH, "Unknown - %" PRIX8 "h",
+                                            entries->dstEntry[iter].selfTestRun))
+                {
+                    perror("Error formatting DST test run name\n");
+                }
             }
             printf("%-21s  ", selfTestRunString);
             // Timestamp
@@ -2556,8 +2627,15 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_DST_Log_Entries(ptrDstL
             if (percentRemaining > 0)
             {
                 DECLARE_ZERO_INIT_ARRAY(char, percentRemainingString, 8);
-                snprintf_err_handle(percentRemainingString, 8, " (%" PRIu8 "%%)", percentRemaining);
-                safe_strcat(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, percentRemainingString);
+                if (0 > snprintf_err_handle(percentRemainingString, 8, " (%" PRIu8 "%%)", percentRemaining))
+                {
+                    perror("Error formatting percent remaining string");
+                }
+                if (0 != safe_strcat(status, SELF_TEST_EXECUTION_STATUS_MAX_LENGTH, percentRemainingString))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating self-test status (truncation likely)");
+                    }
             }
             printf("%-26s  ", status);
             // Error LBA
@@ -2565,12 +2643,19 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_DST_Log_Entries(ptrDstL
             DECLARE_ZERO_INIT_ARRAY(char, errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH);
             if (entries->dstEntry[iter].lbaOfFailure == UINT64_MAX)
             {
-                snprintf_err_handle(errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH, "None");
+                if (0 != safe_strcpy(errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH, "None"))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying DST error LBA string\n");
+                    }
             }
             else
             {
-                snprintf_err_handle(errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH, "%" PRIu64,
-                                    entries->dstEntry[iter].lbaOfFailure);
+                if (0 > snprintf_err_handle(errorLBAString, SELF_TEST_ERROR_LBA_STRING_MAX_LENGTH, "%" PRIu64,
+                                            entries->dstEntry[iter].lbaOfFailure))
+                {
+                    perror("Error formatting DST error LBA string\n");
+                }
             }
             printf("%-14s  ", errorLBAString);
             // Checkpoint/Segment number
@@ -2586,31 +2671,52 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_DST_Log_Entries(ptrDstL
                 DECLARE_ZERO_INIT_ARRAY(char, scVal, NVM_STATUS_CODE_STR_LEN);
                 if (entries->dstEntry[iter].nvmeStatus.statusCodeTypeValid)
                 {
-                    snprintf_err_handle(sctVal, NVM_STATUS_CODE_STR_LEN, "%02" PRIX8 "",
-                                        entries->dstEntry[iter].nvmeStatus.statusCodeType);
+                    if (0 > snprintf_err_handle(sctVal, NVM_STATUS_CODE_STR_LEN, "%02" PRIX8 "",
+                                                entries->dstEntry[iter].nvmeStatus.statusCodeType))
+                    {
+                        perror("Error formatting NVMe DST status code data");
+                    }
                 }
                 else
                 {
-                    snprintf_err_handle(sctVal, NVM_STATUS_CODE_STR_LEN, "NA");
+                    if (0 != safe_strcpy(sctVal, NVM_STATUS_CODE_STR_LEN, "NA"))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying NVMe status code type string for \"NA\"\n");
+                        }
                 }
                 if (entries->dstEntry[iter].nvmeStatus.statusCodeValid)
                 {
-                    snprintf_err_handle(sctVal, NVM_STATUS_CODE_STR_LEN, "%02" PRIX8 "",
-                                        entries->dstEntry[iter].nvmeStatus.statusCode);
+                    if (0 > snprintf_err_handle(sctVal, NVM_STATUS_CODE_STR_LEN, "%02" PRIX8 "",
+                                                entries->dstEntry[iter].nvmeStatus.statusCode))
+                    {
+                        perror("Error formatting NVMe DST status code data");
+                    }
                 }
                 else
                 {
-                    snprintf_err_handle(scVal, NVM_STATUS_CODE_STR_LEN, "NA");
+                    if (0 != safe_strcpy(scVal, NVM_STATUS_CODE_STR_LEN, "NA"))
+                        M_UNLIKELY
+                        {
+                            perror("Error copying NVMe status code type string for \"NA\"\n");
+                        }
                 }
-                snprintf_err_handle(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH, "%s/%s", sctVal, scVal);
+                if (0 > snprintf_err_handle(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH, "%s/%s", sctVal,
+                                            scVal))
+                {
+                    perror("Error formatting NVMe DST sense info string");
+                }
             }
             else
             {
-                snprintf_err_handle(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH,
-                                    "%02" PRIX8 "/%02" PRIX8 "/%02" PRIX8,
-                                    entries->dstEntry[iter].scsiSenseCode.senseKey,
-                                    entries->dstEntry[iter].scsiSenseCode.additionalSenseCode,
-                                    entries->dstEntry[iter].scsiSenseCode.additionalSenseCodeQualifier);
+                if (0 > snprintf_err_handle(senseInfoString, SELF_TEST_SENSE_INFO_STRING_MAX_LENGTH,
+                                            "%02" PRIX8 "/%02" PRIX8 "/%02" PRIX8,
+                                            entries->dstEntry[iter].scsiSenseCode.senseKey,
+                                            entries->dstEntry[iter].scsiSenseCode.additionalSenseCode,
+                                            entries->dstEntry[iter].scsiSenseCode.additionalSenseCodeQualifier))
+                {
+                    perror("Error formatting SCSI DST sense info string");
+                }
             }
             printf("%-9s\n", senseInfoString);
         }

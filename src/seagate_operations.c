@@ -796,7 +796,12 @@ OPENSEA_OPERATIONS_API eReturnValues seagate_Get_Power_Balance(const tDevice* M_
                     }
 
                     // read current values to get enabled/disabled
-                    safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+                    if (0 != safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0,
+                                         MODE_PARAMETER_HEADER_10_LEN + 16))
+                        M_UNLIKELY
+                        {
+                            perror("Error initializing mode page buffer before reading power balance info");
+                        }
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16,
                                                       0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
                     {
@@ -825,7 +830,12 @@ OPENSEA_OPERATIONS_API eReturnValues seagate_Get_Power_Balance(const tDevice* M_
                     }
 
                     // read current values to get enabled/disabled
-                    safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0, MODE_PARAMETER_HEADER_10_LEN + 16);
+                    if (0 != safe_memset(pcModePage, MODE_PARAMETER_HEADER_10_LEN + 16, 0,
+                                         MODE_PARAMETER_HEADER_10_LEN + 16))
+                        M_UNLIKELY
+                        {
+                            perror("Error initializing mode page buffer before reading power balance info");
+                        }
                     if (SUCCESS == scsi_Mode_Sense_10(device, MP_POWER_CONSUMPTION, MODE_PARAMETER_HEADER_10_LEN + 16,
                                                       0x01, true, false, MPC_CURRENT_VALUES, pcModePage))
                     {
@@ -1021,7 +1031,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_Approximate_IDD_Time(const tDevice* M_N
         {
             uint32_t     numberOfLbasInLists = UINT32_C(0);
             smartLogData smartData;
-            safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
+            M_INITIALIZE_STRUCTURE(&smartData, sizeof(smartLogData));
             switch (iddTest)
             {
             case SEAGATE_IDD_SHORT:
@@ -1148,104 +1158,171 @@ OPENSEA_OPERATIONS_API void translate_IDD_Status_To_String(uint8_t         statu
 
     if (translatedString != M_NULLPTR)
     {
-        safe_memset(translatedString, MAX_DST_STATUS_STRING_LENGTH, 0, MAX_DST_STATUS_STRING_LENGTH);
+        if (0 != safe_memset(translatedString, MAX_DST_STATUS_STRING_LENGTH, 0, MAX_DST_STATUS_STRING_LENGTH))
+        {
+            perror("Error clearing translated string buffer for IDD");
+        }
         switch (status)
         {
         case 0x00:
             if (justRanDST)
             {
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "The IDD routine completed without error.");
+                if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                     "The IDD routine completed without error."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             else
             {
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "The previous IDD routine completed without error or no IDD has ever been run.");
+                if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                     "The previous IDD routine completed without error or no IDD has ever been run."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             break;
         case 0x01:
 
-            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                "The IDD routine was aborted by the host.");
+            if (0 !=
+                safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH, "The IDD routine was aborted by the host."))
+                M_UNLIKELY
+                {
+                    perror("Error copying translated string for IDD");
+                }
             break;
         case 0x02:
-            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                "The IDD routine was interrupted by the host with a hardware or software reset.");
+            if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                 "The IDD routine was interrupted by the host with a hardware or software reset."))
+                M_UNLIKELY
+                {
+                    perror("Error copying translated string for IDD");
+                }
             break;
         case 0x03:
-            snprintf_err_handle(
-                translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                "A fatal error or unknown test error occurred while the device was executing its IDD routine and the "
-                "device was unable to complete the IDD routine.");
+            if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                 "A fatal error or unknown test error occurred while the device was executing its IDD "
+                                 "routine and the "
+                                 "device was unable to complete the IDD routine."))
+                M_UNLIKELY
+                {
+                    perror("Error copying translated string for IDD");
+                }
             break;
         case 0x04:
             if (justRanDST)
             {
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The IDD completed having a test element that failed and the test element that failed is not "
-                    "known.");
+                if (0 !=
+                    safe_strcpy(
+                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                        "The IDD completed having a test element that failed and the test element that failed is not "
+                        "known."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             else
             {
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The previous IDD completed having a test element that failed and the test element that failed is "
-                    "not known.");
+                if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                     "The previous IDD completed having a test element that failed and the test "
+                                     "element that failed is "
+                                     "not known."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             break;
         case 0x05:
             if (justRanDST)
             {
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "The IDD completed having the electrical element of the test failed.");
+                if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                     "The IDD completed having the electrical element of the test failed."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             else
             {
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "The previous IDD completed having the electrical element of the test failed.");
+                if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                     "The previous IDD completed having the electrical element of the test failed."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             break;
         case 0x06:
             if (justRanDST)
             {
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The IDD completed having the servo (and/or seek) test element of the test failed.");
+                if (0 !=
+                    safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                "The IDD completed having the servo (and/or seek) test element of the test failed."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             else
             {
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The previous IDD completed having the servo (and/or seek) test element of the test failed.");
+                if (0 !=
+                    safe_strcpy(
+                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                        "The previous IDD completed having the servo (and/or seek) test element of the test failed."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             break;
         case 0x07:
             if (justRanDST)
             {
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "The IDD completed having the read element of the test failed.");
+                if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                     "The IDD completed having the read element of the test failed."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             else
             {
-                snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                                    "The previous IDD completed having the read element of the test failed.");
+                if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                     "The previous IDD completed having the read element of the test failed."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             break;
         case 0x08:
             if (justRanDST)
             {
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The IDD completed having a test element that failed and the device is suspected of having "
-                    "handling damage.");
+                if (0 !=
+                    safe_strcpy(
+                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                        "The IDD completed having a test element that failed and the device is suspected of having "
+                        "handling damage."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             else
             {
-                snprintf_err_handle(
-                    translatedString, MAX_DST_STATUS_STRING_LENGTH,
-                    "The previous IDD completed having a test element that failed and the device is suspected of "
-                    "having handling damage.");
+                if (0 !=
+                    safe_strcpy(
+                        translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                        "The previous IDD completed having a test element that failed and the device is suspected of "
+                        "having handling damage."))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying translated string for IDD");
+                    }
             }
             break;
         case 0x09:
@@ -1254,14 +1331,25 @@ OPENSEA_OPERATIONS_API void translate_IDD_Status_To_String(uint8_t         statu
         case 0x0C:
         case 0x0D:
         case 0x0E:
-            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status.");
+            if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Reserved Status."))
+            {
+                perror("Error copying translated string for IDD");
+            }
             break;
         case 0x0F:
-            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "IDD in progress.");
+            if (0 != safe_strcpy(translatedString, MAX_DST_STATUS_STRING_LENGTH, "IDD in progress."))
+            {
+                perror("Error copying translated string for IDD");
+            }
             break;
         default:
-            snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH, "Error, unknown status: %" PRIX8 "h.",
-                                status);
+            if (0 > snprintf_err_handle(translatedString, MAX_DST_STATUS_STRING_LENGTH,
+                                        "Error, unknown status: %" PRIX8 "h.", status))
+                M_UNLIKELY
+                {
+                    perror("Error formatting unknown IDD status string");
+                }
+            break;
         }
     }
 }
@@ -1412,7 +1500,7 @@ OPENSEA_OPERATIONS_API eReturnValues run_IDD(const tDevice* M_NONNULL device,
     if (is_Seagate_Family(device) != NON_SEAGATE)
     {
         iddSupportedFeatures iddSupport;
-        safe_memset(&iddSupport, sizeof(iddSupportedFeatures), 0, sizeof(iddSupportedFeatures));
+        M_INITIALIZE_STRUCTURE(&iddSupport, sizeof(iddSupportedFeatures));
         switch (IDDtest)
         {
         case SEAGATE_IDD_SHORT:
@@ -1720,8 +1808,12 @@ OPENSEA_OPERATIONS_API eReturnValues get_Power_Telemetry_Data(const tDevice* M_N
         // got the data, now parse it into the correct fields.
         // Everything, but the strings, are reported in little endian by the drive.
         // This makes it easy, so just need to convert to the host's endianness if necessary
-        safe_memset(pwrTelData, sizeof(seagatePwrTelemetry), 0, sizeof(seagatePwrTelemetry));
-        safe_memcpy(pwrTelData->serialNumber, 9, &powerTelemetryLog[0], 8);
+        M_INITIALIZE_STRUCTURE(pwrTelData, sizeof(seagatePwrTelemetry));
+        if (0 != safe_memcpy(pwrTelData->serialNumber, 9, &powerTelemetryLog[0], 8))
+            M_UNLIKELY
+            {
+                perror("Error copying Seagate Power Telemetry serial number");
+            }
         pwrTelData->powerCycleCount = M_BytesTo2ByteValue(powerTelemetryLog[9], powerTelemetryLog[8]);
         // drive timestamps will be reported as uint64 in this structure so that they can be converted to whatever is
         // easy by other users
@@ -1733,7 +1825,11 @@ OPENSEA_OPERATIONS_API eReturnValues get_Power_Telemetry_Data(const tDevice* M_N
                                 powerTelemetryLog[18], powerTelemetryLog[17], powerTelemetryLog[16]);
         pwrTelData->majorRevision = powerTelemetryLog[22];
         pwrTelData->minorRevision = powerTelemetryLog[23];
-        safe_memcpy(pwrTelData->signature, 9, &powerTelemetryLog[24], 8);
+        if (0 != safe_memcpy(pwrTelData->signature, 9, &powerTelemetryLog[24], 8))
+            M_UNLIKELY
+            {
+                perror("Error copying Seagate Power Telemetry signature");
+            }
         pwrTelData->totalMeasurementTimeRequested = M_BytesTo2ByteValue(powerTelemetryLog[33], powerTelemetryLog[32]);
         uint16_t dataLength                       = M_BytesTo2ByteValue(powerTelemetryLog[35], powerTelemetryLog[34]);
         pwrTelData->numberOfMeasurements          = M_BytesTo2ByteValue(powerTelemetryLog[37], powerTelemetryLog[36]);
@@ -2241,57 +2337,87 @@ OPENSEA_OPERATIONS_API void print_smart_log(uint16_t verNo, SmartVendorSpecific 
     if (lastAttr == 1)
     {
 
-        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                            (print_ext_smart_id(VS_ATTR_ID_GB_ERASED_LSB) + 7));
+        if (0 != safe_strcpy(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH,
+                             (print_ext_smart_id(VS_ATTR_ID_GB_ERASED_LSB) + 7)))
+        {
+            perror("Error copying vendor specific SMART data to output string");
+        }
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_GB_ERASED_MSB << 8 | VS_ATTR_ID_GB_ERASED_LSB);
 
-        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "",
-                            msbGbErased, lsbGbErased);
+        if (0 > snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64 "",
+                                    msbGbErased, lsbGbErased))
+        {
+            perror("Error formating old Seagate vendor specific SMART data attributes\n");
+        }
         printf(" %s", buf);
         print_str("\n");
 
-        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                            (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7));
+        if (0 != safe_strcpy(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH,
+                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB) + 7)))
+        {
+            perror("Error copying vendor specific SMART data to output string");
+        }
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_TO_FLASH_LSB);
 
-        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
-                            msbLifWrtToFlash, lsbLifWrtToFlash);
+        if (0 > snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
+                                    msbLifWrtToFlash, lsbLifWrtToFlash))
+        {
+            perror("Error formating old Seagate vendor specific SMART data attributes\n");
+        }
         printf(" %s", buf);
         print_str("\n");
 
-        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                            (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7));
+        if (0 != safe_strcpy(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH,
+                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB) + 7)))
+        {
+            perror("Error copying vendor specific SMART data to output string");
+        }
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_WRITES_FROM_HOST_LSB);
 
-        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
-                            msbLifWrtFrmHost, lsbLifWrtFrmHost);
+        if (0 > snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
+                                    msbLifWrtFrmHost, lsbLifWrtFrmHost))
+        {
+            perror("Error formating old Seagate vendor specific SMART data attributes\n");
+        }
         printf(" %s", buf);
         print_str("\n");
 
-        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                            (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7));
+        if (0 != safe_strcpy(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH,
+                             (print_ext_smart_id(VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB) + 7)))
+        {
+            perror("Error copying vendor specific SMART data to output string");
+        }
         printf("%-40s", strBuf);
 
         printf("%-15d", VS_ATTR_ID_LIFETIME_READS_TO_HOST_MSB << 8 | VS_ATTR_ID_LIFETIME_READS_TO_HOST_LSB);
 
-        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
-                            msbLifRdToHost, lsbLifRdToHost);
+        if (0 > snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
+                                    msbLifRdToHost, lsbLifRdToHost))
+        {
+            perror("Error formating old Seagate vendor specific SMART data attributes\n");
+        }
         printf(" %s", buf);
         print_str("\n");
 
-        snprintf_err_handle(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "%s",
-                            (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7));
+        if (0 != safe_strcpy(strBuf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH,
+                             (print_ext_smart_id(VS_ATTR_ID_TRIM_COUNT_LSB) + 7)))
+        {
+            perror("Error copying vendor specific SMART data to output string");
+        }
         printf("%-40s", strBuf);
         printf("%-15d", VS_ATTR_ID_TRIM_COUNT_MSB << 8 | VS_ATTR_ID_TRIM_COUNT_LSB);
 
-        snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64, msbTrimCnt,
-                            lsbTrimCnt);
+        if (0 > snprintf_err_handle(buf, NVME_PRINT_SMART_LOG_STRING_BUFFER_LENGTH, "0x%016" PRIX64 "%016" PRIX64,
+                                    msbTrimCnt, lsbTrimCnt))
+        {
+            perror("Error formating old Seagate vendor specific SMART data attributes\n");
+        }
         printf(" %s", buf);
         print_str("\n");
     }
@@ -2352,7 +2478,7 @@ get_Ext_Smrt_Log(const tDevice* M_NONNULL device) //, nvmeGetLogPageCmdOpts * ge
         eReturnValues         ret   = SUCCESS;
         int                   index = 0;
         EXTENDED_SMART_INFO_T ExtdSMARTInfo;
-        safe_memset(&ExtdSMARTInfo, sizeof(EXTENDED_SMART_INFO_T), 0x00, sizeof(EXTENDED_SMART_INFO_T));
+        M_INITIALIZE_STRUCTURE(&ExtdSMARTInfo, sizeof(EXTENDED_SMART_INFO_T));
         ret = nvme_Read_Ext_Smt_Log(device, &ExtdSMARTInfo);
         if (ret == SUCCESS)
         {
@@ -2381,7 +2507,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues clr_Pcie_Correctable_Errs(con
         eReturnValues err = SUCCESS;
 
         nvmeFeaturesCmdOpt clearPCIeCorrectableErrors;
-        safe_memset(&clearPCIeCorrectableErrors, sizeof(nvmeFeaturesCmdOpt), 0, sizeof(nvmeFeaturesCmdOpt));
+        M_INITIALIZE_STRUCTURE(&clearPCIeCorrectableErrors, sizeof(nvmeFeaturesCmdOpt));
         clearPCIeCorrectableErrors.fid             = 0xE1;
         clearPCIeCorrectableErrors.featSetGetValue = 0xCB;
         clearPCIeCorrectableErrors.sv              = false;
@@ -2985,9 +3111,13 @@ static void print_Count_Statistics(const char* M_NONNULL statisticsName, seagate
 {
     printf("%-60s", statisticsName);
     if (statistics.isValueValid)
+    {
         printf("%" PRIu32, statistics.statisticsDataValue);
+    }
     else
+    {
         print_str("Not Available");
+    }
     print_str("\n");
 }
 
@@ -3004,7 +3134,9 @@ static void print_TimeStamp_Statistics(const char* M_NONNULL statisticsName, sea
         printf("%" PRIu64 " minutes", timeInMinutes);
     }
     else
+    {
         print_str("Not Available");
+    }
     print_str("\n");
 }
 
@@ -3397,25 +3529,66 @@ OPENSEA_OPERATIONS_API eReturnValues get_Seagate_SCSI_Firmware_Numbers(const tDe
         if (SUCCESS == scsi_Inquiry(device, firmwareNumbersPage, 60, 0xC0, true, false))
         {
             ret = SUCCESS;
-            safe_memcpy(fwNumbers->scsiFirmwareReleaseNumber, FIRMWARE_RELEASE_NUM_LEN + 1, &firmwareNumbersPage[4],
-                        FIRMWARE_RELEASE_NUM_LEN);
-            safe_memcpy(fwNumbers->servoFirmwareReleaseNumber, SERVO_FIRMWARE_RELEASE_NUM_LEN + 1,
-                        &firmwareNumbersPage[12], SERVO_FIRMWARE_RELEASE_NUM_LEN);
-            safe_memcpy(fwNumbers->sapBlockPointNumbers, SAP_BP_NUM_LEN + 1, &firmwareNumbersPage[20], SAP_BP_NUM_LEN);
-            safe_memcpy(fwNumbers->servoFirmmwareReleaseDate, SERVO_FW_RELEASE_DATE_LEN + 1, &firmwareNumbersPage[28],
-                        SERVO_FW_RELEASE_DATE_LEN);
-            safe_memcpy(fwNumbers->servoRomReleaseDate, SERVO_ROM_RELEASE_DATE_LEN + 1, &firmwareNumbersPage[32],
-                        SERVO_ROM_RELEASE_DATE_LEN);
-            safe_memcpy(fwNumbers->sapFirmwareReleaseNumber, SAP_FW_RELEASE_NUM_LEN + 1, &firmwareNumbersPage[36],
-                        SAP_FW_RELEASE_NUM_LEN);
-            safe_memcpy(fwNumbers->sapFirmwareReleaseDate, SAP_FW_RELEASE_DATE_LEN + 1, &firmwareNumbersPage[44],
-                        SAP_FW_RELEASE_DATE_LEN);
-            safe_memcpy(fwNumbers->sapFirmwareReleaseYear, SAP_FW_RELEASE_YEAR_LEN + 1, &firmwareNumbersPage[48],
-                        SAP_FW_RELEASE_YEAR_LEN);
-            safe_memcpy(fwNumbers->sapManufacturingKey, SAP_MANUFACTURING_KEY_LEN + 1, &firmwareNumbersPage[52],
-                        SAP_MANUFACTURING_KEY_LEN);
-            safe_memcpy(fwNumbers->servoFirmwareProductFamilyAndProductFamilyMemberIDs, SERVO_PRODUCT_FAMILY_LEN + 1,
-                        &firmwareNumbersPage[56], SERVO_PRODUCT_FAMILY_LEN);
+            if (0 != safe_memcpy(fwNumbers->scsiFirmwareReleaseNumber, FIRMWARE_RELEASE_NUM_LEN + 1,
+                                 &firmwareNumbersPage[4], FIRMWARE_RELEASE_NUM_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->servoFirmwareReleaseNumber, SERVO_FIRMWARE_RELEASE_NUM_LEN + 1,
+                                 &firmwareNumbersPage[12], SERVO_FIRMWARE_RELEASE_NUM_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->sapBlockPointNumbers, SAP_BP_NUM_LEN + 1, &firmwareNumbersPage[20],
+                                 SAP_BP_NUM_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->servoFirmmwareReleaseDate, SERVO_FW_RELEASE_DATE_LEN + 1,
+                                 &firmwareNumbersPage[28], SERVO_FW_RELEASE_DATE_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->servoRomReleaseDate, SERVO_ROM_RELEASE_DATE_LEN + 1,
+                                 &firmwareNumbersPage[32], SERVO_ROM_RELEASE_DATE_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->sapFirmwareReleaseNumber, SAP_FW_RELEASE_NUM_LEN + 1,
+                                 &firmwareNumbersPage[36], SAP_FW_RELEASE_NUM_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->sapFirmwareReleaseDate, SAP_FW_RELEASE_DATE_LEN + 1,
+                                 &firmwareNumbersPage[44], SAP_FW_RELEASE_DATE_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->sapFirmwareReleaseYear, SAP_FW_RELEASE_YEAR_LEN + 1,
+                                 &firmwareNumbersPage[48], SAP_FW_RELEASE_YEAR_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->sapManufacturingKey, SAP_MANUFACTURING_KEY_LEN + 1,
+                                 &firmwareNumbersPage[52], SAP_MANUFACTURING_KEY_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
+            if (0 != safe_memcpy(fwNumbers->servoFirmwareProductFamilyAndProductFamilyMemberIDs,
+                                 SERVO_PRODUCT_FAMILY_LEN + 1, &firmwareNumbersPage[56], SERVO_PRODUCT_FAMILY_LEN))
+                M_UNLIKELY
+                {
+                    perror("Error copying Seagate firmware numbers data!");
+                }
         }
     }
     return ret;

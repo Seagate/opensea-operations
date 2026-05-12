@@ -407,10 +407,17 @@ void op_emit_progress_cb(custom_Update M_NONNULL updateFunc,
                          const char* M_NULLABLE  unit)
 {
     op_json_message json_message;
-    safe_memset(&json_message, sizeof(op_json_message), 0, sizeof(op_json_message));
-    safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION);
-    safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
-                 OP_JSON_OPERATION_NAME_SIZE - 1);
+    M_INITIALIZE_STRUCTURE(&json_message, sizeof(op_json_message));
+    M_IGNORE_SAFE_ERRNO_CALL(safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION),
+                             "Always provides size via enum value used in the destination structure. String version "
+                             "will be less than this size and will not overflow the destination.");
+    if (0 != safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
+                          OP_JSON_OPERATION_NAME_SIZE - 1))
+    {
+        perror("Error copying operation_name for JSON message. Operation name may be too long.");
+        // Note: not returning since this should be ok, even though er received an error as this will lead to an empty
+        // name, but we should allow execution to continue and emit whatever we can.
+    }
     json_message.type             = OP_JSON_TYPE_PROGRESS;
     json_message.has_percent      = true;
     json_message.percent_complete = percent;
@@ -418,7 +425,12 @@ void op_emit_progress_cb(custom_Update M_NONNULL updateFunc,
     if (unit)
     {
         json_message.has_unit = true;
-        safe_strncpy(json_message.unit, OP_JSON_UNIT_SIZE, unit, OP_JSON_UNIT_SIZE - 1);
+        if (0 != safe_strncpy(json_message.unit, OP_JSON_UNIT_SIZE, unit, OP_JSON_UNIT_SIZE - 1))
+        {
+            perror("Error copying unit for JSON message. Unit may be too long.");
+            // Note: not returning since this should be ok and allow returning whatever partial information we can.
+            json_message.has_unit = false;
+        }
     }
 
     op_emit_json_callback(&json_message, updateFunc, updateCtx);
@@ -432,10 +444,17 @@ void op_emit_error_lba_cb(custom_Update M_NONNULL updateFunc,
                           const char* M_NULLABLE  message)
 {
     op_json_message json_message;
-    safe_memset(&json_message, sizeof(op_json_message), 0, sizeof(op_json_message));
-    safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION);
-    safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
-                 OP_JSON_OPERATION_NAME_SIZE - 1);
+    M_INITIALIZE_STRUCTURE(&json_message, sizeof(op_json_message));
+    M_IGNORE_SAFE_ERRNO_CALL(safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION),
+                             "Always provides size via enum value used in the destination structure. String version "
+                             "will be less than this size and will not overflow the destination.");
+    if (0 != safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
+                          OP_JSON_OPERATION_NAME_SIZE - 1))
+    {
+        perror("Error copying operation_name for JSON message. Operation name may be too long.");
+        // Note: not returning since this should be ok, even though er received an error as this will lead to an empty
+        // name, but we should allow execution to continue and emit whatever we can.
+    }
     json_message.type        = OP_JSON_TYPE_ERROR;
     json_message.has_lba     = true;
     json_message.lba         = lba;
@@ -445,7 +464,12 @@ void op_emit_error_lba_cb(custom_Update M_NONNULL updateFunc,
     if (message)
     {
         json_message.has_message = true;
-        safe_strncpy(json_message.message, OP_JSON_MESSAGE_SIZE, message, OP_JSON_MESSAGE_SIZE - 1);
+        if (0 != safe_strncpy(json_message.message, OP_JSON_MESSAGE_SIZE, message, OP_JSON_MESSAGE_SIZE - 1))
+        {
+            perror("Error copying message for JSON message. Message may be too long.");
+            // Note: not returning since this should be ok and allow returning whatever partial information we can.
+            json_message.has_message = false;
+        }
     }
 
     op_emit_json_callback(&json_message, updateFunc, updateCtx);
@@ -457,16 +481,28 @@ void op_emit_step_cb(custom_Update M_NONNULL updateFunc,
                      const char* M_NONNULL   step_message)
 {
     op_json_message json_message;
-    safe_memset(&json_message, sizeof(op_json_message), 0, sizeof(op_json_message));
-    safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION);
-    safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
-                 OP_JSON_OPERATION_NAME_SIZE - 1);
+    M_INITIALIZE_STRUCTURE(&json_message, sizeof(op_json_message));
+    M_IGNORE_SAFE_ERRNO_CALL(safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION),
+                             "Always provides size via enum value used in the destination structure. String version "
+                             "will be less than this size and will not overflow the destination.");
+    if (0 != safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
+                          OP_JSON_OPERATION_NAME_SIZE - 1))
+    {
+        perror("Error copying operation_name for JSON message. Operation name may be too long.");
+        // Note: not returning since this should be ok, even though er received an error as this will lead to an empty
+        // name, but we should allow execution to continue and emit whatever we can.
+    }
     json_message.type = OP_JSON_TYPE_STEP;
 
     if (step_message)
     {
         json_message.has_message = true;
-        safe_strncpy(json_message.message, OP_JSON_MESSAGE_SIZE, step_message, OP_JSON_MESSAGE_SIZE - 1);
+        if (0 != safe_strncpy(json_message.message, OP_JSON_MESSAGE_SIZE, step_message, OP_JSON_MESSAGE_SIZE - 1))
+        {
+            perror("Error copying step_message for JSON message. Step message may be too long.");
+            // Note: not returning since this should be ok and allow returning whatever partial information we can.
+            json_message.has_message = false;
+        }
     }
 
     op_emit_json_callback(&json_message, updateFunc, updateCtx);
@@ -486,17 +522,29 @@ void op_emit_lba_cb(custom_Update M_NONNULL updateFunc,
                     const char* M_NULLABLE  action)
 {
     op_json_message json_message;
-    safe_memset(&json_message, sizeof(op_json_message), 0, sizeof(op_json_message));
-    safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION);
-    safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
-                 OP_JSON_OPERATION_NAME_SIZE - 1);
+    M_INITIALIZE_STRUCTURE(&json_message, sizeof(op_json_message));
+    M_IGNORE_SAFE_ERRNO_CALL(safe_strcpy(json_message.schema_version, OP_JSON_SCHEMA_VER_SIZE, OP_JSON_SCHEMA_VERSION),
+                             "Always provides size via enum value used in the destination structure. String version "
+                             "will be less than this size and will not overflow the destination.");
+    if (0 != safe_strncpy(json_message.operation_name, OP_JSON_OPERATION_NAME_SIZE, operation_name,
+                          OP_JSON_OPERATION_NAME_SIZE - 1))
+    {
+        perror("Error copying operation_name for JSON message. Operation name may be too long.");
+        // Note: not returning since this should be ok, even though er received an error as this will lead to an empty
+        // name, but we should allow execution to continue and emit whatever we can.
+    }
     json_message.type    = OP_JSON_TYPE_STATUS;
     json_message.has_lba = true;
     json_message.lba     = lba;
     if (action)
     {
         json_message.has_message = true;
-        safe_strncpy(json_message.message, OP_JSON_MESSAGE_SIZE, action, OP_JSON_MESSAGE_SIZE - 1);
+        if (0 != safe_strncpy(json_message.message, OP_JSON_MESSAGE_SIZE, action, OP_JSON_MESSAGE_SIZE - 1))
+        {
+            perror("Error copying action message for JSON message. Action message may be too long.");
+            // Note: not returning since this should be ok and allow returning whatever partial information we can.
+            json_message.has_message = false;
+        }
     }
 
     op_emit_json_callback(&json_message, updateFunc, updateCtx);

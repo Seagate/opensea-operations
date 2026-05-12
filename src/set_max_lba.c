@@ -93,7 +93,7 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA_2(const tDevice* M_NONNULL
 {
     eReturnValues           ret = UNKNOWN;
     modifyScsiBlkDescFields blkdescMods;
-    safe_memset(&blkdescMods, sizeof(modifyScsiBlkDescFields), 0, sizeof(modifyScsiBlkDescFields));
+    M_INITIALIZE_STRUCTURE(&blkdescMods, sizeof(modifyScsiBlkDescFields));
     if (changeId)
     {
         blkdescMods.deviceSpecific |= BIT5; // set the CAPPID bit
@@ -114,7 +114,7 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Max_LBA_2(const tDevice* M_NONNULL
     if (ret == SUCCESS)
     {
         readCapacityData readCapData;
-        safe_memset(&readCapData, sizeof(readCapacityData), 0, sizeof(readCapacityData));
+        M_INITIALIZE_STRUCTURE(&readCapData, sizeof(readCapacityData));
         if (SUCCESS == scsi_Read_Capacity_Cmd_Helper(device, &readCapData))
         {
             set_Device_MaxLba(M_CONST_CAST(tDevice*, device), readCapData.returnedLBA);
@@ -277,7 +277,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues restore_Max_LBA_For_Erase(con
         uint64_t currentMaxLBA      = return_Device_MaxLba(device);
         uint64_t hpaamacMax         = UINT64_C(0);
         dcoData  dcoIDData;
-        safe_memset(&dcoIDData, sizeof(dcoData), 0, sizeof(dcoData));
+        M_INITIALIZE_STRUCTURE(&dcoIDData, sizeof(dcoData));
         if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word083)) &&
             le16_to_host(device->drive_info.IdentifyData.ata.Word083) & BIT8)
         {
@@ -431,7 +431,7 @@ static uint64_t get_SCSI_MaxLBA(const tDevice* M_NONNULL device)
 {
     uint64_t         maxLBA = UINT64_C(0);
     readCapacityData readCapData;
-    safe_memset(&readCapData, sizeof(readCapacityData), 0, sizeof(readCapacityData));
+    M_INITIALIZE_STRUCTURE(&readCapData, sizeof(readCapacityData));
     if (SUCCESS == scsi_Read_Capacity_Cmd_Helper(device, &readCapData))
     {
         maxLBA = readCapData.returnedLBA;
@@ -607,10 +607,24 @@ OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_M
 #else
                         uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
 #endif
-                        safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1, 0,
-                                    mnLimit + 1);
-                        safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
-                                    &capMNMappingLog[offset + 8], mnLimit);
+                        if (0 != safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber,
+                                             MODEL_NUM_LEN + 1, 0, mnLimit + 1))
+                            M_UNLIKELY
+                            {
+                                perror("Error clearing MN before setting");
+                                safe_free_cap_mn_map(&capModelMapping);
+                                safe_free_aligned(&capMNMappingLog);
+                                return M_NULLPTR;
+                            }
+                        if (0 != safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber,
+                                             MODEL_NUM_LEN + 1, &capMNMappingLog[offset + 8], mnLimit))
+                            M_UNLIKELY
+                            {
+                                perror("Error setting MN from log");
+                                safe_free_cap_mn_map(&capModelMapping);
+                                safe_free_aligned(&capMNMappingLog);
+                                return M_NULLPTR;
+                            }
                         for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
                         {
                             if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||
@@ -670,10 +684,24 @@ OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_M
                             1; // Need to -1 for SCSI so that this will match the -i report. If this is not done, then
                                // we end up with 1 less than the value provided.
                         uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
-                        safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1, 0,
-                                    mnLimit + 1);
-                        safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
-                                    &capProdIDMappingVPD[offset + 8], mnLimit);
+                        if (0 != safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber,
+                                             MODEL_NUM_LEN + 1, 0, mnLimit + 1))
+                            M_UNLIKELY
+                            {
+                                perror("Error clearing MN before setting");
+                                safe_free_cap_mn_map(&capModelMapping);
+                                safe_free_aligned(&capProdIDMappingVPD);
+                                return M_NULLPTR;
+                            }
+                        if (0 != safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber,
+                                             MODEL_NUM_LEN + 1, &capProdIDMappingVPD[offset + 8], mnLimit))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying MN");
+                                safe_free_cap_mn_map(&capModelMapping);
+                                safe_free_aligned(&capProdIDMappingVPD);
+                                return M_NULLPTR;
+                            }
                         for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
                         {
                             if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||

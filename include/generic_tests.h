@@ -673,7 +673,7 @@ extern "C"
                                                               void* M_NULLABLE         updateData,
                                                               bool                     hideLBACounter);
 
- //-----------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------
     //
     //  user_Sequential_Test_LBA_Error_List()
     //
@@ -707,18 +707,18 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues user_Sequential_Test_LBA_Error_List(const tDevice* M_NONNULL device,
-                                                              eRWVCommandType                     rwvCommand,
-                                                              uint64_t                            startingLBA,
-                                                              uint64_t                            range,
-                                                              uint16_t                            errorLimit,
-                                                              bool                                stopOnError,
-                                                              bool                                repairOnTheFly,
-                                                              bool                                repairAtEnd,
-                                                              custom_Update M_NULLABLE            updateFunction,
-                                                              void* M_NULLABLE                    updateData,
-                                                              bool                                hideLBACounter,
-                                                              errorLBA* M_NONNULL * M_NONNULL     errorList,
-                                                              uint16_t* M_NONNULL                 errorListSize);
+                                                                             eRWVCommandType          rwvCommand,
+                                                                             uint64_t                 startingLBA,
+                                                                             uint64_t                 range,
+                                                                             uint16_t                 errorLimit,
+                                                                             bool                     stopOnError,
+                                                                             bool                     repairOnTheFly,
+                                                                             bool                     repairAtEnd,
+                                                                             custom_Update M_NULLABLE updateFunction,
+                                                                             void* M_NULLABLE         updateData,
+                                                                             bool                     hideLBACounter,
+                                                                             errorLBA* M_NONNULL* M_NONNULL errorList,
+                                                                             uint16_t* M_NONNULL errorListSize);
 
     //-----------------------------------------------------------------------------
     //

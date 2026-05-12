@@ -60,7 +60,7 @@ static bool scsi_Buffer_Commands_Supported(const tDevice* M_NONNULL device)
     // Only asking about read buffer command, since write buffer will likely be implemented for at least FWDL, so if
     // this is supported, the equivalent write buffer command should also be supported
     scsiOperationCodeInfoRequest readBufSupReq;
-    safe_memset(&readBufSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    M_INITIALIZE_STRUCTURE(&readBufSupReq, sizeof(scsiOperationCodeInfoRequest));
     readBufSupReq.operationCode      = READ_BUFFER_CMD;
     readBufSupReq.serviceActionValid = false;
     eSCSICmdSupport readBufSupport   = is_SCSI_Operation_Code_Supported(device, &readBufSupReq);
@@ -295,7 +295,10 @@ static void perform_Byte_Pattern_Test(const tDevice*        device,
                 break;
             }
             // now read back the pattern
-            safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize);
+            if (0 != safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize))
+            {
+                perror("Error clearing return buffer before reuse.");
+            }
             eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
@@ -359,11 +362,17 @@ static void perform_Walking_Test(const tDevice*        device,
             // set the pattern
             if (walkingZeros)
             {
-                safe_memset(patternBuffer, deviceBufferSize, 0xFF, deviceBufferSize);
+                if (0 != safe_memset(patternBuffer, deviceBufferSize, 0xFF, deviceBufferSize))
+                {
+                    perror("Error setting pattern buffer to 0xFF before use.");
+                }
             }
             else
             {
-                safe_memset(patternBuffer, deviceBufferSize, 0, deviceBufferSize);
+                if (0 != safe_memset(patternBuffer, deviceBufferSize, 0, deviceBufferSize))
+                {
+                    perror("Error zeroing pattern buffer before use.");
+                }
             }
             if (bitNumber > 7)
             {
@@ -376,13 +385,17 @@ static void perform_Walking_Test(const tDevice*        device,
                     break;
                 }
             }
+            // Casting note for setting/clearing bits: bitNumber needs to be uint8_t into these functions, but it uint32
+            // above. The if before here (bitNumber > 7) ensures we don't overflow the uint8_t range so this cast is
+            // safe
             if (walkingZeros)
             {
-                patternBuffer[byteNumber] ^= M_BitN(bitNumber); // exclusive or should turn this bit to a zero
+                patternBuffer[byteNumber] =
+                    clear_uint8_bit(patternBuffer[byteNumber], M_STATIC_CAST(uint8_t, bitNumber));
             }
             else
             {
-                patternBuffer[byteNumber] |= M_BitN(bitNumber);
+                patternBuffer[byteNumber] = set_uint8_bit(patternBuffer[byteNumber], M_STATIC_CAST(uint8_t, bitNumber));
             }
             eReturnValues wbResult = send_Write_Buffer_Command(device, patternBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
@@ -412,7 +425,10 @@ static void perform_Walking_Test(const tDevice*        device,
                 break;
             }
             // now read back the pattern
-            safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize);
+            if (0 != safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize))
+            {
+                perror("Error clearing return buffer before reuse.");
+            }
             eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
@@ -501,7 +517,10 @@ static void perform_Random_Pattern_Test(const tDevice*        device,
                 break;
             }
             // now read back the pattern
-            safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize);
+            if (0 != safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize))
+            {
+                perror("Error clearing return buffer before reuse.");
+            }
             eReturnValues rbResult = send_Read_Buffer_Command(device, returnBuffer, deviceBufferSize);
             ++(testResults->totalCommandsSent);
             switch (rbResult)
@@ -594,7 +613,7 @@ OPENSEA_OPERATIONS_API eReturnValues perform_Cable_Test(const tDevice* M_NONNULL
             DECLARE_SEATIMER(totalTestingTime);
             // drive supports the read/write buffer commands we need and we know what size the buffer is we can test
             // with. now we need to begin testing.
-            safe_memset(testResults, sizeof(cableTestResults), 0, sizeof(cableTestResults));
+            M_INITIALIZE_STRUCTURE(testResults, sizeof(cableTestResults));
             // first, lets do some simple data patterns (0's, F's, 5's, A's)
             start_Timer(&totalTestingTime);
             for (uint8_t count = UINT8_C(0); count < ALL_0_TEST_COUNT; ++count)

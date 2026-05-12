@@ -429,70 +429,75 @@ M_PARAM_RW(2)
 static void translate_CDL_Performance_Vs_Command_Completion_Field_To_String(uint8_t         cmdCompletionField,
                                                                             char* M_NONNULL translatedString)
 {
+    int snprintfres = 0;
     switch (cmdCompletionField)
     {
     case 0x00:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 0%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 0%%", cmdCompletionField);
         break;
     case 0x01:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 0.5%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 0.5%%", cmdCompletionField);
         break;
     case 0x02:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 1.0%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 1.0%%", cmdCompletionField);
         break;
     case 0x03:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 1.5%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 1.5%%", cmdCompletionField);
         break;
     case 0x04:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 2.0%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 2.0%%", cmdCompletionField);
         break;
     case 0x05:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 2.5%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 2.5%%", cmdCompletionField);
         break;
     case 0x06:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 3%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 3%%", cmdCompletionField);
         break;
     case 0x07:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 4%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 4%%", cmdCompletionField);
         break;
     case 0x08:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 5%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 5%%", cmdCompletionField);
         break;
     case 0x09:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 8%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 8%%", cmdCompletionField);
         break;
     case 0x0A:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 10%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 10%%", cmdCompletionField);
         break;
     case 0x0B:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 15%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 15%%", cmdCompletionField);
         break;
     case 0x0C:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", 20%%", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", 20%%", cmdCompletionField);
         break;
     case 0x0D:
     case 0x0E:
     case 0x0F:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", Reserved", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", Reserved", cmdCompletionField);
         break;
     default:
-        snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
-                            "0x%02" PRIX8 ", Unknown", cmdCompletionField);
+        snprintfres = snprintf_err_handle(translatedString, MAX_CDL_PERFORMANCE_VS_CMD_COMPLETION_STATUS_STRING_LENGTH,
+                                          "0x%02" PRIX8 ", Unknown", cmdCompletionField);
         break;
+    }
+    if (snprintfres < 0)
+    {
+        perror("Error formatting CDL performance vs Command Completion string\n");
     }
 }
 
@@ -502,42 +507,44 @@ static void translate_Policy_To_String(eDriveType      driveType,
                                        uint8_t         policyField,
                                        char* M_NONNULL translatedString)
 {
+    int snprintfres = 0;
     if (policyType == CDL_POLICY_TYPE_TOTAL_TIME || policyType == CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE)
     {
         switch (policyField)
         {
         case 0x00:
-            snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                "0x%02" PRIX8 ", When time exceeded, device completes the command as soon as possible",
-                                policyField);
+            snprintfres = snprintf_err_handle(
+                translatedString, MAX_POLICY_STRING_LENGHT,
+                "0x%02" PRIX8 ", When time exceeded, device completes the command as soon as possible", policyField);
             break;
         case 0x01:
-            snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                "0x%02" PRIX8 ", When time exceeded, uses next descriptor to extend time limit",
-                                policyField);
+            snprintfres = snprintf_err_handle(
+                translatedString, MAX_POLICY_STRING_LENGHT,
+                "0x%02" PRIX8 ", When time exceeded, uses next descriptor to extend time limit", policyField);
             break;
         case 0x02:
-            snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                "0x%02" PRIX8
-                                ", When time exceeded, continue processing command and disregard latency requirements",
-                                policyField);
+            snprintfres = snprintf_err_handle(
+                translatedString, MAX_POLICY_STRING_LENGHT,
+                "0x%02" PRIX8 ", When time exceeded, continue processing command and disregard latency requirements",
+                policyField);
             break;
         case 0x0D:
-            snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                "0x%02" PRIX8
-                                ", When time exceeded, device completes the command without error and sense code "
-                                "set to \"Data Currently Unavailable\"",
-                                policyField);
+            snprintfres = snprintf_err_handle(
+                translatedString, MAX_POLICY_STRING_LENGHT,
+                "0x%02" PRIX8 ", When time exceeded, device completes the command without error and sense code "
+                "set to \"Data Currently Unavailable\"",
+                policyField);
             break;
         case 0x0F:
-            snprintf_err_handle(
+            snprintfres = snprintf_err_handle(
                 translatedString, MAX_POLICY_STRING_LENGHT,
                 "0x%02" PRIX8
                 ", When time exceeded, device returns command abort and sense code describing command timeout",
                 policyField);
             break;
         default:
-            snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT, "0x%02" PRIX8 ", Reserved", policyField);
+            snprintfres = snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT, "0x%02" PRIX8 ", Reserved",
+                                              policyField);
             break;
         }
     }
@@ -549,40 +556,41 @@ static void translate_Policy_To_String(eDriveType      driveType,
             if (driveType == ATA_DRIVE)
             {
                 if (policyType == CDL_POLICY_TYPE_INACTIVE_TIME)
-                    snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                        "0x%02" PRIX8 ", The device ignores the INACTIVE TIME LIMIT field",
-                                        policyField);
+                    snprintfres = snprintf_err_handle(
+                        translatedString, MAX_POLICY_STRING_LENGHT,
+                        "0x%02" PRIX8 ", The device ignores the INACTIVE TIME LIMIT field", policyField);
                 else
-                    snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                        "0x%02" PRIX8 ", The device ignores the ACTIVE TIME LIMIT field", policyField);
+                    snprintfres = snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
+                                                      "0x%02" PRIX8 ", The device ignores the ACTIVE TIME LIMIT field",
+                                                      policyField);
             }
             else if (driveType == SCSI_DRIVE)
             {
-                snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                    "0x%02" PRIX8 ", The device completes the command at the earliest possible time",
-                                    policyField);
+                snprintfres = snprintf_err_handle(
+                    translatedString, MAX_POLICY_STRING_LENGHT,
+                    "0x%02" PRIX8 ", The device completes the command at the earliest possible time", policyField);
             }
             break;
         case 0x0D:
-            snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
-                                "0x%02" PRIX8
-                                ", When time exceeded, device completes the command without error and sense code "
-                                "set to \"Data Currently Unavailable\"",
-                                policyField);
+            snprintfres = snprintf_err_handle(
+                translatedString, MAX_POLICY_STRING_LENGHT,
+                "0x%02" PRIX8 ", When time exceeded, device completes the command without error and sense code "
+                "set to \"Data Currently Unavailable\"",
+                policyField);
             break;
         case 0x0E:
             if (driveType == ATA_DRIVE)
             {
-                snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT, "0x%02" PRIX8 ", Reserved",
-                                    policyField);
+                snprintfres = snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
+                                                  "0x%02" PRIX8 ", Reserved", policyField);
             }
             else if (driveType == SCSI_DRIVE)
             {
                 if (policyType == CDL_POLICY_TYPE_INACTIVE_TIME)
-                    snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT, "0x%02" PRIX8 ", Reserved",
-                                        policyField);
+                    snprintfres = snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT,
+                                                      "0x%02" PRIX8 ", Reserved", policyField);
                 else
-                    snprintf_err_handle(
+                    snprintfres = snprintf_err_handle(
                         translatedString, MAX_POLICY_STRING_LENGHT,
                         "0x%02" PRIX8
                         ", When time exceeded, device returns command abort and sense code describing command timeout",
@@ -590,16 +598,21 @@ static void translate_Policy_To_String(eDriveType      driveType,
             }
             break;
         case 0x0F:
-            snprintf_err_handle(
+            snprintfres = snprintf_err_handle(
                 translatedString, MAX_POLICY_STRING_LENGHT,
                 "0x%02" PRIX8
                 ", When time exceeded, device returns command abort and sense code describing command timeout",
                 policyField);
             break;
         default:
-            snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT, "0x%02" PRIX8 ", Reserved", policyField);
+            snprintfres = snprintf_err_handle(translatedString, MAX_POLICY_STRING_LENGHT, "0x%02" PRIX8 ", Reserved",
+                                              policyField);
             break;
         }
+    }
+    if (snprintfres < 0)
+    {
+        perror("Error formatting CDL policy string\n");
     }
 }
 
@@ -1172,12 +1185,16 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
             case CDL_POLICY_TYPE_INACTIVE_TIME:
             case CDL_POLICY_TYPE_ACTIVE_TIME:
                 if (policyField == 0x00 || policyField == 0x0D || policyField == 0x0F)
+                {
                     return true;
+                }
                 break;
 
             case CDL_POLICY_TYPE_TOTAL_TIME:
                 if (policyField <= 0x02 || policyField == 0x0D || policyField == 0x0F)
+                {
                     return true;
+                }
                 break;
 
             default:
@@ -1191,67 +1208,93 @@ static bool is_Valid_Supported_Policy(eDriveType     driveType,
             {
             case 0x03:
                 if (policySupportedDescriptor & M_BitN16(3))
+                {
                     return true;
+                }
                 break;
 
             case 0x04:
                 if (policySupportedDescriptor & M_BitN16(4))
+                {
                     return true;
+                }
                 break;
 
             case 0x05:
                 if (policySupportedDescriptor & M_BitN16(5))
+                {
                     return true;
+                }
                 break;
 
             case 0x06:
                 if (policySupportedDescriptor & M_BitN16(6))
+                {
                     return true;
+                }
                 break;
 
             case 0x07:
                 if (policySupportedDescriptor & M_BitN16(7))
+                {
                     return true;
+                }
                 break;
 
             case 0x08:
                 if (policySupportedDescriptor & M_BitN16(8))
+                {
                     return true;
+                }
                 break;
 
             case 0x09:
                 if (policySupportedDescriptor & M_BitN16(9))
+                {
                     return true;
+                }
                 break;
 
             case 0x0A:
                 if (policySupportedDescriptor & M_BitN16(10))
+                {
                     return true;
+                }
                 break;
 
             case 0x0B:
                 if (policySupportedDescriptor & M_BitN16(11))
+                {
                     return true;
+                }
                 break;
 
             case 0x0C:
                 if (policySupportedDescriptor & M_BitN16(12))
+                {
                     return true;
+                }
                 break;
 
             case 0x0D:
                 if (policySupportedDescriptor & M_BitN16(13))
+                {
                     return true;
+                }
                 break;
 
             case 0x0E:
                 if (policySupportedDescriptor & M_BitN16(14))
+                {
                     return true;
+                }
                 break;
 
             case 0x0F:
                 if (policySupportedDescriptor & M_BitN16(15))
+                {
                     return true;
+                }
                 break;
 
             default:
@@ -1640,11 +1683,19 @@ OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType      driveTyp
             {
             case CDL_POLICY_TYPE_INACTIVE_TIME:
             case CDL_POLICY_TYPE_ACTIVE_TIME:
-                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x0D,0x0F");
+                if (0 != safe_strcpy(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x00,0x0D,0x0F"))
+                    M_UNLIKELY
+                    {
+                        perror("Error setting CDL policy string");
+                    }
                 break;
 
             case CDL_POLICY_TYPE_TOTAL_TIME:
-                snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x01,0x02,0x0D,0x0F");
+                if (0 != safe_strcpy(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x00,0x01,0x02,0x0D,0x0F"))
+                    M_UNLIKELY
+                    {
+                        perror("Error setting CDL policy string");
+                    }
                 break;
 
             default:
@@ -1656,80 +1707,210 @@ OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType      driveTyp
             if (policySupportedDescriptor & M_BitN16(3))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x03");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x03"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(4))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x04");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x04"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(5))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x05");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x05"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(6))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x06");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x06"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(7))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x07");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x07"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(8))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x08");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x08"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(9))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x09");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x09"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(10))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0A");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0A"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(11))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0B");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0B"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(12))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0C");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0C"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(13))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0D");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0D"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(14))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0E");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0E"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
             if (policySupportedDescriptor & M_BitN16(15))
             {
                 if (safe_strlen(policyString) > 0)
-                    safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ",");
-                safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0F");
+                {
+                    if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, ","))
+                        M_UNLIKELY
+                        {
+                            perror("Error concatenating \",\" in CDL policy info");
+                        }
+                }
+                if (0 != safe_strcat(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x0F"))
+                    M_UNLIKELY
+                    {
+                        perror("Error concatenating CDL policy value to policy string");
+                    }
             }
         }
     }
@@ -1738,17 +1919,28 @@ OPENSEA_OPERATIONS_API void get_Supported_Policy_String(eDriveType      driveTyp
         switch (policyType)
         {
         case CDL_POLICY_TYPE_INACTIVE_TIME:
-            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s", "0x00,0x03,0x04,0x05,0x0D,0x0F");
+            if (0 != safe_strcpy(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x00,0x03,0x04,0x05,0x0D,0x0F"))
+                M_UNLIKELY
+                {
+                    perror("Error setting CDL policy string");
+                }
             break;
 
         case CDL_POLICY_TYPE_ACTIVE_TIME:
-            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
-                                "0x00,0x03,0x04,0x05,0x0D,0x0E,0x0F");
+            if (0 != safe_strcpy(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x00,0x03,0x04,0x05,0x0D,0x0E,0x0F"))
+                M_UNLIKELY
+                {
+                    perror("Error setting CDL policy string");
+                }
             break;
 
         case CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE:
-            snprintf_err_handle(policyString, SUPPORTED_POLICY_STRING_LENGTH, "%s",
-                                "0x00,0x01,0x02,0x03,0x04,0x05,0x0D,0x0F");
+            if (0 !=
+                safe_strcpy(policyString, SUPPORTED_POLICY_STRING_LENGTH, "0x00,0x01,0x02,0x03,0x04,0x05,0x0D,0x0F"))
+                M_UNLIKELY
+                {
+                    perror("Error setting CDL policy string");
+                }
             break;
 
         default:

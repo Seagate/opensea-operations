@@ -74,7 +74,7 @@ OPENSEA_OPERATIONS_API bool is_Write_Same_Supported(const tDevice* M_NONNULL dev
         // for scsi ask for supported op code and look for write same 16....we don't care about the 10 byte or
         // 32byte commands right now
         scsiOperationCodeInfoRequest writeSameSupReq;
-        safe_memset(&writeSameSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+        M_INITIALIZE_STRUCTURE(&writeSameSupReq, sizeof(scsiOperationCodeInfoRequest));
         writeSameSupReq.operationCode      = WRITE_SAME_16_CMD;
         writeSameSupReq.serviceActionValid = false;
         eSCSICmdSupport writeSameSupport   = is_SCSI_Operation_Code_Supported(device, &writeSameSupReq);

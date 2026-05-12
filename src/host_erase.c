@@ -96,8 +96,13 @@ OPENSEA_OPERATIONS_API eReturnValues erase_Range(const tDevice* M_NONNULL device
             }
             else
             {
-                safe_memset(&writeBuffer[adjustmentBytes], dataLength - adjustmentBytes, 0,
-                            dataLength - adjustmentBytes);
+                if (0 != safe_memset(&writeBuffer[adjustmentBytes], dataLength - adjustmentBytes, 0,
+                                     dataLength - adjustmentBytes))
+                {
+                    perror("Error clearing buffer for erase");
+                    safe_free_aligned(&writeBuffer);
+                    return MEMORY_FAILURE;
+                }
             }
             if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {
@@ -144,8 +149,14 @@ OPENSEA_OPERATIONS_API eReturnValues erase_Range(const tDevice* M_NONNULL device
                         }
                         else
                         {
-                            safe_memset(writeBuffer, dataLength, 0,
-                                        C_CAST(uint32_t, (eraseRangeEnd - iter) * get_Device_BlockSize(device)));
+                            if (0 !=
+                                safe_memset(writeBuffer, dataLength, 0,
+                                            C_CAST(uint32_t, (eraseRangeEnd - iter) * get_Device_BlockSize(device))))
+                            {
+                                perror("Error clearing buffer for erase");
+                                safe_free_aligned(&writeBuffer);
+                                return MEMORY_FAILURE;
+                            }
                         }
                     }
                 }
@@ -254,8 +265,13 @@ OPENSEA_OPERATIONS_API eReturnValues erase_Time(const tDevice* M_NONNULL device,
             }
             else
             {
-                safe_memset(&writeBuffer[adjustmentBytes], dataLength - adjustmentBytes, 0,
-                            dataLength - adjustmentBytes);
+                if (0 != safe_memset(&writeBuffer[adjustmentBytes], dataLength - adjustmentBytes, 0,
+                                     dataLength - adjustmentBytes))
+                {
+                    perror("Error clearing buffer for erase");
+                    safe_free_aligned(&writeBuffer);
+                    return MEMORY_FAILURE;
+                }
             }
             if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
             {

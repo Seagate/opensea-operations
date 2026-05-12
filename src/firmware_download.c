@@ -237,7 +237,7 @@ OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL 
 
         bool             automaticModeDetection = false;
         supportedDLModes fwdlSupport;
-        safe_memset(&fwdlSupport, sizeof(supportedDLModes), 0, sizeof(supportedDLModes));
+        M_INITIALIZE_STRUCTURE(&fwdlSupport, sizeof(supportedDLModes));
         fwdlSupport.version = SUPPORTED_FWDL_MODES_VERSION;
         fwdlSupport.size    = sizeof(supportedDLModes);
         get_Supported_FWDL_Modes(device, &fwdlSupport);
@@ -257,7 +257,7 @@ OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL 
         // send test unit ready to determine if spinup command is required. If it is, send the SCSI start-stop unit
         // command to do the spinup.
         scsiStatus turStatus;
-        safe_memset(&turStatus, sizeof(scsiStatus), 0, sizeof(scsiStatus));
+        M_INITIALIZE_STRUCTURE(&turStatus, sizeof(scsiStatus));
         scsi_Test_Unit_Ready(device, &turStatus); // Note: Not checking for success because we want to evaluate the
                                                   // received sense data ourselves in this case-TJE
         if (turStatus.senseKey == SENSE_KEY_NOT_READY)
@@ -991,8 +991,12 @@ static eReturnValues get_NVMe_Supported_FWDL_Modes(const tDevice* M_NONNULL     
                  slotIter <= UINT32_C(7) /*max of 7 slots in spec and structure*/ && offset < UINT32_C(512);
                  ++slotIter, offset += UINT32_C(8))
             {
-                safe_memcpy(supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision, 9,
-                            &firmwareLog[offset], 8);
+                if (0 != safe_memcpy(supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision, 9,
+                                     &firmwareLog[offset], 8))
+                {
+                    perror("Failed to copy firmware slot revision");
+                    return MEMORY_FAILURE;
+                }
                 supportedModes->firmwareSlotInfo.slotRevisionInfo[slotIter].revision[8] = '\0';
             }
         }
@@ -1225,7 +1229,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Supported_FWDL_Modes(const tDevice
 {
     eReturnValues                ret = SUCCESS;
     scsiOperationCodeInfoRequest writeBufSupReq;
-    safe_memset(&writeBufSupReq, sizeof(scsiOperationCodeInfoRequest), 0, sizeof(scsiOperationCodeInfoRequest));
+    M_INITIALIZE_STRUCTURE(&writeBufSupReq, sizeof(scsiOperationCodeInfoRequest));
     writeBufSupReq.operationCode      = WRITE_BUFFER_CMD;
     writeBufSupReq.serviceActionValid = true;
     writeBufSupReq.serviceAction      = SCSI_WB_DL_MICROCODE_SAVE_ACTIVATE;
@@ -1682,8 +1686,9 @@ OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL  
                 print_str("Firmware Slot Info:\n");
                 for (uint8_t counter = UINT8_C(0); counter < supportedModes->firmwareSlotInfo.numberOfSlots; ++counter)
                 {
-                    // slot number, read only?, active slot?, next active slot?, firmware revision in that slot
-                    DECLARE_ZERO_INIT_ARRAY(char, slotRevision, 14);
+// slot number, read only?, active slot?, next active slot?, firmware revision in that slot
+#define FIRMWARE_SLOT_STRING_REVISION_LENGTH 14
+                    DECLARE_ZERO_INIT_ARRAY(char, slotRevision, FIRMWARE_SLOT_STRING_REVISION_LENGTH);
                     printf("\tSlot %" PRIu8, counter + 1);
                     if ((counter + 1) == 1 && supportedModes->firmwareSlotInfo.slot1ReadOnly)
                     {
@@ -1700,12 +1705,20 @@ OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL  
                     }
                     if (safe_strlen(supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
                     {
-                        snprintf_err_handle(slotRevision, 14, "%s",
-                                            supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision);
+                        if (0 != safe_strcpy(slotRevision, FIRMWARE_SLOT_STRING_REVISION_LENGTH,
+                                             supportedModes->firmwareSlotInfo.slotRevisionInfo[counter].revision))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying firmware slot revision string");
+                            }
                     }
                     else
                     {
-                        snprintf_err_handle(slotRevision, 14, "Not Available");
+                        if (0 != safe_strcpy(slotRevision, FIRMWARE_SLOT_STRING_REVISION_LENGTH, "Not Available"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying firmware slot revision string");
+                            }
                     }
                     printf(": %s\n", slotRevision);
                 }
@@ -1723,7 +1736,6 @@ OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL  
     }
 }
 
-M_NONNULL_PARAM_LIST(1)
 M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice* M_NONNULL device,
                                                       uint16_t                 requestedSize,

@@ -242,7 +242,11 @@ static void get_ATA_Security_Info_ID_Data_Log(const tDevice* M_NONNULL       dev
     {
         if (get_ATA_Log_Size_From_Directory(securityPage, ATA_LOG_IDENTIFY_DEVICE_DATA) > 0)
         {
-            safe_memset(&securityPage, 512, 0, 512);
+            if (0 != safe_memset(securityPage, 512, 0, 512))
+                M_UNLIKELY
+                {
+                    perror("Error clearing security page buffer before reusing.");
+                }
             // IDData log suppored. Read first page to see if security subpage (06h) is supported
             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
                                                      ATA_ID_DATA_LOG_SUPPORTED_PAGES, securityPage, 512, 0))
@@ -261,7 +265,11 @@ static void get_ATA_Security_Info_ID_Data_Log(const tDevice* M_NONNULL       dev
                         {
                         case ATA_ID_DATA_LOG_SECURITY:
                             foundSecurityPage = true;
-                            safe_memset(securityPage, 512, 0, 512);
+                            if (0 != safe_memset(securityPage, 512, 0, 512))
+                                M_UNLIKELY
+                                {
+                                    perror("Error clearing security page buffer before reusing.");
+                                }
                             if (SUCCESS == send_ATA_Read_Log_Ext_Cmd(device, ATA_LOG_IDENTIFY_DEVICE_DATA,
                                                                      ATA_ID_DATA_LOG_SECURITY, securityPage, 512, 0))
                             {
@@ -568,8 +576,13 @@ OPENSEA_OPERATIONS_API void set_ATA_Security_Password_In_Buffer(uint8_t* M_NONNU
     if (ptrData != M_NULLPTR && ataPassword != M_NULLPTR)
     {
         // copy the password in, but the max length is 32 bytes according to the spec!
-        safe_memcpy(&ptrData[2], 510, ataPassword->password,
-                    M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH));
+        if (0 != safe_memcpy(&ptrData[2], 510, ataPassword->password,
+                             M_Min(ataPassword->passwordLength, ATA_SECURITY_MAX_PW_LENGTH)))
+            M_UNLIKELY
+            {
+                // handle error
+                perror("Error copying ATA security password into buffer.");
+            }
         if (setPassword) // if setting the password in the set password command, we need to set a few other things up
         {
             // set master password capability
@@ -819,7 +832,7 @@ OPENSEA_OPERATIONS_API eReturnValues run_Disable_ATA_Security_Password(const tDe
     if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+        M_INITIALIZE_STRUCTURE(&securityStatus, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -920,7 +933,7 @@ OPENSEA_OPERATIONS_API eReturnValues run_Freeze_ATA_Security(const tDevice* M_NO
     if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+        M_INITIALIZE_STRUCTURE(&securityStatus, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -968,7 +981,7 @@ OPENSEA_OPERATIONS_API eReturnValues run_Unlock_ATA_Security(const tDevice* M_NO
     if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+        M_INITIALIZE_STRUCTURE(&securityStatus, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -1063,7 +1076,7 @@ OPENSEA_OPERATIONS_API eReturnValues run_Set_ATA_Security_Password(const tDevice
     if (get_Device_DriveType(device) == ATA_DRIVE || satATASecuritySupported)
     {
         ataSecurityStatus securityStatus;
-        safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+        M_INITIALIZE_STRUCTURE(&securityStatus, sizeof(ataSecurityStatus));
         get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
         if (securityStatus.securitySupported)
         {
@@ -1172,7 +1185,11 @@ static void print_ATA_Security_Erase_Start_Info_To_Screen(eATASecurityEraseType 
         }
         print_Time_To_Screen(M_NULLPTR, &days, &hours, &minutes, &seconds);
         print_str("from now.\n");
-        safe_memset(timeFormat, TIME_STRING_LENGTH, 0, TIME_STRING_LENGTH); // clear this again before reusing it
+        if (0 != safe_memset(timeFormat, TIME_STRING_LENGTH, 0, TIME_STRING_LENGTH))
+            M_UNLIKELY
+            {
+                perror("Error clearing time format buffer before reusing.");
+            }
         printf("\tEstimated completion Time : %s",
                get_Current_Time_String(C_CAST(const time_t*, &futureTime), timeFormat, TIME_STRING_LENGTH));
     }
@@ -1259,7 +1276,7 @@ static void clear_Password_After_Erase_Failure(const tDevice* M_NONNULL device,
         {
             DECLARE_ZERO_INIT_ARRAY(uint8_t, iddata, LEGACY_DRIVE_SEC_SIZE);
             unlock_ATA_Security(device, ataPassword, satATASecuritySupported);
-            safe_memset(&finalSecurityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+            M_INITIALIZE_STRUCTURE(&finalSecurityStatus, sizeof(ataSecurityStatus));
             ata_Identify(device, iddata, LEGACY_DRIVE_SEC_SIZE);
             get_ATA_Security_Info(device, &finalSecurityStatus, satATASecuritySupported);
         }
@@ -1383,8 +1400,8 @@ OPENSEA_OPERATIONS_API eReturnValues run_ATA_Security_Erase(const tDevice* M_NON
     uint16_t          eraseTimeMinutes = UINT16_C(0);
     ataSecurityStatus securityStatus;
     ataSecurityStatus finalSecurityStatus;
-    safe_memset(&securityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
-    safe_memset(&finalSecurityStatus, sizeof(ataSecurityStatus), 0, sizeof(ataSecurityStatus));
+    M_INITIALIZE_STRUCTURE(&securityStatus, sizeof(ataSecurityStatus));
+    M_INITIALIZE_STRUCTURE(&finalSecurityStatus, sizeof(ataSecurityStatus));
     get_ATA_Security_Info(device, &securityStatus, satATASecuritySupported);
     if (securityStatus.securitySupported)
     {

@@ -74,7 +74,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues dco_Restore(const tDevice* M_
         {
             // check if frozen or not using a DCO identify
             dcoData dcoDataForTestingFrozen;
-            safe_memset(&dcoDataForTestingFrozen, sizeof(dcoData), 0, sizeof(dcoData));
+            M_INITIALIZE_STRUCTURE(&dcoDataForTestingFrozen, sizeof(dcoData));
             if (SUCCESS != dco_Identify(device, &dcoDataForTestingFrozen))
             {
                 ret = FROZEN;

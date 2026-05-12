@@ -73,8 +73,12 @@ OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(const tDevice* M_NONNU
                 if (currentAttribute.attributeNumber > 0 && currentAttribute.attributeNumber < 255)
                 {
                     smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].valid = true;
-                    safe_memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].data,
-                                sizeof(ataSMARTAttribute), &currentAttribute, sizeof(ataSMARTAttribute));
+                    if (0 != safe_memcpy(
+                                 &smartAttrs->attributes.ataSMARTAttr.attributes[currentAttribute.attributeNumber].data,
+                                 sizeof(ataSMARTAttribute), &currentAttribute, sizeof(ataSMARTAttribute)))
+                    {
+                        perror("Error copying SMART attribute data");
+                    }
                     // check if it's warrantied (This should work on Seagate drives at least)
                     if (currentAttribute.status & ATA_SMART_STATUS_FLAG_PREFAIL_ADVISORY)
                     {
@@ -83,7 +87,11 @@ OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(const tDevice* M_NONNU
                     }
                 }
             }
-            safe_memset(ATAdataBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE);
+            if (0 != safe_memset(ATAdataBuffer, LEGACY_DRIVE_SEC_SIZE, 0, LEGACY_DRIVE_SEC_SIZE))
+                M_UNLIKELY
+                {
+                    perror("Error zeroing SMART data buffer before reading thresholds");
+                }
             if (SUCCESS == ata_SMART_Read_Thresholds(device, ATAdataBuffer, LEGACY_DRIVE_SEC_SIZE))
             {
                 ataSMARTThreshold currentThreshold;
@@ -106,9 +114,13 @@ OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(const tDevice* M_NONNU
                     {
                         smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber]
                             .thresholdDataValid = true;
-                        safe_memcpy(&smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber]
-                                         .thresholdData,
-                                    sizeof(ataSMARTThreshold), &currentThreshold, sizeof(ataSMARTThreshold));
+                        if (0 != safe_memcpy(
+                                     &smartAttrs->attributes.ataSMARTAttr.attributes[currentThreshold.attributeNumber]
+                                          .thresholdData,
+                                     sizeof(ataSMARTThreshold), &currentThreshold, sizeof(ataSMARTThreshold)))
+                        {
+                            perror("Error copying threshold data");
+                        }
                     }
                 }
             }
@@ -138,113 +150,149 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
                                                char* M_NONNULL* M_NULLABLE attributeName)
 {
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
+    errno_t        error          = 0;
     /*
     I broke the attribute name finder apart because sometimes there's overlap and sometimes there isn't.
     Also, this will let me name the attributes according to the respective specs for each drive.
     */
     // NOTE: I don't like that this function isn't taking a length in, but all uses are matching this define. It SHOULD
     // be safe enough, but that is something we may need to reconsider in the future-TJE
-    safe_memset(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH);
+    if (0 != safe_memset(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
+        M_UNLIKELY
+        {
+            perror("Error clearing attribute name buffer before setting attribute name.");
+        }
     switch (isSeagateDrive)
     {
     case SEAGATE:
         switch (attributeNumber)
         {
         case 1: // read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
             break;
         case 3: // spin up time
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+
             break;
         case 4: // start stop count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+
             break;
         case 5: // retired sectors count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+
             break;
         case 7: // Seek Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+
             break;
         case 9: // Power on Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 10: // Spin Retry Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+
             break;
         case 12: // Drive Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         case 18: // Read Error Rate self test
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Health Self Assessment");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Health Self Assessment");
+
             break;
         case 174: // Unexpected Power Loss Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+
             break;
         case 183: // PHY Counter Events
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "PHY Counter Events");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "PHY Counter Events");
+
             break;
         case 184: // IOEDC Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "IOEDC Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "IOEDC Count");
+
             break;
         case 187: // Reported Un-correctable
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+
             break;
         case 188: // Command Timeout
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+
             break;
         case 189: // High Fly Writes
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "High Fly Writes");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "High Fly Writes");
+
             break;
         case 190: // Airflow Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
+
             break;
         case 191: // Shock Sensor Counter
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
+
             break;
         case 192: // Emergency Retract Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
+
             break;
         case 193: // Load-Unload Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
+
             break;
         case 194: // Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+
             break;
         case 195: // ECC On the Fly Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+
             break;
         case 197: // Pending-Sparing Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
+
             break;
-        case 198: // offline Uncorrectable Sector Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sector Count");
+        case 198: // Offline Uncorrectable Sector Count
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sector Count");
+
             break;
         case 199: // Ultra DMA CRC Error
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+
             break;
         case 200: // Pressure Measurement Limit
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pressure Measurement Limit");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pressure Measurement Limit");
+
             break;
         case 230: // Life Curve Status
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Life Curve Status");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Life Curve Status");
+
             break;
         case 231: // SSD Life Left
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+
             break;
         case 235: // SSD Power Loss Mgmt Life Left
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Power Less Mgmt Life Left");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Power Less Mgmt Life Left");
+
             break;
         case 240: // Head flight Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+
             break;
         case 241: // Lifetime Writes from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+
             break;
         case 242: // Lifetime Reads from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+
             break;
         case 254: // Free Fall Event
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Event");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Event");
+
             break;
         default:
             break;
@@ -254,53 +302,70 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
     case SEAGATE_VENDOR_E: // with Seagate for now. Might move sometime
         switch (attributeNumber)
         {
-        case 1: // read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+        case 1: // Read Error Rate
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+
             break;
         case 5: // retired sectors count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+            if (0 != safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count"))
+            {
+                perror("Error Copying seagate_vendor_d/e attribute for Retired Sectors Count");
+            }
             break;
         case 9: // Power on Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 12: // Drive Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
             break;
         case 171: // Program Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+
             break;
         case 172: // Erase Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+
             break;
         case 181: // Program Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+
             break;
         case 182: // Erase Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+
             break;
         case 194: // Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+
             break;
         case 201: // Soft Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
+
             break;
         case 204: // Soft ECC Correction Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
+
             break;
         case 231: // SSD Life Left
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+
             break;
         case 234: // Lifetime Write to Flash
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes To Flash in GiB");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes To Flash in GiB");
+
             break;
         case 241: // Lifetime Writes from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
+
             break;
         case 242: // Lifetime Reads from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
+
             break;
         case 250: // Lifetime NAND Read Retries
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
+
             break;
         default:
             break;
@@ -310,109 +375,144 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+
             break;
         case 2: // Throughput Performance
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
+
             break;
         case 3: // spin up time
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+
             break;
         case 4: // start stop count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+
             break;
         case 5: // retired sectors count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+
             break;
         case 7: // Seek Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+
             break;
         case 8: // seek time performance.
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
+
             break;
         case 9: // Power on Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 10: // Spin Retry Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+
             break;
         case 11: // calibration retry count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
+
             break;
         case 12: // Drive Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         case 180: // End to End Error Detection
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End to End Error Detection");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End to End Error Detection");
+
             break;
         case 181: // Unaligned Access
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unaligned Access");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unaligned Access");
+
             break;
         case 183: // SATA Interface Downshift
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Interface Downshift");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Interface Downshift");
+
             break;
         case 184: // End to End detection
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Detection");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Detection");
+
             break;
         case 187: // Reported Un-correctable
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+
             break;
         case 188: // Command Timeout
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+
             break;
         case 190: // Airflow Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
+
             break;
         case 191: // Shock Sensor Counter
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
+
             break;
         case 192: // Emergency Retract Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
+
             break;
         case 193: // Load-Unload Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
+
             break;
         case 194: // Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+
             break;
         case 195: // ECC On the Fly Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+
             break;
         case 196: // Re-allocate Sector Event
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
+
             break;
         case 197: // Pending-Sparing Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending Sector Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending Sector Count");
+
             break;
         case 198: // offlince uncorrectable sectors
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sectors");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sectors");
+
             break;
         case 199: // Ultra DMA CRC Error
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+
             break;
         case 200: // Write Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
+
             break;
         case 201: // Soft Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
+
             break;
         case 223: // Load Retry Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Retry Count");
+
             break;
         case 225: // Load Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Cycle Count");
+
             break;
         case 240: // Head Fly Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+
             break;
         case 241: // Total Write Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Write Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Write Count");
+
             break;
         case 242: // Total Read Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Read Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Read Count");
+
             break;
         case 254: // Free fall Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Count");
+
             break;
         default:
             break;
@@ -423,149 +523,196 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // raw read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+
             break;
         case 2: // throughput performance
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
+
             break;
         case 3: // spin-up time
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+
             break;
         case 4: // start/stop count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+
             break;
         case 5: // Reallocated Sector Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+
             break;
         case 6: // start/stop count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+
             break;
         case 7: // seek error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+
             break;
         case 8: // seek time performance
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
+
             break;
         case 9: // power on hours
             // internal spec says this is minutes, but not sure which drives report in minutes.
             // Old drives I have tested seem to do hours. may need to use revision number
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-On Hours");
+
             break;
         case 10: // spin-up retry count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin-Up Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin-Up Retry Count");
+
             break;
         case 11: // calibration retry count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
+
             break;
         case 12: // power cycle count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+
             break;
         case 13: // soft read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
+
             break;
         case 192: // power-off retract cycle count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle Count");
+
             break;
         case 193: // Load/Unload Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
+
             break;
         case 194: // HDA Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "HDA Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "HDA Temperature");
+
             break;
         case 195: // Hardware ECC Recovered
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Hardware ECC Recovered");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Hardware ECC Recovered");
+
             break;
         case 196: // Reallocated Event Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Event Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Event Count");
+
             break;
         case 197: // Current Pending Sector Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
+
             break;
         case 198: // Offline Scan Uncorrectable Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Count");
+
             break;
         case 199: // UltraDMA CRC Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error Rate");
+
             break;
         case 200: // Write Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
+
             break;
         case 201: // Soft Read Error Rate
             // off track errors is an alternate name
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
+
             break;
         case 202: // Data Addres Mark Errors
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Data Address Mark Errors");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Data Address Mark Errors");
+
             break;
         case 203: // run out cancel
             // ECC errors is an alternate name
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Run Out Cancel");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Run Out Cancel");
+
             break;
         case 204: // Soft ECC Correction
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction");
+
             break;
         case 205: // Thermal Asperity Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Thermal Asperity Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Thermal Asperity Rate");
+
             break;
         case 206: // Flying Height
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flying Height");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flying Height");
+
             break;
         case 207: // Spin High Current
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin High Current");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin High Current");
+
             break;
         case 208: // Spin Buzz
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Buzz");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Buzz");
+
             break;
         case 209: // Offline Seek Performance
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Seek Performance");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Seek Performance");
+
             break;
         case 210: // Vibration during Write
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Write");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Write");
+
             break;
         case 211: // Vibration during Read
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Read");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Read");
+
             break;
         case 212: // Shock during Write
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock During Write");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock During Write");
+
             break;
         case 220: // Disk Shift
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Disk Shift");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Disk Shift");
+
             break;
         case 221: // G-Sense Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "G-Sense Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "G-Sense Error Rate");
+
             break;
         case 222: // Loaded Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Loaded Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Loaded Hours");
+
             break;
         case 223: // Load/Unload Retry Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Retry Count");
+
             break;
         case 224: // Load Friction
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Friction");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Friction");
+
             break;
         case 225: // Load/Unload Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
+
             break;
         case 226: // Load-in Time
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-In Time");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-In Time");
+
             break;
         case 227: // Torque Amplification Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Torque Amplification Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Torque Amplification Count");
+
             break;
         case 228: // Power-Off Retract Cycle
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle");
+
             break;
         case 230: // GMR Head Amplitude
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "GMR Head Amplitude");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "GMR Head Amplitude");
+
             break;
         case 231: // Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+
             break;
         case 240: // Head Flying Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flying Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flying Hours");
+
             break;
         case 250: // Read Error Retry Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
+
             break;
         default:
             break;
@@ -576,159 +723,191 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+
             break;
         case 5: // retired block count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Block Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Block Count");
+
             break;
         case 9: // Power on Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 12: // Drive Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         case 100: // Total Erase Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+
             break;
         case 168: // Min Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Min Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Min Power Cycle Count");
+
             break;
         case 169: // Max power cycle count (seagate-vendor-b-c)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Power Cycle Count");
+
             break;
         case 171: // Program Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+
             break;
         case 172: // Erase Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+
             break;
         case 174: // Unexpected Power Loss Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+
             break;
         case 175: // Maximum Program Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Program Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Program Fail Count");
+
             break;
         case 176: // Maximum Erase Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Fail Count");
+
             break;
         case 177: // Wear Leveling Count
             if (isSeagateDrive == SEAGATE_VENDOR_B)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Leveling Count");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Leveling Count");
             }
             else if (isSeagateDrive == SEAGATE_VENDOR_C)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Endurance Used");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Endurance Used");
             }
             break;
         case 178: // Used Reserved Block Count for The Worst Die
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Chip)");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Chip)");
+
             break;
         case 179: // Used Reserved Block Count for SSD
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Total)");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Total)");
+
             break;
         case 180: // reported IOEDC Error In Interval (Seagate/Samsung), End to End Error Detection Rate
             if (isSeagateDrive == SEAGATE_VENDOR_C)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Rate");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Rate");
             }
             else if (isSeagateDrive == SEAGATE_VENDOR_B)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unused Reserved Block Count (Total)");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unused Reserved Block Count (Total)");
             }
             break;
         case 181: // Program Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+
             break;
         case 182: // Erase Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+
             break;
         case 183: // PHY Counter Events (Seagate), SATA Downshift Count (Seagate-vendor-b-c)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Downshift Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Downshift Count");
+
             break;
         case 184: // IOEDC Count (Seagate), End to End Error Detection Count (Seagate-vendor-b-c)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Count");
+
             break;
         case 187: // Reported Un-correctable
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+
             break;
         case 188: // Command Timeout
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+
             break;
         case 190: // Airflow Temperature (Seagate), SATA Error Counters (Seagate-vendor-b-c)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Error Counters");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Error Counters");
+
             break;
         case 194: // Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+
             break;
         case 195: // ECC On the Fly Count (Seagate)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+
             break;
         case 196: // Re-allocate Sector Event
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
+
             break;
         case 197: // Pending-Sparing Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
+
             break;
         case 198: // offlince uncorrectable sectors
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Sectors");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Sectors");
+
             break;
         case 199: // Ultra DMA CRC Error
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+
             break;
         case 201: // Uncorrectable Read Error Rate (Seagate-vendor-b-c)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Rate");
+
             break;
         case 204: // Soft ECC Correction Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
+
             break;
         case 212: // Phy Error Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Phy Error Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Phy Error Count");
+
             break;
         case 231: // SSD Life Left
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+
             break;
         case 234: //
             if (isSeagateDrive == SEAGATE_VENDOR_B)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
             }
             else if (isSeagateDrive == SEAGATE_VENDOR_C)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vendor Specific");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vendor Specific");
             }
             break;
         case 241: // Lifetime Writes from Host
             if (isSeagateDrive == SEAGATE_VENDOR_B)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
             }
             else if (isSeagateDrive == SEAGATE_VENDOR_C)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
             }
             break;
         case 242: // Lifetime Reads from Host
             if (isSeagateDrive == SEAGATE_VENDOR_B)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
             }
             else if (isSeagateDrive == SEAGATE_VENDOR_C)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
             }
             break;
         case 245: // SSD Life Left (%)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left %%");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left %%");
+
             break;
         case 250: // Lifetime NAND Read Retries
             if (isSeagateDrive == SEAGATE_VENDOR_B)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
             }
             else if (isSeagateDrive == SEAGATE_VENDOR_C)
             {
-                snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
+                error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
             }
             break;
         default:
@@ -739,67 +918,88 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // UECC error count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "UECC Error count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "UECC Error count");
+
             break;
         case 9: // Power on Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 12: // Drive Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         case 16: // Spare Blocks Available
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spare Blocks Available");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spare Blocks Available");
+
             break;
         case 17: // Remaining Spare Blocks
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Spare Blocks");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Spare Blocks");
+
             break;
         case 168: // Sata Phy Error Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Sata Phy Error Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Sata Phy Error Count");
+
             break;
         case 170: // Bad Block Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Bad Block Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Bad Block Count");
+
             break;
         case 173: // Erase Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Count");
+
             break;
         case 174: // Unexpected Power Loss Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+
             break;
         case 177: // Wear Range Delta
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
+
             break;
         case 192: // Unexpected power loss count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power loss Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power loss Count");
+
             break;
         case 194: // Primary Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
+
             break;
         case 218: // CRC Error Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "CRC Error Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "CRC Error Count");
+
             break;
         case 231: // SSD Life Left
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+
             break;
         case 232: // Read failure block count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Failure Block Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Failure Block Count");
+
             break;
         case 233: // NAND GiB written
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
+
             break;
         case 234: // NAND sectors read
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Read");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Read");
+
             break;
         case 235: // NAND sectors written
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Written");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Written");
+
             break;
         case 241: // Lifetime Writes from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+
             break;
         case 242: // Lifetime Reads from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+
             break;
         case 246: // Write Protect Detail
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
+
             break;
         default:
             break;
@@ -809,91 +1009,120 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // Raw Read Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+
             break;
         case 5: // Reallocated Sector Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+
             break;
         case 9: // Power on Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 11: // Power Fail Event Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Fail Event Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Fail Event Count");
+
             break;
         case 12: // Drive Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         case 100: // Flash Gigabytes Erased
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flash Gigabytes Erased");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flash Gigabytes Erased");
+
             break;
         case 101: // Lifetime DevSleep Exit Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime DevSleep Exit Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime DevSleep Exit Count");
+
             break;
         case 102: // Lifetime PS4 Entry Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS4 Entry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS4 Entry Count");
+
             break;
         case 103: // Lifetime PS3 Exit Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS3 Exit Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS3 Exit Count");
+
             break;
         case 170: // Grown Bad Block Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Grown Bad Block Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Grown Bad Block Count");
+
             break;
         case 171: // Program Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+
             break;
         case 172: // Erase Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+
             break;
         case 173: // Average Program/Erase Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Program/Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Program/Erase Count");
+
             break;
         case 174: // Unexpected Power Loss Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+
             break;
         case 177: // Wear Range Delta
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
+
             break;
         case 183: // SATA/PCIe Interface Downshift Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA/PCIe Interface Downshift Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA/PCIe Interface Downshift Count");
+
             break;
         case 184: // End-To-End CRC Error Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End-To-End CRC Error Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End-To-End CRC Error Count");
+
             break;
         case 187: // Uncorrectable ECC Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable ECC Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable ECC Count");
+
             break;
         case 194: // Primary Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
+
             break;
         case 195: // RAISE ECC Correctable Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "RAISE ECC Correctable Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "RAISE ECC Correctable Count");
+
             break;
         case 198: // Uncorrectable Read Error Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Count");
+
             break;
         case 199: // SATA R-Error (CRC) Error Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA R-Error (CRC) Error Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA R-Error (CRC) Error Count");
+
             break;
         case 230: // Drive Life Protection Status
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Life Protection Status");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Life Protection Status");
+
             break;
         case 231: // SSD Life Left
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+
             break;
         case 232: // Available Reserved Space
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Available Reserved Space");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Available Reserved Space");
+
             break;
         case 233: // Lifetime Writes to Flash
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes to Flash");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes to Flash");
+
             break;
-        case 241: // Lifetime Writes from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+        case 241: // Lifetime Writes From Host
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+
             break;
         case 242: // Lifetime Reads from Host
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+
             break;
         case 243: // Free Space
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Space");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Space");
+
             break;
         default:
             break;
@@ -904,25 +1133,32 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1:
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Firm Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Firm Error Rate");
+
             break;
         case 3:
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+
             break;
         case 4:
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Count");
+
             break;
         case 5:
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors");
+
             break;
         case 7:
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+
             break;
         case 10:
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retries");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retries");
+
             break;
         case 12:
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         default:
             break;
@@ -932,91 +1168,120 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+
             break;
         case 5: // reallocated sector count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+
             break;
         case 9: // power on hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 12: // power cycle count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+
             break;
         case 160: // Uncorrectable Sector Count during r/w
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Sector Count - R/W");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Sector Count - R/W");
+
             break;
         case 161: // Number of valid spare blocks
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Valid Spare Blocks");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Valid Spare Blocks");
+
             break;
         case 163: // number of invalid blocks
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Invalid Blocks");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Invalid Blocks");
+
             break;
         case 164: // Total erase count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+
             break;
         case 165: // Maximum erase count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+
             break;
         case 166: // Minimum erase count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Minimum Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Minimum Erase Count");
+
             break;
         case 167: // average erase count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+
             break;
         case 168: // Max erase count of spec
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Erase Count of Spec");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Erase Count of Spec");
+
             break;
         case 169: // remaining life
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Life");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Life");
+
             break;
         case 172: // Erase fail count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+
             break;
         case 173: // reserved
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reserved");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reserved");
+
             break;
         case 181: // Total Program Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Program Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Program Fail Count");
+
             break;
         case 182: // Total Erase Fail Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Fail Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Fail Count");
+
             break;
         case 187: // Uncorrectable error count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Error Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Error Count");
+
             break;
         case 192: // power off retract count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Off Retract Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Off Retract Count");
+
             break;
         case 194: // temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+
             break;
         case 196: // reallocation event count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocation Event Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocation Event Count");
+
             break;
         case 218: // USB 3.0 recovery count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "USB 3.0 Recovery Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "USB 3.0 Recovery Count");
+
             break;
         case 231: // SSD Life Left
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+
             break;
         case 233: // NAND Write (32MB units)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND Written");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND Written");
+
             break;
         case 241: // Total LBA Written (32MB units)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
+
             break;
         case 242: // Total LBA Read (32MB units)
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
+
             break;
         case 244: // Average Erase count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+
             break;
         case 245: // maximum erase count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+
             break;
         case 246: // Total Erase Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+
             break;
         default:
             break;
@@ -1026,28 +1291,36 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // read error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+
             break;
         case 3: // spin up time
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+
             break;
         case 4: // start-stop count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start-Stop Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start-Stop Count");
+
             break;
         case 5: // Reallocated sector count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+
             break;
         case 7: // seek error rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+
             break;
         case 9: // power on hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 11: // recal retry count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Recalibration Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Recalibration Retry Count");
+
             break;
         case 12: // drive power cycle count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         default:
             break;
@@ -1057,43 +1330,59 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL    devic
         switch (attributeNumber)
         {
         case 1: // Read Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+
             break;
         case 3: // Spin Up Time
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+
             break;
         case 4: // Start/Stop Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+
             break;
         case 5: // Retired Sectors Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+
             break;
         case 7: // Seek Error Rate
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+
             break;
         case 9: // Power On Hours
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+
             break;
         case 10: // Spin Retry Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+
             break;
         case 12: // Drive Power Cycle Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+
             break;
         case 187: // Reported Un-correctable
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+
             break;
         case 194: // Temperature
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+
             break;
         case 197: // Pending-Sparing Count
-            snprintf_err_handle(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
+            error = safe_strcpy(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
+
             break;
         default:
             break;
         }
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            perror("Error setting attribute name");
+        }
 }
 
 M_PARAM_RW(2)
@@ -1105,51 +1394,74 @@ OPENSEA_OPERATIONS_API void get_Raw_Field_Unit_String(eATAAttributeRawFieldUnitT
     {
         return;
     }
-    safe_memset(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, 0, MAX_RAW_FEILD_UNIT_STRING_LENGTH);
+    errno_t error = 0;
+    if (0 != safe_memset(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, 0, MAX_RAW_FEILD_UNIT_STRING_LENGTH))
+        M_UNLIKELY
+        {
+            perror("Error clearing unit string buffer");
+        }
     switch (uintType)
     {
     case RAW_FIELD_UNIT_TIME_IN_MILLISECONDS:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "ms");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "ms");
+
         break;
     case RAW_FIELD_UNIT_TIME_IN_SECONDS:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "sec");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "sec");
+
         break;
     case RAW_FIELD_UNIT_TIME_IN_MINUTE:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "min");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "min");
+
         break;
     case RAW_FIELD_UNIT_TIME_IN_HOURS:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "hr");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "hr");
+
         break;
     case RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "C");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "C");
+
         break;
     case RAW_FIELD_UNIT_GB:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "GB");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "GB");
+
         break;
     case RAW_FIELD_UNIT_MB:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "MB");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "MB");
+
         break;
     case RAW_FIELD_UNIT_GiB:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "GiB");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "GiB");
+
         break;
     case RAW_FIELD_UNIT_MiB:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "MiB");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "MiB");
+
         break;
     case RAW_FIELD_UNIT_SECTORS:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "Sectors");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "Sectors");
+
         break;
     case RAW_FIELD_UNIT_PERCENTAGE:
-        snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "%%");
+        error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "%");
+
         break;
     case RAW_FIELD_UNIT_COUNT:
         if (isShortName)
-            snprintf_err_handle(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "Count");
+        {
+            error = safe_strcpy(*unitString, MAX_RAW_FEILD_UNIT_STRING_LENGTH, "Count");
+        }
         break;
     case RAW_FIELD_UNIT_NONE:
     case RAW_FIELD_UNIT_LBA:
     default:
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            perror("Error setting raw field unit string (truncation likely)");
+        }
 }
 
 M_DECLARE_ENUM(eRawFieldStartEndBit,
@@ -1239,21 +1551,23 @@ static void get_ata_Attribute_Threshold_From_Threshold_Data(uint8_t             
     }
     else
     {
+        errno_t error                = 0;
         thresholdInfo->thresholdType = THRESHOLD_SET;
         // if we get the valid threshold value, then evalute the Fail status
         if (thresholdValue >= nominal)
         {
+
             if (isWarrantied)
             {
                 thresholdInfo->currentFailStatus = FAIL_STATUS_ATTRIBUTE_FAILING;
-                safe_strcpy(thresholdInfo->currentFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
-                            "Attribute is currently failing.");
+                error = safe_strcpy(thresholdInfo->currentFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                                    "Attribute is currently failing.");
             }
             else
             {
                 thresholdInfo->currentFailStatus = FAIL_STATUS_ATTRIBUTE_WARNING;
-                safe_strcpy(thresholdInfo->currentFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
-                            "Attribute is currently issuing warning.");
+                error = safe_strcpy(thresholdInfo->currentFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                                    "Attribute is currently issuing warning.");
             }
         }
         if (thresholdValue >= worst)
@@ -1261,16 +1575,21 @@ static void get_ata_Attribute_Threshold_From_Threshold_Data(uint8_t             
             if (isWarrantied)
             {
                 thresholdInfo->pastFailStatus = FAIL_STATUS_ATTRIBUTE_FAILING;
-                safe_strcpy(thresholdInfo->pastFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
-                            "Attribute has previously failed.");
+                error = safe_strcpy(thresholdInfo->pastFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                                    "Attribute has previously failed.");
             }
             else
             {
                 thresholdInfo->pastFailStatus = FAIL_STATUS_ATTRIBUTE_WARNING;
-                safe_strcpy(thresholdInfo->pastFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
-                            "Attribute has previously warned about it's condition.");
+                error = safe_strcpy(thresholdInfo->pastFailStatusString, MAX_ATTRIBUTE_FAIL_STATUS_STRING_LENGTH,
+                                    "Attribute has previously warned about it's condition.");
             }
         }
+        if (error != 0)
+            M_UNLIKELY
+            {
+                perror("Error formatting current/past fail status string");
+            }
     }
 }
 
@@ -1378,52 +1697,59 @@ static void get_Raw_Field_From_RawData(const uint8_t* M_NONNULL       rawData,
                                        eATAAttributeRawFieldUnitType  field4Unit)
 {
     int64_t value                   = 0;
+    errno_t error                   = 0;
+    errno_t shortnameerror          = 0;
+    int     snprintfres             = 0;
     analyzedRawData->userFieldCount = maxField;
     if (field1Name != M_NULLPTR && safe_strlen(field1Name) > 0)
     {
-        safe_strcpy(analyzedRawData->rawField[0].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field1Name);
+        error = safe_strcpy(analyzedRawData->rawField[0].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field1Name);
         get_Int64_From_Raw_7_Byte(rawData, field1Type, &value);
         analyzedRawData->rawField[0].fieldValue = value;
         analyzedRawData->rawField[0].fieldUnit  = field1Unit;
         if (field1ShortName != M_NULLPTR && safe_strlen(field1ShortName) > 0)
         {
-            safe_strcpy(analyzedRawData->rawField[0].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field1ShortName);
+            shortnameerror = safe_strcpy(analyzedRawData->rawField[0].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH,
+                                         field1ShortName);
         }
     }
 
     if (field2Name != M_NULLPTR && safe_strlen(field2Name) > 0)
     {
-        safe_strcpy(analyzedRawData->rawField[1].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field2Name);
+        error = safe_strcpy(analyzedRawData->rawField[1].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field2Name);
         get_Int64_From_Raw_7_Byte(rawData, field2Type, &value);
         analyzedRawData->rawField[1].fieldValue = value;
         analyzedRawData->rawField[1].fieldUnit  = field2Unit;
         if (field2ShortName != M_NULLPTR && safe_strlen(field2ShortName) > 0)
         {
-            safe_strcpy(analyzedRawData->rawField[1].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field2ShortName);
+            shortnameerror = safe_strcpy(analyzedRawData->rawField[1].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH,
+                                         field2ShortName);
         }
     }
 
     if (field3Name != M_NULLPTR && safe_strlen(field3Name) > 0)
     {
-        safe_strcpy(analyzedRawData->rawField[2].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field3Name);
+        error = safe_strcpy(analyzedRawData->rawField[2].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field3Name);
         get_Int64_From_Raw_7_Byte(rawData, field3Type, &value);
         analyzedRawData->rawField[2].fieldValue = value;
         analyzedRawData->rawField[2].fieldUnit  = field3Unit;
         if (field3ShortName != M_NULLPTR && safe_strlen(field3ShortName) > 0)
         {
-            safe_strcpy(analyzedRawData->rawField[2].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field3ShortName);
+            shortnameerror = safe_strcpy(analyzedRawData->rawField[2].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH,
+                                         field3ShortName);
         }
     }
 
     if (field4Name != M_NULLPTR && safe_strlen(field4Name) > 0)
     {
-        safe_strcpy(analyzedRawData->rawField[3].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field4Name);
+        error = safe_strcpy(analyzedRawData->rawField[3].fieldName, MAX_RAW_FIELD_NAME_LENGTH, field4Name);
         get_Int64_From_Raw_7_Byte(rawData, field4Type, &value);
         analyzedRawData->rawField[3].fieldValue = value;
         analyzedRawData->rawField[3].fieldUnit  = field4Unit;
         if (field4ShortName != M_NULLPTR && safe_strlen(field4ShortName) > 0)
         {
-            safe_strcpy(analyzedRawData->rawField[3].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH, field4ShortName);
+            shortnameerror = safe_strcpy(analyzedRawData->rawField[3].fieldShortName, MAX_RAW_FIELD_SHORT_NAME_LENGTH,
+                                         field4ShortName);
         }
     }
 
@@ -1431,9 +1757,25 @@ static void get_Raw_Field_From_RawData(const uint8_t* M_NONNULL       rawData,
         safe_strlen(analyzedRawData->rawField[fieldToCopyInHybridRawString].fieldName) > 0)
     {
         // copy this into hybrid raw string
-        snprintf_err_handle(analyzedRawData->rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64,
-                            C_CAST(uint64_t, analyzedRawData->rawField[fieldToCopyInHybridRawString].fieldValue));
+        snprintfres =
+            snprintf_err_handle(analyzedRawData->rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64,
+                                C_CAST(uint64_t, analyzedRawData->rawField[fieldToCopyInHybridRawString].fieldValue));
     }
+    if (error != 0)
+        M_UNLIKELY
+        {
+            perror("Error copying field name");
+        }
+    if (shortnameerror != 0)
+        M_UNLIKELY
+        {
+            perror("Error copying field short name");
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            perror("Error formatting hybrid raw string");
+        }
 }
 
 // TODO - see if we can avoid this, or find a better approch
@@ -1501,7 +1843,6 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
         {
             return MEMORY_FAILURE;
         }
-
         for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
         {
             if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -1510,8 +1851,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                 smartAnylyzedData->attributes[iter].isValid         = true;
 
                 get_Attribute_Name(device, iter, &attributeName);
-                safe_strcpy(smartAnylyzedData->attributes[iter].attributeName, MAX_ATTRIBUTE_NAME_LENGTH,
-                            attributeName);
+                if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].attributeName, MAX_ATTRIBUTE_NAME_LENGTH,
+                                     attributeName))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying attribute name");
+                    }
                 get_ata_AttributeType_From_Status_Bit(smartData->attributes.ataSMARTAttr.attributes[iter].data.status,
                                                       &smartAnylyzedData->attributes[iter].attributeType);
                 smartAnylyzedData->attributes[iter].nominal =
@@ -1529,10 +1874,14 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                         smartData->attributes.ataSMARTAttr.attributes[iter].isWarrantied,
                         &smartAnylyzedData->attributes[iter].thresholdInfo);
                 }
-                safe_memcpy(smartAnylyzedData->attributes[iter].rawData.rawData,
-                            uint8_to_sizet(SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT * UINT8_C(1)),
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
-                            uint8_to_sizet(SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT));
+                if (0 != safe_memcpy(smartAnylyzedData->attributes[iter].rawData.rawData,
+                                     uint8_to_sizet(SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT * UINT8_C(1)),
+                                     smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
+                                     uint8_to_sizet(SMART_ATTRIBUTE_RAW_DATA_BYTE_COUNT)))
+                    M_UNLIKELY
+                    {
+                        perror("Error copying raw attribute data");
+                    }
                 // Note : this flag is being used when we try to print Hybrid data
                 // If this flag is set, then '?' will be added for attribute in console output
                 smartAnylyzedData->attributes[iter].seeAnalyzedFlag = get_See_Analyzed_Flag(device, iter);
@@ -1625,16 +1974,24 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             C_CAST(double, powerOnMinutes) / 60.0;
                         smartAnylyzedData->attributes[iter].rawData.doubleTypeAnalyzedFieldUnit =
                             RAW_FIELD_UNIT_TIME_IN_HOURS;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Power On Hours");
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRIu64,
-                            C_CAST(uint64_t, M_BytesTo4ByteValue(
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])));
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Power On Hours"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying power on hours string data");
+                            }
+                        if (0 > snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64,
+                                    C_CAST(uint64_t,
+                                           M_BytesTo4ByteValue(
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))))
+                        {
+                            perror("Error formatting power on hours");
+                        }
                     }
                     break;
                     case 12: // Drive Power Cycle Count
@@ -1654,8 +2011,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Failed Heads");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Failed Heads"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying failed head string data");
+                            }
                         if (headBitmap != UINT32_C(0))
                         {
                             // uint8_t badHeadCounter = UINT16_C(0);
@@ -1667,33 +2028,62 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 {
 //++badHeadCounter;
 #define HEAD_STR_LEN (3)
-                                    char head[HEAD_STR_LEN];
-                                    snprintf_err_handle(head, HEAD_STR_LEN, "%" PRIu8 "", bitIter);
+                                    DECLARE_ZERO_INIT_ARRAY(char, head, HEAD_STR_LEN);
+                                    if (0 > snprintf_err_handle(head, HEAD_STR_LEN, "%" PRIu8 "", bitIter))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error formatting failed head string data");
+                                        }
                                     if (safe_strlen(failedHeadString) > 0)
                                     {
-                                        safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, ",");
+                                        if (0 !=
+                                            safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, ","))
+                                            M_UNLIKELY
+                                            {
+                                                perror("Error copying failed head string data");
+                                            }
                                     }
-                                    safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, head);
+                                    if (0 != safe_strcat(failedHeadString, MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, head))
+                                        M_UNLIKELY
+                                        {
+                                            perror("Error copying failed head string data");
+                                        }
                                 }
                             }
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, failedHeadString);
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, failedHeadString))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying failed head string data");
+                                }
                         }
                         else
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No Failed Heads");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No Failed Heads"))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying failed head string data");
+                                }
                         }
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        if (0 >
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH,
+                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                                "%02" PRIX8 "h",
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                            M_UNLIKELY
+                            {
+                                perror("Error formatting raw hybrid string for attribute 18");
+                            }
                     }
                     break;
                     case 174: // Unexpected power loss
@@ -1705,16 +2095,35 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Standby received before power off");
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldShortName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Standby Received");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Standby received before power off"))
+                        {
+                            perror("Error copying string for Standby received before power off");
+                        }
+                        if (0 !=
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldShortName,
+                                        MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Standby Received"))
+                        {
+                            perror("Error copying string for Standby received");
+                        }
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4])
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
+                        {
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes"))
+                            {
+                                perror("Error copying string for stringTypeAnalyzedFieldValue");
+                            }
+                        }
                         else
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
+                        {
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No"))
+                            {
+                                perror("Error copying string for stringTypeAnalyzedFieldValue");
+                            }
+                        }
                         break;
                     case 183: // Reported Phy Event Counter
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -1744,17 +2153,31 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Counter is Maxed Out");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Counter is Maxed Out"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying string to stringTypeAnalyzedFieldName");
+                            }
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes"))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying string to stringTypeAnalyzedFieldValue");
+                                }
                         }
                         else
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No"))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying string to stringTypeAnalyzedFieldValue");
+                                }
                         }
                         break;
                     case 188: // Command Timeout
@@ -1767,17 +2190,28 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                             RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Counter is Maxed Out");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Counter is Maxed Out"))
+                        {
+                            perror("Error copying string to stringTypeAnalyzedFieldName");
+                        }
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes"))
+                            {
+                                perror("Error copying string to stringTypeAnalyzedFieldValue");
+                            }
                         }
                         else
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No"))
+                            {
+                                perror("Error copying string to stringTypeAnalyzedFieldValue");
+                            }
                         }
                         break;
                     case 189: // High Fly Writes
@@ -1789,17 +2223,31 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Counter is Maxed Out");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Counter is Maxed Out"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying string to stringTypeAnalyzedFieldName");
+                            }
                         if (smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue == 0xFFFF)
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Yes"))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying string to stringTypeAnalyzedFieldValue");
+                                }
                         }
                         else
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "No"))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying string to stringTypeAnalyzedFieldValue");
+                                }
                         }
                         break;
                     case 190: // Airflow Temperature
@@ -1811,12 +2259,16 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Highest Temperature during this power cycle",
                             "Highest", START_3_END_3, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS,
                             "Number of times attribute below threshold", "Trip", START_4_END_5, RAW_FIELD_UNIT_COUNT);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue)))
+                        {
+                            perror("Error while formatting raw hybrid string. (Likely truncation)");
+                        }
                         break;
                     case 191: // Shock Sensor Counter
                         get_Raw_Field_From_RawData(
@@ -1858,16 +2310,29 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             C_CAST(int64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.worstEver);
                         smartAnylyzedData->attributes[iter].rawData.int64TypeAnalyzedFieldUnit =
                             RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.int64TypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Worst Highest Temperature");
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.int64TypeAnalyzedFieldShortName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Highest");
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.int64TypeAnalyzedFieldValue));
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.int64TypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Worst Highest Temperature"))
+                            M_UNLIKELY
+                            {
+                                perror("Error while copying string to raw analyzed field short name.");
+                            }
+                        if (0 !=
+                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.int64TypeAnalyzedFieldShortName,
+                                        MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Highest"))
+                            M_UNLIKELY
+                            {
+                                perror("Error while copying string to raw analyzed field short name.");
+                            }
+                        if (0 > snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.int64TypeAnalyzedFieldValue)))
+                        {
+                            perror("Error while formatting raw hybrid string. (Likely truncation)");
+                        }
                         break;
                     case 195: // ECC On the Fly Count
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -1908,13 +2373,20 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                     case 231: // SSD Life Left
                         smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue =
                             C_CAST(int64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.nominal);
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldName,
-                                    MAX_RAW_FIELD_NAME_LENGTH, "SSD Life Left");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldName,
+                                             MAX_RAW_FIELD_NAME_LENGTH, "SSD Life Left"))
+                        {
+                            perror("Error while copying string to raw analyzed field name.");
+                        }
                         smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldUnit = RAW_FIELD_UNIT_NONE;
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRIu64,
-                            C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64,
+                                C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue)))
+                        {
+                            perror("Error while formatting raw hybrid string. (Likely truncation)");
+                        }
                         break;
                     case 240: // Head flight Hours
                     {
@@ -1936,17 +2408,25 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             C_CAST(double, powerOnMinutes) / 60.0;
                         smartAnylyzedData->attributes[iter].rawData.doubleTypeAnalyzedFieldUnit =
                             RAW_FIELD_UNIT_TIME_IN_HOURS;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Head Flight Hours");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.doubleTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Head Flight Hours"))
+                            M_UNLIKELY
+                            {
+                                perror("Error while copying string to raw analyzed field name.");
+                            }
 
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRIu64,
-                            C_CAST(uint64_t, M_BytesTo4ByteValue(
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                 smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])));
+                        if (0 > snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64,
+                                    C_CAST(uint64_t,
+                                           M_BytesTo4ByteValue(
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                               smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))))
+                        {
+                            perror("Error while formatting raw hybrid string. (Likely truncation)");
+                        }
                     }
                     break;
                     case 241: // Lifetime Writes from Host
@@ -1982,16 +2462,21 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                     case 230: // Life Curve Status
                     case 235: // SSD Power Loss Mgmt Life Left
                     default:
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        if (0 >
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH,
+                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                                "%02" PRIX8 "h",
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                        {
+                            perror("Error while formatting raw hybrid string. (Likely truncation)");
+                        }
                         break;
                     }
                     break;
@@ -2156,12 +2641,16 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, "Lifetime Minimum Temperature", "Lowest",
                             START_4_END_5, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue)))
+                        {
+                            perror("Error while formatting raw hybrid string. (Likely truncation)");
+                        }
                         break;
                     case 195:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2199,23 +2688,41 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                    RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValid = true;
-                        safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
-                                    MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Life driven by");
+                        if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldName,
+                                             MAX_RAW_ANALYZED_FIELD_NAME_LENGTH, "Life driven by"))
+                            M_UNLIKELY
+                            {
+                                perror("Error copying string to analyzed field value.");
+                            }
                         if (smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Free Space (Term B dominated)");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH, "Free Space (Term B dominated)"))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying string to analyzed field value.");
+                                }
                         }
                         else
                         {
-                            safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
-                                        MAX_RAW_ANALYZED_STRING_VALUE_LENGTH,
-                                        "Program-Erase Cycles (Term A dominated)");
+                            if (0 !=
+                                safe_strcpy(smartAnylyzedData->attributes[iter].rawData.stringTypeAnalyzedFieldValue,
+                                            MAX_RAW_ANALYZED_STRING_VALUE_LENGTH,
+                                            "Program-Erase Cycles (Term A dominated)"))
+                                M_UNLIKELY
+                                {
+                                    perror("Error copying string to analyzed field value.");
+                                }
                         }
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRIu64,
-                            C_CAST(uint64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64,
+                                C_CAST(uint64_t, smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0])))
+                        {
+                            perror("Error while formatting raw hybrid string. (Likely truncation)");
+                        }
                         break;
                     case 233:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2254,16 +2761,21 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                    M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                         break;
                     default:
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        if (0 >
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH,
+                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                                "%02" PRIX8 "h",
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                        {
+                            perror("Error formatting SMART attribute raw data string");
+                        }
                         break;
                     }
                     break;
@@ -2278,10 +2790,14 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRId16,
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16,
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue)))
+                        {
+                            perror("Error formatting SMART attribute raw data string");
+                        }
                         break;
                     default:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2306,11 +2822,15 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             "Maximum", START_4_END_5, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRId16 " (M %" PRId16 ")",
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")",
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue)))
+                        {
+                            perror("Error formatting SMART attribute raw data string");
+                        }
                         // Note : this can be read from nominal/worst or raw 1:0 and raw 5:4
                         break;
                     case 169:
@@ -2322,10 +2842,14 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                    M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                                                    RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRIu64 "%%",
-                            C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64 "%%",
+                                C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue)))
+                        {
+                            perror("Error formatting SMART attribute raw data string");
+                        }
                         break;
                     case 233:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2343,8 +2867,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
                                 1000.0 * 1000.0 * 32.0;
                             metric_Unit_Convert(&dataConversion, &dataUnits);
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                            if (0 > snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                        MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion,
+                                                        dataUnits))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                         }
                         smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue *= INT64_C(32);
                         // Note : why multiplication with 32?
@@ -2365,8 +2893,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
                                 1000.0 * 1000.0 * 32.0;
                             metric_Unit_Convert(&dataConversion, &dataUnits);
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                            if (0 > snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                        MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion,
+                                                        dataUnits))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                         }
                         smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue *= INT64_C(32);
                         // Note : why multiplication with 32?
@@ -2387,8 +2919,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
                                 1000.0 * 1000.0 * 32.0;
                             metric_Unit_Convert(&dataConversion, &dataUnits);
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                            if (0 > snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                        MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion,
+                                                        dataUnits))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                         }
                         smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue *= INT64_C(32);
                         // Note : why multiplication with 32?
@@ -2416,11 +2952,15 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             "Highest", START_4_END_5, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRId16 " (M %" PRId16 ")",
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (M %" PRId16 ")",
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue)))
+                        {
+                            perror("Error formatting SMART attribute raw data string");
+                        }
                         // Note : this can be read from nominal/worst or raw 1:0 and raw 2:3
                         break;
                     case 231:
@@ -2431,10 +2971,14 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                    M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                                                    RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                                                    START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRIu64 "%%",
-                            C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRIu64 "%%",
+                                C_CAST(uint64_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue)))
+                        {
+                            perror("Error formatting SMART attribute raw data string");
+                        }
                         break;
                     case 234:
                         get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2452,8 +2996,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
                                 1024.0 * 1024.0 * 1024.0;
                             metric_Unit_Convert(&dataConversion, &dataUnits);
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                            if (0 > snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                        MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion,
+                                                        dataUnits))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                         }
                         break;
                     case 241:
@@ -2472,8 +3020,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
                                 1024.0 * 1024.0 * 1024.0;
                             metric_Unit_Convert(&dataConversion, &dataUnits);
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                            if (0 > snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                        MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion,
+                                                        dataUnits))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                         }
                         break;
                     case 242:
@@ -2492,8 +3044,12 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 C_CAST(double, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue) *
                                 1024.0 * 1024.0 * 1024.0;
                             metric_Unit_Convert(&dataConversion, &dataUnits);
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion, dataUnits);
+                            if (0 > snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                        MAX_HYBRID_RAW_STRING_LENGTH, "%0.02f %s", dataConversion,
+                                                        dataUnits))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                         }
                         break;
                     default:
@@ -2580,11 +3136,16 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                        START_4_END_5, RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR,
                                                        START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                                        M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 173:
                             get_Raw_Field_From_RawData(
@@ -2594,12 +3155,17 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 START_2_END_3, RAW_FIELD_UNIT_COUNT, "Least Erase Count", "Min Erase", START_4_END_5,
                                 RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                                 RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 " Min %" PRId16 "",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 " Min %" PRId16 "",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 174:
                             get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2639,12 +3205,17 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 "Lowest Temperature", "Lowest", START_2_END_3, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS,
                                 "Highest Temperature", "Highest", START_4_END_5, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS,
                                 M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 218:
                             get_Raw_Field_From_RawData(
@@ -2711,17 +3282,21 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         default:
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH,
-                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
-                                                "%02" PRIX8 "h",
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                            if (0 > snprintf_err_handle(
+                                        smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                        MAX_HYBRID_RAW_STRING_LENGTH,
+                                        "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                        "%02" PRIX8 "h",
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         }
                     }
@@ -2777,11 +3352,16 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 "Later Bad Block Count", "Later Bad Block", START_4_END_5, RAW_FIELD_UNIT_COUNT,
                                 M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                 M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 173:
                             get_Raw_Field_From_RawData(
@@ -2791,11 +3371,16 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 START_2_END_3, RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                                 RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN,
                                 RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 "",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 "",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 192:
                             get_Raw_Field_From_RawData(
@@ -2843,17 +3428,21 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                        M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         default:
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH,
-                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
-                                                "%02" PRIX8 "h",
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                            if (0 > snprintf_err_handle(
+                                        smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                        MAX_HYBRID_RAW_STRING_LENGTH,
+                                        "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                        "%02" PRIX8 "h",
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         }
                     }
@@ -2929,11 +3518,16 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 "Total Later Bad Block Count", "Later Bad Block", START_4_END_5, RAW_FIELD_UNIT_COUNT,
                                 M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                 M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "Early %" PRId16 ", Late %" PRId16 "",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 173:
                             get_Raw_Field_From_RawData(smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData,
@@ -2943,12 +3537,17 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                                        START_2_END_3, RAW_FIELD_UNIT_COUNT, "Least Erase", "Min Erase",
                                                        START_4_END_5, RAW_FIELD_UNIT_COUNT, M_NULLPTR, M_NULLPTR,
                                                        START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 " Min %" PRId16 "",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "Max %" PRId16 " Avg %" PRId16 " Min %" PRId16 "",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 174:
                             get_Raw_Field_From_RawData(
@@ -2986,12 +3585,17 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 "Lowest Temperature", "Lowest", START_2_END_3, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS,
                                 "Highest Temperature", "Highest", START_4_END_5, RAW_FIELD_UNIT_TEMPERATURE_IN_CELSIUS,
                                 M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue));
+                            if (0 >
+                                snprintf_err_handle(
+                                    smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                    MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16 " (m/M %" PRId16 "/%" PRId16 ")",
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue),
+                                    C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[1].fieldValue),
+                                    C_CAST(int16_t,
+                                           smartAnylyzedData->attributes[iter].rawData.rawField[2].fieldValue)))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         case 218:
                             get_Raw_Field_From_RawData(
@@ -3067,17 +3671,21 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
                             break;
                         default:
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH,
-                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
-                                                "%02" PRIX8 "h",
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                            if (0 > snprintf_err_handle(
+                                        smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                        MAX_HYBRID_RAW_STRING_LENGTH,
+                                        "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                        "%02" PRIX8 "h",
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         }
                     }
@@ -3129,25 +3737,33 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                                 M_NULLPTR, M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR,
                                 M_NULLPTR, START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                                 START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                            snprintf_err_handle(
-                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16,
-                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                            if (0 > snprintf_err_handle(
+                                        smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                        MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16,
+                                        C_CAST(int16_t,
+                                               smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue)))
+                            {
+                                perror("Error formatting current temperature output data");
+                            }
                             // current temp is most commonly supported.
                             // min/max varies by vendor so it is ommitted in this case
                             break;
                         default:
-                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
-                                                MAX_HYBRID_RAW_STRING_LENGTH,
-                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
-                                                "%02" PRIX8 "h",
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                            if (0 > snprintf_err_handle(
+                                        smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                        MAX_HYBRID_RAW_STRING_LENGTH,
+                                        "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                        "%02" PRIX8 "h",
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                        smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                            {
+                                perror("Error formatting SMART attribute raw data string");
+                            }
                             break;
                         }
                     }
@@ -3199,30 +3815,43 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN, M_NULLPTR, M_NULLPTR,
                             START_UNKNOWN_END_UNKNOWN, RAW_FIELD_UNIT_UNKNOWN);
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%" PRId16,
-                            C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue));
+                        if (0 >
+                            snprintf_err_handle(
+                                smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                MAX_HYBRID_RAW_STRING_LENGTH, "%" PRId16,
+                                C_CAST(int16_t, smartAnylyzedData->attributes[iter].rawData.rawField[0].fieldValue)))
+                        {
+                            perror("Error formatting current temperature output data");
+                        }
                         // current temp is most commonly supported.
                         // min/max varies by vendor so it is ommitted in this case
                         break;
                     default:
-                        snprintf_err_handle(
-                            smartAnylyzedData->attributes[iter].rawData.rawHybridString, MAX_HYBRID_RAW_STRING_LENGTH,
-                            "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "h",
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
-                            smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]);
+                        if (0 >
+                            snprintf_err_handle(smartAnylyzedData->attributes[iter].rawData.rawHybridString,
+                                                MAX_HYBRID_RAW_STRING_LENGTH,
+                                                "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8
+                                                "%02" PRIX8 "h",
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[6],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[5],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[4],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[3],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[2],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[1],
+                                                smartData->attributes.ataSMARTAttr.attributes[iter].data.rawData[0]))
+                        {
+                            perror("Error formatting SMART attribute raw data string");
+                        }
                         break;
                     }
                     break;
                 }
 
-                safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH);
+                if (0 != safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
+                    M_UNLIKELY
+                    {
+                        perror("Error clearing attribute name before reuse.");
+                    }
             }
         }
 
@@ -3241,7 +3870,11 @@ static void print_ATA_SMART_Attribute_Raw(bool isWarrantied, ataSMARTAnalyzedAtt
     DECLARE_ZERO_INIT_ARRAY(char, flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN);
     if (isWarrantied)
     {
-        safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*");
+        if (0 != safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "*"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating RAW SMART attributes flags");
+            }
     }
 
     if (smartAnalyzedAttribute.thresholdInfo.thresholdType != THRESHOLD_UNKNOWN)
@@ -3249,10 +3882,18 @@ static void print_ATA_SMART_Attribute_Raw(bool isWarrantied, ataSMARTAnalyzedAtt
         switch (smartAnalyzedAttribute.thresholdInfo.currentFailStatus)
         {
         case FAIL_STATUS_ATTRIBUTE_FAILING:
-            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!");
+            if (0 != safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "!"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating RAW SMART attributes flags");
+                }
             break;
         case FAIL_STATUS_ATTRIBUTE_WARNING:
-            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%");
+            if (0 != safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "%"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating RAW SMART attributes flags");
+                }
             break;
         default:
             break;
@@ -3261,10 +3902,18 @@ static void print_ATA_SMART_Attribute_Raw(bool isWarrantied, ataSMARTAnalyzedAtt
         switch (smartAnalyzedAttribute.thresholdInfo.pastFailStatus)
         {
         case FAIL_STATUS_ATTRIBUTE_FAILING:
-            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^");
+            if (0 != safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "^"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating RAW SMART attributes flags");
+                }
             break;
         case FAIL_STATUS_ATTRIBUTE_WARNING:
-            safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~");
+            if (0 != safe_strcat(flags, ATA_SMART_RAW_ATTRIBUTES_FLAGS_STRING_LEN, "~"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating RAW SMART attributes flags");
+                }
             break;
         default:
             break;
@@ -3519,17 +4168,33 @@ static void print_ATA_SMART_Attribute_Hybrid(const ataSMARTAnalyzedAttribute sma
         switch (smartAnalyzedAttribute.thresholdInfo.thresholdType)
         {
         case THRESHOLD_SET:
-            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
-                                smartAnalyzedAttribute.thresholdInfo.thresholdValue);
+            if (0 > snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
+                                        smartAnalyzedAttribute.thresholdInfo.thresholdValue))
+                M_UNLIKELY
+                {
+                    perror("Error encoding threshold value. (truncation likely to have occurred)");
+                }
             break;
         case THRESHOLD_ALWAYS_PASSING:
-            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP");
+            if (0 != safe_strcpy(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AP"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying threshold value (always passing) in %s\n", __func__);
+                }
             break;
         case THRESHOLD_ALWAYS_FAILING:
-            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+            if (0 != safe_strcpy(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying threshold value (always failing) in %s\n", __func__);
+                }
             break;
         case THRESHOLD_INVALID:
-            snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+            if (0 != safe_strcpy(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV"))
+                M_UNLIKELY
+                {
+                    print_error_format("Error copying threshold value (invalid) in %s\n", __func__);
+                }
             break;
         default:
             break;
@@ -3538,10 +4203,20 @@ static void print_ATA_SMART_Attribute_Hybrid(const ataSMARTAnalyzedAttribute sma
         switch (smartAnalyzedAttribute.thresholdInfo.currentFailStatus)
         {
         case FAIL_STATUS_ATTRIBUTE_FAILING:
-            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!");
+            if (0 != safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "!"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating other flags in SMART attribute output. (truncation will likely "
+                           "occur)");
+                }
             break;
         case FAIL_STATUS_ATTRIBUTE_WARNING:
-            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%");
+            if (0 != safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "%"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating other flags in SMART attribute output. (truncation will likely "
+                           "occur)");
+                }
             break;
         default:
             break;
@@ -3550,10 +4225,20 @@ static void print_ATA_SMART_Attribute_Hybrid(const ataSMARTAnalyzedAttribute sma
         switch (smartAnalyzedAttribute.thresholdInfo.pastFailStatus)
         {
         case FAIL_STATUS_ATTRIBUTE_FAILING:
-            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^");
+            if (0 != safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "^"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating other flags in SMART attribute output. (truncation will likely "
+                           "occur)");
+                }
             break;
         case FAIL_STATUS_ATTRIBUTE_WARNING:
-            safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~");
+            if (0 != safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "~"))
+                M_UNLIKELY
+                {
+                    perror("Error concatenating other flags in SMART attribute output. (truncation will likely "
+                           "occur)");
+                }
             break;
         default:
             break;
@@ -3561,7 +4246,11 @@ static void print_ATA_SMART_Attribute_Hybrid(const ataSMARTAnalyzedAttribute sma
     }
     else
     {
-        snprintf_err_handle(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "N/A");
+        if (0 != safe_strcpy(thresholdValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "N/A"))
+            M_UNLIKELY
+            {
+                print_error_format("Error copying threshold value (N/A) in %s\n", __func__);
+            }
     }
 
     // setup current value
@@ -3569,16 +4258,28 @@ static void print_ATA_SMART_Attribute_Hybrid(const ataSMARTAnalyzedAttribute sma
         smartAnalyzedAttribute.nominal == ATA_SMART_THRESHOLD_INVALID)
     {
         // original smart specification says valid values are 1-253
-        snprintf_err_handle(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+        if (0 != safe_strcpy(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV"))
+            M_UNLIKELY
+            {
+                print_error_format("Error copying nominal value (invalid) in %s\n", __func__);
+            }
     }
     else if (smartAnalyzedAttribute.nominal == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
     {
-        snprintf_err_handle(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
+        if (0 != safe_strcpy(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF"))
+            M_UNLIKELY
+            {
+                print_error_format("Error copying nominal value (always failing) in %s\n", __func__);
+            }
     }
     else
     {
-        snprintf_err_handle(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
-                            smartAnalyzedAttribute.nominal);
+        if (0 > snprintf_err_handle(nominalValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
+                                    smartAnalyzedAttribute.nominal))
+            M_UNLIKELY
+            {
+                perror("Error encoding nominal value. (truncation likely to have occurred)");
+            }
     }
 
     // setup worst value
@@ -3586,72 +4287,136 @@ static void print_ATA_SMART_Attribute_Hybrid(const ataSMARTAnalyzedAttribute sma
         smartAnalyzedAttribute.worstEver == ATA_SMART_THRESHOLD_INVALID)
     {
         // original smart specification says valid values are 1-253
-        snprintf_err_handle(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV");
+        if (0 != safe_strcpy(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "INV"))
+            M_UNLIKELY
+            {
+                print_error_format("Error copying worst value (invalid) in %s\n", __func__);
+            }
     }
     else if (smartAnalyzedAttribute.worstEver == ATA_SMART_THRESHOLD_ALWAYS_FAILING)
-    {
-        snprintf_err_handle(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF");
-    }
+        M_UNLIKELY
+        {
+            if (0 != safe_strcpy(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "AF"))
+            {
+                print_error_format("Error copying worst value (always failing) in %s\n", __func__);
+            }
+        }
     else
     {
-        snprintf_err_handle(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
-                            smartAnalyzedAttribute.worstEver);
+        if (0 > snprintf_err_handle(worstValue, ATTR_HYBRID_THRESHOLD_VALUE_LENGTH, "%" PRIu8,
+                                    smartAnalyzedAttribute.worstEver))
+            M_UNLIKELY
+            {
+                perror("Error encoding worst ever value. (truncation likely to have occurred)");
+            }
     }
 
     // setup warranty and "see analyzed" flags
     if (smartAnalyzedAttribute.seeAnalyzedFlag)
     {
-        safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "?");
+        if (0 != safe_strcat(otherFlags, ATTR_HYBRID_OTHER_FLAGS_LENGTH, "?"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
 
     // setup status flags
     if (smartAnalyzedAttribute.attributeType.preFailAttribute)
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "P");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "P"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     else
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     if (smartAnalyzedAttribute.attributeType.onlineDataCollection)
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "O");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "O"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     else
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     if (smartAnalyzedAttribute.attributeType.performanceIndicator)
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "S");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "S"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     else
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     if (smartAnalyzedAttribute.attributeType.errorRateIndicator)
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "R");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "R"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     else
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     if (smartAnalyzedAttribute.attributeType.eventCounter)
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "C");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "C"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     else
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     if (smartAnalyzedAttribute.attributeType.selfPreserving)
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "K");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "K"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
     else
     {
-        safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-");
+        if (0 != safe_strcat(attributeFlags, ATTR_HYBRID_ATTR_FLAG_LENGTH, "-"))
+            M_UNLIKELY
+            {
+                perror("Error concatenating flag for SMART attributes (truncation will likely occur)");
+            }
     }
 
     printf("%-3s%3" PRIu8 " %-35s %-8s %-3s %-3s %-3s %-50.50s\n", otherFlags, smartAnalyzedAttribute.attributeNumber,
@@ -3741,7 +4506,7 @@ OPENSEA_OPERATIONS_API eReturnValues print_SMART_Attributes(const tDevice* M_NON
 {
     eReturnValues ret = UNKNOWN;
     smartLogData  smartData;
-    safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
+    M_INITIALIZE_STRUCTURE(&smartData, sizeof(smartLogData));
     ret = get_SMART_Attributes(device, &smartData);
     if (ret != SUCCESS)
     {
@@ -3815,7 +4580,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_NVMe_Health(const tDevic
     if (get_Device_DriveType(device) == NVME_DRIVE)
     {
         smartLogData smartData;
-        safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
+        M_INITIALIZE_STRUCTURE(&smartData, sizeof(smartLogData));
         ret = get_SMART_Attributes(device, &smartData);
         if (ret != SUCCESS)
         {
@@ -4034,9 +4799,10 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
     if (is_SMART_Enabled(device))
     {
         smartLogData attributes;
-        safe_memset(&attributes, sizeof(smartLogData), 0, sizeof(smartLogData));
+        M_INITIALIZE_STRUCTURE(&attributes, sizeof(smartLogData));
         //      HOWEVER: SFF-8035i lists this as an optional command.
-        //      Always attempt a SMART return status command, then perform workarounds to get the status if it fails.
+        //      Always attempt a SMART return status command, then perform workarounds to get the status if it
+        //      fails.
         ret = ata_SMART_Return_Status(device);
         if (ret == SUCCESS && device->drive_info.lastCommandRTFRs.lbaMid == ATA_SMART_SIG_MID &&
             device->drive_info.lastCommandRTFRs.lbaHi == ATA_SMART_SIG_HI)
@@ -4057,8 +4823,8 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
             // this will be attempted, but may need to do a attributes to thresholds comparison to know for sure.
             ret = get_ATA_SMART_Status_From_SCT_Log(device);
         }
-        // Even though we may have already determined pass/fail, attempt to read the attributes and thresholds for more
-        // comparison and detail It is possible for some drives to give "warnings" for attributes that are not
+        // Even though we may have already determined pass/fail, attempt to read the attributes and thresholds for
+        // more comparison and detail It is possible for some drives to give "warnings" for attributes that are not
         // warrantied, which would be useful to report when possible.
         if (SUCCESS == get_SMART_Attributes(device, &attributes))
         {
@@ -4069,10 +4835,12 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                 {
                     if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdDataValid)
                     {
+                        int     snprintfres = 0;
+                        errno_t error       = 0;
                         if (ret != FAILURE && ret != IN_PROGRESS)
                         {
-                            ret = SUCCESS; // need to set this to "pass" since we will otherwise keep a unknown status
-                                           // or not supported status
+                            ret = SUCCESS; // need to set this to "pass" since we will otherwise keep a unknown
+                                           // status or not supported status
                         }
                         if (attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue ==
                             ATA_SMART_THRESHOLD_ALWAYS_PASSING)
@@ -4099,17 +4867,17 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                 if (safe_strlen(attributeName))
                                 {
                                     // use the name in the error reason
-                                    snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
-                                                        "%s [%" PRIu8 "] set to test trip!", attributeName,
-                                                        tripInfo->ataAttribute.attributeNumber);
+                                    snprintfres = snprintf_err_handle(
+                                        tripInfo->reasonString, UINT8_MAX, "%s [%" PRIu8 "] set to test trip!",
+                                        attributeName, tripInfo->ataAttribute.attributeNumber);
                                     tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                 }
                                 else
                                 {
                                     // Couldn't look up the name, so set a generic error reason
-                                    snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
-                                                        "Attribute %" PRIu8 " set to test trip!",
-                                                        tripInfo->ataAttribute.attributeNumber);
+                                    snprintfres = snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
+                                                                      "Attribute %" PRIu8 " set to test trip!",
+                                                                      tripInfo->ataAttribute.attributeNumber);
                                     tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                 }
                             }
@@ -4147,13 +4915,13 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                     DECLARE_ZERO_INIT_ARRAY(char, whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN);
                                     if (fromWorst)
                                     {
-                                        snprintf_err_handle(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN,
-                                                            "Worst Ever");
+                                        error =
+                                            safe_strcpy(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Worst Ever");
                                     }
                                     else
                                     {
-                                        snprintf_err_handle(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN,
-                                                            "Current");
+                                        error =
+                                            safe_strcpy(whenFailedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Current");
                                     }
                                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
                                     tripInfo->ataAttribute.attributeNumber =
@@ -4175,7 +4943,7 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                     if (attributeName && safe_strlen(attributeName) > 0)
                                     {
                                         // use the name in the error reason
-                                        snprintf_err_handle(
+                                        snprintfres = snprintf_err_handle(
                                             tripInfo->reasonString, UINT8_MAX,
                                             "%s [%" PRIu8 "] tripped! %s Value %" PRIu8 " below Threshold %" PRIu8 "",
                                             attributeName, tripInfo->ataAttribute.attributeNumber, whenFailedStr,
@@ -4188,13 +4956,14 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                     else
                                     {
                                         // Couldn't look up the name, so set a generic error reason
-                                        snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
-                                                            "Attribute %" PRIu8 " tripped! %s Value %" PRIu8
-                                                            " below Threshold %" PRIu8 "",
-                                                            tripInfo->ataAttribute.attributeNumber, whenFailedStr,
-                                                            fromWorst ? tripInfo->ataAttribute.worstValue
-                                                                      : tripInfo->ataAttribute.nominalValue,
-                                                            tripInfo->ataAttribute.thresholdValue);
+                                        snprintfres =
+                                            snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
+                                                                "Attribute %" PRIu8 " tripped! %s Value %" PRIu8
+                                                                " below Threshold %" PRIu8 "",
+                                                                tripInfo->ataAttribute.attributeNumber, whenFailedStr,
+                                                                fromWorst ? tripInfo->ataAttribute.worstValue
+                                                                          : tripInfo->ataAttribute.nominalValue,
+                                                                tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength =
                                             C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
@@ -4204,23 +4973,24 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                             }
                             else
                             {
-                                // This attribute is not a warrantied failure, but it is generating a warning that could
-                                // be helpful to report -TJE Using IN_PROGRESS for warning like SCSI code uses. Do not
-                                // break if this is found because it is possible for warnings and failure to exist on
-                                // different attributes. So store this until more detail is uncovered.
+                                // This attribute is not a warrantied failure, but it is generating a warning that
+                                // could be helpful to report -TJE Using IN_PROGRESS for warning like SCSI code
+                                // uses. Do not break if this is found because it is possible for warnings and
+                                // failure to exist on different attributes. So store this until more detail is
+                                // uncovered.
                                 ret = IN_PROGRESS;
                                 if (tripInfo)
                                 {
                                     DECLARE_ZERO_INIT_ARRAY(char, whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN);
                                     if (fromWorst)
                                     {
-                                        snprintf_err_handle(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN,
-                                                            "Worst Ever");
+                                        error =
+                                            safe_strcpy(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Worst Ever");
                                     }
                                     else
                                     {
-                                        snprintf_err_handle(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN,
-                                                            "Current");
+                                        error =
+                                            safe_strcpy(whenWarnedStr, ATA_SMART_WHEN_FAILED_MAX_STR_LEN, "Current");
                                     }
                                     tripInfo->additionalInformationType = SMART_TRIP_INFO_TYPE_ATA;
                                     tripInfo->ataAttribute.attributeNumber =
@@ -4242,33 +5012,43 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                     if (attributeName && safe_strlen(attributeName) > 0)
                                     {
                                         // use the name in the error reason
-                                        snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
-                                                            "%s [%" PRIu8 "] is warning! %s Value %" PRIu8
-                                                            " below Threshold %" PRIu8 "",
-                                                            attributeName, tripInfo->ataAttribute.attributeNumber,
-                                                            whenWarnedStr,
-                                                            fromWorst ? tripInfo->ataAttribute.worstValue
-                                                                      : tripInfo->ataAttribute.nominalValue,
-                                                            tripInfo->ataAttribute.thresholdValue);
+                                        snprintfres = snprintf_err_handle(
+                                            tripInfo->reasonString, UINT8_MAX,
+                                            "%s [%" PRIu8 "] is warning! %s Value %" PRIu8 " below Threshold %" PRIu8
+                                            "",
+                                            attributeName, tripInfo->ataAttribute.attributeNumber, whenWarnedStr,
+                                            fromWorst ? tripInfo->ataAttribute.worstValue
+                                                      : tripInfo->ataAttribute.nominalValue,
+                                            tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength =
                                             C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
                                     else
                                     {
                                         // Couldn't look up the name, so set a generic error reason
-                                        snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
-                                                            "Attribute %" PRIu8 " is warning! %s Value %" PRIu8
-                                                            " below Threshold %" PRIu8 "",
-                                                            tripInfo->ataAttribute.attributeNumber, whenWarnedStr,
-                                                            fromWorst ? tripInfo->ataAttribute.worstValue
-                                                                      : tripInfo->ataAttribute.nominalValue,
-                                                            tripInfo->ataAttribute.thresholdValue);
+                                        snprintfres =
+                                            snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
+                                                                "Attribute %" PRIu8 " is warning! %s Value %" PRIu8
+                                                                " below Threshold %" PRIu8 "",
+                                                                tripInfo->ataAttribute.attributeNumber, whenWarnedStr,
+                                                                fromWorst ? tripInfo->ataAttribute.worstValue
+                                                                          : tripInfo->ataAttribute.nominalValue,
+                                                                tripInfo->ataAttribute.thresholdValue);
                                         tripInfo->reasonStringLength =
                                             C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
                                     safe_free(&attributeName);
                                 }
                             }
+                        }
+                        if (error != 0)
+                            M_UNLIKELY
+                            {
+                                perror("Error copying SMART attribute failure location (worst vs current)");
+                            }
+                        if (snprintfres < 0)
+                        {
+                            perror("Error formatting SMART attribute failure reason string");
                         }
                     }
                 }
@@ -4293,6 +5073,8 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
                                                  uint8_t            reasonStringMaxLength,
                                                  uint8_t* M_NONNULL reasonStringOutputLength)
 {
+    int     snprintfres = 0;
+    errno_t error       = 0;
     switch (asc)
     {
     case 0x5D:
@@ -4301,17 +5083,17 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
             switch (ascq)
             {
             case 0x00:
-                snprintf_err_handle(reasonString, reasonStringMaxLength, "Failure Prediction Threshold Exceeded");
+                error = safe_strcpy(reasonString, reasonStringMaxLength, "Failure Prediction Threshold Exceeded");
                 break;
             case 0x01:
-                snprintf_err_handle(reasonString, reasonStringMaxLength, "Media Failure Prediction Threshold Exceeded");
+                error = safe_strcpy(reasonString, reasonStringMaxLength, "Media Failure Prediction Threshold Exceeded");
                 break;
             case 0x02:
-                snprintf_err_handle(reasonString, reasonStringMaxLength,
+                error = safe_strcpy(reasonString, reasonStringMaxLength,
                                     "Logical Unit Failure Prediction Threshold Exceeded");
                 break;
             case 0x03:
-                snprintf_err_handle(reasonString, reasonStringMaxLength,
+                error = safe_strcpy(reasonString, reasonStringMaxLength,
                                     "Spare Area Exhaustion Prediction Threshold Exceeded");
                 break;
             default:
@@ -4327,27 +5109,27 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
             switch (ascq >> 4)
             {
             case 1:
-                snprintf_err_handle(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH,
-                                    "Hardware Impending Failure");
+                error =
+                    safe_strcpy(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Hardware Impending Failure");
                 break;
             case 2:
-                snprintf_err_handle(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH,
-                                    "Controller Impending Failure");
+                error =
+                    safe_strcpy(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Controller Impending Failure");
                 break;
             case 3:
-                snprintf_err_handle(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH,
+                error = safe_strcpy(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH,
                                     "Data Channel Impending Failure");
                 break;
             case 4:
-                snprintf_err_handle(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Servo Impending Failure");
+                error = safe_strcpy(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Servo Impending Failure");
                 break;
             case 5:
-                snprintf_err_handle(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH,
-                                    "Spindle Impending Failure");
+                error =
+                    safe_strcpy(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Spindle Impending Failure");
                 break;
             case 6:
-                snprintf_err_handle(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH,
-                                    "Firmware Impending Failure");
+                error =
+                    safe_strcpy(impendingFailure, SCSI_IMPENDING_FAILURE_STRING_LENGTH, "Firmware Impending Failure");
                 break;
             default:
                 impendingFailureMissing = true;
@@ -4358,46 +5140,46 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
             switch (ascq & 0x0F)
             {
             case 0x00:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "General Hard Drive Failure");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "General Hard Drive Failure");
                 break;
             case 0x01:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Error Rate Too High");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Error Rate Too High");
                 break;
             case 0x02:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Data Error Rate Too High");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Data Error Rate Too High");
                 break;
             case 0x03:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Error Rate Too High");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Error Rate Too High");
                 break;
             case 0x04:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Too Many Block Reassigns");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Too Many Block Reassigns");
                 break;
             case 0x05:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Access Times Too High");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Access Times Too High");
                 break;
             case 0x06:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Start Unit Times Too high");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Start Unit Times Too high");
                 break;
             case 0x07:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Channel Parametrics");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Channel Parametrics");
                 break;
             case 0x08:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Controller Detected");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Controller Detected");
                 break;
             case 0x09:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Throughput Performance");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Throughput Performance");
                 break;
             case 0x0A:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Time Performance");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Seek Time Performance");
                 break;
             case 0x0B:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Spin-up Retry Count");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Spin-up Retry Count");
                 break;
             case 0x0C:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Calibration Retry Count");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Drive Calibration Retry Count");
                 break;
             case 0x0D:
-                snprintf_err_handle(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Power Loss Protection Circuit");
+                error = safe_strcpy(failureReason, SCSI_FAILURE_REASON_STRING_LENGTH, "Power Loss Protection Circuit");
                 break;
             default:
                 failureReasonMissing = true;
@@ -4407,17 +5189,19 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
             {
                 if (impendingFailureMissing)
                 {
-                    snprintf_err_handle(reasonString, reasonStringMaxLength, "unknown ascq %" PRIu8 "", ascq);
+                    snprintfres =
+                        snprintf_err_handle(reasonString, reasonStringMaxLength, "unknown ascq %" PRIu8 "", ascq);
                 }
                 else
                 {
-                    snprintf_err_handle(reasonString, reasonStringMaxLength, "%s - unknown ascq %" PRIu8 "",
-                                        impendingFailure, ascq);
+                    snprintfres = snprintf_err_handle(reasonString, reasonStringMaxLength,
+                                                      "%s - unknown ascq %" PRIu8 "", impendingFailure, ascq);
                 }
             }
             else
             {
-                snprintf_err_handle(reasonString, reasonStringMaxLength, "%s - %s", impendingFailure, failureReason);
+                snprintfres = snprintf_err_handle(reasonString, reasonStringMaxLength, "%s - %s", impendingFailure,
+                                                  failureReason);
             }
         }
         else
@@ -4425,11 +5209,11 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
             switch (ascq)
             {
             case 0x73:
-                snprintf_err_handle(reasonString, reasonStringMaxLength, "Media Impending Failure Endurance Limit Met");
+                error = safe_strcpy(reasonString, reasonStringMaxLength, "Media Impending Failure Endurance Limit Met");
                 break;
             case 0xFF:
-                snprintf_err_handle(reasonString, reasonStringMaxLength,
-                                    "Failure Prediction Threshold Exceeded (False)");
+                error =
+                    safe_strcpy(reasonString, reasonStringMaxLength, "Failure Prediction Threshold Exceeded (False)");
                 break;
             default:
                 break;
@@ -4443,68 +5227,68 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
             // This only means "WARNING" which isn't very useful....so I'm not translating it right now. - TJE
             break;
         case 0x01:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Specified Temperature Exceeded");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Specified Temperature Exceeded");
             break;
         case 0x02:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Enclosure Degraded");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Enclosure Degraded");
             break;
         case 0x03:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Background Self-Test Failed");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Background Self-Test Failed");
             break;
         case 0x04:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
-                                "Warning - Background Pre-scan Detected Medium Error");
+            error =
+                safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Background Pre-scan Detected Medium Error");
             break;
         case 0x05:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
+            error = safe_strcpy(reasonString, reasonStringMaxLength,
                                 "Warning - Background Medium Scan Detected Medium Error");
             break;
         case 0x06:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Non-Volatile Cache Now Volatile");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Non-Volatile Cache Now Volatile");
             break;
         case 0x07:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Degraded Power To Non-Volatile Cache");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Degraded Power To Non-Volatile Cache");
             break;
         case 0x08:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Power Loss Expected");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Power Loss Expected");
             break;
         case 0x09:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Device Statistics Notification Active");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Device Statistics Notification Active");
             break;
         case 0x0A:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
-                                "Warning - High Critical Temperature Limit Exceeded");
+            error =
+                safe_strcpy(reasonString, reasonStringMaxLength, "Warning - High Critical Temperature Limit Exceeded");
             break;
         case 0x0B:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
-                                "Warning - Low Critical Tempterure Limit Exceeded");
+            error =
+                safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Low Critical Tempterure Limit Exceeded");
             break;
         case 0x0C:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
-                                "Warning - High Operating Temperature Limit Exceeded");
+            error =
+                safe_strcpy(reasonString, reasonStringMaxLength, "Warning - High Operating Temperature Limit Exceeded");
             break;
         case 0x0D:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
-                                "Warning - Low Operating Temperature Limit Exceeded");
+            error =
+                safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Low Operating Temperature Limit Exceeded");
             break;
         case 0x0E:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - High Critical Humidity Limit Exceeded");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - High Critical Humidity Limit Exceeded");
             break;
         case 0x0F:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Low Critical Humidity Limit Exceeded");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Low Critical Humidity Limit Exceeded");
             break;
         case 0x10:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
-                                "Warning - High Operating Humidity Limit Exceeded");
+            error =
+                safe_strcpy(reasonString, reasonStringMaxLength, "Warning - High Operating Humidity Limit Exceeded");
             break;
         case 0x11:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Low Operating Humidity Limit Exceeded");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Low Operating Humidity Limit Exceeded");
             break;
         case 0x12:
-            snprintf_err_handle(reasonString, reasonStringMaxLength, "Warning - Microcode Security At Risk");
+            error = safe_strcpy(reasonString, reasonStringMaxLength, "Warning - Microcode Security At Risk");
             break;
         case 0x13:
-            snprintf_err_handle(reasonString, reasonStringMaxLength,
+            error = safe_strcpy(reasonString, reasonStringMaxLength,
                                 "Warning - Microcode Digital Signature Validation Failure");
             break;
         default:
@@ -4515,6 +5299,15 @@ static void translate_SCSI_SMART_Sense_To_String(uint8_t            asc,
         // Don't do anything. This is not a valid sense combination for a SMART trip
         break;
     }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting reason string in %s\n", __func__);
+    }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error converting SCSI sense to SMART failure/warning in %s\n", __func__);
+        }
     *reasonStringOutputLength = C_CAST(uint8_t, safe_strlen(reasonString));
 }
 //
@@ -4531,14 +5324,13 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
 
     informationalExceptionsLog     infoExceptionsLog;
     informationalExceptionsControl infoExceptionsControl;
-    safe_memset(&infoExceptionsLog, sizeof(informationalExceptionsLog), 0, sizeof(informationalExceptionsLog));
-    safe_memset(&infoExceptionsControl, sizeof(informationalExceptionsControl), 0,
-                sizeof(informationalExceptionsControl));
+    M_INITIALIZE_STRUCTURE(&infoExceptionsLog, sizeof(informationalExceptionsLog));
+    M_INITIALIZE_STRUCTURE(&infoExceptionsControl, sizeof(informationalExceptionsControl));
     bool sendRequestSense = false;
     bool readModePage     = false;
     bool temporarilyEnableMRIEMode6 =
-        false; // This will hold if we are changing the mode from a value of 1-5 to 6. DO NOT CHANGE IT IF IT IS ZERO!
-               // We should return NOT_SUPPORTED in this case. - TJE
+        false; // This will hold if we are changing the mode from a value of 1-5 to 6. DO NOT CHANGE IT IF IT IS
+               // ZERO! We should return NOT_SUPPORTED in this case. - TJE
     uint32_t delayTimeMilliseconds = UINT32_C(0); // This will be used to make a delay only if the interval is a value
                                                   // less than 1000milliseconds, otherwise we'll change the mode page.
     // get informational exceptions data from the drive first
@@ -4548,8 +5340,8 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
     {
         if (infoExceptionsLog.isValid)
         {
-            // This is supposed to be the most consistent way of determining this...it should work always so long as the
-            // page is supported.
+            // This is supposed to be the most consistent way of determining this...it should work always so long as
+            // the page is supported.
             if (infoExceptionsLog.additionalSenseCode == 0x5D)
             {
                 ret = FAILURE;
@@ -4585,8 +5377,8 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
         }
         else
         {
-            // got the log and mode page...need to check mode page settings to see if an error get's logged and the MRIE
-            // value so we can attempt a request sense.
+            // got the log and mode page...need to check mode page settings to see if an error get's logged and the
+            // MRIE value so we can attempt a request sense.
             if (infoExceptionsControl.isValid)
             {
                 readModePage = true;
@@ -4594,8 +5386,8 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
                 {
                 case 1: // asynchronous event reporting (not supported on Seagate drives)
                 case 2: // Generate Unit attention (sense key 6, asc = 5D. Fail command, no data transfer)
-                case 3: // Conditionally generate recovered error (sense key 1, asc 5D on command that normall generates
-                        // good status. Honors PER bit)
+                case 3: // Conditionally generate recovered error (sense key 1, asc 5D on command that normall
+                        // generates good status. Honors PER bit)
                 case 4: // Unconditionally generate recovered error (sense key 1, asc 5D on command that normall
                         // generates good status. Independent of PER bit)
                 case 5: // Generate No Sense (sense key 0, asc 5D)
@@ -4604,8 +5396,8 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
                     break;
                 case 6: // issue request sense. We may need to change the interval or reporting count first....
                     sendRequestSense = true;
-                    // we need to check the interval and the report count fields...depending on what these are, we may
-                    // need to either wait or make a mode page change
+                    // we need to check the interval and the report count fields...depending on what these are, we
+                    // may need to either wait or make a mode page change
                     if (infoExceptionsControl.intervalTimer == 0 || infoExceptionsControl.intervalTimer == UINT32_MAX ||
                         infoExceptionsControl.intervalTimer > 10)
                     {
@@ -4623,15 +5415,16 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
                     break;
                 case 0:  // not enabled
                 default: // unknown or not supported value
-                    // not enabled, return NOT_SUPPORTED. Make them use the --setMRIE option to change to something else
-                    // first
+                    // not enabled, return NOT_SUPPORTED. Make them use the --setMRIE option to change to something
+                    // else first
                     ret = NOT_SUPPORTED;
                     break;
                 }
             }
             else
             {
-                // uhh...just try request sense or return NOT_SUPPORTED???...I don't think this case should ever get hit
+                // uhh...just try request sense or return NOT_SUPPORTED???...I don't think this case should ever get
+                // hit
                 // - TJE
                 sendRequestSense = true;
             }
@@ -4639,8 +5432,8 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
     }
     else
     {
-        // This device doesn't support the log page or mode page...so just try a request sense and see what the sense
-        // data gives.
+        // This device doesn't support the log page or mode page...so just try a request sense and see what the
+        // sense data gives.
         sendRequestSense = true;
     }
     if (temporarilyEnableMRIEMode6)
@@ -4649,14 +5442,16 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
         // change MRIE mode to 6, PS = 0 and SP = false to change this temporarily so we can issue a request sense.
         informationalExceptionsControl tempControl;
         // copy current settings over
-        safe_memcpy(&tempControl, sizeof(informationalExceptionsControl), &infoExceptionsControl,
-                    sizeof(informationalExceptionsControl));
+        M_IGNORE_SAFE_ERRNO_CALL(
+            safe_memcpy(&tempControl, sizeof(informationalExceptionsControl), &infoExceptionsControl,
+                        sizeof(informationalExceptionsControl)),
+            "Destination and source are same size strctures and same types so this will never fail.");
         tempControl.mrie          = 6; // generate error upon request
         tempControl.reportCount   = 0; // always generate errors
         tempControl.intervalTimer = 1; // 100 milliseconds
         tempControl.ewasc =
-            true; // turn on warnings for the check since we are making a temporary change...TODO: determine above if we
-                  // should turn this on all the time or not (if it's not already on)
+            true; // turn on warnings for the check since we are making a temporary change...TODO: determine above
+                  // if we should turn this on all the time or not (if it's not already on)
         tempControl.ps = false; // make sure we don't save this value!
         set_SCSI_Informational_Exceptions_Info(device, false,
                                                &tempControl); // save bit to false...don't want to save this change
@@ -4720,15 +5515,14 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_SMART_Check(const tDevice* M_NONNULL  
     {
         // Change back to the user's saved settings
         informationalExceptionsControl savedControlSettings;
-        safe_memset(&savedControlSettings, sizeof(informationalExceptionsControl), 0,
-                    sizeof(informationalExceptionsControl));
+        M_INITIALIZE_STRUCTURE(&savedControlSettings, sizeof(informationalExceptionsControl));
         if (SUCCESS ==
             get_SCSI_Informational_Exceptions_Info(device, MPC_SAVED_VALUES, &savedControlSettings, M_NULLPTR))
         {
             if (SUCCESS != set_SCSI_Informational_Exceptions_Info(device, true, &savedControlSettings))
             {
-                // try again with the save bit set to false...shouldn't happen but we need to try to get this back to
-                // the user's other settings.
+                // try again with the save bit set to false...shouldn't happen but we need to try to get this back
+                // to the user's other settings.
                 set_SCSI_Informational_Exceptions_Info(device, false, &savedControlSettings);
             }
         }
@@ -4745,13 +5539,14 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(const tDevice* M_NONNULL  
     eReturnValues ret = UNKNOWN;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, smartLogPage, LEGACY_DRIVE_SEC_SIZE);
     nvmeGetLogPageCmdOpts smartPageOpts;
-    safe_memset(&smartPageOpts, sizeof(nvmeGetLogPageCmdOpts), 0, sizeof(nvmeGetLogPageCmdOpts));
+    M_INITIALIZE_STRUCTURE(&smartPageOpts, sizeof(nvmeGetLogPageCmdOpts));
     smartPageOpts.addr    = smartLogPage;
     smartPageOpts.dataLen = LEGACY_DRIVE_SEC_SIZE;
     smartPageOpts.lid     = NVME_LOG_SMART_ID;
     smartPageOpts.nsid    = NVME_ALL_NAMESPACES; // requesting controller page, not namespace page. - TJE
     if (SUCCESS == nvme_Get_Log_Page(device, &smartPageOpts))
     {
+        errno_t error = 0;
         // check the critical warning byte! (Byte 0)
         if (smartLogPage[0] > 0)
         {
@@ -4768,14 +5563,14 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(const tDevice* M_NONNULL  
             if (smartLogPage[0] & BIT0)
             {
                 tripInfo->nvmeCriticalWarning.spareSpaceBelowThreshold = true;
-                snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
-                                    "Available Spare Space has fallen below the threshold");
+                error                                                  = safe_strcpy(tripInfo->reasonString, UINT8_MAX,
+                                                                                     "Available Spare Space has fallen below the threshold");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT1)
             {
                 tripInfo->nvmeCriticalWarning.temperatureExceedsThreshold = true;
-                snprintf_err_handle(
+                error                                                     = safe_strcpy(
                     tripInfo->reasonString, UINT8_MAX,
                     "Temperature is above an over temperature threshold or below an under temperature threshold");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
@@ -4783,29 +5578,29 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(const tDevice* M_NONNULL  
             if (smartLogPage[0] & BIT2)
             {
                 tripInfo->nvmeCriticalWarning.nvmSubsystemDegraded = true;
-                snprintf_err_handle(
+                error                                              = safe_strcpy(
                     tripInfo->reasonString, UINT8_MAX,
                     "NVM subsystem reliability has been degraded due to significant media related errors or an "
-                    "internal error that degrades reliability");
+                                                                 "internal error that degrades reliability");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT3)
             {
                 tripInfo->nvmeCriticalWarning.mediaReadOnly = true;
-                snprintf_err_handle(tripInfo->reasonString, UINT8_MAX, "Media has been placed in read only mode");
+                error = safe_strcpy(tripInfo->reasonString, UINT8_MAX, "Media has been placed in read only mode");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT4)
             {
                 tripInfo->nvmeCriticalWarning.volatileMemoryBackupFailed = true;
-                snprintf_err_handle(tripInfo->reasonString, UINT8_MAX, "Volatile Memory backup device has failed");
+                error = safe_strcpy(tripInfo->reasonString, UINT8_MAX, "Volatile Memory backup device has failed");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT5)
             {
                 tripInfo->nvmeCriticalWarning.persistentMemoryRegionReadOnlyOrUnreliable = true;
-                snprintf_err_handle(tripInfo->reasonString, UINT8_MAX,
-                                    "Persistent Memory Region has become read-only or unreliable");
+                error                        = safe_strcpy(tripInfo->reasonString, UINT8_MAX,
+                                                           "Persistent Memory Region has become read-only or unreliable");
                 tripInfo->reasonStringLength = C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
             }
             if (smartLogPage[0] & BIT6)
@@ -4815,6 +5610,10 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_SMART_Check(const tDevice* M_NONNULL  
             if (smartLogPage[0] & BIT7)
             {
                 tripInfo->nvmeCriticalWarning.reservedBit7 = true;
+            }
+            if (error != 0)
+            {
+                print_error_format("Error copying NVMe SMART trip reason string in %s\n", __func__);
             }
         }
     }
@@ -4911,8 +5710,8 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(const tDevice
         supported = true;
         break;
     case SCSI_DRIVE:
-        // For SMART Check on SCSI, first look for the informational exceptions log page to be supported...then look for
-        // the mode page. At least one of these has to be available to do this.
+        // For SMART Check on SCSI, first look for the informational exceptions log page to be supported...then look
+        // for the mode page. At least one of these has to be available to do this.
         {
             uint32_t logSize = UINT32_C(0);
             if (SUCCESS == get_SCSI_Log_Size(device, LP_INFORMATION_EXCEPTIONS, 0, &logSize) && logSize > 0)
@@ -4921,8 +5720,8 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SMART_Check_Supported(const tDevice
             }
             else
             {
-                // check if the mode page is supported...at least then we can attempt the other methods we have in this
-                // code to check for a trip.
+                // check if the mode page is supported...at least then we can attempt the other methods we have in
+                // this code to check for a trip.
                 DECLARE_ZERO_INIT_ARRAY(uint8_t, informationalExceptionsModePage,
                                         MP_INFORMATION_EXCEPTIONS_LEN + MODE_PARAMETER_HEADER_10_LEN);
                 if (SUCCESS == scsi_Mode_Sense_10(device, MP_INFORMATION_EXCEPTIONS_CONTROL,
@@ -4976,7 +5775,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_Pending_List_Count(const tDevice* M_NON
             // print_str("In Attributes\n");
             // try SMART data
             smartLogData smartData;
-            safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
+            M_INITIALIZE_STRUCTURE(&smartData, sizeof(smartLogData));
             if (SUCCESS == get_SMART_Attributes(device, &smartData))
             {
                 // now get the count from the SMART attribute raw data
@@ -5048,7 +5847,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_Grown_List_Count(const tDevice* M_NONNU
         if (!grownCountFound && is_SMART_Enabled(device))
         {
             smartLogData smartData;
-            safe_memset(&smartData, sizeof(smartLogData), 0, sizeof(smartLogData));
+            M_INITIALIZE_STRUCTURE(&smartData, sizeof(smartLogData));
             if (SUCCESS == get_SMART_Attributes(device, &smartData))
             {
                 // now get the count from the SMART attribute raw data
@@ -5175,8 +5974,8 @@ OPENSEA_OPERATIONS_API eReturnValues sct_Set_Feature_Control(const tDevice* M_NO
                 // set state
                 if (defaultValue)
                 {
-                    // for this we need to read the "sample period" from the SCT data tables command...not supported for
-                    // now
+                    // for this we need to read the "sample period" from the SCT data tables command...not supported
+                    // for now
                     return NOT_SUPPORTED;
                 }
                 else
@@ -5495,7 +6294,7 @@ OPENSEA_OPERATIONS_API eReturnValues enable_Disable_SMART_Feature(const tDevice*
     else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         informationalExceptionsControl control;
-        safe_memset(&control, sizeof(informationalExceptionsControl), 0, sizeof(informationalExceptionsControl));
+        M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
         if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
         {
             if (enable)
@@ -5523,7 +6322,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(const tDevice* M_NONNULL devi
     if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         informationalExceptionsControl control;
-        safe_memset(&control, sizeof(informationalExceptionsControl), 0, sizeof(informationalExceptionsControl));
+        M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
         uint8_t defaultMode = UINT8_C(6);
         if (driveDefault)
         {
@@ -6065,7 +6864,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(co
         {
             // STEP-1 : Get Current Temperature from SMART
 
-            safe_memset(&smartLog, sizeof(nvmeSmartLog), 0, sizeof(nvmeSmartLog));
+            M_INITIALIZE_STRUCTURE(&smartLog, sizeof(nvmeSmartLog));
 
             cmdOpts.nsid    = NVME_ALL_NAMESPACES;
             cmdOpts.addr    = C_CAST(uint8_t*, &smartLog);
@@ -6096,7 +6895,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(co
             }
 
             // STEP-2 : Get Max temperature form Ext SMART-id 194
-            safe_memset(&smartLog, sizeof(nvmeSmartLog), 0, sizeof(nvmeSmartLog));
+            M_INITIALIZE_STRUCTURE(&smartLog, sizeof(nvmeSmartLog));
 
             cmdOpts.nsid    = NVME_ALL_NAMESPACES;
             cmdOpts.addr    = C_CAST(uint8_t*, &extSmartLog);
@@ -6130,7 +6929,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_Temp_Statistics(co
             }
 
             // STEP-3 : Get Max temperature form SuperCap DRAM temperature
-            safe_memset(&scDramSmart, sizeof(nvmeSuperCapDramSmart), 0, sizeof(nvmeSuperCapDramSmart));
+            M_INITIALIZE_STRUCTURE(&scDramSmart, sizeof(nvmeSuperCapDramSmart));
 
             cmdOpts.nsid    = NVME_ALL_NAMESPACES;
             cmdOpts.addr    = C_CAST(uint8_t*, &scDramSmart);
@@ -6175,8 +6974,7 @@ M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_PCI_Statistics(con
 
         if (is_Seagate(device, false))
         {
-
-            safe_memset(&pcieErrorLog, sizeof(nvmePcieErrorLogPage), 0, sizeof(nvmePcieErrorLogPage));
+            M_INITIALIZE_STRUCTURE(&pcieErrorLog, sizeof(nvmePcieErrorLogPage));
 
             cmdOpts.nsid    = NVME_ALL_NAMESPACES;
             cmdOpts.addr    = C_CAST(uint8_t*, &pcieErrorLog);
@@ -6268,7 +7066,8 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Summary_SMART_Error_Log(const tDevi
             get_ATA_Log_Size(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, &smartErrorLogSize, false, true);
             if (smartErrorLogSize > 0)
             {
-                DECLARE_ZERO_INIT_ARRAY(uint8_t, errorLog, ATA_LOG_PAGE_LEN_BYTES); // This log is only 1 page in spec
+                DECLARE_ZERO_INIT_ARRAY(uint8_t, errorLog,
+                                        ATA_LOG_PAGE_LEN_BYTES); // This log is only 1 page in spec
                 eReturnValues getLog =
                     ata_SMART_Read_Log(device, ATA_LOG_SUMMARY_SMART_ERROR_LOG, errorLog, ATA_LOG_PAGE_LEN_BYTES);
                 if (SUCCESS == getLog || WARN_INVALID_CHECKSUM == getLog)
@@ -6364,10 +7163,14 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Summary_SMART_Error_Log(const tDevi
                                 errorLog[offset + 66];
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status =
                                 errorLog[offset + 67];
-                            safe_memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries]
-                                            .error.extendedErrorInformation,
-                                        VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 68],
-                                        VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN);
+                            if (0 != safe_memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries]
+                                                     .error.extendedErrorInformation,
+                                                 VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 68],
+                                                 VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN))
+                            {
+                                ret = MEMORY_FAILURE;
+                                break;
+                            }
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state =
                                 errorLog[offset + 87];
                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.lifeTimestamp =
@@ -6476,7 +7279,11 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                 while (pageIter <= maxPage)
                                 {
                                     // first read this page
-                                    safe_memset(errorLog, 512, 0, 512);
+                                    if (0 != safe_memset(errorLog, 512, 0, 512))
+                                    {
+                                        ret = MEMORY_FAILURE;
+                                        break;
+                                    }
                                     getLog = send_ATA_Read_Log_Ext_Cmd(device,
                                                                        ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG,
                                                                        pageNumber, errorLog, 512, 0);
@@ -6493,9 +7300,9 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                                                EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE) +
                                                               EXT_COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE;
                                             --pageEntryNumber; // decrement now before we forget. This is so that we
-                                                               // roll backwards since this log appends. If this rolls
-                                                               // over to UINT8_MAX, we'll break this loop and read
-                                                               // another page.
+                                                               // roll backwards since this log appends. If this
+                                                               // rolls over to UINT8_MAX, we'll break this loop and
+                                                               // read another page.
                                             // check if the entry is empty
                                             if (is_Empty(&errorLog[offset], EXT_COMP_SMART_ERROR_LOG_ENTRY_SIZE))
                                             {
@@ -6593,10 +7400,16 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                                 .extError.device = errorLog[offset + 100];
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries]
                                                 .extError.status = errorLog[offset + 101];
-                                            safe_memcpy(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries]
-                                                            .extError.extendedErrorInformation,
-                                                        VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 102],
-                                                        VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN);
+                                            if (0 !=
+                                                safe_memcpy(smartErrorLog->extSmartError[smartErrorLog->numberOfEntries]
+                                                                .extError.extendedErrorInformation,
+                                                            VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN,
+                                                            &errorLog[offset + 102],
+                                                            VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN))
+                                            {
+                                                ret = MEMORY_FAILURE;
+                                                break;
+                                            }
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries]
                                                 .extError.state = errorLog[offset + 121];
                                             smartErrorLog->extSmartError[smartErrorLog->numberOfEntries]
@@ -6679,7 +7492,11 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                 return MEMORY_FAILURE;
                             }
                             errorLog = temp;
-                            safe_memset(errorLog, compErrLogSize, 0, compErrLogSize);
+                            if (0 != safe_memset(errorLog, compErrLogSize, 0, compErrLogSize))
+                            {
+                                safe_free_aligned(&errorLog);
+                                return MEMORY_FAILURE;
+                            }
                             getLog = ata_SMART_Read_Log(device, ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG, errorLog,
                                                         compErrLogSize);
                             if (getLog == SUCCESS || getLog == WARN_INVALID_CHECKSUM)
@@ -6699,9 +7516,9 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                 //               pageEntryNumber = 28 % 5 = 3;
                                 //               offset = (5 * 512) + (3 * 90) + 2;
                                 //               5 * 512 gets us to that page offset (2560)
-                                //               3 * 90 + 2 gets us to the entry offset on the page we need = 272, which
-                                //               is 4th entry on the page (5th page) this gets us entry 4 on page 5
-                                //               which is entry number 28
+                                //               3 * 90 + 2 gets us to the entry offset on the page we need = 272,
+                                //               which is 4th entry on the page (5th page) this gets us entry 4 on
+                                //               page 5 which is entry number 28
                                 // Now, we need to loop through the data and jump between pages.
                                 // go until we fill up our structure with a max number of entries
                                 while (
@@ -6713,17 +7530,18 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                         uint16_t pageEntryCounter = UINT16_C(0);
                                         while (pageEntryNumber < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && pageEntryCounter < COMP_SMART_ERROR_LOG_MAX_ENTRIES_PER_PAGE && smartErrorLog->numberOfEntries < (UINT8_C(5) * maxPages)/*make sure we don't go beyond the number of pages the drive actually has*/)
                                         {
-                                            // calculate the offset of the first entry we need to read from this page
+                                            // calculate the offset of the first entry we need to read from this
+                                            // page
                                             offset =
                                                 (C_CAST(uint32_t, pageNumber) * 512) +
                                                 (C_CAST(uint32_t, pageEntryNumber) * COMP_SMART_ERROR_LOG_ENTRY_SIZE) +
                                                 UINT32_C(2);
                                             --pageEntryNumber; // decrement now before we forget. This is so that we
-                                                               // roll backwards since this log appends. If this rolls
-                                                               // over to UINT8_MAX, we'll break this loop and read
-                                                               // another page.
-                                            // read the entry into memory if it is valid, otherwise continue the loop
-                                            // check if the entry is empty
+                                                               // roll backwards since this log appends. If this
+                                                               // rolls over to UINT8_MAX, we'll break this loop and
+                                                               // read another page.
+                                            // read the entry into memory if it is valid, otherwise continue the
+                                            // loop check if the entry is empty
                                             if (is_Empty(&errorLog[offset], COMP_SMART_ERROR_LOG_ENTRY_SIZE))
                                             {
                                                 // restart the loop to find another entry (if any)
@@ -6793,10 +7611,15 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                                 errorLog[offset + 66];
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.status =
                                                 errorLog[offset + 67];
-                                            safe_memcpy(smartErrorLog->smartError[smartErrorLog->numberOfEntries]
-                                                            .error.extendedErrorInformation,
-                                                        VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 68],
-                                                        VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN);
+                                            if (0 != safe_memcpy(
+                                                         smartErrorLog->smartError[smartErrorLog->numberOfEntries]
+                                                             .error.extendedErrorInformation,
+                                                         VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN, &errorLog[offset + 68],
+                                                         VENDOR_EXTENDED_SMART_CMD_ERR_DATA_LEN))
+                                            {
+                                                ret = MEMORY_FAILURE;
+                                                break;
+                                            }
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries].error.state =
                                                 errorLog[offset + 87];
                                             smartErrorLog->smartError[smartErrorLog->numberOfEntries]
@@ -6810,7 +7633,8 @@ get_ATA_Comprehensive_SMART_Error_Log(const tDevice* M_NONNULL                de
                                         ++pageIter;
                                         if (pageNumber > 0)
                                         {
-                                            --pageNumber; // go to the previous page of the log to read entries in order
+                                            --pageNumber; // go to the previous page of the log to read entries in
+                                                          // order
                                         }
                                         else
                                         {
@@ -6855,8 +7679,8 @@ static void get_Read_Write_Command_Info(const char* M_NONNULL commandName,
                                         uint8_t               device,
                                         char                  commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    bool isLBAMode = (device & LBA_MODE_BIT); // almost everything should be LBA mode. Only a few CHS things should be
-                                              // here, but we need to handle them
+    bool isLBAMode = (device & LBA_MODE_BIT); // almost everything should be LBA mode. Only a few CHS things should
+                                              // be here, but we need to handle them
     bool ext       = false;                   // 48bit command
     bool async     = false;                   // dma queued and fpdma
     bool stream    = false;                   // read/write stream
@@ -6865,6 +7689,7 @@ static void get_Read_Write_Command_Info(const char* M_NONNULL commandName,
     bool fpdma = false;
     // bool noRetries = false;
     // uint64_t commandLBA = lba;
+    int      snprintfres       = 0;
     uint32_t sectorsToTransfer = count; // true for synchronous commands...
     switch (commandOpCode)
     {
@@ -6942,16 +7767,16 @@ static void get_Read_Write_Command_Info(const char* M_NONNULL commandName,
             }
             if (fpdma)
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - LBA: %" PRIu64 " Count: %" PRIu32 " NCQ Tag: %" PRIu8 " FUA: %d PRIO: %" PRIu8
-                                    " RARC: %d",
-                                    commandName, lba, sectorsToTransfer, tag, forceUnitAccess, prio, rarc);
+                snprintfres = snprintf_err_handle(
+                    commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                    "%s - LBA: %" PRIu64 " Count: %" PRIu32 " NCQ Tag: %" PRIu8 " FUA: %d PRIO: %" PRIu8 " RARC: %d",
+                    commandName, lba, sectorsToTransfer, tag, forceUnitAccess, prio, rarc);
             }
             else
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - LBA: %" PRIu64 " Count: %" PRIu32 " Tag: %" PRIu8 "", commandName, lba,
-                                    sectorsToTransfer, tag);
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "%s - LBA: %" PRIu64 " Count: %" PRIu32 " Tag: %" PRIu8 "",
+                                                  commandName, lba, sectorsToTransfer, tag);
             }
         }
         else // old dma queued commands
@@ -6966,19 +7791,19 @@ static void get_Read_Write_Command_Info(const char* M_NONNULL commandName,
                 uint32_t readSecLBA = C_CAST(uint32_t, M_Nibble0(device)) << 24;
                 readSecLBA |= M_DoubleWord0(lba) &
                               UINT32_C(0x00FFFFFF); // grabbing first 24 bits only since the others should be zero
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - LBA: %" PRIu32 " Count: %" PRIu32 " Tag: %" PRIu8 "", commandName, readSecLBA,
-                                    sectorsToTransfer, tag);
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "%s - LBA: %" PRIu32 " Count: %" PRIu32 " Tag: %" PRIu8 "",
+                                                  commandName, readSecLBA, sectorsToTransfer, tag);
             }
             else
             {
                 uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
                 uint8_t  head     = M_Nibble0(device);
                 uint8_t  sector   = M_Byte0(lba);
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu32
-                                    " Tag: %" PRIu8 "",
-                                    commandName, cylinder, head, sector, sectorsToTransfer, tag);
+                snprintfres       = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                        "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8
+                                                        " Count: %" PRIu32 " Tag: %" PRIu8 "",
+                                                        commandName, cylinder, head, sector, sectorsToTransfer, tag);
             }
         }
     }
@@ -7003,26 +7828,28 @@ static void get_Read_Write_Command_Info(const char* M_NONNULL commandName,
                     uint8_t streamID = get_8bit_range_uint16(features, 2, 0);
                     if (streamDir) // true = write
                     {
-                        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                            "%s - LBA: %" PRIu64 " Count: %" PRIu32 " StreamID: %" PRIu8
-                                            " CCTL: %" PRIu8 " Urgent: %d WC: %d Flush %d HSE: %d",
-                                            commandName, lba, sectorsToTransfer, streamID, cctl, urgentTransferRequest,
-                                            readWriteContinuous, notSequentialORFlush, handleStreamingError);
+                        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                          "%s - LBA: %" PRIu64 " Count: %" PRIu32 " StreamID: %" PRIu8
+                                                          " CCTL: %" PRIu8 " Urgent: %d WC: %d Flush %d HSE: %d",
+                                                          commandName, lba, sectorsToTransfer, streamID, cctl,
+                                                          urgentTransferRequest, readWriteContinuous,
+                                                          notSequentialORFlush, handleStreamingError);
                     }
                     else
                     {
-                        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                            "%s - LBA: %" PRIu64 " Count: %" PRIu32 " StreamID: %" PRIu8
-                                            " CCTL: %" PRIu8 " Urgent: %d RC: %d NC %d HSE: %d",
-                                            commandName, lba, sectorsToTransfer, streamID, cctl, urgentTransferRequest,
-                                            readWriteContinuous, notSequentialORFlush, handleStreamingError);
+                        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                          "%s - LBA: %" PRIu64 " Count: %" PRIu32 " StreamID: %" PRIu8
+                                                          " CCTL: %" PRIu8 " Urgent: %d RC: %d NC %d HSE: %d",
+                                                          commandName, lba, sectorsToTransfer, streamID, cctl,
+                                                          urgentTransferRequest, readWriteContinuous,
+                                                          notSequentialORFlush, handleStreamingError);
                     }
                 }
                 else
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "%s - LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, lba,
-                                        sectorsToTransfer);
+                    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "%s - LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, lba,
+                                                      sectorsToTransfer);
                 }
             }
             else // unlikely...most or all transfers should be LBA mode for this command...ATA6 does not require LBA
@@ -7031,10 +7858,10 @@ static void get_Read_Write_Command_Info(const char* M_NONNULL commandName,
                 uint32_t cylinder = M_BytesTo4ByteValue(M_Byte5(lba), M_Byte4(lba), M_Byte2(lba), M_Byte1(lba));
                 uint8_t  head     = M_Nibble0(device);
                 uint16_t sector   = M_BytesTo2ByteValue(M_Byte3(lba), M_Byte0(lba));
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - Cylinder: %" PRIu32 " Head: %" PRIu8 " Sector: %" PRIu16 " Count: %" PRIu32
-                                    "",
-                                    commandName, cylinder, head, sector, sectorsToTransfer);
+                snprintfres       = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                        "%s - Cylinder: %" PRIu32 " Head: %" PRIu8 " Sector: %" PRIu16
+                                                        " Count: %" PRIu32 "",
+                                                        commandName, cylinder, head, sector, sectorsToTransfer);
             }
         }
         else
@@ -7048,20 +7875,25 @@ static void get_Read_Write_Command_Info(const char* M_NONNULL commandName,
                 uint32_t readSecLBA = C_CAST(uint32_t, M_Nibble0(device)) << 24;
                 readSecLBA |= M_DoubleWord0(lba) &
                               UINT32_C(0x00FFFFFF); // grabbing first 24 bits only since the others should be zero
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - LBA: %" PRIu32 " Count: %" PRIu32 "", commandName, readSecLBA,
-                                    sectorsToTransfer);
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "%s - LBA: %" PRIu32 " Count: %" PRIu32 "", commandName, readSecLBA,
+                                                  sectorsToTransfer);
             }
             else
             {
                 uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
                 uint8_t  head     = M_Nibble0(device);
                 uint8_t  sector   = M_Byte0(lba);
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 " Count: %" PRIu32 "",
-                                    commandName, cylinder, head, sector, sectorsToTransfer);
+                snprintfres       = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                        "%s - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8
+                                                        " Count: %" PRIu32 "",
+                                                        commandName, cylinder, head, sector, sectorsToTransfer);
             }
         }
+    }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting final ATA Read/Write/Stream command info string in %s\n", __func__);
     }
 }
 
@@ -7081,6 +7913,8 @@ static void get_GPL_Log_Command_Info(const char* M_NONNULL commandName,
     DECLARE_ZERO_INIT_ARRAY(char, logAddressName, GPL_LOG_NAME_LENGTH);
     uint32_t logPageCount = count;
     bool     invalidLog   = false;
+    errno_t  error        = 0;
+    int      snprintfres  = 0;
     if (commandOpCode == ATA_SEND_FPDMA ||
         commandOpCode == ATA_RECEIVE_FPDMA) // these commands can encapsulate read/write log ext commands
     {
@@ -7093,129 +7927,145 @@ static void get_GPL_Log_Command_Info(const char* M_NONNULL commandName,
     switch (logAddress)
     {
     case ATA_LOG_DIRECTORY:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Directory");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Directory");
         break;
     case ATA_LOG_SUMMARY_SMART_ERROR_LOG: // smart log...should be an error using this command!
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Summary SMART Error");
+        error      = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Summary SMART Error");
         invalidLog = true;
         break;
     case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG: // smart log...should be an error using this command!
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Comprehensive SMART Error");
+        error      = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Comprehensive SMART Error");
         invalidLog = true;
         break;
     case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Ext Comprehensive SMART Error");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Ext Comprehensive SMART Error");
         break;
     case ATA_LOG_DEVICE_STATISTICS:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Device Statistics");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Device Statistics");
         break;
     case ATA_LOG_SMART_SELF_TEST_LOG: // smart log...should be an error using this command!
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "SMART Self-Test");
+        error      = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "SMART Self-Test");
         invalidLog = true;
         break;
     case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Ext SMART Self-Test");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Ext SMART Self-Test");
         break;
     case ATA_LOG_POWER_CONDITIONS:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Power Conditions");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Power Conditions");
         break;
     case ATA_LOG_SELECTIVE_SELF_TEST_LOG: // smart log...should be an error using this command!
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Selective Self-Test");
+        error      = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Selective Self-Test");
         invalidLog = true;
         break;
     case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Device Statistics Notification");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Device Statistics Notification");
         break;
     case ATA_LOG_PENDING_DEFECTS_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Pending Defects");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Pending Defects");
         break;
     case ATA_LOG_LPS_MISALIGNMENT_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "LPS Misalignment");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "LPS Misalignment");
         break;
     case ATA_LOG_SENSE_DATA_FOR_SUCCESSFUL_NCQ_COMMANDS:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Sense Data for Successful NCQ");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Sense Data for Successful NCQ");
         break;
     case ATA_LOG_NCQ_COMMAND_ERROR_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Command Errors");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Command Errors");
         break;
     case ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "SATA Phy Event Counters");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "SATA Phy Event Counters");
         break;
     case ATA_LOG_SATA_NCQ_QUEUE_MANAGEMENT_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Queue Management");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Queue Management");
         break;
     case ATA_LOG_SATA_NCQ_SEND_AND_RECEIVE_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Send and Receive");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "NCQ Send and Receive");
         break;
     case ATA_LOG_HYBRID_INFORMATION:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Hybrid Information");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Hybrid Information");
         break;
     case ATA_LOG_REBUILD_ASSIST:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Rebuild Assist");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Rebuild Assist");
         break;
     case ATA_LOG_LBA_STATUS:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "LBA Status");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "LBA Status");
         break;
     case ATA_LOG_STREAMING_PERFORMANCE:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Streaming Performance");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Streaming Performance");
         break;
     case ATA_LOG_WRITE_STREAM_ERROR_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Write Stream Errors");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Write Stream Errors");
         break;
     case ATA_LOG_READ_STREAM_ERROR_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Read Stream Errors");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Read Stream Errors");
         break;
     case ATA_LOG_DELAYED_LBA_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Delayed LBA");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Delayed LBA");
         break;
     case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Current Device Internal Status");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Current Device Internal Status");
         break;
     case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Saved Device Internal Status");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Saved Device Internal Status");
         break;
     case ATA_LOG_SECTOR_CONFIGURATION_LOG:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Sector Configuration");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Sector Configuration");
         break;
     case ATA_LOG_IDENTIFY_DEVICE_DATA:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Identify Device Data");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Identify Device Data");
         break;
     case ATA_LOG_CAPACITY_MODELNUMBER_MAPPING:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Capacity/Model Number Mapping");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "Capacity/Model Number Mapping");
         break;
     case ATA_SCT_COMMAND_STATUS:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "SCT Command/Status");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "SCT Command/Status");
         break;
     case ATA_SCT_DATA_TRANSFER:
-        snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "SCT Data Transfer");
+        error = safe_strcpy(logAddressName, GPL_LOG_NAME_LENGTH, "SCT Data Transfer");
         break;
     default:
         if (logAddress >= 0x80 && logAddress <= 0x9F)
         {
-            snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Host Specific (%02" PRIX8 "h)", logAddress);
+            snprintfres =
+                snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Host Specific (%02" PRIX8 "h)", logAddress);
         }
         else if (logAddress >= 0xA0 && logAddress <= 0xDF)
         {
-            snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Vendor Specific (%02" PRIX8 "h)", logAddress);
+            snprintfres =
+                snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Vendor Specific (%02" PRIX8 "h)", logAddress);
         }
         else
         {
-            snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Unknown (%02" PRIX8 "h)", logAddress);
+            snprintfres =
+                snprintf_err_handle(logAddressName, GPL_LOG_NAME_LENGTH, "Unknown (%02" PRIX8 "h)", logAddress);
         }
         break;
     }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting ATA log address output string in %s\n", __func__);
+    }
+    if (error != 0)
+    {
+        print_error_format("Error copying ATA log address name in %s\n", __func__);
+    }
     if (invalidLog)
     {
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Log: %s (Invalid Address) Page Number: %" PRIu16 " PageCount: %" PRIu32
-                            " Features: %" PRIX16 "h",
-                            commandName, logAddressName, pageNumber, logPageCount, features);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Log: %s (Invalid Address) Page Number: %" PRIu16 " PageCount: %" PRIu32
+                                          " Features: %" PRIX16 "h",
+                                          commandName, logAddressName, pageNumber, logPageCount, features);
     }
     else
     {
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Log: %s Page Number: %" PRIu16 " PageCount: %" PRIu32 " Features: %" PRIX16 "h",
-                            commandName, logAddressName, pageNumber, logPageCount, features);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Log: %s Page Number: %" PRIu16 " PageCount: %" PRIu32 " Features: %" PRIX16 "h",
+                                commandName, logAddressName, pageNumber, logPageCount, features);
+    }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting final ATA command info string in %s\n", __func__);
     }
 }
 
@@ -7233,32 +8083,46 @@ static void get_Download_Command_Info(const char* M_NONNULL commandName,
     uint8_t  subcommand   = M_Byte0(features);
     uint16_t blockCount   = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
     uint16_t bufferOffset = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
+    errno_t  error        = 0;
+    int      snprintfres  = 0;
     DECLARE_ZERO_INIT_ARRAY(char, subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH);
     switch (subcommand)
     {
     case 0x01: // immediate temporary use (obsolete)
-        snprintf_err_handle(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Temporary");
+        error = safe_strcpy(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Temporary");
         break;
     case 0x03: // offsets and save immediate
-        snprintf_err_handle(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Offsets - Immediate");
+        error = safe_strcpy(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Offsets - Immediate");
         break;
     case 0x07: // save for immediate use (full buffer)
-        snprintf_err_handle(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Full - Immediate");
+        error = safe_strcpy(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Full - Immediate");
         break;
     case 0x0E: // offsets and defer for future activation
-        snprintf_err_handle(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Offsets - Deferred");
+        error = safe_strcpy(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Offsets - Deferred");
         break;
     case 0x0F: // Activate deferred code
-        snprintf_err_handle(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Activate");
+        error = safe_strcpy(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Activate");
         break;
     default: // unknown because not yet defined when this was written
-        snprintf_err_handle(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH, "Unknown Mode (%02" PRIX8 "h)",
-                            subcommand);
+        snprintfres = snprintf_err_handle(subCommandName, DOWNLOAD_COMMAND_SUBCOMMAND_NAME_LENGTH,
+                                          "Unknown Mode (%02" PRIX8 "h)", subcommand);
         break;
     }
-    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                        "%s - Mode: %s Block Count: %" PRIu16 " Buffer Offset: %" PRIu16 "", commandName,
-                        subCommandName, blockCount, bufferOffset);
+    if (error != 0)
+    {
+        print_error_format("Error copying subcommand name in %s\n", __func__);
+    }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting subcommand name in %s\n", __func__);
+    }
+    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                      "%s - Mode: %s Block Count: %" PRIu16 " Buffer Offset: %" PRIu16 "", commandName,
+                                      subCommandName, blockCount, bufferOffset);
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting final download microcode command info string in %s\n", __func__);
+    }
 }
 
 #define TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH UINT8_C(31)
@@ -7276,10 +8140,12 @@ static void get_Trusted_Command_Info(const char* M_NONNULL commandName,
     uint16_t securityProtocolSpecific = M_BytesTo2ByteValue(M_Byte3(lba), M_Byte2(lba));
     uint16_t transferLength           = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
     DECLARE_ZERO_INIT_ARRAY(char, securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH);
+    errno_t error       = 0;
+    int     snprintfres = 0;
     switch (securityProtocol)
     {
     case SECURITY_PROTOCOL_RETURN_SUPPORTED:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Supported");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Supported");
         break;
     case SECURITY_PROTOCOL_TCG_1:
     case SECURITY_PROTOCOL_TCG_2:
@@ -7287,81 +8153,96 @@ static void get_Trusted_Command_Info(const char* M_NONNULL commandName,
     case SECURITY_PROTOCOL_TCG_4:
     case SECURITY_PROTOCOL_TCG_5:
     case SECURITY_PROTOCOL_TCG_6:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "TCG %" PRIu8 "",
-                            securityProtocol);
+        snprintfres = snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH,
+                                          "TCG %" PRIu8 "", securityProtocol);
         break;
     case SECURITY_PROTOCOL_CbCS:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "CbCS");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "CbCS");
         break;
     case SECURITY_PROTOCOL_TAPE_DATA_ENCRYPTION:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Tape Encryption");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Tape Encryption");
         break;
     case SECURITY_PROTOCOL_DATA_ENCRYPTION_CONFIGURATION:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH,
-                            "Encryption Configuration");
+        error =
+            safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "Encryption Configuration");
         break;
     case SECURITY_PROTOCOL_SA_CREATION_CAPABILITIES:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SA Creation Cap");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SA Creation Cap");
         break;
     case SECURITY_PROTOCOL_IKE_V2_SCSI:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "IKE V2 SCSI");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "IKE V2 SCSI");
         break;
     case SECURITY_PROTOCOL_NVM_EXPRESS:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "NVM Express");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "NVM Express");
         break;
     case SECURITY_PROTOCOL_SCSA:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SCSA");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SCSA");
         break;
     case SECURITY_PROTOCOL_JEDEC_UFS:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "JEDEC UFS");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "JEDEC UFS");
         break;
     case SECURITY_PROTOCOL_SDcard_TRUSTEDFLASH_SECURITY:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SD Trusted Flash");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "SD Trusted Flash");
         break;
     case SECURITY_PROTOCOL_IEEE_1667:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "IEEE 1667");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "IEEE 1667");
         break;
     case SECURITY_PROTOCOL_ATA_DEVICE_SERVER_PASSWORD:
-        snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "ATA Security");
+        error = safe_strcpy(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH, "ATA Security");
         break;
     default:
         if (securityProtocol >= 0xF0 /* && securityProtocol <= 0xFF */)
         {
-            snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH,
-                                "Vendor Specific (%02" PRIX8 "h)", securityProtocol);
+            snprintfres = snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH,
+                                              "Vendor Specific (%02" PRIX8 "h)", securityProtocol);
             break;
         }
         else
         {
-            snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH,
-                                "Unknown (%02" PRIX8 "h)", securityProtocol);
+            snprintfres = snprintf_err_handle(securityProtocolName, TRUSTED_CMD_SECURITY_PROTOCOL_NAME_LENGTH,
+                                              "Unknown (%02" PRIX8 "h)", securityProtocol);
             break;
         }
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying trusted command info string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting intermediate trusted command info string in %s\n", __func__);
+    }
+
     if (commandOpCode == ATA_TRUSTED_NON_DATA)
     {
         transferLength = 0;
-        if (device &
-            BIT0) // spec is a little misleading, but the bits 24:27 are in the device/head register on 28 bit commands
+        if (device & BIT0) // spec is a little misleading, but the bits 24:27 are in the device/head register on 28
+                           // bit commands
         {
             // receive
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s (Receive) - Protocol: %s Protocol Specific: %" PRIu16 "", commandName,
-                                securityProtocolName, securityProtocolSpecific);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s (Receive) - Protocol: %s Protocol Specific: %" PRIu16 "", commandName,
+                                              securityProtocolName, securityProtocolSpecific);
         }
         else
         {
             // send
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s (Send) - Protocol: %s Protocol Specific: %" PRIu16 "", commandName,
-                                securityProtocolName, securityProtocolSpecific);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s (Send) - Protocol: %s Protocol Specific: %" PRIu16 "", commandName,
+                                              securityProtocolName, securityProtocolSpecific);
         }
     }
     else
     {
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Protocol: %s Protocol Specific: %" PRIu16 " Transfer Length: %" PRIu16 "",
-                            commandName, securityProtocolName, securityProtocolSpecific, transferLength);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Protocol: %s Protocol Specific: %" PRIu16 " Transfer Length: %" PRIu16 "",
+                                commandName, securityProtocolName, securityProtocolSpecific, transferLength);
+    }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting final get_Trusted_Command_Info command info string in %s\n", __func__);
     }
 }
 
@@ -7380,73 +8261,91 @@ static void get_SMART_Offline_Immediate_Info(const char* M_NONNULL  commandName,
 {
     uint8_t offlineImmdTest = M_Byte0(lba);
     DECLARE_ZERO_INIT_ARRAY(char, offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH);
+    errno_t error       = 0;
+    int     snprintfres = 0;
     switch (offlineImmdTest)
     {
     case 0: // SMART off-line routine (offline mode)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "SMART Off-line routine");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "SMART Off-line routine");
         break;
     case 0x01: // short self test (offline)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Short Self-Test (offline)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Short Self-Test (offline)");
         break;
     case 0x02: // extended self test (offline)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Extended Self-Test (offline)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Extended Self-Test (offline)");
         break;
     case 0x03: // conveyance self test (offline)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Conveyance Self-Test (offline)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Conveyance Self-Test (offline)");
         break;
     case 0x04: // selective self test (offline)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Selective Self-Test (offline)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Selective Self-Test (offline)");
         break;
     case 0x7F: // abort offline test
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Abort Self-Test");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Abort Self-Test");
         break;
     case 0x81: // short self test (captive)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Short Self-Test (captive)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Short Self-Test (captive)");
         break;
     case 0x82: // extended self test (captive)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Extended Self-Test (captive)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Extended Self-Test (captive)");
         break;
     case 0x83: // conveyance self test (captive)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Conveyance Self-Test (captive)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Conveyance Self-Test (captive)");
         break;
     case 0x84: // selective self test (captive)
-        snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Selective Self-Test (captive)");
+        error = safe_strcpy(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Selective Self-Test (captive)");
         break;
     default:
         if (offlineImmdTest >= 0x05 && offlineImmdTest <= 0x3F)
         {
             // reserved (offline)
-            snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Unknown %" PRIX8 "h (offline)",
-                                offlineImmdTest);
+            snprintfres = snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH,
+                                              "Unknown %" PRIX8 "h (offline)", offlineImmdTest);
         }
         else if (offlineImmdTest == 0x80 || (offlineImmdTest >= 0x85 && offlineImmdTest <= 0x8F))
         {
             // reserved (captive)
-            snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Unknown %" PRIX8 "h (captive)",
-                                offlineImmdTest);
+            snprintfres = snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH,
+                                              "Unknown %" PRIX8 "h (captive)", offlineImmdTest);
         }
         else if (offlineImmdTest >= 0x40 && offlineImmdTest <= 0x7E)
         {
             // vendor unique (offline)
-            snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH,
-                                "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
+            snprintfres = snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH,
+                                              "Vendor Specific %" PRIX8 "h (offline)", offlineImmdTest);
         }
         else if (offlineImmdTest >= 0x90 /* && offlineImmdTest <= 0xFF*/)
         {
             // vendor unique (captive)
-            snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH,
-                                "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
+            snprintfres = snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH,
+                                              "Vendor Specific %" PRIX8 "h (captive)", offlineImmdTest);
         }
         else
         {
             // shouldn't get here, but call it a generic unknown self test
-            snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Unknown %" PRIX8 "h",
-                                offlineImmdTest);
+            snprintfres = snprintf_err_handle(offlineTestName, SMART_OFFLINE_TEST_NAME_LENGTH, "Unknown %" PRIX8 "h",
+                                              offlineImmdTest);
         }
         break;
     }
-    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Offline Immediate: %s, SMART Signature %s",
-                        commandName, offlineTestName, smartSigValid);
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying SMART offline immediate string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting intermediate SMART offline immediate string in %s\n", __func__);
+    }
+
+    snprintfres =
+        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Offline Immediate: %s, SMART Signature %s",
+                            commandName, offlineTestName, smartSigValid);
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting final get_SMART_Offline_Immediate_Info command info string in %s\n",
+                           __func__);
+    }
 }
 
 #define SMART_LOG_ADDRESS_NAME_LENGTH UINT8_C(41)
@@ -7466,168 +8365,188 @@ static void get_SMART_Log_Info(const char* M_NONNULL commandName,
     DECLARE_ZERO_INIT_ARRAY(char, logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH);
     uint8_t logPageCount = M_Byte0(count);
     bool    invalidLog   = false;
+    errno_t error        = 0;
+    int     snprintfres  = 0;
     switch (logAddress)
     {
     case ATA_LOG_DIRECTORY:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Directory");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Directory");
         break;
     case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Summary SMART Error");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Summary SMART Error");
         break;
     case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Comprehensive SMART Error");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Comprehensive SMART Error");
         break;
     case ATA_LOG_EXTENDED_COMPREHENSIVE_SMART_ERROR_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Ext Comprehensive SMART Error");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Ext Comprehensive SMART Error");
         invalidLog = true;
         break;
     case ATA_LOG_DEVICE_STATISTICS:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Device Statistics");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Device Statistics");
         break;
     case ATA_LOG_SMART_SELF_TEST_LOG:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SMART Self-Test");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SMART Self-Test");
         break;
     case ATA_LOG_EXTENDED_SMART_SELF_TEST_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Ext SMART Self-Test");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Ext SMART Self-Test");
         invalidLog = true;
         break;
     case ATA_LOG_POWER_CONDITIONS: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Power Conditions");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Power Conditions");
         invalidLog = true;
         break;
     case ATA_LOG_SELECTIVE_SELF_TEST_LOG:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Selective Self-Test");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Selective Self-Test");
         break;
     case ATA_LOG_DEVICE_STATISTICS_NOTIFICATION: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Device Statistics Notification");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Device Statistics Notification");
         invalidLog = true;
         break;
     case ATA_LOG_PENDING_DEFECTS_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Pending Defects");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Pending Defects");
         invalidLog = true;
         break;
     case ATA_LOG_LPS_MISALIGNMENT_LOG:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "LPS Misalignment");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "LPS Misalignment");
         break;
     case ATA_LOG_SENSE_DATA_FOR_SUCCESSFUL_NCQ_COMMANDS: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Sense Data for Successful NCQ");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Sense Data for Successful NCQ");
         invalidLog = true;
         break;
     case ATA_LOG_NCQ_COMMAND_ERROR_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Command Errors");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Command Errors");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_PHY_EVENT_COUNTERS_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SATA Phy Event Counters");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SATA Phy Event Counters");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_NCQ_QUEUE_MANAGEMENT_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Queue Management");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Queue Management");
         invalidLog = true;
         break;
     case ATA_LOG_SATA_NCQ_SEND_AND_RECEIVE_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Send and Receive");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "NCQ Send and Receive");
         invalidLog = true;
         break;
     case ATA_LOG_HYBRID_INFORMATION: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Hybrid Information");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Hybrid Information");
         invalidLog = true;
         break;
     case ATA_LOG_REBUILD_ASSIST: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Rebuild Assist");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Rebuild Assist");
         invalidLog = true;
         break;
     case ATA_LOG_LBA_STATUS: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "LBA Status");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "LBA Status");
         invalidLog = true;
         break;
     case ATA_LOG_STREAMING_PERFORMANCE: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Streaming Performance");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Streaming Performance");
         invalidLog = true;
         break;
     case ATA_LOG_WRITE_STREAM_ERROR_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Write Stream Errors");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Write Stream Errors");
         invalidLog = true;
         break;
     case ATA_LOG_READ_STREAM_ERROR_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Read Stream Errors");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Read Stream Errors");
         invalidLog = true;
         break;
     case ATA_LOG_DELAYED_LBA_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Delayed LBA");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Delayed LBA");
         invalidLog = true;
         break;
     case ATA_LOG_CURRENT_DEVICE_INTERNAL_STATUS_DATA_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Current Device Internal Status");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Current Device Internal Status");
         invalidLog = true;
         break;
     case ATA_LOG_SAVED_DEVICE_INTERNAL_STATUS_DATA_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Saved Device Internal Status");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Saved Device Internal Status");
         invalidLog = true;
         break;
     case ATA_LOG_SECTOR_CONFIGURATION_LOG: // GPL log...should be an error using this command!
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Sector Configuration");
+        error      = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Sector Configuration");
         invalidLog = true;
         break;
     case ATA_LOG_IDENTIFY_DEVICE_DATA:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Identify Device Data");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Identify Device Data");
         break;
     case ATA_LOG_CAPACITY_MODELNUMBER_MAPPING:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Capacity/Model Number Mapping");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Capacity/Model Number Mapping");
         break;
     case ATA_SCT_COMMAND_STATUS:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SCT Command/Status");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SCT Command/Status");
         break;
     case ATA_SCT_DATA_TRANSFER:
-        snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SCT Data Transfer");
+        error = safe_strcpy(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "SCT Data Transfer");
         break;
     default:
         if (logAddress >= 0x80 && logAddress <= 0x9F)
         {
-            snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Host Specific (%02" PRIX8 "h)",
-                                logAddress);
+            snprintfres = snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH,
+                                              "Host Specific (%02" PRIX8 "h)", logAddress);
         }
         else if (logAddress >= 0xA0 && logAddress <= 0xDF)
         {
-            snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Vendor Specific (%02" PRIX8 "h)",
-                                logAddress);
+            snprintfres = snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH,
+                                              "Vendor Specific (%02" PRIX8 "h)", logAddress);
         }
         else
         {
-            snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Unknown (%02" PRIX8 "h)", logAddress);
+            snprintfres = snprintf_err_handle(logAddressName, SMART_LOG_ADDRESS_NAME_LENGTH, "Unknown (%02" PRIX8 "h)",
+                                              logAddress);
         }
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying SMART log address string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+    {
+        print_error_format("Error formatting intermediate SMART log address string in %s\n", __func__);
+    }
+
     if (invalidLog)
     {
         if (M_Byte0(features) == 0xD5)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s Read Log - Log: %s (Invalid Address) PageCount: %" PRIu8 ", SMART Signature %s",
-                                commandName, logAddressName, logPageCount, smartSigValid);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s Read Log - Log: %s (Invalid Address) PageCount: %" PRIu8 ", SMART Signature %s",
+                                    commandName, logAddressName, logPageCount, smartSigValid);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s Write Log - Log: %s (Invalid Address) PageCount: %" PRIu8 ", SMART Signature %s",
-                                commandName, logAddressName, logPageCount, smartSigValid);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s Write Log - Log: %s (Invalid Address) PageCount: %" PRIu8
+                                              ", SMART Signature %s",
+                                              commandName, logAddressName, logPageCount, smartSigValid);
         }
     }
     else
     {
         if (M_Byte0(features) == 0xD5)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s Read Log- Log: %s PageCount: %" PRIu8 ", SMART Signature %s", commandName,
-                                logAddressName, logPageCount, smartSigValid);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s Read Log- Log: %s PageCount: %" PRIu8 ", SMART Signature %s",
+                                              commandName, logAddressName, logPageCount, smartSigValid);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s Write Log- Log: %s PageCount: %" PRIu8 ", SMART Signature %s", commandName,
-                                logAddressName, logPageCount, smartSigValid);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s Write Log- Log: %s PageCount: %" PRIu8 ", SMART Signature %s",
+                                              commandName, logAddressName, logPageCount, smartSigValid);
         }
     }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting SMART log commandInfo in %s\n", __func__);
+        }
 }
 
 #define SMART_SIGNATURE_VALIDITY_LENGTH UINT8_C(11)
@@ -7644,45 +8563,50 @@ static void get_SMART_Command_Info(const char* M_NONNULL commandName,
     uint8_t  subcommand     = M_Byte0(features);
     uint16_t smartSignature = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
     DECLARE_ZERO_INIT_ARRAY(char, smartSigValid, SMART_SIGNATURE_VALIDITY_LENGTH);
+    errno_t error       = 0;
+    int     snprintfres = 0;
     if (smartSignature == UINT16_C(0xC24F))
     {
-        snprintf_err_handle(smartSigValid, SMART_SIGNATURE_VALIDITY_LENGTH, "Valid");
+        error = safe_strcpy(smartSigValid, SMART_SIGNATURE_VALIDITY_LENGTH, "Valid");
     }
     else
     {
-        snprintf_err_handle(smartSigValid, SMART_SIGNATURE_VALIDITY_LENGTH, "Invalid");
+        error = safe_strcpy(smartSigValid, SMART_SIGNATURE_VALIDITY_LENGTH, "Invalid");
     }
     switch (subcommand)
     {
     case ATA_SMART_READ_DATA:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Read SMART Data, SMART Signature %s",
-                            commandName, smartSigValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Read SMART Data, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_RDATTR_THRESH:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Read SMART Threshold Data, SMART Signature %s", commandName, smartSigValid);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Read SMART Threshold Data, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_SW_AUTOSAVE:
         if (M_Byte0(count) == UINT8_C(0xF1)) // enable
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Enable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
         }
         else if (M_Byte0(count) == UINT8_C(0)) // disable
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Disable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Disable Attribute Autosave, SMART Signature %s", commandName, smartSigValid);
         }
         else // invalid field for this command
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Unknown Attribute Autosave request %" PRIX8 "h, SMART Signature %s", commandName,
-                                M_Byte0(count), smartSigValid);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s - Unknown Attribute Autosave request %" PRIX8 "h, SMART Signature %s",
+                                              commandName, M_Byte0(count), smartSigValid);
         }
         break;
     case ATA_SMART_SAVE_ATTRVALUE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Save Attributes, SMART Signature %s",
-                            commandName, smartSigValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Save Attributes, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_EXEC_OFFLINE_IMM:
         get_SMART_Offline_Immediate_Info(commandName, commandOpCode, features, count, lba, device, commandInfo,
@@ -7695,33 +8619,35 @@ static void get_SMART_Command_Info(const char* M_NONNULL commandName,
         break;
     // case ATA_SMART_WRATTR_THRESH:some things say vendor specific, others say obsolete
     case ATA_SMART_ENABLE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Operations, SMART Signature %s",
-                            commandName, smartSigValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Enable Operations, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_DISABLE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Operations, SMART Signature %s",
-                            commandName, smartSigValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Disable Operations, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_RTSMART:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Return Status, SMART Signature %s",
-                            commandName, smartSigValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Return Status, SMART Signature %s", commandName, smartSigValid);
         break;
     case ATA_SMART_AUTO_OFFLINE:
         if (M_Byte0(count) == 0xF8) // enable
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Auto Offline, SMART Signature %s", commandName, smartSigValid);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Enable Auto Offline, SMART Signature %s", commandName, smartSigValid);
         }
         else if (M_Byte0(count) == 0) // disable
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Disable Auto Offline, SMART Signature %s", commandName, smartSigValid);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Disable Auto Offline, SMART Signature %s", commandName, smartSigValid);
         }
         else // invalid field for this command
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Unknown Auto Offline request %" PRIX8 "h, SMART Signature %s", commandName,
-                                M_Byte0(count), smartSigValid);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s - Unknown Auto Offline request %" PRIX8 "h, SMART Signature %s",
+                                              commandName, M_Byte0(count), smartSigValid);
         }
         break;
     default:
@@ -7729,21 +8655,31 @@ static void get_SMART_Command_Info(const char* M_NONNULL commandName,
             (subcommand >= UINT8_C(0xDC) && subcommand <= UINT8_C(0xDF)))
         {
             // reserved
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Unknown Command %" PRIX8 "h, LBA Low: %" PRIX8 "h, Device: %" PRIX8
-                                "h SMART Signature %s",
-                                commandName, subcommand, M_Byte0(lba), device, smartSigValid);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s - Unknown Command %" PRIX8 "h, LBA Low: %" PRIX8 "h, Device: %" PRIX8
+                                              "h SMART Signature %s",
+                                              commandName, subcommand, M_Byte0(lba), device, smartSigValid);
         }
         else
         {
             // vendor unique
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Vendor Unique %" PRIX8 "h, LBA Low: %" PRIX8 "h, Device: %" PRIX8
-                                "h SMART Signature %s",
-                                commandName, subcommand, M_Byte0(lba), device, smartSigValid);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s - Vendor Unique %" PRIX8 "h, LBA Low: %" PRIX8 "h, Device: %" PRIX8
+                                              "h SMART Signature %s",
+                                              commandName, subcommand, M_Byte0(lba), device, smartSigValid);
         }
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying SMART signature validity string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting SMART commandInfo in %s\n", __func__);
+        }
 }
 
 #define SANITIZE_SIGNATURE_VALID_LENGTH UINT8_C(11)
@@ -7768,48 +8704,50 @@ static void get_Sanitize_Command_Info(const char* M_NONNULL commandName,
     uint32_t overwritePattern             = M_DoubleWord0(lba);     // overwrite only
     uint16_t overwriteSignature           = M_Word2(lba);
     DECLARE_ZERO_INIT_ARRAY(char, sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH);
+    errno_t error       = 0;
+    int     snprintfres = 0;
     switch (subcommand)
     {
     case ATA_SANITIZE_STATUS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Status, Clear Failure: %d", commandName,
-                            clearSanitizeOperationFailed);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Status, Clear Failure: %d",
+                                          commandName, clearSanitizeOperationFailed);
         break;
     case ATA_SANITIZE_CRYPTO_SCRAMBLE:
         if (signature == ATA_SANITIZE_CRYPTO_LBA)
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Crypto Scramble, ZNR: %d, Failure Mode: %d, Signature %s", commandName, zoneNoReset,
-                            failure, sanitizeSignatureValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Crypto Scramble, ZNR: %d, Failure Mode: %d, Signature %s", commandName,
+                                          zoneNoReset, failure, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_BLOCK_ERASE:
         if (signature == ATA_SANITIZE_BLOCK_ERASE_LBA)
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Block Erase, ZNR: %d, Failure Mode: %d, Signature %s", commandName, zoneNoReset,
-                            failure, sanitizeSignatureValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Block Erase, ZNR: %d, Failure Mode: %d, Signature %s", commandName,
+                                          zoneNoReset, failure, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_OVERWRITE_ERASE:
         if (overwriteSignature == ATA_SANITIZE_OVERWRITE_LBA)
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
-        snprintf_err_handle(
+        snprintfres = snprintf_err_handle(
             commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
             "%s - Overwrite Erase, ZNR: %d, Invert: %d, Definitive Pattern: %d, Failure Mode: %d, Passes: %" PRIu8
             ", Pattern: %08" PRIX32 "h, Signature %s",
@@ -7819,33 +8757,44 @@ static void get_Sanitize_Command_Info(const char* M_NONNULL commandName,
     case ATA_SANITIZE_FREEZE_LOCK:
         if (signature == ATA_SANITIZE_FREEZE_LOCK_LBA)
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock, Signature %s", commandName,
-                            sanitizeSignatureValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock, Signature %s",
+                                          commandName, sanitizeSignatureValid);
         break;
     case ATA_SANITIZE_ANTI_FREEZE_LOCK:
         if (signature == ATA_SANITIZE_ANTI_FREEZE_LOCK_LBA)
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Valid");
         }
         else
         {
-            snprintf_err_handle(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
+            error = safe_strcpy(sanitizeSignatureValid, SANITIZE_SIGNATURE_VALID_LENGTH, "Invalid");
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Anti-Freeze Lock, Signature %s",
-                            commandName, sanitizeSignatureValid);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Anti-Freeze Lock, Signature %s", commandName, sanitizeSignatureValid);
         break;
     default: // unknown sanitize operation
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h", commandName,
-                            subcommand, lba, count);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h",
+                                commandName, subcommand, lba, count);
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying sanitize signature validity string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting sanitize commandInfo in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -7858,33 +8807,39 @@ static void get_DCO_Command_Info(const char* M_NONNULL commandName,
                                  M_ATTR_UNUSED uint8_t device,
                                  char                  commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    uint8_t subcommand = M_Byte0(features);
+    uint8_t subcommand  = M_Byte0(features);
+    int     snprintfres = 0;
     switch (subcommand)
     {
     case DCO_RESTORE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Restore", commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Restore", commandName);
         break;
     case DCO_FREEZE_LOCK:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock", commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock", commandName);
         break;
     case DCO_IDENTIFY:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Identify", commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Identify", commandName);
         break;
     case DCO_SET:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set", commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set", commandName);
         break;
     case DCO_IDENTIFY_DMA:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Identify DMA", commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Identify DMA", commandName);
         break;
     case DCO_SET_DMA:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set DMA", commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set DMA", commandName);
         break;
     default: // reserved
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h", commandName,
-                            subcommand, C_CAST(uint32_t, lba), C_CAST(uint8_t, count));
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h",
+                                          commandName, subcommand, C_CAST(uint32_t, lba), C_CAST(uint8_t, count));
         break;
     }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting DCO commandInfo in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -7898,18 +8853,19 @@ static void get_Set_Max_Address_Command_Info(const char* M_NONNULL commandName,
                                              char commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
     bool volatileValue = count & BIT0;
+    int  snprintfres   = 0;
     if (commandOpCode == ATA_SET_MAX_EXT)
     {
         // 48bit command to set max 48bit LBA
         if (volatileValue)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu64 " (Volatile)",
-                                commandName, lba);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s - Maximum LBA: %" PRIu64 " (Volatile)", commandName, lba);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu64 "", commandName,
-                                lba);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu64 "",
+                                              commandName, lba);
         }
     }
     else
@@ -7921,40 +8877,50 @@ static void get_Set_Max_Address_Command_Info(const char* M_NONNULL commandName,
         case HPA_SET_MAX_ADDRESS:
             if (volatileValue)
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - Maximum LBA: %" PRIu32 " (Volatile)", commandName, C_CAST(uint32_t, lba));
+                snprintfres =
+                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                        "%s - Maximum LBA: %" PRIu32 " (Volatile)", commandName, C_CAST(uint32_t, lba));
             }
             else
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Maximum LBA: %" PRIu32 "",
-                                    commandName, C_CAST(uint32_t, lba));
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "%s - Maximum LBA: %" PRIu32 "", commandName, C_CAST(uint32_t, lba));
             }
             break;
         case HPA_SET_MAX_PASSWORD:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Password", commandName);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Password", commandName);
             break;
         case HPA_SET_MAX_LOCK:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Lock", commandName);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Lock", commandName);
             break;
         case HPA_SET_MAX_UNLOCK:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unlock", commandName);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unlock", commandName);
             break;
         case HPA_SET_MAX_FREEZE_LOCK:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock", commandName);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Lock", commandName);
             break;
         case HPA_SET_MAX_PASSWORD_DMA:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Password DMA", commandName);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Password DMA", commandName);
             break;
         case HPA_SET_MAX_UNLOCK_DMA:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unlock DMA", commandName);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Unlock DMA", commandName);
             break;
         default:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h",
-                                commandName, subcommand, C_CAST(uint32_t, lba), C_CAST(uint8_t, count));
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Unknown (%02" PRIX8 "h), LBA = %07" PRIX32 "h, Count = %02" PRIX8 "h",
+                                    commandName, subcommand, C_CAST(uint32_t, lba), C_CAST(uint8_t, count));
             break;
         }
     }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting Set Max Address commandInfo in %s\n", __func__);
+        }
 }
 
 // Only idle and standby...not the immediate commands!
@@ -7971,19 +8937,21 @@ static void get_Idle_Or_Standby_Command_Info(const char* M_NONNULL  commandName,
 {
     uint8_t standbyTimerPeriod = M_Byte0(count);
     DECLARE_ZERO_INIT_ARRAY(char, standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH);
+    errno_t error       = 0;
+    int     snprintfres = 0;
     switch (standbyTimerPeriod)
     {
     case 0x00: // disabled
-        snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "Standby Timer Disabled");
+        error = safe_strcpy(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "Standby Timer Disabled");
         break;
     case 0xFC: // 21min
-        snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "21 Minutes");
+        error = safe_strcpy(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "21 Minutes");
         break;
     case 0xFD: // between 8h and 12h
-        snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "8 to 12 Hours");
+        error = safe_strcpy(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "8 to 12 Hours");
         break;
     case 0xFF: // 21min 15s
-        snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "21 Minutes 15 Seconds");
+        error = safe_strcpy(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "21 Minutes 15 Seconds");
         break;
     case 0xFE: // reserved (fall through)
     default:
@@ -7995,18 +8963,18 @@ static void get_Idle_Or_Standby_Command_Info(const char* M_NONNULL  commandName,
             convert_Seconds_To_Displayable_Time(timerInSeconds, M_NULLPTR, M_NULLPTR, M_NULLPTR, &minutes, &seconds);
             if (minutes > 0 && seconds == 0)
             {
-                snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Minutes",
-                                    minutes);
+                snprintfres = snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
+                                                  "%" PRIu8 " Minutes", minutes);
             }
             else if (minutes > 0)
             {
-                snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
-                                    "%" PRIu8 " Minutes %" PRIu8 " Seconds", minutes, seconds);
+                snprintfres = snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
+                                                  "%" PRIu8 " Minutes %" PRIu8 " Seconds", minutes, seconds);
             }
             else
             {
-                snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Seconds",
-                                    seconds);
+                snprintfres = snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
+                                                  "%" PRIu8 " Seconds", seconds);
             }
         }
         else if (standbyTimerPeriod >= 0xF1 && standbyTimerPeriod <= 0xFB)
@@ -8018,28 +8986,44 @@ static void get_Idle_Or_Standby_Command_Info(const char* M_NONNULL  commandName,
             convert_Seconds_To_Displayable_Time(timerInSeconds, M_NULLPTR, M_NULLPTR, &hours, &minutes, M_NULLPTR);
             if (hours > 0 && minutes == 0)
             {
-                snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Hours", hours);
+                snprintfres = snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
+                                                  "%" PRIu8 " Hours", hours);
             }
             else if (hours > 0)
             {
-                snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
-                                    "%" PRIu8 " Hours %" PRIu8 " Minutes", hours, minutes);
+                snprintfres = snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
+                                                  "%" PRIu8 " Hours %" PRIu8 " Minutes", hours, minutes);
             }
             else
             {
-                snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH, "%" PRIu8 " Minutes",
-                                    minutes);
+                snprintfres = snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
+                                                  "%" PRIu8 " Minutes", minutes);
             }
         }
         else
         {
-            snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
-                                "Unknown Timer Value (%02" PRIX8 "h)", standbyTimerPeriod);
+            snprintfres = snprintf_err_handle(standbyTimerPeriodString, STANDBY_TIMER_PERIOD_LENGTH,
+                                              "Unknown Timer Value (%02" PRIX8 "h)", standbyTimerPeriod);
         }
         break;
     }
-    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Standby Timer Period: %s", commandName,
-                        standbyTimerPeriodString);
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting Standby Timer commandInfo in %s\n", __func__);
+        }
+    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Standby Timer Period: %s",
+                                      commandName, standbyTimerPeriodString);
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting Standby Timer commandInfo in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -8052,7 +9036,8 @@ static void get_NV_Cache_Command_Info(const char* M_NONNULL commandName,
                                       M_ATTR_UNUSED uint8_t device,
                                       char                  commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    uint16_t subcommand = features;
+    uint16_t subcommand  = features;
+    int      snprintfres = 0;
     switch (subcommand)
     {
     case NV_SET_NV_CACHE_POWER_MODE:
@@ -8061,15 +9046,15 @@ static void get_NV_Cache_Command_Info(const char* M_NONNULL commandName,
         uint8_t minutes = UINT8_C(0);
         uint8_t seconds = UINT8_C(0);
         convert_Seconds_To_Displayable_Time(count, M_NULLPTR, M_NULLPTR, &hours, &minutes, &seconds);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Set NV Cache Power Mode. Minimum High-Power Time: %" PRIu8 " hours %" PRIu8
-                            " minutes %" PRIu8 " seconds",
-                            commandName, hours, minutes, seconds);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Set NV Cache Power Mode. Minimum High-Power Time: %" PRIu8
+                                          " hours %" PRIu8 " minutes %" PRIu8 " seconds",
+                                          commandName, hours, minutes, seconds);
     }
     break;
     case NV_RETURN_FROM_NV_CACHE_POWER_MODE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Return From NV Cache Power Mode",
-                            commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Return From NV Cache Power Mode", commandName);
         break;
     case NV_ADD_LBAS_TO_NV_CACHE_PINNED_SET:
     {
@@ -8079,9 +9064,10 @@ static void get_NV_Cache_Command_Info(const char* M_NONNULL commandName,
             blockCount = 65536;
         }
         bool populateImmediately = lba & BIT0;
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Add LBAs to NV Cache Pinned Set, Populate Immediately: %d, Count = %" PRIu32 "",
-                            commandName, populateImmediately, blockCount);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Add LBAs to NV Cache Pinned Set, Populate Immediately: %d, Count = %" PRIu32 "",
+                                commandName, populateImmediately, blockCount);
     }
     break;
     case NV_REMOVE_LBAS_FROM_NV_CACHE_PINNED_SET:
@@ -8092,9 +9078,9 @@ static void get_NV_Cache_Command_Info(const char* M_NONNULL commandName,
             blockCount = 65536;
         }
         bool unpinAll = lba & BIT0;
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Remove LBAs to NV Cache Pinned Set, Unpin All: %d, Count = %" PRIu32 "", commandName,
-                            unpinAll, blockCount);
+        snprintfres   = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                            "%s - Remove LBAs to NV Cache Pinned Set, Unpin All: %d, Count = %" PRIu32 "",
+                                            commandName, unpinAll, blockCount);
     }
     break;
     case NV_QUERY_NV_CACHE_PINNED_SET:
@@ -8104,45 +9090,56 @@ static void get_NV_Cache_Command_Info(const char* M_NONNULL commandName,
         {
             blockCount = 65536;
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Query NV Cache Pinned Set, Starting 512B block: %" PRIu64 ", Count = %" PRIu32 "",
-                            commandName, lba, blockCount);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Query NV Cache Pinned Set, Starting 512B block: %" PRIu64 ", Count = %" PRIu32 "",
+                                commandName, lba, blockCount);
     }
     break;
     case NV_QUERY_NV_CACHE_MISSES:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Query NV Cache Misses", commandName);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Query NV Cache Misses", commandName);
         break;
     case NV_FLUSH_NV_CACHE:
     {
         uint32_t minimumBlocksToFlush = M_DoubleWord0(lba);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Flush NV Cache Pinned Set, Min Blocks To Flush = %" PRIu32 "", commandName,
-                            minimumBlocksToFlush);
+        snprintfres                   = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                            "%s - Flush NV Cache Pinned Set, Min Blocks To Flush = %" PRIu32 "",
+                                                            commandName, minimumBlocksToFlush);
     }
     break;
     case NV_CACHE_ENABLE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable NV Cache", commandName);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable NV Cache", commandName);
         break;
     case NV_CACHE_DISABLE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable NV Cache", commandName);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable NV Cache", commandName);
         break;
     default: // unknown or vendor specific
         if (subcommand >= 0x00D0 && subcommand <= 0x00EF)
         {
             // vendor specific
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Vendor Specific (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h",
-                                commandName, subcommand, lba, count);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "%s - Vendor Specific (%04" PRIX16 "h), LBA = %012" PRIX64
+                                              "h, Count = %04" PRIX16 "h",
+                                              commandName, subcommand, lba, count);
         }
         else
         {
             // reserved for NV cache feature
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h",
-                                commandName, subcommand, lba, count);
+            snprintfres =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h",
+                                    commandName, subcommand, lba, count);
         }
         break;
     }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting NV Cache commandInfo in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -8155,25 +9152,33 @@ static void get_AMAC_Command_Info(const char* M_NONNULL commandName,
                                   M_ATTR_UNUSED uint8_t device,
                                   char                  commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
+    int snprintfres = 0;
     switch (features)
     {
     case AMAC_GET_NATIVE_MAX_ADDRESS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Get Native Max Address", commandName);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Get Native Max Address", commandName);
         break;
     case AMAC_SET_ACCESSIBLE_MAX_ADDRESS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Set Accessible Max Address - LBA: %" PRIu64 "", commandName, lba);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Set Accessible Max Address - LBA: %" PRIu64 "", commandName, lba);
         break;
     case AMAC_FREEZE_ACCESSIBLE_MAX_ADDRESS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Freeze Accessible Max Address",
-                            commandName);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Freeze Accessible Max Address", commandName);
         break;
     default: // reserved - unknown
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h", commandName,
-                            features, lba, count);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Unknown (%04" PRIX16 "h), LBA = %012" PRIX64 "h, Count = %04" PRIX16 "h",
+                                commandName, features, lba, count);
         break;
     }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting AMAC commandInfo in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -8188,20 +9193,26 @@ static void get_Zeros_Ext_Command_Info(const char* M_NONNULL commandName,
 {
     bool     trimBit                     = M_ToBool(features & BIT0);
     uint32_t numberOfSectorsToWriteZeros = count;
+    int      snprintfres                 = 0;
     if (commandOpCode == ATA_FPDMA_NON_DATA)
     {
         // trim bit is in AUX register, so we cannot see it.
         numberOfSectorsToWriteZeros = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - TRIM: (Unknown), LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, lba,
-                            numberOfSectorsToWriteZeros);
+        snprintfres                 = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                          "%s - TRIM: (Unknown), LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, lba,
+                                                          numberOfSectorsToWriteZeros);
     }
     else
     {
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - TRIM: %d, LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, trimBit, lba,
-                            numberOfSectorsToWriteZeros);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - TRIM: %d, LBA: %" PRIu64 " Count: %" PRIu32 "", commandName, trimBit,
+                                          lba, numberOfSectorsToWriteZeros);
     }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting TRIM commandInfo in %s\n", __func__);
+        }
 }
 
 #define SATA_FEATURE_LENGTH UINT8_C(81)
@@ -8214,29 +9225,31 @@ static void get_SATA_Feature_Control_Command_Info(const char* M_NONNULL commandN
                                                   char commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
     DECLARE_ZERO_INIT_ARRAY(char, sataFeatureString, SATA_FEATURE_LENGTH);
+    errno_t error       = 0;
+    int     snprintfres = 0;
     switch (subcommandCount)
     {
     case SATA_FEATURE_NONZERO_BUFFER_OFFSETS:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Nonzero Buffer Offsets");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Nonzero Buffer Offsets");
         break;
     case SATA_FEATURE_DMA_SETUP_FIS_AUTO_ACTIVATE:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "DMA Setup FIS Auto Activation Optimization");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "DMA Setup FIS Auto Activation Optimization");
         break;
     case SATA_FEATURE_DEVICE_INITIATED_INTERFACE_POWER_STATE_TRANSITIONS:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH,
-                            "Device Initiated Interface Power State Transitions");
+        error =
+            safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Device Initiated Interface Power State Transitions");
         break;
     case SATA_FEATURE_GUARANTEED_IN_ORDER_DATA_DELIVERY:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Guaranteed In Order Data Delivery");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Guaranteed In Order Data Delivery");
         break;
     case SATA_FEATURE_ASYNCHRONOUS_NOTIFICATION:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Asynchronous Notification");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Asynchronous Notification");
         break;
     case SATA_FEATURE_SOFTWARE_SETTINGS_PRESERVATION:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Software Settings Preservation");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Software Settings Preservation");
         break;
     case SATA_FEATURE_DEVICE_AUTOMATIC_PARTIAL_TO_SLUMBER_TRANSITIONS:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Device Automatic Partial To Slumber Transitions");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Device Automatic Partial To Slumber Transitions");
         break;
     case SATA_FEATURE_ENABLE_HARDWARE_FEATURE_CONTROL:
     {
@@ -8246,49 +9259,64 @@ static void get_SATA_Feature_Control_Command_Info(const char* M_NONNULL commandN
         switch (functionID)
         {
         case 0x0001:
-            snprintf_err_handle(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH, "Direct Head Unload");
+            error = safe_strcpy(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH, "Direct Head Unload");
             break;
         default:
             if (functionID >= UINT16_C(0xF000) /* && functionID <= UINT16_C(0xFFFF) */)
             {
-                snprintf_err_handle(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH,
-                                    "Vendor Specific (%04" PRIX16 "h)", functionID);
+                snprintfres = snprintf_err_handle(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH,
+                                                  "Vendor Specific (%04" PRIX16 "h)", functionID);
             }
             else
             {
-                snprintf_err_handle(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH,
-                                    "Unknown Function (%04" PRIX16 "h)", functionID);
+                snprintfres = snprintf_err_handle(hardwareFeatureName, HARDWARE_FEATURE_NAME_LENGTH,
+                                                  "Unknown Function (%04" PRIX16 "h)", functionID);
             }
             break;
         }
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Enable Hardware Feature Control - %s",
-                            hardwareFeatureName);
+        snprintfres = snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH,
+                                          "Enable Hardware Feature Control - %s", hardwareFeatureName);
     }
     break;
     case SATA_FEATURE_ENABLE_DISABLE_DEVICE_SLEEP:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Device Sleep");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Device Sleep");
         break;
     case SATA_FEATURE_ENABLE_DISABLE_HYBRID_INFORMATION:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Hybrid Information");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Hybrid Information");
         break;
     case SATA_FEATURE_ENABLE_DISABLE_POWER_DISABLE:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Power Disable");
+        error = safe_strcpy(sataFeatureString, SATA_FEATURE_LENGTH, "Power Disable");
         break;
     default:
-        snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH, "Unknown SATA Feature (%02" PRIX8 "h)",
-                            subcommandCount);
+        snprintfres = snprintf_err_handle(sataFeatureString, SATA_FEATURE_LENGTH,
+                                          "Unknown SATA Feature (%02" PRIX8 "h)", subcommandCount);
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting internal SATA feature string in %s\n", __func__);
+        }
     if (enable)
     {
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable SATA Feature - %s", commandName,
-                            sataFeatureString);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable SATA Feature - %s",
+                                          commandName, sataFeatureString);
     }
     else
     {
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable SATA Feature - %s", commandName,
-                            sataFeatureString);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable SATA Feature - %s",
+                                          commandName, sataFeatureString);
     }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting SATA Feature commandInfo in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -8301,8 +9329,11 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
                                           uint8_t               device,
                                           char commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    uint8_t setFeaturesSubcommand = M_Byte0(features);
-    uint8_t subcommandCount       = M_Byte0(count);
+    errno_t error                  = 0;
+    int     snprintfres            = 0;
+    int     snprintfresCommandInfo = 0;
+    uint8_t setFeaturesSubcommand  = M_Byte0(features);
+    uint8_t subcommandCount        = M_Byte0(count);
     if (commandOpCode == ATA_FPDMA_NON_DATA)
     {
         setFeaturesSubcommand = M_Byte1(features);
@@ -8311,10 +9342,12 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
     switch (setFeaturesSubcommand)
     {
     case SF_ENABLE_8_BIT_DATA_TRANSFERS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable 8-bit Data Transfers", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable 8-bit Data Transfers", commandName);
         break;
     case SF_ENABLE_VOLITILE_WRITE_CACHE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Volatile Write Cache", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable Volatile Write Cache", commandName);
         break;
     case SF_SET_TRANSFER_MODE:
     {
@@ -8327,37 +9360,39 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
         case SF_TRANSFER_MODE_PIO_DEFAULT:
             if (mode == 1)
             {
-                snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "PIO default - Disable IORDY");
+                error = safe_strcpy(transferMode, TRANSFER_MODE_LENGTH, "PIO default - Disable IORDY");
             }
             else
             {
-                snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "PIO default");
+                error = safe_strcpy(transferMode, TRANSFER_MODE_LENGTH, "PIO default");
             }
             break;
         case SF_TRANSFER_MODE_FLOW_CONTROL:
-            snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "PIO Flow Control Mode %" PRIu8 "", mode);
+            snprintfres =
+                snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "PIO Flow Control Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_SINGLE_WORD_DMA:
-            snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "SWDMA Mode %" PRIu8 "", mode);
+            snprintfres = snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "SWDMA Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_MULTI_WORD_DMA:
-            snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "MWDMA Mode %" PRIu8 "", mode);
+            snprintfres = snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "MWDMA Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_ULTRA_DMA:
-            snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "Ultra DMA Mode %" PRIu8 "", mode);
+            snprintfres = snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "Ultra DMA Mode %" PRIu8 "", mode);
             break;
         case SF_TRANSFER_MODE_RESERVED:
         default:
-            snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "Unknown %02" PRIX8 "h", subcommandCount);
+            snprintfres =
+                snprintf_err_handle(transferMode, TRANSFER_MODE_LENGTH, "Unknown %02" PRIX8 "h", subcommandCount);
             break;
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Transfer Mode: %s", commandName,
-                            transferMode);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Set Transfer Mode: %s", commandName, transferMode);
     }
     break;
     case SF_ENABLE_ALL_AUTOMATIC_DEFECT_REASSIGNMENT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable All Automatic Defect Reassignment",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable All Automatic Defect Reassignment", commandName);
         break;
     case SF_ENABLE_APM_FEATURE:
     {
@@ -8366,51 +9401,55 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
         DECLARE_ZERO_INIT_ARRAY(char, apmLevelString, APM_LEVEL_STRING_LENGTH);
         if (apmLevel == 1)
         {
-            snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
-                                "Minimum Power Consumption w/ Standby (%02" PRIX8 "h)", apmLevel);
+            snprintfres = snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
+                                              "Minimum Power Consumption w/ Standby (%02" PRIX8 "h)", apmLevel);
         }
         else if (apmLevel >= UINT8_C(0x02) && apmLevel <= UINT8_C(0x7F))
         {
-            snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
-                                "Intermediate Power Management w/ Standby (%02" PRIX8 "h)", apmLevel);
+            snprintfres = snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
+                                              "Intermediate Power Management w/ Standby (%02" PRIX8 "h)", apmLevel);
         }
         else if (apmLevel == UINT8_C(0x80))
         {
-            snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
-                                "Minimum Power Consumption w/o Standby (%02" PRIX8 "h)", apmLevel);
+            snprintfres = snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
+                                              "Minimum Power Consumption w/o Standby (%02" PRIX8 "h)", apmLevel);
         }
         else if (apmLevel >= UINT8_C(0x81) && apmLevel <= UINT8_C(0xFD))
         {
-            snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
-                                "Intermediate Power Management w/o Standby (%02" PRIX8 "h)", apmLevel);
+            snprintfres = snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
+                                              "Intermediate Power Management w/o Standby (%02" PRIX8 "h)", apmLevel);
         }
         else if (apmLevel == UINT8_C(0xFE))
         {
-            snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH, "Maximum Performance (%02" PRIX8 "h)",
-                                apmLevel);
+            snprintfres = snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
+                                              "Maximum Performance (%02" PRIX8 "h)", apmLevel);
         }
         else
         {
-            snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH, "Unknown APM Level (%02" PRIX8 "h)", apmLevel);
+            snprintfres = snprintf_err_handle(apmLevelString, APM_LEVEL_STRING_LENGTH,
+                                              "Unknown APM Level (%02" PRIX8 "h)", apmLevel);
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Advanced Power Management - %s",
-                            commandName, apmLevelString);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Advanced Power Management - %s",
+                                commandName, apmLevelString);
     }
     break;
     case SF_ENABLE_PUIS_FEATURE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Power Up In Standby (PUIS)",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable Power Up In Standby (PUIS)", commandName);
         break;
     case SF_PUIS_DEVICE_SPIN_UP:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - PUIS Spin-Up", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - PUIS Spin-Up", commandName);
         break;
     case SF_ADDRESS_OFFSET_RESERVED_BOOT_AREA_METHOD_TECH_REPORT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Address Offser Reserved Boot Area Method %02" PRIX8 "h", commandName,
-                            setFeaturesSubcommand);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Address Offser Reserved Boot Area Method %02" PRIX8 "h",
+                                                     commandName, setFeaturesSubcommand);
         break;
     case SF_ENABLE_CFA_POWER_MODE1:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable CFA Power Mode 1", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable CFA Power Mode 1", commandName);
         break;
     case SF_ENABLE_WRITE_READ_VERIFY_FEATURE:
     {
@@ -8420,142 +9459,156 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
         switch (wrvMode)
         {
         case 0x00:
-            snprintf_err_handle(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 0 (All Sectors)");
+            error = safe_strcpy(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 0 (All Sectors)");
             break;
         case 0x01:
-            snprintf_err_handle(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 1 (1st 65536 Sectors)");
+            error = safe_strcpy(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 1 (1st 65536 Sectors)");
             break;
         case 0x02:
-            snprintf_err_handle(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 2 (Vendor Specific # of Sectors)");
+            error = safe_strcpy(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 2 (Vendor Specific # of Sectors)");
             break;
         case 0x03:
-            snprintf_err_handle(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 3 (1st %" PRIu32 " Sectors))",
-                                C_CAST(uint32_t, subcommandCount) * UINT32_C(1024));
+            snprintfres =
+                snprintf_err_handle(wrvModeString, WRV_MODE_STRING_LENGTH, "Mode 3 (1st %" PRIu32 " Sectors))",
+                                    C_CAST(uint32_t, subcommandCount) * UINT32_C(1024));
             break;
         default:
-            snprintf_err_handle(wrvModeString, WRV_MODE_STRING_LENGTH, "Unknown WRV Mode (%02" PRIX8 "h)", wrvMode);
+            snprintfres =
+                snprintf_err_handle(wrvModeString, WRV_MODE_STRING_LENGTH, "Unknown WRV Mode (%02" PRIX8 "h)", wrvMode);
             break;
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Write-Read-Verify: %s", commandName,
-                            wrvModeString);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable Write-Read-Verify: %s", commandName, wrvModeString);
     }
     break;
     case SF_ENABLE_DEVICE_LIFE_CONTROL:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Device Life Control", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable Device Life Control", commandName);
         break;
     case SF_ENABLE_SATA_FEATURE:
         get_SATA_Feature_Control_Command_Info(commandName, true, subcommandCount, lba, commandInfo);
         break;
     case SF_TLC_SET_CCTL:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Set CCTL - %" PRIu32 " milliseconds",
-                            commandName, C_CAST(uint32_t, subcommandCount) * UINT32_C(10));
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - TCL Set CCTL - %" PRIu32 " milliseconds", commandName,
+                                                     C_CAST(uint32_t, subcommandCount) * UINT32_C(10));
         break;
     case SF_TCL_SET_ERROR_HANDLING:
         if (subcommandCount == UINT8_C(1))
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - TCL Error Handling - Read/Write Continuous", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - TCL Error Handling - Read/Write Continuous", commandName);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - TCL Error Handling - Abort",
-                                commandName);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - TCL Error Handling - Abort", commandName);
         }
         break;
     case SF_DISABLE_MEDIA_STATUS_NOTIFICATION:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Media Status Notification",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Media Status Notification", commandName);
         break;
     case SF_DISABLE_RETRY:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Retries", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Retries", commandName);
         break;
     case SF_ENABLE_FREE_FALL_CONTROL_FEATURE:
         if (subcommandCount == UINT8_C(0))
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Free-Fall Control: Vendor Recommended Sensitivity", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Enable Free-Fall Control: Vendor Recommended Sensitivity", commandName);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Free-Fall Control - Sensitivity: %02" PRIu8 "h", commandName,
-                                subcommandCount);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Enable Free-Fall Control - Sensitivity: %02" PRIu8 "h",
+                                                         commandName, subcommandCount);
         }
         break;
     case SF_ENABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT_FEATURE:
         if (subcommandCount == UINT8_C(0))
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Automatic Acoustic Management - Vendor Specific", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Enable Automatic Acoustic Management - Vendor Specific", commandName);
         }
         else if (subcommandCount >= UINT8_C(0x01) && subcommandCount <= UINT8_C(0x7F))
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Automatic Acoustic Management - Retired (%02" PRIX8 "h)", commandName,
-                                subcommandCount);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Enable Automatic Acoustic Management - Retired (%02" PRIX8 "h)", commandName, subcommandCount);
         }
         else if (subcommandCount == UINT8_C(0x80))
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Automatic Acoustic Management - Minimum Acoustic Emanation", commandName);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Enable Automatic Acoustic Management - Minimum Acoustic Emanation", commandName);
         }
         else if (subcommandCount >= UINT8_C(0x81) && subcommandCount <= UINT8_C(0xFD))
         {
-            snprintf_err_handle(
+            snprintfresCommandInfo = snprintf_err_handle(
                 commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                 "%s - Enable Automatic Acoustic Management - Intermediate Acoustic Mangement Levels (%02" PRIX8 "h)",
                 commandName, subcommandCount);
         }
         else if (subcommandCount == UINT8_C(0xFE))
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Automatic Acoustic Management - Maximum Performance", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Enable Automatic Acoustic Management - Maximum Performance", commandName);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Automatic Acoustic Management - Reserved (%02" PRIX8 "h)", commandName,
-                                subcommandCount);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Enable Automatic Acoustic Management - Reserved (%02" PRIX8 "h)", commandName, subcommandCount);
         }
         break;
     case SF_MAXIMUM_HOST_INTERFACE_SECTOR_TIMES:
     {
         uint16_t typicalPIOTime = M_BytesTo2ByteValue(M_Byte0(lba), M_Byte0(count));
         uint8_t  typicalDMATime = M_Byte1(lba);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Set Maximum Host Interface Sector Times - PIO: %" PRIu16 " DMA: %" PRIu8 "",
-                            commandName, typicalPIOTime, typicalDMATime);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Set Maximum Host Interface Sector Times - PIO: %" PRIu16 " DMA: %" PRIu8 "",
+                                commandName, typicalPIOTime, typicalDMATime);
     }
     break;
     case SF_LEGACY_SET_VENDOR_SPECIFIC_ECC_BYTES_FOR_READ_WRITE_LONG:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Set Vendor Specific ECC Data For Read/Write Long: %" PRIu8 " Bytes", commandName,
-                            subcommandCount);
+        snprintfresCommandInfo = snprintf_err_handle(
+            commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+            "%s - Set Vendor Specific ECC Data For Read/Write Long: %" PRIu8 " Bytes", commandName, subcommandCount);
         break;
     case SF_SET_RATE_BASIS:
         switch (subcommandCount)
         {
         case 0x00:
-            snprintf_err_handle(
+            snprintfresCommandInfo = snprintf_err_handle(
                 commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                 "%s - Set Rate Basis - Time Of Manufacture Until Time Indicated by Date and Time Timestamp",
                 commandName);
             break;
         case 0x04:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Set Rate Basis - Time Elapsed Since Most Recent Power On Reset", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Set Rate Basis - Time Elapsed Since Most Recent Power On Reset", commandName);
             break;
         case 0x08:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Set Rate Basis - Time Indicated By Power On Hours Device Statistic", commandName);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Set Rate Basis - Time Indicated By Power On Hours Device Statistic", commandName);
             break;
         case 0x0F:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Rate Basis - Undetermined",
-                                commandName);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Set Rate Basis - Undetermined", commandName);
             break;
         default:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Set Rate Basis - Unknown(%02" PRIX8 "h)", commandName, subcommandCount);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Set Rate Basis - Unknown(%02" PRIX8 "h)", commandName, subcommandCount);
             break;
         }
         break;
@@ -8573,26 +9626,26 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
         switch (powerConditionCode)
         {
         case PWR_CND_STANDBY_Z:
-            snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Standby_Z");
+            error = safe_strcpy(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Standby_Z");
             break;
         case PWR_CND_STANDBY_Y:
-            snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Standby_Y");
+            error = safe_strcpy(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Standby_Y");
             break;
         case PWR_CND_IDLE_A:
-            snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Idle_A");
+            error = safe_strcpy(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Idle_A");
             break;
         case PWR_CND_IDLE_B:
-            snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Idle_B");
+            error = safe_strcpy(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Idle_B");
             break;
         case PWR_CND_IDLE_C:
-            snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Idle_C");
+            error = safe_strcpy(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Idle_C");
             break;
         case PWR_CND_ALL:
-            snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH, "All Supported");
+            error = safe_strcpy(powerConditionString, POWER_CONDITION_STRING_LENGTH, "All Supported");
             break;
         default:
-            snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH, "Unknown Pwr Cond (%02" PRIX8 "h)",
-                                powerConditionCode);
+            snprintfres = snprintf_err_handle(powerConditionString, POWER_CONDITION_STRING_LENGTH,
+                                              "Unknown Pwr Cond (%02" PRIX8 "h)", powerConditionCode);
             break;
         }
         switch (subcommand)
@@ -8601,18 +9654,19 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
         {
             bool defaultBit = epcLBA & BIT6;
             bool saveBit    = epcLBA & BIT4;
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Restore Power Condition Settings - %s Default: %d Save: %d", commandName,
-                                powerConditionString, defaultBit, saveBit);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Restore Power Condition Settings - %s Default: %d Save: %d", commandName,
+                                    powerConditionString, defaultBit, saveBit);
         }
         break;
         case EPC_GO_TO_POWER_CONDITION:
         {
             bool delayedEntry       = epcLBA & BIT25;
             bool holdPowerCondition = epcLBA & BIT24;
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Go To Power Condition - %s Delay: %d Hold: %d", commandName, powerConditionString,
-                                delayedEntry, holdPowerCondition);
+            snprintfresCommandInfo  = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Go To Power Condition - %s Delay: %d Hold: %d",
+                commandName, powerConditionString, delayedEntry, holdPowerCondition);
         }
         break;
         case EPC_SET_POWER_CONDITION_TIMER:
@@ -8623,33 +9677,36 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
             bool     save   = epcLBA & BIT4;
             if (units)
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - Set Power Condition Timer - %s Timer: %" PRIu32
-                                    " minutes, Enable: %d, Save: %d",
-                                    commandName, powerConditionString, timer, enable, save);
+                snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                             "%s - Set Power Condition Timer - %s Timer: %" PRIu32
+                                                             " minutes, Enable: %d, Save: %d",
+                                                             commandName, powerConditionString, timer, enable, save);
             }
             else
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "%s - Set Power Condition Timer - %s Timer: %" PRIu32 " ms, Enable: %d, Save: %d",
-                                    commandName, powerConditionString, timer * 100, enable, save);
+                snprintfresCommandInfo = snprintf_err_handle(
+                    commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                    "%s - Set Power Condition Timer - %s Timer: %" PRIu32 " ms, Enable: %d, Save: %d", commandName,
+                    powerConditionString, timer * 100, enable, save);
             }
         }
         break;
         case EPC_SET_POWER_CONDITION_STATE:
         {
-            bool enable = epcLBA & BIT5;
-            bool save   = epcLBA & BIT4;
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Set Power Condition State - %s Enable: %d, Save: %d", commandName,
-                                powerConditionString, enable, save);
+            bool enable            = epcLBA & BIT5;
+            bool save              = epcLBA & BIT4;
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Set Power Condition State - %s Enable: %d, Save: %d",
+                                                         commandName, powerConditionString, enable, save);
         }
         break;
         case EPC_ENABLE_EPC_FEATURE_SET:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable EPC Feature", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable EPC Feature", commandName);
             break;
         case EPC_DISABLE_EPC_FEATURE_SET:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable EPC Feature", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable EPC Feature", commandName);
             break;
         case EPC_SET_EPC_POWER_SOURCE:
         {
@@ -8659,66 +9716,76 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
             switch (powerSource)
             {
             case 1:
-                snprintf_err_handle(powerSourceString, POWER_SOURCE_STRING_LENGTH, "Battery");
+                error = safe_strcpy(powerSourceString, POWER_SOURCE_STRING_LENGTH, "Battery");
                 break;
             case 2:
-                snprintf_err_handle(powerSourceString, POWER_SOURCE_STRING_LENGTH, "Not Battery");
+                error = safe_strcpy(powerSourceString, POWER_SOURCE_STRING_LENGTH, "Not Battery");
                 break;
             default:
-                snprintf_err_handle(powerSourceString, POWER_SOURCE_STRING_LENGTH, "Unknown (%01" PRIX8 "h)",
-                                    powerSource);
+                snprintfres = snprintf_err_handle(powerSourceString, POWER_SOURCE_STRING_LENGTH,
+                                                  "Unknown (%01" PRIX8 "h)", powerSource);
                 break;
             }
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set EPC Power Source - %s", commandName,
-                                powerSourceString);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set EPC Power Source - %s",
+                                    commandName, powerSourceString);
         }
         break;
         default:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Unknown EPC Subcommand (%02" PRIX8 "h) - %s LBA: %07" PRIu32 "h", commandName,
-                                subcommand, powerConditionString, epcLBA);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Unknown EPC Subcommand (%02" PRIX8 "h) - %s LBA: %07" PRIu32 "h", commandName,
+                                    subcommand, powerConditionString, epcLBA);
             break;
         }
     }
     break;
     case SF_SET_CACHE_SEGMENTS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Cache Segments - %" PRIu8 " Segments",
-                            commandName, subcommandCount);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Set Cache Segments - %" PRIu8 " Segments", commandName, subcommandCount);
         break;
     case SF_DISABLE_READ_LOOK_AHEAD_FEATURE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Read Look-Ahead", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Read Look-Ahead", commandName);
         break;
     case SF_ENABLE_RELEASE_INTERRUPT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Release Interrupt", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Release Interrupt", commandName);
         break;
     case SF_ENABLE_SERVICE_INTERRUPT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Service Interrupt", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Service Interrupt", commandName);
         break;
     case SF_ENABLE_DISABLE_DATA_TRANSFER_AFTER_ERROR_DETECTION:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Enable Method To Disable Data Transfer After Error Detection", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Enable Method To Disable Data Transfer After Error Detection", commandName);
         break;
     case SF_LONG_PHYSICAL_SECTOR_ALIGNMENT_ERROR_REPORTING:
         switch (subcommandCount)
         {
         case SF_LPS_DISABLED:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Long Physical Sector Alignment Error Reporting - Disabled", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Long Physical Sector Alignment Error Reporting - Disabled", commandName);
             break;
         case SF_LPS_REPORT_ALIGNMENT_ERROR:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Long Physical Sector Alignment Error Reporting - Report Error", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Long Physical Sector Alignment Error Reporting - Report Error", commandName);
             break;
         case SF_LPS_REPORT_ALIGNMENT_ERROR_DATA_CONDITION_UNKNOWN:
-            snprintf_err_handle(
+            snprintfresCommandInfo = snprintf_err_handle(
                 commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                 "%s - Long Physical Sector Alignment Error Reporting - Report Error, Data Condition Unknown",
                 commandName);
             break;
         default:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Long Physical Sector Alignment Error Reporting - Unknown Mode (%02" PRIX8 "h)",
-                                commandName, subcommandCount);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Long Physical Sector Alignment Error Reporting - Unknown Mode (%02" PRIX8 "h)", commandName,
+                subcommandCount);
             break;
         }
         break;
@@ -8726,148 +9793,166 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
         switch (subcommandCount)
         {
         case SF_DSN_ENABLE:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Device Statistics Notification - Enable", commandName);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Device Statistics Notification - Enable", commandName);
             break;
         case SF_DSN_DISABLE:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Device Statistics Notification - Disable", commandName);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Device Statistics Notification - Disable", commandName);
             break;
         default:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Device Statistics Notification - Unknown Subcommand (%02" PRIX8 "h)", commandName,
-                                subcommandCount);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Device Statistics Notification - Unknown Subcommand (%02" PRIX8 "h)",
+                                    commandName, subcommandCount);
             break;
         }
         break;
     case SF_DISABLE_REVERTING_TO_POWERON_DEFAULTS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Reverting to Poweron Defaults",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Reverting to Poweron Defaults", commandName);
         break;
     case SF_CFA_NOP_ACCEPTED_FOR_BACKWARDS_COMPATIBILITY:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - CFA (%02" PRIX8 "h) - NOP, Accepted for Compatibility", commandName,
-                            setFeaturesSubcommand);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - CFA (%02" PRIX8 "h) - NOP, Accepted for Compatibility",
+                                                     commandName, setFeaturesSubcommand);
         break;
     case SF_DISABLE_ECC:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable ECC", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable ECC", commandName);
         break;
     case SF_DISABLE_8_BIT_DATA_TRANSFERS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable 8-bit Data Transfers", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable 8-bit Data Transfers", commandName);
         break;
     case SF_DISABLE_VOLITILE_WRITE_CACHE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Volatile Write Cache", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Volatile Write Cache", commandName);
         break;
     case SF_DISABLE_ALL_AUTOMATIC_DEFECT_REASSIGNMENT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable All Automatic Defect Reassignment",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable All Automatic Defect Reassignment", commandName);
         break;
     case SF_DISABLE_APM_FEATURE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Advanced Power Management",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Advanced Power Management", commandName);
         break;
     case SF_DISABLE_PUIS_FEATURE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Power Up In Standby", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Power Up In Standby", commandName);
         break;
     case SF_ENABLE_ECC:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable ECC", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable ECC", commandName);
         break;
     case SF_ADDRESS_OFFSET_RESERVED_BOOT_AREA_METHOD_TECH_REPORT_2:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Address Offser Reserved Boot Area Method %02" PRIX8 "h", commandName,
-                            setFeaturesSubcommand);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Address Offser Reserved Boot Area Method %02" PRIX8 "h",
+                                                     commandName, setFeaturesSubcommand);
         break;
     case SF_DISABLE_CFA_POWER_MODE_1:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable CFA Power Mode 1", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable CFA Power Mode 1", commandName);
         break;
     case SF_DISABLE_WRITE_READ_VERIFY_FEATURE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Write-Read-Verify", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Write-Read-Verify", commandName);
         break;
     case SF_DISABLE_DEVICE_LIFE_CONTROL:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Device Life Control", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Device Life Control", commandName);
         break;
     case SF_DISABLE_SATA_FEATURE:
         get_SATA_Feature_Control_Command_Info(commandName, false, subcommandCount, lba, commandInfo);
         break;
     case SF_ENABLE_MEDIA_STATUS_NOTIFICATION:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Media Status Notification",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable Media Status Notification", commandName);
         break;
     case SF_CFA_NOP_ACCEPTED_FOR_BACKWARDS_COMPATIBILITY_1:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - CFA (%02" PRIX8 "h) - NOP, Accepted for Compatibility", commandName,
-                            setFeaturesSubcommand);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - CFA (%02" PRIX8 "h) - NOP, Accepted for Compatibility",
+                                                     commandName, setFeaturesSubcommand);
         break;
     case SF_CFA_ACCEPTED_FOR_BACKWARDS_COMPATIBILITY:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - CFA (%02" PRIX8 "h) - Accepted for Compatibility", commandName,
-                            setFeaturesSubcommand);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - CFA (%02" PRIX8 "h) - Accepted for Compatibility",
+                                                     commandName, setFeaturesSubcommand);
         break;
     case SF_ENABLE_RETRIES:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Retries", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Retries", commandName);
         break;
     case SF_SET_DEVICE_MAXIMUM_AVERAGE_CURRENT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Set Device Maximum Average Current: %" PRIu16 " mA", commandName,
-                            C_CAST(uint16_t, subcommandCount * 4));
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Set Device Maximum Average Current: %" PRIu16 " mA",
+                                                     commandName, C_CAST(uint16_t, subcommandCount * 4));
         break;
     case SF_ENABLE_READ_LOOK_AHEAD_FEATURE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Read Look-Ahead", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Read Look-Ahead", commandName);
         break;
     case SF_SET_MAXIMUM_PREFETCH:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set Maximum Prefetch: %" PRIu8 " sectors",
-                            commandName, subcommandCount);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Set Maximum Prefetch: %" PRIu8 " sectors", commandName, subcommandCount);
         break;
     case SF_LEGACY_SET_4_BYTES_ECC_FOR_READ_WRITE_LONG:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Set 4 Bytes ECC Data For Read/Write Long",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Set 4 Bytes ECC Data For Read/Write Long", commandName);
         break;
     case SF_DISABLE_FREE_FALL_CONTROL_FEATURE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Free-Fall Control", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Free-Fall Control", commandName);
         break;
     case SF_DISABLE_AUTOMATIC_ACOUSTIC_MANAGEMENT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Automatic Acoustic Management",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Automatic Acoustic Management", commandName);
         break;
     case SF_ENABLE_DISABLE_SENSE_DATA_REPORTING_FEATURE:
         if (subcommandCount == 0)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Sense Data Reporting",
-                                commandName);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Disable Sense Data Reporting", commandName);
             break;
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Sense Data Reporting",
-                                commandName);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Enable Sense Data Reporting", commandName);
             break;
         }
     case SF_ENABLE_DISABLE_SENSE_DATA_RETURN_FOR_SUCCESSFUL_NCQ_COMMANDS:
         if (subcommandCount == 0)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Disable Sense Data Reporting For Successful NCQ Commands", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Disable Sense Data Reporting For Successful NCQ Commands", commandName);
             break;
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Enable Sense Data Reporting For Successful NCQ Commands", commandName);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Enable Sense Data Reporting For Successful NCQ Commands", commandName);
             break;
         }
     case SF_ENABLE_REVERTING_TO_POWER_ON_DEFAULTS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Enable Reverting to Poweron Defaults",
-                            commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Enable Reverting to Poweron Defaults", commandName);
         break;
     case SF_DISABLE_RELEASE_INTERRUPT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Release Interrupt", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Release Interrupt", commandName);
         break;
     case SF_DISABLE_SERVICE_INTERRUPT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "%s - Disable Service Interrupt", commandName);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Disable Service Interrupt", commandName);
         break;
     case SF_DISABLE_DISABLE_DATA_TRANSFER_AFTER_ERROR_DETECTION:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Disable Method To Disable Data Transfer After Error Detection", commandName);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Disable Method To Disable Data Transfer After Error Detection", commandName);
         break;
     default:
         if ((setFeaturesSubcommand >= UINT8_C(0x56) && setFeaturesSubcommand <= UINT8_C(0x5C)) ||
@@ -8875,25 +9960,42 @@ static void get_Set_Features_Command_Info(const char* M_NONNULL commandName,
             setFeaturesSubcommand == UINT8_C(0xE0))
         {
             // vendor specific
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Vendor Specific (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h",
-                                commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Vendor Specific (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h",
+                                    commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
         }
         else if ((setFeaturesSubcommand >= UINT8_C(0xF0) /* && setFeaturesSubcommand <= UINT8_C(0xFF) */))
         {
             // reserved for CFA
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Reserved for CFA (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h",
-                                commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Reserved for CFA (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h",
+                                    commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
         }
         else
         {
             // unknown/reserved
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Unknown Feature (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h",
-                                commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Unknown Feature (%" PRIX8 "h), LBA: %07" PRIX32 " Count: %02" PRIX8 "h",
+                                    commandName, setFeaturesSubcommand, C_CAST(uint32_t, lba), subcommandCount);
         }
         break;
+    }
+    if (error != 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error coping set features data for output in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting set features data for output in %s\n", __func__);
+        }
+    if (snprintfresCommandInfo < 0)
+    {
+        print_error_format("Error formatting set features command info in %s\n", __func__);
     }
 }
 
@@ -8907,6 +10009,9 @@ static void get_ZAC_Management_In_Command_Info(const char* M_NONNULL commandName
                                                M_ATTR_UNUSED uint8_t device,
                                                char commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
+    errno_t  error                          = 0;
+    int      snprintfres                    = 0;
+    int      snprintfresCommandInfo         = 0;
     uint8_t  zmAction                       = M_Nibble0(features);
     uint8_t  featuresActionSpecific         = M_Byte1(features);
     uint16_t countActionSpecific            = count;
@@ -8930,67 +10035,82 @@ static void get_ZAC_Management_In_Command_Info(const char* M_NONNULL commandName
             switch (reportingOptions)
             {
             case ZONE_REPORT_LIST_ALL_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List All Zones");
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List All Zones");
                 break;
             case ZONE_REPORT_LIST_EMPTY_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Empty Zones");
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Empty Zones");
                 break;
             case ZONE_REPORT_LIST_IMPLICIT_OPEN_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
-                                    "List Implicitly Opened Zones");
+                error =
+                    safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Implicitly Opened Zones");
                 break;
             case ZONE_REPORT_LIST_EXPLICIT_OPEN_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
-                                    "List Explicitly Opened Zones");
+                error =
+                    safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Explicitly Opened Zones");
                 break;
             case ZONE_REPORT_LIST_CLOSED_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Closed Zones");
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Closed Zones");
                 break;
             case ZONE_REPORT_LIST_FULL_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Full Zones");
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Full Zones");
                 break;
             case ZONE_REPORT_LIST_READ_ONLY_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Read Only Zones");
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Read Only Zones");
                 break;
             case ZONE_REPORT_LIST_OFFLINE_ZONES:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Offline Zones");
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Offline Zones");
                 break;
             case ZONE_REPORT_LIST_ZONES_WITH_RESET_SET_TO_ONE:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Zones with RWP=True");
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH, "List Zones with RWP=True");
                 break;
             case ZONE_REPORT_LIST_ZONES_WITH_NON_SEQ_SET_TO_ONE:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
                                     "List Zones W/ Non-Sequential Write Resources Active");
                 break;
             case ZONE_REPORT_LIST_ALL_ZONES_THAT_ARE_NOT_WRITE_POINTERS:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
+                error = safe_strcpy(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
                                     "List Zones W/ Not Write Pointer Condition");
                 break;
             default:
-                snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
-                                    "Unknown Report Options (%02" PRIX8 "h)", reportingOptions);
+                snprintfres = snprintf_err_handle(reportOptionString, ZONE_REPORT_OPTIONS_STRING_LENGTH,
+                                                  "Unknown Report Options (%02" PRIX8 "h)", reportingOptions);
                 break;
             }
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Report Zones, Zone Locator: %" PRIu64 "  Partial %d  Page Count: %" PRIu16
-                                " Report: %s",
-                                commandName, lba, partial, countActionSpecific, reportOptionString);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Report Zones, Zone Locator: %" PRIu64 "  Partial %d  Page Count: %" PRIu16 " Report: %s",
+                commandName, lba, partial, countActionSpecific, reportOptionString);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Report Zones, Zone Locator: %" PRIu64 "  Partial (Unknown)  Page Count: %" PRIu16
-                                " Report: (Unknown)",
-                                commandName, lba, countActionSpecific);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Report Zones, Zone Locator: %" PRIu64
+                                    "  Partial (Unknown)  Page Count: %" PRIu16 " Report: (Unknown)",
+                                    commandName, lba, countActionSpecific);
         }
     }
     break;
     default:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown ZAC In Command, LBA: %012" PRIX64 " Features: %04" PRIX16
-                            "h Count: %04" PRIX16 "h",
-                            commandName, lba, features, count);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Unknown ZAC In Command, LBA: %012" PRIX64
+                                                     " Features: %04" PRIX16 "h Count: %04" PRIX16 "h",
+                                                     commandName, lba, features, count);
         break;
+    }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting string in %s\n", __func__);
+        }
+    if (snprintfresCommandInfo < 0)
+    {
+        print_error_format("Error formatting ZAC Management In command info in %s\n", __func__);
     }
 }
 
@@ -9004,6 +10124,9 @@ static void get_ZAC_Management_Out_Command_Info(const char* M_NONNULL commandNam
                                                 M_ATTR_UNUSED uint8_t device,
                                                 char commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
+    errno_t error                  = 0;
+    int     snprintfres            = 0;
+    int     snprintfresCommandInfo = 0;
     uint8_t zmAction               = M_Nibble0(features);
     uint8_t featuresActionSpecific = M_Byte1(features);
     // uint16_t countActionSpecific = count;
@@ -9024,13 +10147,15 @@ static void get_ZAC_Management_Out_Command_Info(const char* M_NONNULL commandNam
         bool closeAll = featuresActionSpecific & BIT0;
         if (featureActionSpecificAvailable)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Close Zone, Zone ID: %" PRIu64 "  Close All: %d", commandName, lba, closeAll);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Close Zone, Zone ID: %" PRIu64 "  Close All: %d", commandName, lba, closeAll);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Close Zone, Zone ID: %" PRIu64 "  Close All: (Unknown)", commandName, lba);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Close Zone, Zone ID: %" PRIu64 "  Close All: (Unknown)", commandName, lba);
         }
     }
     break;
@@ -9039,13 +10164,15 @@ static void get_ZAC_Management_Out_Command_Info(const char* M_NONNULL commandNam
         bool finishAll = featuresActionSpecific & BIT0;
         if (featureActionSpecificAvailable)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Finish Zone, Zone ID: %" PRIu64 "  Finish All: %d", commandName, lba, finishAll);
+            snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                         "%s - Finish Zone, Zone ID: %" PRIu64 "  Finish All: %d",
+                                                         commandName, lba, finishAll);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Finish Zone, Zone ID: %" PRIu64 "  Finish All: (Unknown)", commandName, lba);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Finish Zone, Zone ID: %" PRIu64 "  Finish All: (Unknown)", commandName, lba);
         }
     }
     break;
@@ -9054,13 +10181,15 @@ static void get_ZAC_Management_Out_Command_Info(const char* M_NONNULL commandNam
         bool openAll = featuresActionSpecific & BIT0;
         if (featureActionSpecificAvailable)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Open Zone, Zone ID: %" PRIu64 "  Open All: %d", commandName, lba, openAll);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Open Zone, Zone ID: %" PRIu64 "  Open All: %d", commandName, lba, openAll);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Open Zone, Zone ID: %" PRIu64 "  Open All: (Unknown)", commandName, lba);
+            snprintfresCommandInfo =
+                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                    "%s - Open Zone, Zone ID: %" PRIu64 "  Open All: (Unknown)", commandName, lba);
         }
     }
     break;
@@ -9069,24 +10198,38 @@ static void get_ZAC_Management_Out_Command_Info(const char* M_NONNULL commandNam
         bool resetAll = featuresActionSpecific & BIT0;
         if (featureActionSpecificAvailable)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Reset Write Pointers, Zone ID: %" PRIu64 "  Reset All: %d", commandName, lba,
-                                resetAll);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Reset Write Pointers, Zone ID: %" PRIu64 "  Reset All: %d", commandName, lba, resetAll);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "%s - Reset Write Pointers, Zone ID: %" PRIu64 "  Reset All: (Unknown)", commandName,
-                                lba);
+            snprintfresCommandInfo = snprintf_err_handle(
+                commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                "%s - Reset Write Pointers, Zone ID: %" PRIu64 "  Reset All: (Unknown)", commandName, lba);
         }
     }
     break;
     default:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown ZAC Out Command, LBA: %012" PRIX64 " Features: %04" PRIX16
-                            "h Count: %04" PRIX16 "h",
-                            commandName, lba, features, count);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Unknown ZAC Out Command, LBA: %012" PRIX64
+                                                     " Features: %04" PRIX16 "h Count: %04" PRIX16 "h",
+                                                     commandName, lba, features, count);
         break;
+    }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting string in %s\n", __func__);
+        }
+    if (snprintfresCommandInfo < 0)
+    {
+        print_error_format("Error formatting command info string in %s\n", __func__);
     }
 }
 
@@ -9100,9 +10243,12 @@ static void get_NCQ_Non_Data_Command_Info(const char* M_NONNULL commandName,
                                           uint8_t               device,
                                           char commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    uint8_t subcommand = M_Nibble0(features);
-    uint8_t tag        = get_8bit_range_uint16(count, 7, 3);
-    uint8_t prio       = get_8bit_range_uint16(count, 15, 14); // technically subcommand specific...
+    errno_t error                  = 0;
+    int     snprintfres            = 0;
+    int     snprintfresCommandInfo = 0;
+    uint8_t subcommand             = M_Nibble0(features);
+    uint8_t tag                    = get_8bit_range_uint16(count, 7, 3);
+    uint8_t prio                   = get_8bit_range_uint16(count, 15, 14); // technically subcommand specific...
     switch (subcommand)
     {
     case NCQ_NON_DATA_ABORT_NCQ_QUEUE:
@@ -9114,53 +10260,55 @@ static void get_NCQ_Non_Data_Command_Info(const char* M_NONNULL commandName,
         switch (abortType)
         {
         case 0:
-            snprintf_err_handle(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Abort All");
+            error = safe_strcpy(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Abort All");
             break;
         case 1:
-            snprintf_err_handle(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Abort Streaming");
+            error = safe_strcpy(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Abort Streaming");
             break;
         case 2:
-            snprintf_err_handle(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Abort Non-Streaming");
+            error = safe_strcpy(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Abort Non-Streaming");
             break;
         case 3:
-            snprintf_err_handle(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Abort Selected. TTAG = %" PRIu8 "", ttag);
+            snprintfres = snprintf_err_handle(abortTypeString, ABORT_TYPE_STRING_LENGTH,
+                                              "Abort Selected. TTAG = %" PRIu8 "", ttag);
             break;
         default:
-            snprintf_err_handle(abortTypeString, ABORT_TYPE_STRING_LENGTH, "Unknown Abort Type (%" PRIX8 "h)",
-                                abortType);
+            snprintfres = snprintf_err_handle(abortTypeString, ABORT_TYPE_STRING_LENGTH,
+                                              "Unknown Abort Type (%" PRIX8 "h)", abortType);
             break;
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Abort NCQ Queue: %s. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, abortTypeString,
-                            tag, prio);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Abort NCQ Queue: %s. Tag: %" PRIu8 " PRIO: %" PRIu8 "",
+                                                     commandName, abortTypeString, tag, prio);
     }
     break;
     case NCQ_NON_DATA_DEADLINE_HANDLING:
     {
-        bool rdnc = features & BIT5;
-        bool wdnc = features & BIT4;
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Deadline Handling. Tag: %" PRIu8 " WDNC: %d RDNC: %d", commandName, tag, wdnc, rdnc);
+        bool rdnc              = features & BIT5;
+        bool wdnc              = features & BIT4;
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Deadline Handling. Tag: %" PRIu8 " WDNC: %d RDNC: %d",
+                                                     commandName, tag, wdnc, rdnc);
     }
     break;
     case NCQ_NON_DATA_HYBRID_DEMOTE_BY_SIZE:
     {
-        uint16_t sectorCount  = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
-        uint8_t  fromPriority = get_8bit_range_uint16(features, 7, 4);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Hybrid Demote By Size. Tag: %" PRIu8 " LBA: %" PRIu64 " Count: %" PRIu16
-                            " From Priority: %" PRIu8 "",
-                            commandName, tag, lba, sectorCount, fromPriority);
+        uint16_t sectorCount   = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
+        uint8_t  fromPriority  = get_8bit_range_uint16(features, 7, 4);
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Hybrid Demote By Size. Tag: %" PRIu8 " LBA: %" PRIu64
+                                                     " Count: %" PRIu16 " From Priority: %" PRIu8 "",
+                                                     commandName, tag, lba, sectorCount, fromPriority);
     }
     break;
     case NCQ_NON_DATA_HYBRID_CHANGE_BY_LBA_RANGE:
     {
-        uint16_t sectorCount = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
-        bool     avoidSpinup = features & BIT4;
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Hybrid Change By LBA Range. Tag: %" PRIu8 " LBA: %" PRIu64 " Count: %" PRIu16
-                            " Avoid Spinup: %d",
-                            commandName, tag, lba, sectorCount, avoidSpinup);
+        uint16_t sectorCount   = M_BytesTo2ByteValue(M_Byte1(features), M_Byte1(count));
+        bool     avoidSpinup   = features & BIT4;
+        snprintfresCommandInfo = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "%s - Hybrid Change By LBA Range. Tag: %" PRIu8 " LBA: %" PRIu64
+                                                     " Count: %" PRIu16 " Avoid Spinup: %d",
+                                                     commandName, tag, lba, sectorCount, avoidSpinup);
     }
     break;
     case NCQ_NON_DATA_HYBRID_CONTROL:
@@ -9168,18 +10316,19 @@ static void get_NCQ_Non_Data_Command_Info(const char* M_NONNULL commandName,
         bool    disableCachingMedia = features & BIT7;
         uint8_t dirtyHighThreshold  = M_Byte1(lba);
         uint8_t dirtyLowThreshold   = M_Byte0(lba);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Hybrid Control. Tag: %" PRIu8 " Disable Caching Media: %d Dirty High Thresh: %" PRIu8
-                            " Dirty Low Thresh: %" PRIu8 "",
-                            commandName, tag, disableCachingMedia, dirtyHighThreshold, dirtyLowThreshold);
+        snprintfresCommandInfo =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Hybrid Control. Tag: %" PRIu8
+                                " Disable Caching Media: %d Dirty High Thresh: %" PRIu8 " Dirty Low Thresh: %" PRIu8 "",
+                                commandName, tag, disableCachingMedia, dirtyHighThreshold, dirtyLowThreshold);
     }
     break;
     case NCQ_NON_DATA_SET_FEATURES:
     {
 #define NCQ_SET_FEATURES_STRING_LENGTH UINT8_C(48)
         DECLARE_ZERO_INIT_ARRAY(char, ncqSetFeaturesString, NCQ_SET_FEATURES_STRING_LENGTH);
-        snprintf_err_handle(ncqSetFeaturesString, NCQ_SET_FEATURES_STRING_LENGTH, "%s - Set Features. Tag: %" PRIu8 "",
-                            commandName, tag);
+        snprintfres = snprintf_err_handle(ncqSetFeaturesString, NCQ_SET_FEATURES_STRING_LENGTH,
+                                          "%s - Set Features. Tag: %" PRIu8 "", commandName, tag);
         get_Set_Features_Command_Info(ncqSetFeaturesString, commandOpCode, features, count, lba, device, commandInfo);
     }
     break;
@@ -9187,8 +10336,8 @@ static void get_NCQ_Non_Data_Command_Info(const char* M_NONNULL commandName,
     {
 #define NCQ_ZEROS_EXT_STRING_LENGTH UINT8_C(48)
         DECLARE_ZERO_INIT_ARRAY(char, ncqZerosExtString, NCQ_ZEROS_EXT_STRING_LENGTH);
-        snprintf_err_handle(ncqZerosExtString, NCQ_ZEROS_EXT_STRING_LENGTH, "%s - Zero Ext. Tag: %" PRIu8 "",
-                            commandName, tag);
+        snprintfres = snprintf_err_handle(ncqZerosExtString, NCQ_ZEROS_EXT_STRING_LENGTH,
+                                          "%s - Zero Ext. Tag: %" PRIu8 "", commandName, tag);
         get_Zeros_Ext_Command_Info(ncqZerosExtString, commandOpCode, features, count, lba, device, commandInfo);
     }
     break;
@@ -9196,18 +10345,32 @@ static void get_NCQ_Non_Data_Command_Info(const char* M_NONNULL commandName,
     {
 #define NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH UINT8_C(48)
         DECLARE_ZERO_INIT_ARRAY(char, ncqZacMgmtOutString, NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH);
-        snprintf_err_handle(ncqZacMgmtOutString, NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH,
-                            "%s - ZAC Management Out. Tag: %" PRIu8 "", commandName, tag);
+        snprintfres = snprintf_err_handle(ncqZacMgmtOutString, NCQ_ZAC_MANAGEMENT_OUT_STRING_LENGTH,
+                                          "%s - ZAC Management Out. Tag: %" PRIu8 "", commandName, tag);
         get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device,
                                             commandInfo);
     }
     break;
     default:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16
-                            "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h",
-                            commandName, subcommand, tag, features, count, lba);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16
+                                          "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h",
+                                          commandName, subcommand, tag, features, count, lba);
         break;
+    }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting string in %s\n", __func__);
+        }
+    if (snprintfresCommandInfo < 0)
+    {
+        print_error_format("Error formatting command info string in %s\n", __func__);
     }
 }
 
@@ -9221,17 +10384,20 @@ static void get_Receive_FPDMA_Command_Info(const char* M_NONNULL commandName,
                                            uint8_t               device,
                                            char commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
-    uint8_t subcommand = get_8bit_range_uint16(count, 12, 8);
-    uint8_t tag        = get_8bit_range_uint16(count, 7, 3);
-    uint8_t prio       = get_8bit_range_uint16(count, 15, 14);
+    errno_t error       = 0;
+    int     snprintfres = 0;
+    uint8_t subcommand  = get_8bit_range_uint16(count, 12, 8);
+    uint8_t tag         = get_8bit_range_uint16(count, 7, 3);
+    uint8_t prio        = get_8bit_range_uint16(count, 15, 14);
     switch (subcommand)
     {
     case RECEIVE_FPDMA_READ_LOG_DMA_EXT:
     {
 #define RECEIVE_FPDMA_READ_LOG_STRING_LENGTH UINT8_C(53)
         DECLARE_ZERO_INIT_ARRAY(char, recieveFPDMAReadLogString, RECEIVE_FPDMA_READ_LOG_STRING_LENGTH);
-        snprintf_err_handle(recieveFPDMAReadLogString, RECEIVE_FPDMA_READ_LOG_STRING_LENGTH,
-                            "%s - Read Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
+        snprintfres =
+            snprintf_err_handle(recieveFPDMAReadLogString, RECEIVE_FPDMA_READ_LOG_STRING_LENGTH,
+                                "%s - Read Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
         get_GPL_Log_Command_Info(recieveFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
     }
     break;
@@ -9239,19 +10405,30 @@ static void get_Receive_FPDMA_Command_Info(const char* M_NONNULL commandName,
     {
 #define NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH UINT8_C(54)
         DECLARE_ZERO_INIT_ARRAY(char, ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH);
-        snprintf_err_handle(ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH,
-                            "%s - ZAC Management In. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
+        snprintfres =
+            snprintf_err_handle(ncqZacMgmtInString, NCQ_ZAC_MANAGEMENT_IN_STRING_LENGTH,
+                                "%s - ZAC Management In. Tag: %" PRIu8 " PRIO: %" PRIu8, commandName, tag, prio);
         get_ZAC_Management_In_Command_Info(ncqZacMgmtInString, commandOpCode, features, count, lba, device,
                                            commandInfo);
     }
     break;
     default:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16
-                            "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h",
-                            commandName, subcommand, tag, features, count, lba);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16
+                                          "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h",
+                                          commandName, subcommand, tag, features, count, lba);
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting string in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -9264,6 +10441,8 @@ static void get_Send_FPDMA_Command_Info(const char* M_NONNULL commandName,
                                         uint8_t               device,
                                         char                  commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
+    errno_t  error            = 0;
+    int      snprintfres      = 0;
     uint8_t  subcommand       = get_8bit_range_uint16(count, 12, 8);
     uint8_t  tag              = get_8bit_range_uint16(count, 7, 3);
     uint8_t  prio             = get_8bit_range_uint16(count, 15, 14);
@@ -9275,23 +10454,25 @@ static void get_Send_FPDMA_Command_Info(const char* M_NONNULL commandName,
     switch (subcommand)
     {
     case SEND_FPDMA_DATA_SET_MANAGEMENT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Data Set Management. Tag: %" PRIu8 " PRIO: %" PRIu8
-                            " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu32 " LBA: %" PRIu64 "",
-                            commandName, tag, prio, blocksToTransfer, lba);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Data Set Management. Tag: %" PRIu8 " PRIO: %" PRIu8
+                                " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu32 " LBA: %" PRIu64 "",
+                                commandName, tag, prio, blocksToTransfer, lba);
         break;
     case SEND_FPDMA_HYBRID_EVICT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Hybrid Evicy. Tag: %" PRIu8 " PRIO: %" PRIu8
-                            " Evict All: (Unknown) Blocks To Transfer: %" PRIu32 "",
-                            commandName, tag, prio, blocksToTransfer);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Hybrid Evicy. Tag: %" PRIu8 " PRIO: %" PRIu8
+                                          " Evict All: (Unknown) Blocks To Transfer: %" PRIu32 "",
+                                          commandName, tag, prio, blocksToTransfer);
         break;
     case SEND_FPDMA_WRITE_LOG_DMA_EXT:
     {
 #define SEND_FPDMA_READ_LOG_STRING_LENGTH UINT8_C(53)
         DECLARE_ZERO_INIT_ARRAY(char, sendFPDMAReadLogString, SEND_FPDMA_READ_LOG_STRING_LENGTH);
-        snprintf_err_handle(sendFPDMAReadLogString, SEND_FPDMA_READ_LOG_STRING_LENGTH,
-                            "%s - Write Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        snprintfres =
+            snprintf_err_handle(sendFPDMAReadLogString, SEND_FPDMA_READ_LOG_STRING_LENGTH,
+                                "%s - Write Log Ext DMA. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
         get_GPL_Log_Command_Info(sendFPDMAReadLogString, commandOpCode, features, count, lba, device, commandInfo);
     }
     break;
@@ -9299,25 +10480,37 @@ static void get_Send_FPDMA_Command_Info(const char* M_NONNULL commandName,
     {
 #define SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH UINT8_C(53)
         DECLARE_ZERO_INIT_ARRAY(char, ncqZacMgmtOutString, SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH);
-        snprintf_err_handle(ncqZacMgmtOutString, SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH,
-                            "%s - ZAC Management Out. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
+        snprintfres =
+            snprintf_err_handle(ncqZacMgmtOutString, SEND_FPDMA_ZAC_MANAGEMENT_OUT_LENGTH,
+                                "%s - ZAC Management Out. Tag: %" PRIu8 " PRIO: %" PRIu8 "", commandName, tag, prio);
         get_ZAC_Management_Out_Command_Info(ncqZacMgmtOutString, commandOpCode, features, count, lba, device,
                                             commandInfo);
     }
     break;
     case SEND_FPDMA_DATA_SET_MANAGEMENT_XL:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Data Set Management XL. Tag: %" PRIu8 " PRIO: %" PRIu8
-                            " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu32 " LBA: %" PRIu64 "",
-                            commandName, tag, prio, blocksToTransfer, lba);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "%s - Data Set Management XL. Tag: %" PRIu8 " PRIO: %" PRIu8
+                                " TRIM: (Unknown) DSM Func: (Unknown) Blocks To Transfer: %" PRIu32 " LBA: %" PRIu64 "",
+                                commandName, tag, prio, blocksToTransfer, lba);
         break;
     default:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16
-                            "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h",
-                            commandName, subcommand, tag, features, count, lba);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "%s - Unknown Subcommand (%" PRIX8 "h). Tag: %" PRIu8 " Feature: %04" PRIX16
+                                          "h Count: %0" PRIX16 "h LBA: %012" PRIX64 "h",
+                                          commandName, subcommand, tag, features, count, lba);
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting string in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(6)
@@ -9328,27 +10521,29 @@ static void get_Command_Info(uint8_t  commandOpCode,
                              uint8_t  device,
                              char     commandInfo[M_NONNULL_ARRAY ATA_COMMAND_INFO_MAX_LENGTH])
 {
+    errno_t error       = 0;
+    int     snprintfres = 0;
     switch (commandOpCode)
     {
     case ATA_NOP_CMD:
         switch (features)
         {
         case 0:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP");
+            error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP");
             break;
         case 1:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (Auto Poll)");
+            error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (Auto Poll)");
             break;
         default:
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (subcommand %02" PRIx8 "h",
-                                C_CAST(uint8_t, features));
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "NOP (subcommand %02" PRIx8 "h",
+                                              C_CAST(uint8_t, features));
             break;
         }
         break;
     case ATA_DATA_SET_MANAGEMENT_CMD:
         if (features & BIT0)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - TRIM");
+            error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management - TRIM");
         }
         else
         {
@@ -9356,16 +10551,17 @@ static void get_Command_Info(uint8_t  commandOpCode,
             switch (dsmFunction)
             {
             case 0x00: // reserved
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Data Set Management - Reserved DSM function");
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "Data Set Management - Reserved DSM function");
                 break;
             case 0x01: // markup LBA ranges
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Data Set Management - Markup LBA ranges");
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "Data Set Management - Markup LBA ranges");
                 break;
             default: // unknown or not defined as of ACS4
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Data Set Management - Unknown DSM function - %" PRIu8 "", dsmFunction);
+                snprintfres =
+                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                        "Data Set Management - Unknown DSM function - %" PRIu8 "", dsmFunction);
                 break;
             }
         }
@@ -9373,7 +10569,7 @@ static void get_Command_Info(uint8_t  commandOpCode,
     case ATA_DATA_SET_MANAGEMENT_XL_CMD:
         if (features & BIT0)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management XL - TRIM");
+            error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Data Set Management XL - TRIM");
         }
         else
         {
@@ -9381,25 +10577,26 @@ static void get_Command_Info(uint8_t  commandOpCode,
             switch (dsmFunction)
             {
             case 0x00: // reserved
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Data Set Management XL - Reserved DSM function");
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "Data Set Management XL - Reserved DSM function");
                 break;
             case 0x01: // markup LBA ranges
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Data Set Management XL - Markup LBA ranges");
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "Data Set Management XL - Markup LBA ranges");
                 break;
             default: // unknown or not defined as of ACS4
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Data Set Management XL - Unknown DSM function - %" PRIu8 "", dsmFunction);
+                snprintfres =
+                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                        "Data Set Management XL - Unknown DSM function - %" PRIu8 "", dsmFunction);
                 break;
             }
         }
         break;
     case ATA_DEV_RESET:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Device Reset");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Device Reset");
         break;
     case ATA_REQUEST_SENSE_DATA:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Request Sense Data");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Request Sense Data");
         break;
     case ATA_RECALIBRATE_CMD: // this can have various values for the lower nibble which conflict with new command
                               // standards
@@ -9423,19 +10620,20 @@ static void get_Command_Info(uint8_t  commandOpCode,
         {
             uint8_t filter     = get_8bit_range_uint16(features, 15, 14);
             uint8_t reportType = get_8bit_range_uint16(features, 11, 8);
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                "Get Physical Element Status. Starting element: %" PRIu64 " Filter: %" PRIu8
-                                " Report Type: %" PRIu8 "",
-                                lba, filter, reportType);
+            snprintfres        = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                     "Get Physical Element Status. Starting element: %" PRIu64
+                                                     " Filter: %" PRIu8 " Report Type: %" PRIu8 "",
+                                                     lba, filter, reportType);
         }
         else if (count != 0)
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command (%02" PRIX8 "h)",
-                                commandOpCode);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "Unknown Command (%02" PRIX8 "h)", commandOpCode);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Recalibrate (%02" PRIX8 "h)", commandOpCode);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Recalibrate (%02" PRIX8 "h)",
+                                              commandOpCode);
         }
         break;
     case ATA_READ_SECT:
@@ -9461,7 +10659,7 @@ static void get_Command_Info(uint8_t  commandOpCode,
         get_Read_Write_Command_Info("Read DMA Queued Ext", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_MAX_ADDRESS_EXT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
                             "Read Max Address Ext"); // no other worthwhile inputs to this command to report...every
                                                      // other register is N/A
         break;
@@ -9550,25 +10748,25 @@ static void get_Command_Info(uint8_t  commandOpCode,
         switch (uncorrectableOption)
         {
         case WRITE_UNCORRECTABLE_PSEUDO_UNCORRECTABLE_WITH_LOGGING: // psuedo
-            snprintf_err_handle(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH, "Psuedo with logging");
+            error = safe_strcpy(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH, "Psuedo with logging");
             break;
         case WRITE_UNCORRECTABLE_FLAGGED_WITHOUT_LOGGING: // flagged
-            snprintf_err_handle(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH,
-                                "Flagged without logging");
+            snprintfres = snprintf_err_handle(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH,
+                                              "Flagged without logging");
             break;
         case WRITE_UNCORRECTABLE_VENDOR_SPECIFIC_5AH: // vendor specific
         case WRITE_UNCORRECTABLE_VENDOR_SPECIFIC_A5H: // vendor specific
-            snprintf_err_handle(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH,
-                                "Vendor Specific (%02" PRIX8 "h)", uncorrectableOption);
+            snprintfres = snprintf_err_handle(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH,
+                                              "Vendor Specific (%02" PRIX8 "h)", uncorrectableOption);
             break;
         default: // reserved/unknown
-            snprintf_err_handle(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH,
-                                "Unknown Mode (%02" PRIX8 "h)", uncorrectableOption);
+            snprintfres = snprintf_err_handle(uncorrectableOptionString, UNCORRECTABLE_OPTION_STRING_LENGTH,
+                                              "Unknown Mode (%02" PRIX8 "h)", uncorrectableOption);
             break;
         }
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "Write Uncorrectable Ext - %s  LBA: %" PRIu64 "  Count: %" PRIu32 "",
-                            uncorrectableOptionString, lba, numberOfSectors);
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "Write Uncorrectable Ext - %s  LBA: %" PRIu64 "  Count: %" PRIu32 "",
+                                          uncorrectableOptionString, lba, numberOfSectors);
     }
     break;
     case ATA_READ_LOG_EXT_DMA:
@@ -9579,7 +10777,7 @@ static void get_Command_Info(uint8_t  commandOpCode,
                                            commandInfo);
         break;
     case ATA_FORMAT_TRACK_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Format Tracks");
         break;
     case ATA_CONFIGURE_STREAM:
     {
@@ -9587,10 +10785,10 @@ static void get_Command_Info(uint8_t  commandOpCode,
         bool    addRemoveStream = features & BIT7;
         bool    readWriteStream = features & BIT6;
         uint8_t streamID        = get_8bit_range_uint16(features, 2, 0);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "Configure Stream, Default CCTL: %" PRIu8
-                            ", Add/Remove Stream: %d, readWriteStream: %d, Stream ID: %" PRIu8 "",
-                            defaultCCTL, addRemoveStream, readWriteStream, streamID);
+        snprintfres             = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "Configure Stream, Default CCTL: %" PRIu8
+                                                      ", Add/Remove Stream: %d, readWriteStream: %d, Stream ID: %" PRIu8 "",
+                                                      defaultCCTL, addRemoveStream, readWriteStream, streamID);
     }
     break;
     case ATA_WRITE_LOG_EXT_DMA:
@@ -9658,15 +10856,16 @@ static void get_Command_Info(uint8_t  commandOpCode,
                 // legacy seek command
                 if (isLBAMode)
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
+                    snprintfres =
+                        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                            "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
                 }
                 else
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8
-                                        "",
-                                        commandOpCode, seekCylinder, seekHead, seekSector);
+                    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8
+                                                      " Sector: %" PRIu8 "",
+                                                      commandOpCode, seekCylinder, seekHead, seekSector);
                 }
             }
             else
@@ -9685,45 +10884,47 @@ static void get_Command_Info(uint8_t  commandOpCode,
                 // most likely a seek
                 if (isLBAMode)
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
+                    snprintfres =
+                        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                            "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
                 }
                 else
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8
-                                        "",
-                                        commandOpCode, seekCylinder, seekHead, seekSector);
+                    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8
+                                                      " Sector: %" PRIu8 "",
+                                                      commandOpCode, seekCylinder, seekHead, seekSector);
                 }
             }
             else // timestamp is # milliseconds since Jan 1 1970...so we should reliably get here since we shouldn't
                  // ever have an LBA value less than 24bits...
             {
                 // set data and time (TODO: convert this to a current date and time)
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Set Date And Tme Ext - Timestamp - %" PRIu64 " milliseconds", lba);
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "Set Date And Tme Ext - Timestamp - %" PRIu64 " milliseconds", lba);
             }
         }
         else if (commandOpCode == ATA_REMOVE_AND_TRUNCATE)
         {
             // features and count will be used for remove and truncate, but not the legacy seek command :)
             if (features || count || lba > MAX_28_BIT_LBA ||
-                !(device &
-                  LBA_MODE_BIT)) // LBA may be zero. device register should NOT have the lba bit set for this command
+                !(device & LBA_MODE_BIT)) // LBA may be zero. device register should NOT have the lba bit set for
+                                          // this command
             {
                 // remove and truncate command
                 uint32_t elementIdentifier = M_WordsTo4ByteValue(features, count);
                 if (lba > 0)
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Remove And Truncate - Element ID: %" PRIX32 "h - Requested Max LBA: %" PRIu64
-                                        "",
-                                        elementIdentifier, lba);
+                    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "Remove And Truncate - Element ID: %" PRIX32
+                                                      "h - Requested Max LBA: %" PRIu64 "",
+                                                      elementIdentifier, lba);
                 }
                 else
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Remove And Truncate - Element ID: %" PRIX32 "h", elementIdentifier);
+                    snprintfres =
+                        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                            "Remove And Truncate - Element ID: %" PRIX32 "h", elementIdentifier);
                 }
             }
             else
@@ -9731,15 +10932,16 @@ static void get_Command_Info(uint8_t  commandOpCode,
                 // legacy seek
                 if (isLBAMode)
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
+                    snprintfres =
+                        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                            "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
                 }
                 else
                 {
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8
-                                        "",
-                                        commandOpCode, seekCylinder, seekHead, seekSector);
+                    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8
+                                                      " Sector: %" PRIu8 "",
+                                                      commandOpCode, seekCylinder, seekHead, seekSector);
                 }
             }
         }
@@ -9747,28 +10949,30 @@ static void get_Command_Info(uint8_t  commandOpCode,
         {
             if (isLBAMode)
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "",
-                                    commandOpCode, seekLBA);
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "Seek (%02" PRIX8 "h) - LBA: %" PRIu32 "", commandOpCode, seekLBA);
             }
             else
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 "",
-                                    commandOpCode, seekCylinder, seekHead, seekSector);
+                snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                  "Seek (%02" PRIX8 "h) - Cylinder: %" PRIu16 " Head: %" PRIu8
+                                                  " Sector: %" PRIu8 "",
+                                                  commandOpCode, seekCylinder, seekHead, seekSector);
             }
         }
     }
     break;
     case ATA_EXEC_DRV_DIAG:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Execute Drive Diagnostic");
         break;
     case ATA_INIT_DRV_PARAM:
     {
         uint8_t sectorsPerTrack = M_Byte0(count);
         uint8_t maxHead         = M_Nibble0(device);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "Initialize Drive Parameters. Logical Sectors Per Track: %" PRIu8 "  Max Head: %" PRIu8 "",
-                            sectorsPerTrack, maxHead);
+        snprintfres             = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "Initialize Drive Parameters. Logical Sectors Per Track: %" PRIu8
+                                                      "  Max Head: %" PRIu8 "",
+                                                      sectorsPerTrack, maxHead);
     }
     break;
     case ATA_DOWNLOAD_MICROCODE_CMD:
@@ -9778,10 +10982,10 @@ static void get_Command_Info(uint8_t  commandOpCode,
         get_Download_Command_Info("Download Microcode DMA", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_LEGACY_ALT_STANDBY_IMMEDIATE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (94h)");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Standby Immediate (94h)");
         break;
     case ATA_LEGACY_ALT_IDLE_IMMEDIATE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle Immediate (95h)");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Idle Immediate (95h)");
         break;
     case ATA_LEGACY_ALT_STANDBY:
         get_Idle_Or_Standby_Command_Info("Alternate Standby (96h)", commandOpCode, features, count, lba, device,
@@ -9792,20 +10996,20 @@ static void get_Command_Info(uint8_t  commandOpCode,
                                          commandInfo);
         break;
     case ATA_LEGACY_ALT_CHECK_POWER_MODE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Check Power Mode (98h)");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Check Power Mode (98h)");
         break;
     case ATA_LEGACY_ALT_SLEEP:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (99h)");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Alternate Sleep (99h)");
         break;
     case ATA_ZONE_MANAGEMENT_OUT:
         get_ZAC_Management_Out_Command_Info("ZAC Management Out", commandOpCode, features, count, lba, device,
                                             commandInfo);
         break;
     case ATAPI_COMMAND:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "ATA Packet Command");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "ATA Packet Command");
         break;
     case ATAPI_IDENTIFY:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify Packet Device");
         break;
     case ATA_SMART_CMD:
         get_SMART_Command_Info("SMART", commandOpCode, features, count, lba, device, commandInfo);
@@ -9816,9 +11020,10 @@ static void get_Command_Info(uint8_t  commandOpCode,
     case ATA_SET_SECTOR_CONFIG_EXT:
     {
         uint8_t descriptorIndex = get_8bit_range_uint16(count, 2, 0);
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                            "Set Sector Configuration Ext - Descriptor: %" PRIu8 ", Command Check: %" PRIX16 "h",
-                            descriptorIndex, features);
+        snprintfres =
+            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                "Set Sector Configuration Ext - Descriptor: %" PRIu8 ", Command Check: %" PRIX16 "h",
+                                descriptorIndex, features);
     }
     break;
     case ATA_SANITIZE:
@@ -9834,8 +11039,8 @@ static void get_Command_Info(uint8_t  commandOpCode,
         get_Read_Write_Command_Info("Write Multiple", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_SET_MULTIPLE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Set Multiple - DRQ Data Block Count: %" PRIu8 "",
-                            M_Byte0(count));
+        snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                          "Set Multiple - DRQ Data Block Count: %" PRIu8 "", M_Byte0(count));
         break;
     case ATA_READ_DMA_QUEUED_CMD:
         get_Read_Write_Command_Info("Read DMA Queued", commandOpCode, features, count, lba, device, commandInfo);
@@ -9859,25 +11064,25 @@ static void get_Command_Info(uint8_t  commandOpCode,
         get_Read_Write_Command_Info("Write Multiple FUA Ext", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_GET_MEDIA_STATUS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Media Status");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Get Media Status");
         break;
     case ATA_ACK_MEDIA_CHANGE:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Acknowledge Media Change");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Acknowledge Media Change");
         break;
     case ATA_POST_BOOT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Post Boot");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Post Boot");
         break;
     case ATA_PRE_BOOT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Pre Boot");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Pre Boot");
         break;
     case ATA_DOOR_LOCK_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Lock");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Lock");
         break;
     case ATA_DOOR_UNLOCK_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Unlock");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Door Unlock");
         break;
     case ATA_STANDBY_IMMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby Immediate");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Standby Immediate");
         break;
     case ATA_IDLE_IMMEDIATE_CMD:
         if (M_Byte0(features) == IDLE_IMMEDIATE_UNLOAD_FEATURE)
@@ -9886,17 +11091,18 @@ static void get_Command_Info(uint8_t  commandOpCode,
                 C_CAST(uint32_t, lba& UINT32_C(0x00FFFFFFFF)) | (C_CAST(uint32_t, M_Nibble0(device)) << 24);
             if (IDLE_IMMEDIATE_UNLOAD_LBA == idleImmdLBA)
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate - Unload");
+                error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate - Unload");
             }
             else
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                    "Idle Immediate - Unload. Invalid LBA Signature: %07" PRIu32 "", idleImmdLBA);
+                snprintfres =
+                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                        "Idle Immediate - Unload. Invalid LBA Signature: %07" PRIu32 "", idleImmdLBA);
             }
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
+            error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Idle Immediate");
         }
         break;
     case ATA_STANDBY_CMD:
@@ -9906,19 +11112,19 @@ static void get_Command_Info(uint8_t  commandOpCode,
         get_Idle_Or_Standby_Command_Info("Idle", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_READ_BUF:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer");
         break;
     case ATA_CHECK_POWER_MODE_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Check Power Mode");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Check Power Mode");
         break;
     case ATA_SLEEP_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sleep");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Sleep");
         break;
     case ATA_FLUSH_CACHE_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache");
         break;
     case ATA_WRITE_BUF:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer");
         break;
     case ATA_READ_BUF_DMA:
         // case ATA_LEGACY_WRITE_SAME:
@@ -9932,69 +11138,69 @@ static void get_Command_Info(uint8_t  commandOpCode,
                     uint32_t writeSameLBA = C_CAST(uint32_t, M_Nibble0(device)) << 24;
                     writeSameLBA |= M_DoubleWord0(lba) &
                                     UINT32_C(0x00FFFFFF); // grabbing first 24 bits only since the others should be zero
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Write Same - LBA: %" PRIu32 " Count: %" PRIu8 "", writeSameLBA,
-                                        M_Byte0(count));
+                    snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                      "Write Same - LBA: %" PRIu32 " Count: %" PRIu8 "", writeSameLBA,
+                                                      M_Byte0(count));
                 }
                 else
                 {
                     uint16_t cylinder = M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba));
                     uint8_t  head     = M_Nibble0(device);
                     uint8_t  sector   = M_Byte0(lba);
-                    snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
-                                        "Write Same - Cylinder: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8
-                                        " Count: %" PRIu8 "",
-                                        cylinder, head, sector, M_Byte0(count));
+                    snprintfres       = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                                            "Write Same - Cylinder: %" PRIu16 " Head: %" PRIu8
+                                                            " Sector: %" PRIu8 " Count: %" PRIu8 "",
+                                                            cylinder, head, sector, M_Byte0(count));
                 }
             }
             else
             {
-                snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - All Sectors");
+                error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Same - All Sectors");
             }
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer DMA");
+            error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Buffer DMA");
         }
         break;
     case ATA_FLUSH_CACHE_EXT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache Ext");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Flush Cache Ext");
         break;
     case ATA_WRITE_BUF_DMA:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer DMA");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Write Buffer DMA");
         break;
     case ATA_IDENTIFY:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify");
         break;
     case ATA_MEDIA_EJECT:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Media Eject");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Media Eject");
         break;
     case ATA_IDENTIFY_DMA:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify DMA");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Identify DMA");
         break;
     case ATA_SET_FEATURE:
         get_Set_Features_Command_Info("Set Features", commandOpCode, features, count, lba, device, commandInfo);
         break;
     case ATA_SECURITY_SET_PASS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Set Password");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Set Password");
         break;
     case ATA_SECURITY_UNLOCK_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Unlock");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Unlock");
         break;
     case ATA_SECURITY_ERASE_PREP:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Prepare");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Prepare");
         break;
     case ATA_SECURITY_ERASE_UNIT_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Unit");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Erase Unit");
         break;
     case ATA_SECURITY_FREEZE_LOCK_CMD:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Freeze Lock");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Freeze Lock");
         break;
     case ATA_SECURITY_DISABLE_PASS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Disable Password");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Security Disable Password");
         break;
     case ATA_READ_MAX_ADDRESS:
-        snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address");
+        error = safe_strcpy(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Read Max Address");
         break;
     case ATA_SET_MAX:
         get_Set_Max_Address_Command_Info("Set Max Address", commandOpCode, features, count, lba, device, commandInfo);
@@ -10004,20 +11210,30 @@ static void get_Command_Info(uint8_t  commandOpCode,
             (commandOpCode >= UINT8_C(0xC0) && commandOpCode <= UINT8_C(0xC3)) || commandOpCode == UINT8_C(0xF0) ||
             commandOpCode == UINT8_C(0xF7) || (commandOpCode >= UINT8_C(0xFA) /* && commandOpCode <= UINT8_C(0xFF) */))
         {
-            // NOTE: The above if is far from perfect...there are some commands that were once VU in old standards that
-            // have been defined in newer ones...this is as close as I care to get this. NOTE2: A couple of the op codes
-            // above may be for CFA, or reserved for CFA. Don't care right now since we are unlikely to see a CFA device
-            // with this code.
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Vendor Unique Command %02" PRIx8 "h",
-                                commandOpCode);
+            // NOTE: The above if is far from perfect...there are some commands that were once VU in old standards
+            // that have been defined in newer ones...this is as close as I care to get this. NOTE2: A couple of the
+            // op codes above may be for CFA, or reserved for CFA. Don't care right now since we are unlikely to see
+            // a CFA device with this code.
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH,
+                                              "Vendor Unique Command %02" PRIx8 "h", commandOpCode);
         }
         else
         {
-            snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command %02" PRIx8 "h",
-                                commandOpCode);
+            snprintfres = snprintf_err_handle(commandInfo, ATA_COMMAND_INFO_MAX_LENGTH, "Unknown Command %02" PRIx8 "h",
+                                              commandOpCode);
         }
         break;
     }
+    if (0 != error)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting string in %s\n", __func__);
+        }
 }
 
 #define TIMESTRING_MAX_LEN 30
@@ -10033,8 +11249,15 @@ static void convert_Milliseconds_To_Time_String(uint64_t milliseconds,
     milliseconds %= (UINT64_C(60) * UINT64_C(1000));
     uint8_t seconds = C_CAST(uint8_t, milliseconds / UINT64_C(1000));
     milliseconds %= UINT64_C(1000);
-    snprintf_err_handle(timeString, TIMESTRING_MAX_LEN, "%" PRIu8 "D:%" PRIu8 "H:%" PRIu8 "M:%" PRIu8 "S:%" PRIu64 "MS",
-                        days, hours, minutes, seconds, milliseconds);
+    int snprintfres = 0;
+    snprintfres     = snprintf_err_handle(timeString, TIMESTRING_MAX_LEN,
+                                          "%" PRIu8 "D:%" PRIu8 "H:%" PRIu8 "M:%" PRIu8 "S:%" PRIu64 "MS", days, hours,
+                                          minutes, seconds, milliseconds);
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting time string in %s\n", __func__);
+        }
 }
 
 static bool is_Read_Write_Command(uint8_t commandOpCode)
@@ -10193,13 +11416,15 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
                            M_ATTR_UNUSED uint8_t  transportSpecific,
                            char                   errorInfo[M_NONNULL_ARRAY ATA_ERROR_INFO_MAX_LENGTH + 1])
 {
+    errno_t errcopy     = 0;
+    int     snprintfres = 0;
     // bool isDMAQueued = is_DMA_Queued_Command(commandOpCodeThatCausedError);
     bool isStream    = is_Stream_Command(commandOpCodeThatCausedError);
     bool isReadWrite = is_Read_Write_Command(commandOpCodeThatCausedError);
     bool isRecal     = is_Recalibrate_Command(
         commandOpCodeThatCausedError); // NOTE: This will only catch case 0x10. The function
-                                       // is_Possible_Recalibrate_Command can also be used, but some of those op-codes
-                                       // HAVE been repurposed so it is less accurate!
+                                           // is_Possible_Recalibrate_Command can also be used, but some of those
+                                           // op-codes HAVE been repurposed so it is less accurate!
 
     DECLARE_ZERO_INIT_ARRAY(char, statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH);
     DECLARE_ZERO_INIT_ARRAY(char, errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH);
@@ -10208,91 +11433,184 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
     if (status & ATA_STATUS_BIT_DEVICE_FAULT)
     {
         // device fault occurred as a result of the command!
-        snprintf_err_handle(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Device Fault");
+        if (0 != safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Device Fault"))
+            M_UNLIKELY
+            {
+                perror("Concatenation error for SMART error log status - device fault");
+                return;
+            }
     }
     if (status & ATA_STATUS_BIT_ALIGNMENT_ERROR)
     {
         // device reports an alignment error
         if (safe_strlen(statusMessage) > 0)
         {
-            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
+            if (0 != safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", "))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log status register bits.");
+                    return;
+                }
         }
-        safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Alignment Error");
+        if (0 != safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Alignment Error"))
+            M_UNLIKELY
+            {
+                perror("Concatenation error for SMART error log status - alignment error");
+                return;
+            }
     }
     if (isStream && (status & ATA_STATUS_BIT_DEFERRED_WRITE_ERROR))
     {
         if (safe_strlen(statusMessage) > 0)
         {
-            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
+            if (0 != safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", "))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log status register bits.");
+                    return;
+                }
         }
         // streaming deferred write error
-        safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Deferred Write Error");
+        if (0 != safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Deferred Write Error"))
+            M_UNLIKELY
+            {
+                perror("Concatenation error for SMART error log status - deferred write error");
+                return;
+            }
     }
-
     if (status & ATA_STATUS_BIT_ERROR)
     {
         if (safe_strlen(statusMessage) > 0)
         {
-            safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", ");
+            if (0 != safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, ", "))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log status register bits.");
+                    return;
+                }
         }
-        safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Error Reg Valid");
+        if (0 != safe_strcat(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Error Reg Valid"))
+            M_UNLIKELY
+            {
+                perror("Concatenation error for SMART error log status - error reg valid");
+                return;
+            }
 
         // Parse error field bits
         if (error & ATA_ERROR_BIT_ABORT)
         {
-            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Abort");
+            if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Abort"))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log error register - abort");
+                    return;
+                }
         }
         if (error & ATA_ERROR_BIT_INTERFACE_CRC) // abort bit will also be set to 1 if this is set to 1
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", "))
+                    M_UNLIKELY
+                    {
+                        perror("Concatenation error for SMART error log error register bits.");
+                        return;
+                    }
             }
-            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Interface CRC Error");
+            if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Interface CRC Error"))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log error register - interface CRC error");
+                    return;
+                }
         }
         if (error & ATA_ERROR_BIT_UNCORRECTABLE_DATA)
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", "))
+                    M_UNLIKELY
+                    {
+                        perror("Concatenation error for SMART error log error register bits.");
+                        return;
+                    }
             }
-            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Uncorrectable Data");
+            if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Uncorrectable Data"))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log error register - uncorrectable data");
+                    return;
+                }
         }
         if (error & ATA_ERROR_BIT_ID_NOT_FOUND) // - media access and possibly commands to set max lba
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", "))
+                    M_UNLIKELY
+                    {
+                        perror("Concatenation error for SMART error log error register bits.");
+                        return;
+                    }
             }
-            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "ID Not Found");
+            if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "ID Not Found"))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log error register - ID not found");
+                    return;
+                }
         }
         if (isRecal && (error & ATA_ERROR_BIT_TRACK_ZERO_NOT_FOUND)) // - recalibrate commands only
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", "))
+                    M_UNLIKELY
+                    {
+                        perror("Concatenation error for SMART error log error register bits.");
+                        return;
+                    }
             }
-            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Track Zero Not Found");
+            if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Track Zero Not Found"))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log error register - track zero not found");
+                    return;
+                }
         }
         if (isStream && (error & ATA_ERROR_BIT_COMMAND_COMPLETION_TIME_OUT)) // - streaming
         {
             if (safe_strlen(errorMessage) > 0)
             {
-                safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", ");
+                if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, ", "))
+                    M_UNLIKELY
+                    {
+                        perror("Concatenation error for SMART error log error register bits.");
+                        return;
+                    }
             }
-            safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Command Completion Time Out");
+            if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "Command Completion Time Out"))
+                M_UNLIKELY
+                {
+                    perror("Concatenation error for SMART error log error register - command completion time out");
+                    return;
+                }
         }
         if (safe_strlen(errorMessage) == 0)
         {
             if (is_Possible_Recalibrate_Command(commandOpCodeThatCausedError))
             {
-                snprintf_err_handle(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "(Likely) Track Zero Not Found");
+                if (0 != safe_strcat(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "(Likely) Track Zero Not Found"))
+                    M_UNLIKELY
+                    {
+                        perror("Concatenation error for SMART error log error register - likely track zero not found");
+                        return;
+                    }
             }
             else
             {
-                // unknown error, possibly recalibrate command + track zero not found....
-                snprintf_err_handle(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH,
-                                    "Unknown Error Condition (%02" PRIX8 "h)", error);
+                snprintfres = snprintf_err_handle(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH,
+                                                  "Unknown Error Condition (%02" PRIX8 "h)", error);
             }
         }
     }
@@ -10300,10 +11618,10 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
     {
         if (safe_strlen(statusMessage) == 0)
         {
-            snprintf_err_handle(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH, "Unknown Status Bits Set: %02" PRIX8 "h)",
-                                status);
+            snprintfres = snprintf_err_handle(statusMessage, ATA_STATUS_MESSAGE_MAX_LENGTH,
+                                              "Unknown Status Bits Set: %02" PRIX8 "h)", status);
         }
-        snprintf_err_handle(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "No Error Bits Set");
+        errcopy = safe_strcpy(errorMessage, ATA_ERROR_MESSAGE_MAX_LENGTH, "No Error Bits Set");
     }
     if (isReadWrite)
     {
@@ -10311,35 +11629,45 @@ static void get_Error_Info(uint8_t                commandOpCodeThatCausedError,
         {
             if (is_Ext_Read_Write_Command(commandOpCodeThatCausedError))
             {
-                snprintf_err_handle(errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
-                                    "Status: %s\tError: %s\tLBA: %" PRIu64 "\tDevice: %02" PRIX8 "", statusMessage,
-                                    errorMessage, lba, device);
+                snprintfres = snprintf_err_handle(errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
+                                                  "Status: %s\tError: %s\tLBA: %" PRIu64 "\tDevice: %02" PRIX8 "",
+                                                  statusMessage, errorMessage, lba, device);
             }
             else
             {
                 uint32_t smallLba =
                     C_CAST(uint32_t, (lba & MAX_28_BIT_LBA) | (C_CAST(uint32_t, M_Nibble0(device)) << 24));
-                snprintf_err_handle(errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
-                                    "Status: %s\tError: %s\tLBA: %" PRIu32 "\tDevice: %02" PRIX8 "", statusMessage,
-                                    errorMessage, smallLba, device);
+                snprintfres = snprintf_err_handle(errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
+                                                  "Status: %s\tError: %s\tLBA: %" PRIu32 "\tDevice: %02" PRIX8 "",
+                                                  statusMessage, errorMessage, smallLba, device);
             }
         }
         else // CHS read/write command
         {
             // not handling ext...shouldn't be an issue since CHS and 48bit don't really go together.
-            snprintf_err_handle(errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
-                                "Status: %s\tError: %s\tCyl: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8
-                                "\tDevice: %02" PRIX8 "",
-                                statusMessage, errorMessage, M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba)),
-                                M_Nibble0(device), M_Byte0(lba), device);
+            snprintfres = snprintf_err_handle(
+                errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
+                "Status: %s\tError: %s\tCyl: %" PRIu16 " Head: %" PRIu8 " Sector: %" PRIu8 "\tDevice: %02" PRIX8 "",
+                statusMessage, errorMessage, M_BytesTo2ByteValue(M_Byte2(lba), M_Byte1(lba)), M_Nibble0(device),
+                M_Byte0(lba), device);
         }
     }
     else
     {
-        snprintf_err_handle(errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
-                            "Status: %s\tError: %s\tLBA: %012" PRIX64 "h\tDevice: %02" PRIX8 "", statusMessage,
-                            errorMessage, lba, device);
+        snprintfres = snprintf_err_handle(errorInfo, ATA_ERROR_INFO_MAX_LENGTH,
+                                          "Status: %s\tError: %s\tLBA: %012" PRIX64 "h\tDevice: %02" PRIX8 "",
+                                          statusMessage, errorMessage, lba, device);
     }
+    if (0 != errcopy)
+        M_UNLIKELY
+        {
+            print_error_format("Error copying string in %s\n", __func__);
+        }
+    if (snprintfres < 0)
+        M_UNLIKELY
+        {
+            print_error_format("Error formatting string in %s\n", __func__);
+        }
 }
 
 M_PARAM_RO(1)
@@ -10377,16 +11705,16 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog M_NON
                 //  CD=Command  FT=Feature  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount
                 //  DC=DeviceControl CD FT SC LL LM LH DH DC
                 // Ext Command:
-                //  CD=Command  FT=Feature  FTe=FeatureExt  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt  LMe=LBAMidExt
-                //  LHe=LBAHiExt  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl CD FT FTe SC SCe
-                //  LL LM LH LLe LMe LHe DH DC
+                //  CD=Command  FT=Feature  FTe=FeatureExt  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt
+                //  LMe=LBAMidExt LHe=LBAHiExt  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl
+                //  CD FT FTe SC SCe LL LM LH LLe LMe LHe DH DC
                 // Error:
-                //  ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount  DC=DeviceControl
-                //  ST ER SC LL LM LH DH DC
+                //  ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount
+                //  DC=DeviceControl ST ER SC LL LM LH DH DC
                 // Ext Error:
                 //  ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt  LMe=LBAMidExt  LHe=LBAHiExt
-                //  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl ST ER SC SCe LL LM LH LLe LMe
-                //  LHe DH DC
+                //  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl ST ER SC SCe LL LM LH LLe
+                //  LMe LHe DH DC
                 if (errorLogData->extLog)
                 {
                     print_str("\t-----Command Key-----\n");
@@ -10400,8 +11728,8 @@ void print_ATA_Comprehensive_SMART_Error_Log(ptrComprehensiveSMARTErrorLog M_NON
                     print_str("\tSC - Sector Count\tSCe - Sector Count Ext\n");
                     print_str("\tLL - LBA Low     \tLM - LBA Mid     \tLH - LBA Hi\n");
                     print_str("\tLLe - LBA Low Ext\tLMe - LBA Mid Ext\tLHe - LBA Hi Ext\n");
-                    print_str(
-                        "\tDH - Device/Head \tDC - Device Control\tVU Bytes - Extended Error Info (Vendor Unique)\n");
+                    print_str("\tDH - Device/Head \tDC - Device Control\tVU Bytes - Extended Error Info (Vendor "
+                              "Unique)\n");
                     print_str("\t---------------------\n");
                 }
                 else
@@ -10765,16 +12093,16 @@ void print_ATA_Summary_SMART_Error_Log(ptrSummarySMARTErrorLog M_NONNULL errorLo
                 //  CD=Command  FT=Feature  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount
                 //  DC=DeviceControl CD FT SC LL LM LH DH DC
                 // Ext Command:
-                //  CD=Command  FT=Feature  FTe=FeatureExt  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt  LMe=LBAMidExt
-                //  LHe=LBAHiExt  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl CD FT FTe SC SCe
-                //  LL LM LH LLe LMe LHe DH DC
+                //  CD=Command  FT=Feature  FTe=FeatureExt  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt
+                //  LMe=LBAMidExt LHe=LBAHiExt  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl
+                //  CD FT FTe SC SCe LL LM LH LLe LMe LHe DH DC
                 // Error:
-                //  ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount  DC=DeviceControl
-                //  ST ER SC LL LM LH DH DC
+                //  ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  DH=Device/Head  SC=SectorCount
+                //  DC=DeviceControl ST ER SC LL LM LH DH DC
                 // Ext Error:
                 //  ST=Status  ER=Error  LL=LbaLo  LM=LBAMid  LH=LBAHi  LLe=LbaLoExt  LMe=LBAMidExt  LHe=LBAHiExt
-                //  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl ST ER SC SCe LL LM LH LLe LMe
-                //  LHe DH DC
+                //  DH=Device/Head  SC=SectorCount SCe=SectorCountExt  DC=DeviceControl ST ER SC SCe LL LM LH LLe
+                //  LMe LHe DH DC
                 print_str("\t-----Command Key-----\n");
                 print_str("\tCD - Command     \tFT - Feature\n");
                 print_str("\tSC - Sector Count\tLL - LBA Low\n");
