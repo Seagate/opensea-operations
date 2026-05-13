@@ -1517,6 +1517,14 @@ OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_LBA_Status_Descriptors(const 
     return ret;
 }
 
+//! \def ATA_LBA_STATUS_DESCRIPTOR_SIZE
+//! \brief Number of bytes for each LBA status descriptor returned by the drive.
+#define ATA_LBA_STATUS_DESCRIPTOR_SIZE 16
+
+//! \def ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR
+//! \brief Number of LBA status descriptors that can fit in a sector, accounting for the 16 byte header at the start of the sector.
+#define ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR ((LEGACY_DRIVE_SEC_SIZE / ATA_LBA_STATUS_DESCRIPTOR_SIZE) - 1)
+
 M_PARAM_RO(1)
 M_PARAM_WO(3)
 OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M_NONNULL device,
@@ -1530,23 +1538,29 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M
         return BAD_PARAMETER;
     }
     RESTORE_NONNULL_COMPARE
-    // 31 descriptors fit in a 512B sector
     uint32_t getLbaStatusDataSize =
-        M_STATIC_CAST(uint32_t, numberOfDescriptorsExpected / UINT64_C(31)) * LEGACY_DRIVE_SEC_SIZE;
+        M_STATIC_CAST(uint32_t, numberOfDescriptorsExpected / ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR) * LEGACY_DRIVE_SEC_SIZE;
     // need an extra sector for the remaining descriptors
-    if (numberOfDescriptorsExpected % 31 != 0)
+    if (numberOfDescriptorsExpected % ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR != 0)
     {
         getLbaStatusDataSize += LEGACY_DRIVE_SEC_SIZE;
     }
-    if (getLbaStatusDataSize > LEGACY_DRIVE_SEC_SIZE * UINT16_MAX)
+    if (getLbaStatusDataSize > M_STATIC_CAST(uint32_t, LEGACY_DRIVE_SEC_SIZE) * M_STATIC_CAST(uint32_t, UINT16_MAX))
     {
         printf("WARNING: Drive expected %" PRIu64 " elements which exceed max page count.\n",
                numberOfDescriptorsExpected);
-        getLbaStatusDataSize = LEGACY_DRIVE_SEC_SIZE * UINT16_MAX;
+        getLbaStatusDataSize = M_STATIC_CAST(uint32_t, LEGACY_DRIVE_SEC_SIZE) * M_STATIC_CAST(uint32_t, UINT16_MAX);
+    }
+    errno = 0;
+    size_t descriptorBufferSize = uint32_to_sizet(getLbaStatusDataSize) + uint16_to_sizet(LEGACY_DRIVE_SEC_SIZE);
+    if (errno == ERANGE)
+    {
+        // not enough space to read this with size_t limitation of memory allocation.
+        return MEMORY_FAILURE;
     }
     // Note we read not only descriptors but also page 0 which is header
     uint8_t* descriptorBuffer =
-        C_CAST(uint8_t*, safe_calloc_aligned(getLbaStatusDataSize + LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t),
+        C_CAST(uint8_t*, safe_calloc_aligned(descriptorBufferSize, sizeof(uint8_t),
                                              get_Device_IO_Minimum_Alignment(device)));
     if (descriptorBuffer != M_NULLPTR)
     {
@@ -1558,12 +1572,12 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M
             if (ret == SUCCESS)
             {
                 // parse out the descriptors
-                for (uint16_t page = 1; page < 1 + (getLbaStatusDataSize / LEGACY_DRIVE_SEC_SIZE); ++page)
+                for (uint32_t page = 1; page < 1U + (getLbaStatusDataSize / LEGACY_DRIVE_SEC_SIZE); ++page)
                 {
-                    for (uint16_t pageOffset = 16; pageOffset < LEGACY_DRIVE_SEC_SIZE;
-                         pageOffset += 16 /*bytes per descriptor*/)
+                    for (uint16_t pageOffset = ATA_LBA_STATUS_DESCRIPTOR_SIZE; pageOffset < LEGACY_DRIVE_SEC_SIZE;
+                         pageOffset += ATA_LBA_STATUS_DESCRIPTOR_SIZE)
                     {
-                        uint64_t bufferOffset = (((uint64_t)page * LEGACY_DRIVE_SEC_SIZE) + pageOffset);
+                        uint64_t bufferOffset = ((M_STATIC_CAST(uint64_t, page) * M_STATIC_CAST(uint64_t, LEGACY_DRIVE_SEC_SIZE)) + M_STATIC_CAST(uint64_t, pageOffset));
                         if (numberOfDescriptorsReturned < numberOfDescriptorsExpected)
                         {
                             descriptorList[numberOfDescriptorsReturned].startLba = M_BytesTo8ByteValue(
