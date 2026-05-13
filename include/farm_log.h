@@ -133,6 +133,12 @@ extern "C"
     M_STATIC_ASSERT(sizeof(farmHeader) == FARM_PAGE_LEN, farm_header_stuct_is_not_16kib);
 
 #define FARM_MAX_HEADS                      24
+
+// This exists here since this macro gets cast to uint8 in many other places.
+// If this limit is increased above 255 (unlikely), then a lot of other code will need type changes to
+// work properly.
+M_STATIC_ASSERT(FARM_MAX_HEADS < UINT8_MAX, farm_max_heads_exceeds_uint8_t_limit);
+
 #define FARM_GET_PHYS_ELEM_STAT_BY_HEAD_MAX FARM_MAX_HEADS
 
 #define FARM_DRIVE_RECORDING_CMR            BIT1
