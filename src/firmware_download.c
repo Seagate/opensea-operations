@@ -1067,7 +1067,7 @@ static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDe
             // get the full length, then reallocate and reread
             reportAllOPsLength =
                 M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]);
-            if (reportAllOPsLength > SCSI_REPORT_ALL_OPS_MAX_LENGTH)// Check if reporting something invalid/wrong
+            if (reportAllOPsLength > SCSI_REPORT_ALL_OPS_MAX_LENGTH) // Check if reporting something invalid/wrong
             {
                 ret = MEMORY_FAILURE;
                 safe_free_aligned(&reportAllOPs);

@@ -251,8 +251,9 @@ eReturnValues nvme_Deallocate_Range(const tDevice* device, uint64_t startLBA, ui
         uint32_t contextAttributes =
             0; // this is here in case we want to enable setting these bits some time later. - TJE
 #define NVME_DEALLOCATE_BUFFER_SIZE UINT32_C(4096)
-        DECLARE_ZERO_INIT_ARRAY(uint8_t, deallocate,
-                                NVME_DEALLOCATE_BUFFER_SIZE); // This will hold the maximum number of ranges/descriptors we can.
+        DECLARE_ZERO_INIT_ARRAY(
+            uint8_t, deallocate,
+            NVME_DEALLOCATE_BUFFER_SIZE); // This will hold the maximum number of ranges/descriptors we can.
         uint32_t deallocateRange = C_CAST(uint32_t, M_Min(M_Min(range, UINT32_MAX), maxLBACount));
         uint64_t finalLBA        = startLBA + range;
         uint32_t descriptorCount = UINT32_C(0);
@@ -263,7 +264,8 @@ eReturnValues nvme_Deallocate_Range(const tDevice* device, uint64_t startLBA, ui
             os_Unmount_File_Systems_On_Device(device);
         }
         for (uint64_t deallocateLBA = startLBA, offset = 0;
-             deallocateLBA < finalLBA && descriptorCount < maxTrimOrUnmapBlockDescriptors && offset < NVME_DEALLOCATE_BUFFER_SIZE;
+             deallocateLBA < finalLBA && descriptorCount < maxTrimOrUnmapBlockDescriptors &&
+             offset < NVME_DEALLOCATE_BUFFER_SIZE;
              deallocateLBA += deallocateRange, offset += 16)
         {
             // context attributes

@@ -517,7 +517,8 @@ eReturnValues get_Format_Status(const tDevice* device, ptrFormatStatus formatSta
     //   + SCSI_LOG_PARAMETER_HEADER_LENGTH + 4 (4+4) for param 4
     //   = 307 bytes (conservative; SBC-4 spec maximum is 60 bytes)
     uint8_t* formatStatusPage =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH, sizeof(uint8_t),
+                                                         device->os_info.minimumAlignment));
     if (formatStatusPage == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -537,7 +538,9 @@ eReturnValues get_Format_Status(const tDevice* device, ptrFormatStatus formatSta
             bool     lastFormatUnitAllFs = false, grownDefectsDuringCertificationAllFs = false,
                  totalBlockReassignsDuringFormatAllFs = false, totalNewBlocksReassignedAllFs = false,
                  powerOnMinutesSinceLastFormatAllFs = false;
-            for (; offset < (C_CAST(uint32_t, pageLength) + LOG_PAGE_HEADER_LENGTH) && offset < SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH; offset += C_CAST(uint32_t, parameterLength) + SCSI_LOG_PARAMETER_HEADER_LENGTH)
+            for (; offset < (C_CAST(uint32_t, pageLength) + LOG_PAGE_HEADER_LENGTH) &&
+                   offset < SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH;
+                 offset += C_CAST(uint32_t, parameterLength) + SCSI_LOG_PARAMETER_HEADER_LENGTH)
             {
                 uint16_t parameterCode =
                     M_BytesTo2ByteValue(formatStatusPage[offset + 0], formatStatusPage[offset + 1]);
@@ -1324,7 +1327,7 @@ static eReturnValues nvme_Get_Supported_Formats(const tDevice* device, ptrSuppor
         }
     }
 
-    uint8_t  flbas  = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
+    uint8_t flbas = get_bit_range_uint8(device->drive_info.IdentifyData.nvme.ns.flbas, 3, 0);
     if (NVME_0_BASED(device->drive_info.IdentifyData.nvme.ns.nlbaf) > 16)
     {
         // need to append 2 more bits to interpret this correctly since number of formats > 16
@@ -1332,14 +1335,16 @@ static eReturnValues nvme_Get_Supported_Formats(const tDevice* device, ptrSuppor
     }
 
     // This should not happen or trigger on a real valid device, but adding this to assist in debugging too.
-    assert(flbas < formats->numberOfSectorSizes && "Current LBA format out of range for number of device reported formats. Drive bug or malicious device detected.");
+    assert(flbas < formats->numberOfSectorSizes && "Current LBA format out of range for number of device reported "
+                                                   "formats. Drive bug or malicious device detected.");
 
     // Max formats in NVMe is 64 which is the same as this value, so it *should never* go out of bounds.
-    if (flbas < MAX_SECTOR_SIZES_ARRAY && flbas < formats->numberOfSectorSizes) M_LIKELY
-    {
-        // set current format
-        formats->sectorSizes[flbas].currentFormat = true;
-    }
+    if (flbas < MAX_SECTOR_SIZES_ARRAY && flbas < formats->numberOfSectorSizes)
+        M_LIKELY
+        {
+            // set current format
+            formats->sectorSizes[flbas].currentFormat = true;
+        }
     return SUCCESS;
 }
 
@@ -1681,7 +1686,7 @@ static bool is_ATA_Zero_Ext_Supported_For_MBR_Erase(const tDevice* device)
 
 enum
 {
-    MAX_LBA_RANGE_FOR_MBR_ERASE = 1,
+    MAX_LBA_RANGE_FOR_MBR_ERASE             = 1,
     MAX_LBA_RANGE_FOR_MBR_ERASE_WITH_BRIDGE = 2
 };
 
@@ -1735,9 +1740,8 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* device)
         }
     }
     // fallback to passthrough write
-    uint8_t* eraseMBR =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange, sizeof(uint8_t),
-                                                            device->os_info.minimumAlignment));
+    uint8_t* eraseMBR = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange, sizeof(uint8_t), device->os_info.minimumAlignment));
     ret = ata_Write(device, 0, false, eraseMBR, eraseBlockSize * maxLBARange);
     if (ret == SUCCESS)
     {
@@ -1775,14 +1779,12 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* device)
             }
         }
     }
-    uint8_t* eraseMBR =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange, sizeof(uint8_t),
-                                                            device->os_info.minimumAlignment));
+    uint8_t* eraseMBR = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(eraseBlockSize * maxLBARange, sizeof(uint8_t), device->os_info.minimumAlignment));
     ret = nvme_Write(device, 0, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
     if (ret == SUCCESS)
     {
-        ret =
-            nvme_Write(device, devMaxLBA, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
+        ret = nvme_Write(device, devMaxLBA, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
     }
     safe_free_aligned(&eraseMBR);
     return ret;
@@ -1809,12 +1811,11 @@ static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* device)
     // fallback to passthrough write
     uint8_t* eraseMBR =
         M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(device->drive_info.deviceBlockSize, sizeof(uint8_t),
-                                                            device->os_info.minimumAlignment));
+                                                         device->os_info.minimumAlignment));
     ret = scsi_Write(device, 0, false, eraseMBR, device->drive_info.deviceBlockSize);
     if (ret == SUCCESS)
     {
-        ret = scsi_Write(device, device->drive_info.deviceMaxLba, false, eraseMBR,
-                            device->drive_info.deviceBlockSize);
+        ret = scsi_Write(device, device->drive_info.deviceMaxLba, false, eraseMBR, device->drive_info.deviceBlockSize);
     }
     safe_free_aligned(&eraseMBR);
     M_CONST_CAST(tDevice*, device)->drive_info.drive_type = temp; // restore original drive type

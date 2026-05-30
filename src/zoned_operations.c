@@ -129,8 +129,9 @@ eReturnValues get_Zone_Descriptors(const tDevice*        device,
             return ret;
         }
         // fill in the returned zones.
-        for (uint32_t byteIter = ZONE_DESCRIPTOR_LENGTH; zoneIter < numberOfZoneDescriptors && byteIter <= localListLength &&
-                                               byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount);
+        for (uint32_t byteIter = ZONE_DESCRIPTOR_LENGTH;
+             zoneIter < numberOfZoneDescriptors && byteIter <= localListLength &&
+             byteIter < (LEGACY_DRIVE_SEC_SIZE * sectorCount);
              ++zoneIter, byteIter += ZONE_DESCRIPTOR_LENGTH)
         {
             zoneDescriptors[zoneIter].descriptorValid = true;

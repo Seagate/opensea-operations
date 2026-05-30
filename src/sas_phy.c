@@ -29,8 +29,10 @@
 bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* device)
 {
     DECLARE_ZERO_INIT_ARRAY(uint8_t, supportedDiagnosticPages, SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH);
-    if (SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH, supportedDiagnosticPages, SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH, 15) &&
-        SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x00, SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH, supportedDiagnosticPages, 15))
+    if (SUCCESS == scsi_Send_Diagnostic(device, 0, 1, 0, 0, 0, SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH,
+                                        supportedDiagnosticPages, SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH, 15) &&
+        SUCCESS == scsi_Receive_Diagnostic_Results(device, true, 0x00, SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH,
+                                                   supportedDiagnosticPages, 15))
     {
         // check that page 3F is supported.
         uint16_t pageLength = M_BytesTo2ByteValue(supportedDiagnosticPages[2], supportedDiagnosticPages[3]);

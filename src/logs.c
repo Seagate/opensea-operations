@@ -192,15 +192,17 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
 {
     eReturnValues ret = NOT_SUPPORTED; // assume the log is not supported
     uint8_t*      logBuffer =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH, sizeof(uint8_t), device->os_info.minimumAlignment));
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH, sizeof(uint8_t),
+                                                         device->os_info.minimumAlignment));
     if (logBuffer == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
     *logFileSize = 0;
     // first check that the logpage is supported
-    if (logSubPage != 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES,
-                                                         LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF, 0, logBuffer, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH))
+    if (logSubPage != 0 &&
+        SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES, 0xFF,
+                                      0, logBuffer, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH))
     {
         // validate the page code and subpage code
         uint8_t pageCode    = get_bit_range_uint8(logBuffer[0], 5, 0);
@@ -209,7 +211,8 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
         if (spf && pageCode == LP_SUPPORTED_LOG_PAGES_AND_SUBPAGES && subpageCode == 0xFF)
         {
             uint32_t pageSupportIter = UINT32_C(0);
-            uint32_t pageLen = M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+            uint32_t pageLen         = M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) +
+                               SCSI_LOG_PARAMETER_HEADER_LENGTH;
             // Cap one below the buffer end: each iteration reads a 2-byte (page,subpage) pair,
             // so the last valid starting index is buffer_size - 2.
             pageLen = M_Min(pageLen, M_STATIC_CAST(uint32_t, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH) - UINT32_C(1));
@@ -232,11 +235,13 @@ eReturnValues get_SCSI_Log_Size(const tDevice* device, uint8_t logPage, uint8_t 
             *logFileSize = 0;
         }
     }
-    else if (logSubPage == 0 && SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES,
-                                                              LP_SUPPORTED_LOG_PAGES, 0, 0, logBuffer, SCSI_LOG_SUPPORTED_PAGES_MAX_LENGTH))
+    else if (logSubPage == 0 &&
+             SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_SUPPORTED_LOG_PAGES, 0, 0,
+                                           logBuffer, SCSI_LOG_SUPPORTED_PAGES_MAX_LENGTH))
     {
         uint32_t pageSupportIter = UINT32_C(0);
-        uint32_t pageLen         = M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
+        uint32_t pageLen =
+            M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + SCSI_LOG_PARAMETER_HEADER_LENGTH;
         pageLen = M_Min(pageLen, M_STATIC_CAST(uint32_t, SCSI_LOG_SUPPORTED_PAGES_MAX_LENGTH));
         // search the buffer for the page we want
         for (pageSupportIter = SCSI_LOG_PARAMETER_HEADER_LENGTH; pageSupportIter < pageLen; ++pageSupportIter)
@@ -2053,8 +2058,9 @@ eReturnValues get_SCSI_Log(const tDevice* device,
         if (scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, logAddress, subpage, 0, logBuffer,
                                C_CAST(uint16_t, pageLen)) == SUCCESS)
         {
-            uint32_t returnedPageLength = M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + LOG_PAGE_HEADER_LENGTH;
-            ret                         = SUCCESS;
+            uint32_t returnedPageLength =
+                M_STATIC_CAST(uint32_t, M_BytesTo2ByteValue(logBuffer[2], logBuffer[3])) + LOG_PAGE_HEADER_LENGTH;
+            ret = SUCCESS;
             if (!toBuffer && logName && fileExtension) // Because you can also get a log file & get it in buffer.
             {
                 if (SUCCESS == create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, NAMING_SERIAL_NUMBER_DATE_TIME,

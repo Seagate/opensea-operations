@@ -702,7 +702,7 @@ static eReturnValues fill_GPT_Data(const tDevice* device,
                                                      sizeOfPartitionEntry)]; // for backup this will point to the
                                                                              // beginning of the partition array
                 }
-                gpt->crc32HeaderValid = true;
+                gpt->crc32HeaderValid                       = true;
                 size_t   gptStructOverhead                  = sizeof(gptData) - sizeof(gptPartitionEntry);
                 uint32_t gptStructPartitionEntriesAvailable = UINT32_C(0);
                 if (sizeOfGPTDataStruct >= gptStructOverhead)
@@ -909,8 +909,7 @@ ptrPartitionInfo get_Partition_Info(const tDevice* device)
                     size_t gptStructSize = uint64_to_sizet(gptTotalBytes);
                     if (M_STATIC_CAST(uint64_t, gptStructSize) == gptTotalBytes)
                     {
-                        partitionData->gptTable =
-                            M_REINTERPRET_CAST(ptrGPTData, safe_calloc(1, gptStructSize));
+                        partitionData->gptTable = M_REINTERPRET_CAST(ptrGPTData, safe_calloc(1, gptStructSize));
                         if (partitionData->gptTable)
                         {
                             partitionData->partitionDataType = PARTITION_TABLE_GPT;
