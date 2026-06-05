@@ -1049,13 +1049,14 @@ static eReturnValues get_SCSI_Ext_Inq_Supported_FWDL_Modes(const tDevice* device
     return ret;
 }
 
+#define REPORT_ALL_OPERATIONS_CODES_HEADER_LENGTH UINT32_C(4)
 static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDevice*      device,
                                                                        ptrSupportedDLModes supportedModes)
 {
     eReturnValues ret = SUCCESS;
     // else try requesting all supported OPs and parse that information??? It could be report all is
     // supported, but other modes are not
-    uint32_t reportAllOPsLength = UINT32_C(4);
+    uint32_t reportAllOPsLength = REPORT_ALL_OPERATIONS_CODES_HEADER_LENGTH;
     uint8_t* reportAllOPs       = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
     if (reportAllOPs != M_NULLPTR)
@@ -1065,7 +1066,14 @@ static eReturnValues get_SCSI_Report_All_Op_Codes_Supported_FWDL_Modes(const tDe
         {
             // get the full length, then reallocate and reread
             reportAllOPsLength =
-                M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]) + 4;
+                M_BytesTo4ByteValue(reportAllOPs[0], reportAllOPs[1], reportAllOPs[2], reportAllOPs[3]);
+            if (reportAllOPsLength > SCSI_REPORT_ALL_OPS_MAX_LENGTH) // Check if reporting something invalid/wrong
+            {
+                ret = MEMORY_FAILURE;
+                safe_free_aligned(&reportAllOPs);
+                return ret;
+            }
+            reportAllOPsLength += REPORT_ALL_OPERATIONS_CODES_HEADER_LENGTH;
             safe_free_aligned(&reportAllOPs);
             reportAllOPs = M_REINTERPRET_CAST(
                 uint8_t*, safe_calloc_aligned(reportAllOPsLength, sizeof(uint8_t), device->os_info.minimumAlignment));
