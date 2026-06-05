@@ -532,21 +532,21 @@ OPENSEA_OPERATIONS_API eReturnValues get_Format_Status(const tDevice* M_NONNULL 
         return BAD_PARAMETER;
     }
 
-    // Need to allocate enough memory to read all parameters (0 - 5)
-    // 4 for header
-    // 4 + 255 for param 0
-    // 4 + 8 for param 1
-    // 4 + 8 for param 2
-    // 4 + 8 for param 3
-    // 4 + 4 for param 4
-    uint8_t* formatStatusPage = M_REINTERPRET_CAST(
-        uint8_t*, safe_calloc_aligned(307, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
+    // Need to allocate enough memory to read all parameters (0 - 4)
+    // SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH = LOG_PAGE_HEADER_LENGTH (4)
+    //   + SCSI_LOG_PARAMETER_HEADER_LENGTH + SCSI_LOG_PARAMETER_MAX_DATA_LENGTH (4+255) for param 0
+    //   + SCSI_LOG_PARAMETER_HEADER_LENGTH + 8 (4+8) for params 1, 2, 3
+    //   + SCSI_LOG_PARAMETER_HEADER_LENGTH + 4 (4+4) for param 4
+    //   = 307 bytes (conservative; SBC-4 spec maximum is 60 bytes)
+    uint8_t* formatStatusPage =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH, sizeof(uint8_t),
+                                                         get_Device_IO_Minimum_Alignment(device)));
     if (formatStatusPage == M_NULLPTR)
     {
         return MEMORY_FAILURE;
     }
     if (SUCCESS == scsi_Log_Sense_Cmd(device, false, LPC_CUMULATIVE_VALUES, LP_FORMAT_STATUS_LOG_PAGE, 0, 0,
-                                      formatStatusPage, 307))
+                                      formatStatusPage, SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH))
     {
         // NOTE: Parameters will be all F's when the data is not available or new or the last format failed
         if (get_bit_range_uint8(formatStatusPage[0], 5, 0) == LP_FORMAT_STATUS_LOG_PAGE &&
@@ -555,12 +555,14 @@ OPENSEA_OPERATIONS_API eReturnValues get_Format_Status(const tDevice* M_NONNULL 
         {
             // got the data, so let's loop through it.
             uint16_t pageLength          = M_BytesTo2ByteValue(formatStatusPage[2], formatStatusPage[3]);
-            uint32_t offset              = UINT32_C(4); // start here to begin looking at the parameters
+            uint32_t offset              = LOG_PAGE_HEADER_LENGTH; // start here to begin looking at the parameters
             uint8_t  parameterLength     = UINT8_C(0);
             bool     lastFormatUnitAllFs = false, grownDefectsDuringCertificationAllFs = false,
                  totalBlockReassignsDuringFormatAllFs = false, totalNewBlocksReassignedAllFs = false,
                  powerOnMinutesSinceLastFormatAllFs = false;
-            for (; offset < (pageLength + 4U) && offset < 307U; offset += parameterLength + 4)
+            for (; offset < (C_CAST(uint32_t, pageLength) + LOG_PAGE_HEADER_LENGTH) &&
+                   offset < SCSI_FORMAT_STATUS_LOG_PAGE_MAX_LENGTH;
+                 offset += C_CAST(uint32_t, parameterLength) + SCSI_LOG_PARAMETER_HEADER_LENGTH)
             {
                 uint16_t parameterCode =
                     M_BytesTo2ByteValue(formatStatusPage[offset + 0], formatStatusPage[offset + 1]);
@@ -575,15 +577,9 @@ OPENSEA_OPERATIONS_API eReturnValues get_Format_Status(const tDevice* M_NONNULL 
                 case 0: // format data out
                     formatStatus->lastFormatParametersValid = true;
                     {
-                        uint8_t* allFs =
-                            M_REINTERPRET_CAST(uint8_t*, safe_calloc(formatStatusPage[offset + 3], sizeof(uint8_t*)));
-                        if (allFs != M_NULLPTR)
+                        if (is_Buffer_All_ByteValue(&formatStatusPage[offset + 4], parameterLength, UINT8_C(0xFF)))
                         {
-                            if (memcmp(allFs, &formatStatusPage[offset + 4], formatStatusPage[offset + 3]) == 0)
-                            {
-                                lastFormatUnitAllFs = true;
-                            }
-                            safe_free(&allFs);
+                            lastFormatUnitAllFs = true;
                         }
                         else
                         {
@@ -1781,6 +1777,12 @@ static bool is_ATA_Zero_Ext_Supported_For_MBR_Erase(const tDevice* M_NONNULL dev
     return false;
 }
 
+enum
+{
+    MAX_LBA_RANGE_FOR_MBR_ERASE             = 1,
+    MAX_LBA_RANGE_FOR_MBR_ERASE_WITH_BRIDGE = 2
+};
+
 // Specific handling for ATA drives. Preference is to use something like write-same or zeroes ext to bypass any
 // out-of-sync block size issues with sending any write commands.
 // The benefit to these other commands is that they let the drive write based on it's block size rather than
@@ -1793,13 +1795,13 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
     eReturnValues ret            = SUCCESS;
     uint32_t      eraseBlockSize = get_Device_BlockSize(device);
     uint64_t      devMaxLBA      = return_Device_MaxLba(device);
-    uint16_t      maxLBARange    = UINT16_C(1);
+    uint16_t      maxLBARange    = MAX_LBA_RANGE_FOR_MBR_ERASE;
     if (device->drive_info.bridge_info.isValid)
     {
         if (return_Device_Child_MaxLba(device) > devMaxLBA)
         {
             devMaxLBA   = return_Device_Child_MaxLba(device) - UINT64_C(1);
-            maxLBARange = UINT16_C(2);
+            maxLBARange = MAX_LBA_RANGE_FOR_MBR_ERASE_WITH_BRIDGE;
         }
         eraseBlockSize = get_Device_Child_BlockSize(device);
     }
@@ -1810,9 +1812,13 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
         if (ret == SUCCESS)
         {
             ret = ata_Zeros_Ext(device, maxLBARange, devMaxLBA, false);
+            if (ret == SUCCESS)
+            {
+                return SUCCESS;
+            }
         }
     }
-    if (ret != SUCCESS && is_Write_Same_Supported(device, 0, maxLBARange, M_NULLPTR))
+    if (is_Write_Same_Supported(device, 0, maxLBARange, M_NULLPTR))
     {
         DECLARE_ZERO_INIT_ARRAY(uint8_t, zeroPattern, 4);
         ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, 0, maxLBARange, zeroPattern,
@@ -1821,32 +1827,28 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
         {
             ret = send_ATA_SCT_Write_Same(device, WRITE_SAME_FOREGROUND_USE_PATTERN_FIELD, devMaxLBA, maxLBARange,
                                           zeroPattern, SIZE_OF_STACK_ARRAY(zeroPattern));
+            if (ret == SUCCESS)
+            {
+                return SUCCESS;
+            }
         }
     }
-    if (ret != SUCCESS)
+    // fallback to passthrough write
+    errno = 0;
+    size_t eraseSizeMem = uint32_to_sizet(eraseBlockSize) * uint32_to_sizet(maxLBARange);
+    if (errno == ERANGE)
     {
-        errno = 0;
-        size_t eraseSizeMem = uint32_to_sizet(eraseBlockSize) * uint32_to_sizet(maxLBARange);
-        if (errno == ERANGE)
-        {
-            perror("Error, buffer size to erase is too large to fit in memory.\n");
-            return MEMORY_FAILURE;
-        }
-        // fallback to passthrough write
-        uint8_t* eraseMBR =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t),
-                                                             get_Device_IO_Minimum_Alignment(device)));
-        if (eraseMBR == M_NULLPTR)
-        {
-            return MEMORY_FAILURE;
-        }
-        ret = ata_Write(device, 0, false, eraseMBR, eraseBlockSize * maxLBARange);
-        if (ret == SUCCESS)
-        {
-            ret = ata_Write(device, devMaxLBA, false, eraseMBR, eraseBlockSize * maxLBARange);
-        }
-        safe_free_aligned(&eraseMBR);
+        perror("Error, buffer size to erase is too large to fit in memory.\n");
+        return MEMORY_FAILURE;
     }
+    uint8_t* eraseMBR = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
+    ret = ata_Write(device, 0, false, eraseMBR, eraseBlockSize * maxLBARange);
+    if (ret == SUCCESS)
+    {
+        ret = ata_Write(device, devMaxLBA, false, eraseMBR, eraseBlockSize * maxLBARange);
+    }
+    safe_free_aligned(&eraseMBR);
     return ret;
 }
 
@@ -1856,13 +1858,13 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
     eReturnValues ret            = SUCCESS;
     uint32_t      eraseBlockSize = get_Device_BlockSize(device);
     uint64_t      devMaxLBA      = return_Device_MaxLba(device);
-    uint16_t      maxLBARange    = UINT16_C(1);
+    uint16_t      maxLBARange    = MAX_LBA_RANGE_FOR_MBR_ERASE;
     if (device->drive_info.bridge_info.isValid)
     {
         if (return_Device_Child_MaxLba(device) > devMaxLBA)
         {
             devMaxLBA   = return_Device_Child_MaxLba(device) - UINT64_C(1);
-            maxLBARange = UINT16_C(2);
+            maxLBARange = MAX_LBA_RANGE_FOR_MBR_ERASE_WITH_BRIDGE;
         }
         eraseBlockSize = get_Device_Child_BlockSize(device);
     }
@@ -1873,34 +1875,33 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
         if (ret == SUCCESS)
         {
             ret = nvme_Write_Zeroes(device, devMaxLBA, maxLBARange, false, false, false);
+            if (ret == SUCCESS)
+            {
+                return ret;
+            }
         }
     }
-
-    if (ret != SUCCESS)
+    errno = 0;
+    size_t eraseSizeMem = uint32_to_sizet(eraseBlockSize) * uint32_to_sizet(maxLBARange);
+    if (errno == ERANGE)
     {
-        errno = 0;
-        size_t eraseSizeMem = uint32_to_sizet(eraseBlockSize) * uint32_to_sizet(maxLBARange);
-        if (errno == ERANGE)
-        {
-            perror("Error, buffer size to erase is too large to fit in memory.\n");
-            return MEMORY_FAILURE;
-        }
-        // fallback to passthrough write
-        uint8_t* eraseMBR =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t),
-                                                             get_Device_IO_Minimum_Alignment(device)));
-        if (eraseMBR == M_NULLPTR)
-        {
-            return MEMORY_FAILURE;
-        }
-        ret = nvme_Write(device, 0, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
-        if (ret == SUCCESS)
-        {
-            ret =
-                nvme_Write(device, devMaxLBA, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
-        }
-        safe_free_aligned(&eraseMBR);
+        perror("Error, buffer size to erase is too large to fit in memory.\n");
+        return MEMORY_FAILURE;
     }
+    // fallback to passthrough write
+    uint8_t* eraseMBR =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t),
+                                                         get_Device_IO_Minimum_Alignment(device)));
+    if (eraseMBR == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    ret = nvme_Write(device, 0, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
+    if (ret == SUCCESS)
+    {
+        ret = nvme_Write(device, devMaxLBA, maxLBARange, false, false, 0, 0, eraseMBR, eraseBlockSize * maxLBARange);
+    }
+    safe_free_aligned(&eraseMBR);
     return ret;
 }
 
@@ -1919,32 +1920,34 @@ static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
     if (ret == SUCCESS)
     {
         ret = write_Same(device, devMaxLBA, 1, M_NULLPTR);
-    }
-    if (ret != SUCCESS) // purposely not an else in case one or both write-same's fail
-    {
-        // fallback to passthrough write
-        errno = 0;
-        size_t eraseSizeMem = uint32_to_sizet(devBlockSize);
-        if (errno == ERANGE)
-        {
-            perror("Error, buffer size to erase is too large to fit in memory.\n");
-            return MEMORY_FAILURE;
-        }
-        // fallback to passthrough write
-        uint8_t* eraseMBR =
-            M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t),
-                                                             get_Device_IO_Minimum_Alignment(device)));
-        if (eraseMBR == M_NULLPTR)
-        {
-            return MEMORY_FAILURE;
-        }
-        ret = scsi_Write(device, 0, false, eraseMBR, devBlockSize);
         if (ret == SUCCESS)
         {
-            ret = scsi_Write(device, devMaxLBA, false, eraseMBR, devBlockSize);
+            M_CONST_CAST(tDevice*, device)->drive_info.drive_type = temp; // restore original drive type
+            return SUCCESS;
         }
-        safe_free_aligned(&eraseMBR);
     }
+    // fallback to passthrough write
+    errno = 0;
+    size_t eraseSizeMem = uint32_to_sizet(devBlockSize);
+    if (errno == ERANGE)
+    {
+        perror("Error, buffer size to erase is too large to fit in memory.\n");
+        return MEMORY_FAILURE;
+    }
+    // fallback to passthrough write
+    uint8_t* eraseMBR =
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t),
+                                                         get_Device_IO_Minimum_Alignment(device)));
+    if (eraseMBR == M_NULLPTR)
+    {
+        return MEMORY_FAILURE;
+    }
+    ret = scsi_Write(device, 0, false, eraseMBR, devBlockSize);
+    if (ret == SUCCESS)
+    {
+        ret = scsi_Write(device, devMaxLBA, false, eraseMBR, devBlockSize);
+    }
+    safe_free_aligned(&eraseMBR);
     M_CONST_CAST(tDevice*, device)->drive_info.drive_type = temp; // restore original drive type
     return ret;
 }

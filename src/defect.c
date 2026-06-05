@@ -357,6 +357,21 @@ static eReturnValues fill_Defect_List(ptrSCSIDefectList M_NONNULL ptrDefects,
     return ret;
 }
 
+// Checks that sizeof(scsiDefectList) + defectAlloc will not wrap size_t.
+// Returns SUCCESS if the addition is safe, MEMORY_FAILURE if it would overflow.
+// uint64_to_sizet() saturates to SIZE_MAX on 32-bit platforms when the true
+// product exceeds SIZE_MAX, so without this guard the wrap-around sum would
+// produce a tiny allocation that bypasses the per-element bounds checks in
+// fill_Defect_List.
+static M_INLINE eReturnValues check_Defect_List_Allocation(defectListSizeInfo sizeInfo)
+{
+    if (sizeInfo.defectAlloc > (SIZE_MAX - sizeof(scsiDefectList)))
+    {
+        return MEMORY_FAILURE;
+    }
+    return SUCCESS;
+}
+
 // one 10 or 12B read of the full list
 M_PARAM_RW(4)
 M_PARAM_RW(6)
@@ -394,6 +409,11 @@ static eReturnValues get_SCSI_Defects_Single_Command(scsiDefectDataIn           
         ret                      = get_SCSI_Defect_Data(defectRequest, &defectResult);
         if (SUCCESS == ret)
         {
+            if (check_Defect_List_Allocation(sizeInfo) != SUCCESS)
+            {
+                safe_free_aligned(&defectData);
+                return MEMORY_FAILURE;
+            }
             // now allocate our list to return to the caller!
             size_t defectListAllocSize = sizeof(scsiDefectList) + sizeInfo.defectAlloc;
             if (defects != M_NULLPTR)
@@ -482,9 +502,14 @@ static eReturnValues get_SCSI_Defects_With_Offsets(scsiDefectDataIn             
                                                          get_Device_IO_Minimum_Alignment(defectRequest.device)));
     if (defectData != M_NULLPTR)
     {
-        ptrSCSIDefectList ptrDefects          = M_NULLPTR;
-        size_t            defectListAllocSize = sizeof(scsiDefectList) + sizeInfo.defectAlloc;
-        defectRequest.defectData              = defectData;
+        ptrSCSIDefectList ptrDefects = M_NULLPTR;
+        if (check_Defect_List_Allocation(sizeInfo) != SUCCESS)
+        {
+            safe_free_aligned(&defectData);
+            return MEMORY_FAILURE;
+        }
+        size_t defectListAllocSize = sizeof(scsiDefectList) + sizeInfo.defectAlloc;
+        defectRequest.defectData   = defectData;
         if (defects != M_NULLPTR)
         {
             *defects = M_REINTERPRET_CAST(ptrSCSIDefectList, safe_malloc(defectListAllocSize));
@@ -1645,7 +1670,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevi
                 {
                     uint16_t pageLength = M_BytesTo2ByteValue(pendingDefectsLog[2],
                                                               pendingDefectsLog[3]); // does not include 4 byte header!
-                    if (pageLength > 4)
+                    if (pageLength > LOG_PAGE_HEADER_LENGTH)
                     {
                         uint32_t pendingDefectCount =
                             1; // will be set in loop shortly...but use this for now to enter the loop
@@ -1655,7 +1680,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBAs_From_SCSI_Pending_List(const tDevi
                         for (uint32_t defectCounter = UINT32_C(0);
                              offset < C_CAST(uint32_t, C_CAST(uint32_t, pageLength) + LOG_PAGE_HEADER_LENGTH) &&
                              defectCounter < pendingDefectCount;
-                             offset += (parameterLength + 4))
+                             offset += (C_CAST(uint32_t, parameterLength) + LOG_PAGE_HEADER_LENGTH))
                         {
                             uint16_t parameterCode =
                                 M_BytesTo2ByteValue(pendingDefectsLog[offset + 0], pendingDefectsLog[offset + 1]);

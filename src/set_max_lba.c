@@ -586,59 +586,52 @@ OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_M
                 // header is first 8bytes
                 uint32_t numberOfDescriptors =
                     M_BytesTo4ByteValue(0, capMNMappingLog[2], capMNMappingLog[1], capMNMappingLog[0]);
-                uint32_t capModelMappingSz =
-                    C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
-                                         (sizeof(capacityModelDescriptor) * numberOfDescriptors));
-                capModelMapping =
-                    M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(capModelMappingSz, sizeof(uint8_t)));
-                if (capModelMapping != M_NULLPTR)
+                uint64_t capModelMappingTotalBytes =
+                    M_STATIC_CAST(uint64_t, sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
+                    (M_STATIC_CAST(uint64_t, numberOfDescriptors) *
+                     M_STATIC_CAST(uint64_t, sizeof(capacityModelDescriptor)));
+                size_t capModelMappingSz = uint64_to_sizet(capModelMappingTotalBytes);
+                if (M_STATIC_CAST(uint64_t, capModelMappingSz) == capModelMappingTotalBytes)
                 {
-                    capModelMapping->numberOfDescriptors = numberOfDescriptors;
-                    // now loop through descriptors
-                    for (uint32_t offset = UINT32_C(8), descriptorCounter = UINT32_C(0);
-                         offset < capMNLogSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors;
-                         offset += UINT32_C(48), ++descriptorCounter)
+                    capModelMapping =
+                        M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(1, capModelMappingSz));
+                    if (capModelMapping != M_NULLPTR)
                     {
-                        capModelMapping->descriptor[descriptorCounter].capacityMaxAddress = M_BytesTo8ByteValue(
-                            0, 0, capMNMappingLog[offset + 5], capMNMappingLog[offset + 4], capMNMappingLog[offset + 3],
-                            capMNMappingLog[offset + 2], capMNMappingLog[offset + 1], capMNMappingLog[offset + 0]);
-#if defined MODEL_NUM_LEN && defined ATA_IDENTIFY_MN_LENGTH && ATA_IDENTIFY_MN_LENGTH == MODEL_NUM_LEN
-                        uint16_t mnLimit = MODEL_NUM_LEN;
-#else
-                        uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
-#endif
-                        if (0 != safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber,
-                                             MODEL_NUM_LEN + 1, 0, mnLimit + 1))
-                            M_UNLIKELY
-                            {
-                                perror("Error clearing MN before setting");
-                                safe_free_cap_mn_map(&capModelMapping);
-                                safe_free_aligned(&capMNMappingLog);
-                                return M_NULLPTR;
-                            }
-                        if (0 != safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber,
-                                             MODEL_NUM_LEN + 1, &capMNMappingLog[offset + 8], mnLimit))
-                            M_UNLIKELY
-                            {
-                                perror("Error setting MN from log");
-                                safe_free_cap_mn_map(&capModelMapping);
-                                safe_free_aligned(&capMNMappingLog);
-                                return M_NULLPTR;
-                            }
-                        for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
+                        capModelMapping->numberOfDescriptors = numberOfDescriptors;
+                        // now loop through descriptors
+                        for (uint32_t offset = UINT32_C(8), descriptorCounter = UINT32_C(0);
+                             offset < capMNLogSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors;
+                             offset += UINT32_C(48), ++descriptorCounter)
                         {
-                            if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||
-                                !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                            capModelMapping->descriptor[descriptorCounter].capacityMaxAddress =
+                                M_BytesTo8ByteValue(0, 0, capMNMappingLog[offset + 5], capMNMappingLog[offset + 4],
+                                                    capMNMappingLog[offset + 3], capMNMappingLog[offset + 2],
+                                                    capMNMappingLog[offset + 1], capMNMappingLog[offset + 0]);
+#if defined MODEL_NUM_LEN && defined ATA_IDENTIFY_MN_LENGTH && ATA_IDENTIFY_MN_LENGTH == MODEL_NUM_LEN
+                            uint16_t mnLimit = MODEL_NUM_LEN;
+#else
+                            uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
+#endif
+                            safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
+                                        0, mnLimit + 1);
+                            safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
+                                        &capMNMappingLog[offset + 8], mnLimit);
+                            for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
                             {
-                                capModelMapping->descriptor[descriptorCounter].modelNumber[iter] =
-                                    ' '; // replace with a space
+                                if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||
+                                    !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                                {
+                                    capModelMapping->descriptor[descriptorCounter].modelNumber[iter] =
+                                        ' '; // replace with a space
+                                }
                             }
+                            byte_Swap_String_Len(capModelMapping->descriptor[descriptorCounter].modelNumber,
+                                                 MODEL_NUM_LEN);
+                            remove_Leading_And_Trailing_Whitespace_Len(
+                                capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                         }
-                        byte_Swap_String_Len(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
-                        remove_Leading_And_Trailing_Whitespace_Len(
-                            capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                     }
-                }
+                } // M_STATIC_CAST(uint64_t, capModelMappingSz) == capModelMappingTotalBytes
             }
             safe_free_aligned_core(C_CAST(void**, &capMNMappingLog));
         }
@@ -662,59 +655,50 @@ OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_M
                 // calculate number of descriptors based on page length
                 uint32_t numberOfDescriptors = M_BytesTo2ByteValue(capProdIDMappingVPD[2], capProdIDMappingVPD[3]) /
                                                UINT32_C(48); // Each descriptor is 48B long
-                uint32_t capProdIDMappingSz =
-                    C_CAST(uint32_t, (sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
-                                         (sizeof(capacityModelDescriptor) * numberOfDescriptors));
-                capModelMapping =
-                    M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(capProdIDMappingSz, sizeof(uint8_t)));
-                if (capModelMapping != M_NULLPTR)
+                uint64_t capProdIDMappingTotalBytes =
+                    M_STATIC_CAST(uint64_t, sizeof(capacityModelNumberMapping) - sizeof(capacityModelDescriptor)) +
+                    (M_STATIC_CAST(uint64_t, numberOfDescriptors) *
+                     M_STATIC_CAST(uint64_t, sizeof(capacityModelDescriptor)));
+                size_t capProdIDMappingSz = uint64_to_sizet(capProdIDMappingTotalBytes);
+                if (M_STATIC_CAST(uint64_t, capProdIDMappingSz) == capProdIDMappingTotalBytes)
                 {
-                    capModelMapping->numberOfDescriptors = numberOfDescriptors;
-                    // loop through descriptors
-                    for (uint32_t offset = UINT32_C(4), descriptorCounter = UINT32_C(0);
-                         offset < capIDVPDSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors;
-                         offset += UINT32_C(48), ++descriptorCounter)
+                    capModelMapping =
+                        M_REINTERPRET_CAST(ptrcapacityModelNumberMapping, safe_calloc(1, capProdIDMappingSz));
+                    if (capModelMapping != M_NULLPTR)
                     {
-                        capModelMapping->descriptor[descriptorCounter].capacityMaxAddress =
-                            M_BytesTo8ByteValue(capProdIDMappingVPD[offset + 0], capProdIDMappingVPD[offset + 1],
-                                                capProdIDMappingVPD[offset + 2], capProdIDMappingVPD[offset + 3],
-                                                capProdIDMappingVPD[offset + 4], capProdIDMappingVPD[offset + 5],
-                                                capProdIDMappingVPD[offset + 6], capProdIDMappingVPD[offset + 7]);
-                        capModelMapping->descriptor[descriptorCounter].capacityMaxAddress -=
-                            1; // Need to -1 for SCSI so that this will match the -i report. If this is not done, then
-                               // we end up with 1 less than the value provided.
-                        uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
-                        if (0 != safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber,
-                                             MODEL_NUM_LEN + 1, 0, mnLimit + 1))
-                            M_UNLIKELY
-                            {
-                                perror("Error clearing MN before setting");
-                                safe_free_cap_mn_map(&capModelMapping);
-                                safe_free_aligned(&capProdIDMappingVPD);
-                                return M_NULLPTR;
-                            }
-                        if (0 != safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber,
-                                             MODEL_NUM_LEN + 1, &capProdIDMappingVPD[offset + 8], mnLimit))
-                            M_UNLIKELY
-                            {
-                                perror("Error copying MN");
-                                safe_free_cap_mn_map(&capModelMapping);
-                                safe_free_aligned(&capProdIDMappingVPD);
-                                return M_NULLPTR;
-                            }
-                        for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
+                        capModelMapping->numberOfDescriptors = numberOfDescriptors;
+                        // loop through descriptors
+                        for (uint32_t offset = UINT32_C(4), descriptorCounter = UINT32_C(0);
+                             offset < capIDVPDSizeBytes && descriptorCounter < capModelMapping->numberOfDescriptors;
+                             offset += UINT32_C(48), ++descriptorCounter)
                         {
-                            if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||
-                                !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                            capModelMapping->descriptor[descriptorCounter].capacityMaxAddress =
+                                M_BytesTo8ByteValue(capProdIDMappingVPD[offset + 0], capProdIDMappingVPD[offset + 1],
+                                                    capProdIDMappingVPD[offset + 2], capProdIDMappingVPD[offset + 3],
+                                                    capProdIDMappingVPD[offset + 4], capProdIDMappingVPD[offset + 5],
+                                                    capProdIDMappingVPD[offset + 6], capProdIDMappingVPD[offset + 7]);
+                            capModelMapping->descriptor[descriptorCounter].capacityMaxAddress -=
+                                1; // Need to -1 for SCSI so that this will match the -i report. If this is not done,
+                                   // then we end up with 1 less than the value provided.
+                            uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
+                            safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
+                                        0, mnLimit + 1);
+                            safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
+                                        &capProdIDMappingVPD[offset + 8], mnLimit);
+                            for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
                             {
-                                capModelMapping->descriptor[descriptorCounter].modelNumber[iter] =
-                                    ' '; // replace with a space
+                                if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||
+                                    !safe_isprint(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]))
+                                {
+                                    capModelMapping->descriptor[descriptorCounter].modelNumber[iter] =
+                                        ' '; // replace with a space
+                                }
                             }
+                            remove_Leading_And_Trailing_Whitespace_Len(
+                                capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                         }
-                        remove_Leading_And_Trailing_Whitespace_Len(
-                            capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                     }
-                }
+                } // M_STATIC_CAST(uint64_t, capProdIDMappingSz) == capProdIDMappingTotalBytes
             }
             safe_free_aligned(&capProdIDMappingVPD);
         }

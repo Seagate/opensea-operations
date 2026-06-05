@@ -26,7 +26,14 @@ extern "C"
 #include "scsi_helper.h"
 #include "scsi_helper_func.h"
 
-    // checks if it is SAS protocol and Diagnostic page 3F is supported
+// checks if it is SAS protocol and Diagnostic page 3F is supported
+//! \def SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH
+//! \brief Allocation length for the RECEIVE DIAGNOSTIC RESULTS probe used to check
+//!        which SAS diagnostic pages are supported (SEND/RECEIVE DIAGNOSTIC page 0x00).
+//!        The theoretical maximum is SCSI_DIAG_PAGE_HEADER_LENGTH (4) + 256 page codes = 260 bytes.
+//!        50 bytes is a pragmatic probe size sufficient to detect all pages used by these tools.
+#define SAS_SUPPORTED_DIAGNOSTIC_PAGES_PROBE_LENGTH UINT16_C(50)
+
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API bool is_SAS_Phy_Diagnostic_Page_Supported(const tDevice* M_NONNULL device);
 
     typedef enum eSASPhyTestPatternEnum

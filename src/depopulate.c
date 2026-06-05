@@ -600,10 +600,9 @@ static eReturnValues ata_get_Depopulate_Progress(const tDevice* M_NONNULL device
         if (SUCCESS == getDescirptors && numberOfDescriptors > 0)
         {
             ptrPhysicalElement elementList =
-                M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
+                M_REINTERPRET_CAST(ptrPhysicalElement, safe_calloc(numberOfDescriptors, sizeof(physicalElement)));
             if (elementList != M_NULLPTR)
             {
-                M_INITIALIZE_STRUCTURE(elementList, numberOfDescriptors * sizeof(physicalElement));
                 if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
                 {
                     // loop through and check associatedCapacity and elementIdentifiers
@@ -885,10 +884,9 @@ static eReturnValues determine_Depop_Failure_Reason(const tDevice* M_NONNULL dev
     if (numberOfDescriptors > 0)
     {
         ptrPhysicalElement elementList =
-            M_REINTERPRET_CAST(ptrPhysicalElement, safe_malloc(numberOfDescriptors * sizeof(physicalElement)));
+            M_REINTERPRET_CAST(ptrPhysicalElement, safe_calloc(numberOfDescriptors, sizeof(physicalElement)));
         if (elementList != M_NULLPTR)
         {
-            M_INITIALIZE_STRUCTURE(elementList, numberOfDescriptors * sizeof(physicalElement));
             if (SUCCESS == get_Physical_Element_Descriptors(device, numberOfDescriptors, elementList))
             {
                 // loop through and check associatedCapacity and elementIdentifiers

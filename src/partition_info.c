@@ -745,10 +745,14 @@ static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
                                                      sizeOfPartitionEntry)]; // for backup this will point to the
                                                                              // beginning of the partition array
                 }
-                gpt->crc32HeaderValid = true;
-                uint32_t gptStructPartitionEntriesAvailable =
-                    C_CAST(uint32_t, (sizeOfGPTDataStruct - (sizeof(gptData) - sizeof(gptPartitionEntry))) /
-                                         sizeof(gptPartitionEntry));
+                gpt->crc32HeaderValid                       = true;
+                size_t   gptStructOverhead                  = sizeof(gptData) - sizeof(gptPartitionEntry);
+                uint32_t gptStructPartitionEntriesAvailable = UINT32_C(0);
+                if (sizeOfGPTDataStruct >= gptStructOverhead)
+                {
+                    gptStructPartitionEntriesAvailable =
+                        C_CAST(uint32_t, (sizeOfGPTDataStruct - gptStructOverhead) / sizeof(gptPartitionEntry));
+                }
                 // the header passed, so time to validate the CRC of the partition data!
                 // need to know how many partition structs we have available to read into before beginning to read
                 // need to make sure we have all the databuffer necessary to read all partitions...it is possible that
@@ -965,14 +969,22 @@ OPENSEA_OPERATIONS_API ptrPartitionInfo M_NULLABLE get_Partition_Info(const tDev
                 {
                     uint32_t partitionCount =
                         number_Of_GPT_Partitions(dataBuffer, dataSize, get_Device_BlockSize(device), lba);
-                    uint32_t gptStructSize = C_CAST(uint32_t, (sizeof(gptData) - sizeof(gptPartitionEntry)) +
-                                                                  (sizeof(gptPartitionEntry) * partitionCount));
-                    partitionData->gptTable =
-                        M_REINTERPRET_CAST(ptrGPTData, safe_calloc(gptStructSize, sizeof(uint8_t)));
-                    if (partitionData->gptTable)
+                    uint64_t gptTotalBytes =
+                        M_STATIC_CAST(uint64_t, sizeof(gptData) - sizeof(gptPartitionEntry)) +
+                        (M_STATIC_CAST(uint64_t, partitionCount) * M_STATIC_CAST(uint64_t, sizeof(gptPartitionEntry)));
+                    size_t gptStructSize = uint64_to_sizet(gptTotalBytes);
+                    if (M_STATIC_CAST(uint64_t, gptStructSize) == gptTotalBytes)
                     {
-                        partitionData->partitionDataType = PARTITION_TABLE_GPT;
-                        fill_GPT_Data(device, dataBuffer, dataSize, partitionData->gptTable, gptStructSize, lba);
+                        partitionData->gptTable = M_REINTERPRET_CAST(ptrGPTData, safe_calloc(1, gptStructSize));
+                        if (partitionData->gptTable)
+                        {
+                            partitionData->partitionDataType = PARTITION_TABLE_GPT;
+                            fill_GPT_Data(device, dataBuffer, dataSize, partitionData->gptTable, gptStructSize, lba);
+                        }
+                        else
+                        {
+                            partitionData->partitionDataType = PARTITION_TABLE_NOT_FOUND;
+                        }
                     }
                     else
                     {
