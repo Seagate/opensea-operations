@@ -224,10 +224,10 @@ OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL 
             case DL_FW_DEFERRED_SELECT_ACTIVATE:
                 options->dlMode = FWDL_UPDATE_MODE_DEFERRED_SELECT_ACTIVATE;
                 break;
-#if defined(_WIN32) && defined(_MSC_VER) && !defined(__clang__)
+#if defined(_WIN32) && defined(REAL_MSVC) && !IS_MSVC_VERSION(MSVC_2022_17_0)
                 // visual studio complains about this NOT being here and GCC does the opposite...so only add this case
                 // for visual studio.
-                // case FWDL_UPDATE_MODE_AUTOMATIC:
+            case FWDL_UPDATE_MODE_AUTOMATIC:
 #endif                          //_MSC_VER
             case DL_FW_UNKNOWN: // no direct translation, but call it automatic mode
                 options->dlMode = FWDL_UPDATE_MODE_AUTOMATIC;
