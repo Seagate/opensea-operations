@@ -74,62 +74,62 @@ extern "C"
                                                    char* M_NONNULL
                                                        attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Seagate_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Seagate_Attribute_Name(uint8_t         attributeNumber,
+                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_D_E_Attribute_Name(
-        eSeagateFamily  vendor,
-        uint8_t         attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(3)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Seagate_Vendor_D_E_Attribute_Name(eSeagateFamily  vendor,
+                                          uint8_t         attributeNumber,
+                                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Samsung_HDD_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Samsung_HDD_Attribute_Name(uint8_t         attributeNumber,
+                                   char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Maxtor_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Maxtor_Attribute_Name(uint8_t         attributeNumber,
+                              char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_B_C_Attribute_Name(
-        eSeagateFamily  vendor,
-        uint8_t         attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(3)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Seagate_Vendor_B_C_Attribute_Name(eSeagateFamily  vendor,
+                                          uint8_t         attributeNumber,
+                                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_F_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Seagate_Vendor_F_Attribute_Name(uint8_t         attributeNumber,
+                                        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_G_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Seagate_Vendor_G_Attribute_Name(uint8_t         attributeNumber,
+                                        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Conner_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Conner_Attribute_Name(uint8_t         attributeNumber,
+                              char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_K_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Seagate_Vendor_K_Attribute_Name(uint8_t         attributeNumber,
+                                        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Quantum_Attribute_Name(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Quantum_Attribute_Name(uint8_t         attributeNumber,
+                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
-    M_PARAM_WO(2)
-    OPENSEA_OPERATIONS_API errno_t get_Common_Attribute_Names(
-        uint8_t attributeNumber,
-        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    M_PARAM_RW(2)
+    OPENSEA_OPERATIONS_API errno_t
+    get_Common_Attribute_Names(uint8_t         attributeNumber,
+                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     typedef enum eSMARTAttrOutModeEnum
     {

@@ -143,9 +143,9 @@ OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(const tDevice* M_NONNU
     return ret;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Seagate_Attribute_Name(uint8_t attributeNumber,
-                                                       char* M_NONNULL
-                                                           attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Seagate_Attribute_Name(uint8_t         attributeNumber,
+                           char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
@@ -252,10 +252,10 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Attribute_Name(uint8_t attributeNumbe
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_D_E_Attribute_Name(
-    eSeagateFamily  vendor,
-    uint8_t         attributeNumber,
-    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Seagate_Vendor_D_E_Attribute_Name(eSeagateFamily  vendor,
+                                      uint8_t         attributeNumber,
+                                      char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     if (vendor != SEAGATE_VENDOR_D && vendor != SEAGATE_VENDOR_E)
@@ -318,9 +318,9 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_D_E_Attribute_Name(
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Samsung_HDD_Attribute_Name(uint8_t attributeNumber,
-                                                           char* M_NONNULL
-                                                               attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Samsung_HDD_Attribute_Name(uint8_t         attributeNumber,
+                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
@@ -436,9 +436,9 @@ OPENSEA_OPERATIONS_API errno_t get_Samsung_HDD_Attribute_Name(uint8_t attributeN
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Maxtor_Attribute_Name(uint8_t attributeNumber,
-                                                      char* M_NONNULL
-                                                          attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Maxtor_Attribute_Name(uint8_t         attributeNumber,
+                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     // names are from here: https://www.smartmontools.org/wiki/AttributesMaxtor
@@ -595,10 +595,10 @@ OPENSEA_OPERATIONS_API errno_t get_Maxtor_Attribute_Name(uint8_t attributeNumber
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_B_C_Attribute_Name(
-    eSeagateFamily  vendor,
-    uint8_t         attributeNumber,
-    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Seagate_Vendor_B_C_Attribute_Name(eSeagateFamily  vendor,
+                                      uint8_t         attributeNumber,
+                                      char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     if (vendor != SEAGATE_VENDOR_B && vendor != SEAGATE_VENDOR_C)
@@ -662,11 +662,13 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_B_C_Attribute_Name(
     case 180: // reported IOEDC Error In Interval (Seagate/Samsung), End to End Error Detection Rate
         if (vendor == SEAGATE_VENDOR_C)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Rate");
+            error =
+                safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Rate");
         }
         else if (vendor == SEAGATE_VENDOR_B)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unused Reserved Block Count (Total)");
+            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH,
+                                           "Unused Reserved Block Count (Total)");
         }
         break;
     case 181: // Program Fail Count
@@ -733,7 +735,8 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_B_C_Attribute_Name(
     case 241: // Lifetime Writes from Host
         if (vendor == SEAGATE_VENDOR_B)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
+            error =
+                safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
         }
         else if (vendor == SEAGATE_VENDOR_C)
         {
@@ -743,7 +746,8 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_B_C_Attribute_Name(
     case 242: // Lifetime Reads from Host
         if (vendor == SEAGATE_VENDOR_B)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
+            error =
+                safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
         }
         else if (vendor == SEAGATE_VENDOR_C)
         {
@@ -769,9 +773,9 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_B_C_Attribute_Name(
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_F_Attribute_Name(
-    uint8_t         attributeNumber,
-    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Seagate_Vendor_F_Attribute_Name(uint8_t         attributeNumber,
+                                    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
@@ -845,9 +849,9 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_F_Attribute_Name(
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_G_Attribute_Name(
-    uint8_t         attributeNumber,
-    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Seagate_Vendor_G_Attribute_Name(uint8_t         attributeNumber,
+                                    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
@@ -898,7 +902,8 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_G_Attribute_Name(
         error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
         break;
     case 183: // SATA/PCIe Interface Downshift Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA/PCIe Interface Downshift Count");
+        error =
+            safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA/PCIe Interface Downshift Count");
         break;
     case 184: // End-To-End CRC Error Count
         error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End-To-End CRC Error Count");
@@ -945,9 +950,9 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_G_Attribute_Name(
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Conner_Attribute_Name(uint8_t attributeNumber,
-                                                      char* M_NONNULL
-                                                          attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Conner_Attribute_Name(uint8_t         attributeNumber,
+                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     // From product manual for models CFS635A/CFS850A/CFS1275A
@@ -980,9 +985,9 @@ OPENSEA_OPERATIONS_API errno_t get_Conner_Attribute_Name(uint8_t attributeNumber
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_K_Attribute_Name(
-    uint8_t         attributeNumber,
-    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Seagate_Vendor_K_Attribute_Name(uint8_t         attributeNumber,
+                                    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
@@ -1080,9 +1085,9 @@ OPENSEA_OPERATIONS_API errno_t get_Seagate_Vendor_K_Attribute_Name(
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Quantum_Attribute_Name(uint8_t attributeNumber,
-                                                       char* M_NONNULL
-                                                           attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Quantum_Attribute_Name(uint8_t         attributeNumber,
+                           char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
@@ -1117,9 +1122,9 @@ OPENSEA_OPERATIONS_API errno_t get_Quantum_Attribute_Name(uint8_t attributeNumbe
     return error;
 }
 
-OPENSEA_OPERATIONS_API errno_t get_Common_Attribute_Names(uint8_t attributeNumber,
-                                                       char* M_NONNULL
-                                                           attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+OPENSEA_OPERATIONS_API errno_t
+get_Common_Attribute_Names(uint8_t         attributeNumber,
+                           char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
@@ -1170,8 +1175,8 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL device,
                                                char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
-    errno_t error = 0;
-    if (0 != safe_memset(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
+    errno_t        error          = 0;
+    if (0 != safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
         M_UNLIKELY
         {
             perror("Error clearing attribute name buffer before setting attribute name.");
@@ -1674,11 +1679,8 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
     if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
-        char*          attributeName  = M_REINTERPRET_CAST(char*, safe_calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-        if (attributeName == M_NULLPTR)
-        {
-            return MEMORY_FAILURE;
-        }
+        DECLARE_ZERO_INIT_ARRAY(char, attrName, MAX_ATTRIBUTE_NAME_LENGTH);
+        char* attributeName = attrName;
         for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
         {
             if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
@@ -3690,8 +3692,6 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                     }
             }
         }
-
-        safe_free(&attributeName);
         return SUCCESS;
     }
     else
