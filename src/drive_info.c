@@ -5637,8 +5637,8 @@ static eReturnValues get_SCSI_Mode_Data(const tDevice* M_NONNULL              de
                                     }
                                     if (arreString != M_NULLPTR && arreStringLength >= 30)
                                     {
-                                        if (0 != safe_strcpy(arreString, arreStringLength,
-                                                             "Automatic Read Reassignment [Enabled]"))
+                                        if (0 !=
+                                            safe_strcpy(arreString, arreStringLength, "Automatic Read Reassignment"))
                                             M_UNLIKELY
                                             {
                                                 perror("Error copying ARRE string");
