@@ -5023,7 +5023,36 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL devi
     }
     else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
-        if (issueFactory == 4)
+        if (issueFactory == SEAGATE_FARM_SP_TIME_SERIES_START)
+        {
+            if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, issueFactory, &logSize))
+            {
+                uint8_t farmTimeSeriesTotalSubPages =
+                    (SEAGATE_FARM_SP_TIME_SERIES_END - SEAGATE_FARM_SP_TIME_SERIES_START) + 1;
+                genericLogBuf =
+                    C_CAST(uint8_t*, safe_calloc_aligned(logSize * farmTimeSeriesTotalSubPages, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
+                if (genericLogBuf)
+                {
+                    uint8_t subPageIndex = 0;
+                    for (; (subPageIndex < farmTimeSeriesTotalSubPages) && (ret != FAILURE); subPageIndex++)
+                    {
+                        ret = get_SCSI_Log(device, SEAGATE_LP_FARM, issueFactory + subPageIndex, M_NULLPTR, M_NULLPTR,
+                                           true, genericLogBuf + (subPageIndex * logSize), logSize, M_NULLPTR);
+                    }
+                    logSize = subPageIndex * logSize;
+                }
+                else
+                {
+                    return MEMORY_FAILURE;
+                }
+            }
+            else
+            {
+                return NOT_SUPPORTED;
+            }
+        }
+        else if (issueFactory == 4)
         {
             if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
             {
@@ -5103,8 +5132,12 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL devi
             if (ret == SUCCESS)
             {
                 secureFileInfo* fp_log = M_NULLPTR;
-                uint16_t        returnedPageLength =
+                size_t        returnedPageLength =
                     M_BytesTo2ByteValue(genericLogBuf[2], genericLogBuf[3]) + LOG_PAGE_HEADER_LENGTH;
+                if (issueFactory == 0x10)
+                {
+                    returnedPageLength = logSize;
+                }
 
                 if (SUCCESS ==
                     create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
