@@ -1176,7 +1176,7 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL device,
 {
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
     errno_t        error          = 0;
-    if (0 != safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
+    if (0 != safe_memset(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
         M_UNLIKELY
         {
             perror("Error clearing attribute name buffer before setting attribute name.");
