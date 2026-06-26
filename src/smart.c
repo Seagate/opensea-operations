@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -6177,6 +6177,82 @@ OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(const tDevice* M_NONNULL devi
             if (driveDefault)
             {
                 control.mrie = defaultMode;
+            }
+            ret = set_SCSI_Informational_Exceptions_Info(device, true, &control);
+        }
+        else
+        {
+            ret = NOT_SUPPORTED; // leave as this since the drive doesn't support this mode page
+        }
+    }
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL device, uint8_t ewascMode, bool driveDefault)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
+    {
+        informationalExceptionsControl control;
+        M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
+        uint8_t defaultMode = UINT8_C(1);
+        if (driveDefault)
+        {
+            if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
+            {
+                defaultMode = control.ewasc;
+            }
+            else
+            {
+                return FAILURE;
+            }
+        }
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
+        {
+            control.ewasc = ewascMode;
+            if (driveDefault)
+            {
+                control.ewasc = defaultMode;
+            }
+            ret = set_SCSI_Informational_Exceptions_Info(device, true, &control);
+        }
+        else
+        {
+            ret = NOT_SUPPORTED; // leave as this since the drive doesn't support this mode page
+        }
+    }
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL device,
+                                                    uint8_t                  dexcptMode,
+                                                    bool                     driveDefault)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
+    {
+        informationalExceptionsControl control;
+        M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
+        uint8_t defaultMode = UINT8_C(0);
+        if (driveDefault)
+        {
+            if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
+            {
+                defaultMode = control.dexcpt;
+            }
+            else
+            {
+                return FAILURE;
+            }
+        }
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
+        {
+            control.dexcpt = dexcptMode;
+            if (driveDefault)
+            {
+                control.dexcpt = defaultMode;
             }
             ret = set_SCSI_Informational_Exceptions_Info(device, true, &control);
         }
