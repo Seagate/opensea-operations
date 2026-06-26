@@ -864,6 +864,46 @@ extern "C"
                                                        uint8_t                  mrieMode,
                                                        bool                     driveDefault);
 
+    //-----------------------------------------------------------------------------
+    //
+    //  set_EWASC_Mode(const tDevice *device, uint8_t ewascMode, bool driveDefault)
+    //
+    //! \brief   Description:  Set SCSI Informational Exceptions EWASC (Enable Warning)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param ewascMode - 0 = off, 1 = on
+    //!   \param driveDefault - restore to the drive's default value
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this
+    //!   device
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL device,
+                                                       uint8_t                  ewascMode,
+                                                       bool                     driveDefault);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  set_DEXCPT_Mode(const tDevice *device, uint8_t dexcptMode, bool driveDefault)
+    //
+    //! \brief   Description:  Set SCSI Informational Exceptions DEXCPT (Disable Exception Control)
+    //
+    //  Entry:
+    //!   \param device - pointer to the device structure
+    //!   \param dexcptMode - 0 = off, 1 = on
+    //!   \param driveDefault - restore to the drive's default value
+    //  Exit:
+    //!   \return SUCCESS = pass, FAILURE = failed to change the feature, NOT_SUPPORTED = feature not supported on this
+    //!   device
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL device,
+                                                         uint8_t                 dexcptMode,
+                                                        bool                     driveDefault);
+
 #define SMART_ERROR_STATE_MASK                                                                                         \
     0x0F // highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below
     typedef enum eSMARTErrorStateEnum // Low nibble only!!! high nibble is vendor unique!
