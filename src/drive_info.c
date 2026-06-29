@@ -7616,9 +7616,9 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                     add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                                   "ATA Pass-Through 32");
                 }
+                }
             }
         }
-    }
     return ret;
 }
 
