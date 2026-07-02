@@ -6189,14 +6189,14 @@ OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(const tDevice* M_NONNULL devi
 }
 
 M_PARAM_RO(1)
-OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL device, uint8_t ewascMode, bool driveDefault)
+OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL device, bool ewascMode, bool driveDefault)
 {
     eReturnValues ret = NOT_SUPPORTED;
     if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
         informationalExceptionsControl control;
         M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
-        uint8_t defaultMode = UINT8_C(1);
+        bool defaultMode = 1;
         if (driveDefault)
         {
             if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
@@ -6227,7 +6227,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL dev
 
 M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL device,
-                                                    uint8_t                  dexcptMode,
+                                                     bool                     dexcptMode,
                                                     bool                     driveDefault)
 {
     eReturnValues ret = NOT_SUPPORTED;
@@ -6235,7 +6235,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL de
     {
         informationalExceptionsControl control;
         M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
-        uint8_t defaultMode = UINT8_C(0);
+        bool defaultMode = 0;
         if (driveDefault)
         {
             if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))

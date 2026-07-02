@@ -866,7 +866,7 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
-    //  set_EWASC_Mode(const tDevice *device, uint8_t ewascMode, bool driveDefault)
+    //  set_EWASC_Mode(const tDevice *device, bool ewascMode, bool driveDefault)
     //
     //! \brief   Description:  Set SCSI Informational Exceptions EWASC (Enable Warning)
     //
@@ -881,12 +881,12 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL device,
-                                                       uint8_t                  ewascMode,
+                                                        bool                     ewascMode,
                                                        bool                     driveDefault);
 
     //-----------------------------------------------------------------------------
     //
-    //  set_DEXCPT_Mode(const tDevice *device, uint8_t dexcptMode, bool driveDefault)
+    //  set_DEXCPT_Mode(const tDevice *device, bool dexcptMode, bool driveDefault)
     //
     //! \brief   Description:  Set SCSI Informational Exceptions DEXCPT (Disable Exception Control)
     //
@@ -901,7 +901,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL device,
-                                                         uint8_t                 dexcptMode,
+                                                         bool                     dexcptMode,
                                                         bool                     driveDefault);
 
 #define SMART_ERROR_STATE_MASK                                                                                         \
