@@ -6196,7 +6196,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL dev
     {
         informationalExceptionsControl control;
         M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
-        bool defaultMode = 1;
+        bool defaultMode = true;
         if (driveDefault)
         {
             if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
@@ -6235,7 +6235,7 @@ OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL de
     {
         informationalExceptionsControl control;
         M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
-        bool defaultMode = 0;
+        bool defaultMode = false;
         if (driveDefault)
         {
             if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
