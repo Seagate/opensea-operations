@@ -104,7 +104,7 @@ extern "C"
     M_NONNULL_PARAM_LIST(1, 2)
     M_PARAM_RO(1)
     M_PARAM_WO(2)
-    eReturnValues perform_Write_Read_Compare_Test(const tDevice*      device,
+    OPENSEA_OPERATIONS_API eReturnValues perform_Write_Read_Compare_Test(const tDevice*      device,
                                                   ptrCableTestResults testResults,
                                                   uint64_t            startingLBA,
                                                   uint64_t            range,
