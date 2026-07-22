@@ -2162,6 +2162,304 @@ OPENSEA_OPERATIONS_API eReturnValues random_Test(const tDevice* M_NONNULL device
 }
 
 M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues random_Read_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                 uint64_t                 startLBA,
+                                                                 uint64_t                 endLBA,
+                                                                 uint16_t                 numberOfSeeks,
+                                                                 custom_Update M_NULLABLE updateFunction,
+                                                                 void* M_NULLABLE         updateData,
+                                                                 bool                     hideLBACounter)
+{
+    return random_Test_With_Range(device, RWV_COMMAND_READ, startLBA, endLBA, numberOfSeeks, updateFunction, updateData,
+                                  hideLBACounter);
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues random_Write_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                  uint64_t                 startLBA,
+                                                                  uint64_t                 endLBA,
+                                                                  uint16_t                 numberOfSeeks,
+                                                                  custom_Update M_NULLABLE updateFunction,
+                                                                  void* M_NULLABLE         updateData,
+                                                                  bool                     hideLBACounter)
+{
+    return random_Test_With_Range(device, RWV_COMMAND_WRITE, startLBA, endLBA, numberOfSeeks, updateFunction,
+                                  updateData, hideLBACounter);
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues random_Verify_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                   uint64_t                 startLBA,
+                                                                   uint64_t                 endLBA,
+                                                                   uint16_t                 numberOfSeeks,
+                                                                   custom_Update M_NULLABLE updateFunction,
+                                                                   void* M_NULLABLE         updateData,
+                                                                   bool                     hideLBACounter)
+{
+    return random_Test_With_Range(device, RWV_COMMAND_VERIFY, startLBA, endLBA, numberOfSeeks, updateFunction,
+                                  updateData, hideLBACounter);
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues random_Test_With_Range(const tDevice* M_NONNULL device,
+                                                            eRWVCommandType          rwvcommand,
+                                                            uint64_t                 startLBA,
+                                                            uint64_t                 endLBA,
+                                                            uint16_t                 numberOfSeeks,
+                                                            custom_Update M_NULLABLE updateFunction,
+                                                            void* M_NULLABLE         updateData,
+                                                            bool                     hideLBACounter)
+{
+    eReturnValues ret         = SUCCESS;
+    uint64_t      iterator    = UINT64_C(0);
+    uint32_t      sectorCount = UINT32_C(1);
+    uint8_t*      dataBuf     = M_NULLPTR;
+
+    if (startLBA > endLBA || endLBA > return_Device_MaxLba(device))
+    {
+        return BAD_PARAMETER;
+    }
+
+    if (rwvcommand != RWV_COMMAND_VERIFY)
+    {
+        dataBuf = M_REINTERPRET_CAST(uint8_t*, safe_malloc(uint32_to_sizet(get_Device_BlockSize(device)) *
+                                                           uint32_to_sizet(sectorCount) * sizeof(uint8_t)));
+        if (dataBuf == M_NULLPTR)
+        {
+            return MEMORY_FAILURE;
+        }
+    }
+
+    seed_64(C_CAST(uint64_t, time(M_NULLPTR))); // start the seed for the random number generator
+    for (iterator = 0; iterator < numberOfSeeks; iterator++)
+    {
+        uint64_t randomLBA = random_Range_64(startLBA, endLBA);
+        if (updateFunction != M_NULLPTR)
+        {
+            op_emit_lba_cb(updateFunction, updateData, "random_test", randomLBA, M_NULLPTR);
+        }
+        if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+        {
+            switch (rwvcommand)
+            {
+            case RWV_COMMAND_READ:
+                printf("\rReading LBA: %-20" PRIu64 "", randomLBA);
+                break;
+            case RWV_COMMAND_WRITE:
+                printf("\rWriting LBA: %-20" PRIu64 "", randomLBA);
+                break;
+            case RWV_COMMAND_VERIFY:
+                printf("\rVerifying LBA: %-20" PRIu64 "", randomLBA);
+                break;
+            default:
+                printf("\rUnknown OPing LBA: %-20" PRIu64 "", randomLBA);
+                break;
+            }
+            flush_stdout();
+        }
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, randomLBA, dataBuf,
+                                               C_CAST(uint32_t, sectorCount* get_Device_BlockSize(device))))
+        {
+            ret = FAILURE;
+            // error occurred, time to exit the loop
+            break;
+        }
+    }
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
+    {
+        print_str("\n");
+    }
+    safe_free(&dataBuf);
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues butterfly_Read_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                    uint64_t                 startLBA,
+                                                                    uint64_t                 endLBA,
+                                                                    uint16_t                 numberOfSeeks,
+                                                                    custom_Update M_NULLABLE updateFunction,
+                                                                    void* M_NULLABLE         updateData,
+                                                                    bool                     hideLBACounter)
+{
+    return butterfly_Test_With_Range(device, RWV_COMMAND_READ, startLBA, endLBA, numberOfSeeks, updateFunction,
+                                     updateData, hideLBACounter);
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues butterfly_Write_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                     uint64_t                 startLBA,
+                                                                     uint64_t                 endLBA,
+                                                                     uint16_t                 numberOfSeeks,
+                                                                     custom_Update M_NULLABLE updateFunction,
+                                                                     void* M_NULLABLE         updateData,
+                                                                     bool                     hideLBACounter)
+{
+    return butterfly_Test_With_Range(device, RWV_COMMAND_WRITE, startLBA, endLBA, numberOfSeeks, updateFunction,
+                                     updateData, hideLBACounter);
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues butterfly_Verify_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                      uint64_t                 startLBA,
+                                                                      uint64_t                 endLBA,
+                                                                      uint16_t                 numberOfSeeks,
+                                                                      custom_Update M_NULLABLE updateFunction,
+                                                                      void* M_NULLABLE         updateData,
+                                                                      bool                     hideLBACounter)
+{
+    return butterfly_Test_With_Range(device, RWV_COMMAND_VERIFY, startLBA, endLBA, numberOfSeeks, updateFunction,
+                                     updateData, hideLBACounter);
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues butterfly_Test_With_Range(const tDevice* M_NONNULL device,
+                                                               eRWVCommandType          rwvcommand,
+                                                               uint64_t                 startLBA,
+                                                               uint64_t                 endLBA,
+                                                               uint16_t                 numberOfSeeks,
+                                                               custom_Update M_NULLABLE updateFunction,
+                                                               void* M_NULLABLE         updateData,
+                                                               bool                     hideLBACounter)
+{
+    eReturnValues ret                = SUCCESS;
+    uint64_t      outerLBA           = UINT64_C(0);
+    uint64_t      innerLBA           = UINT64_C(0);
+    uint64_t      iterator           = UINT64_C(0);
+    uint32_t      sectorCount        = get_Sector_Count_For_Read_Write(device);
+    uint32_t      currentSectorCount = sectorCount;
+    uint8_t*      dataBuf            = M_NULLPTR;
+    size_t        dataBufSize        = SIZE_T_C(0);
+
+    if (startLBA > endLBA || endLBA > return_Device_MaxLba(device))
+    {
+        return BAD_PARAMETER;
+    }
+
+    if (rwvcommand != RWV_COMMAND_VERIFY)
+    {
+        dataBufSize = uint32_to_sizet(get_Device_BlockSize(device)) * uint32_to_sizet(sectorCount) * sizeof(uint8_t);
+        dataBuf =
+            M_REINTERPRET_CAST(uint8_t*, safe_malloc_aligned(dataBufSize, get_Device_IO_Minimum_Alignment(device)));
+        if (dataBuf == M_NULLPTR)
+        {
+            return MEMORY_FAILURE;
+        }
+    }
+
+    // Initialize outer and inner LBAs for the butterfly pattern
+    outerLBA = startLBA;
+    innerLBA = endLBA - sectorCount;
+    if (innerLBA < startLBA)
+    {
+        innerLBA = endLBA;
+    }
+
+    for (iterator = 0; iterator < numberOfSeeks; iterator++)
+    {
+        // Read/write the outer LBA
+        currentSectorCount = sectorCount;
+        if ((outerLBA + sectorCount) > endLBA)
+        {
+            currentSectorCount = C_CAST(uint32_t, endLBA - outerLBA);
+        }
+        if (currentSectorCount == 0)
+        {
+            currentSectorCount = sectorCount;
+        }
+        if (updateFunction != M_NULLPTR)
+        {
+            op_emit_lba_cb(updateFunction, updateData, "butterfly_test", outerLBA, M_NULLPTR);
+        }
+        if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+        {
+            switch (rwvcommand)
+            {
+            case RWV_COMMAND_READ:
+                printf("\rReading LBA: %-20" PRIu64 "", outerLBA);
+                break;
+            case RWV_COMMAND_WRITE:
+                printf("\rWriting LBA: %-20" PRIu64 "", outerLBA);
+                break;
+            case RWV_COMMAND_VERIFY:
+                printf("\rVerifying LBA: %-20" PRIu64 "", outerLBA);
+                break;
+            default:
+                printf("\rUnknown OPing LBA: %-20" PRIu64 "", outerLBA);
+                break;
+            }
+            flush_stdout();
+        }
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, outerLBA, dataBuf,
+                                               C_CAST(uint32_t, currentSectorCount* get_Device_BlockSize(device))))
+        {
+            ret = FAILURE;
+            break;
+        }
+        outerLBA += currentSectorCount;
+        if (outerLBA > endLBA)
+        {
+            outerLBA = startLBA;
+        }
+
+        // Read/write the inner LBA
+        currentSectorCount = sectorCount;
+        if (C_CAST(int64_t, innerLBA) - C_CAST(int64_t, sectorCount) < C_CAST(int64_t, startLBA))
+        {
+            currentSectorCount = C_CAST(uint32_t, innerLBA - startLBA);
+        }
+        if (currentSectorCount == 0)
+        {
+            currentSectorCount = sectorCount;
+        }
+        if (updateFunction != M_NULLPTR)
+        {
+            op_emit_lba_cb(updateFunction, updateData, "butterfly_test", innerLBA, M_NULLPTR);
+        }
+        if (VERBOSITY_QUIET < device->deviceVerbosity && !hideLBACounter)
+        {
+            switch (rwvcommand)
+            {
+            case RWV_COMMAND_READ:
+                printf("\rReading LBA: %-20" PRIu64 "", innerLBA);
+                break;
+            case RWV_COMMAND_WRITE:
+                printf("\rWriting LBA: %-20" PRIu64 "", innerLBA);
+                break;
+            case RWV_COMMAND_VERIFY:
+                printf("\rVerifying LBA: %-20" PRIu64 "", innerLBA);
+                break;
+            default:
+                printf("\rUnknown OPing LBA: %-20" PRIu64 "", innerLBA);
+                break;
+            }
+            flush_stdout();
+        }
+        if (SUCCESS != read_Write_Seek_Command(device, rwvcommand, innerLBA, dataBuf,
+                                               C_CAST(uint32_t, currentSectorCount* get_Device_BlockSize(device))))
+        {
+            ret = FAILURE;
+            break;
+        }
+        innerLBA -= currentSectorCount;
+        if (innerLBA <= startLBA)
+        {
+            innerLBA = endLBA - sectorCount;
+            if (C_CAST(int64_t, innerLBA) < C_CAST(int64_t, startLBA))
+            {
+                innerLBA = endLBA;
+            }
+        }
+    }
+    if (VERBOSITY_QUIET < device->deviceVerbosity)
+    {
+        print_str("\n");
+    }
+    safe_free_aligned(&dataBuf);
+    return ret;
+}
+
+M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API eReturnValues sweep_Test(const tDevice* M_NONNULL device,
                                                 eRWVCommandType          rwvcommand,
                                                 uint32_t                 sweepCount)
