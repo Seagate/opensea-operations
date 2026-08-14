@@ -134,6 +134,70 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+    //  is_Performance_Mode_Enabled( tDevice* M_NONNULL device )
+    //
+    //! \brief   Get the current status of PM (Performance Mode) bit from SAS Unit Attention parameters page (00h).
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!
+    //  Exit:
+    //!   \return true = enabled, false = disabled
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API bool is_Performance_Mode_Enabled(const tDevice* M_NONNULL device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_Is_Performance_Mode_Enabled( tDevice* M_NONNULL device )
+    //
+    //! \brief   Get the current status of PM (Performance Mode) bit from SAS Unit Attention parameters page (00h) using scsi commands.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!
+    //  Exit:
+    //!   \return true = enabled, false = disabled
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API bool scsi_Is_Performance_Mode_Enabled(const tDevice* M_NONNULL device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  is_Thermal_Throttle_Enabled( tDevice* M_NONNULL device )
+    //
+    //! \brief   Get the current status of TTE (Thermal Throttle Enable) from in SAS Unit Attention parameters page (00h).
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!
+    //  Exit:
+    //!   \return true = enabled, false = disabled
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API bool is_Thermal_Throttle_Enabled(const tDevice* M_NONNULL device);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_Is_Thermal_Throttle_Enabled( tDevice* M_NONNULL device )
+    //
+    //! \brief   Get the current status of TTE (Thermal Throttle Enable) bit from SAS Unit Attention parameters page (00h) using scsi commands.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!
+    //  Exit:
+    //!   \return true = enabled, false = disabled
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API bool scsi_Is_Thermal_Throttle_Enabled(const tDevice* M_NONNULL device);
+
+    //-----------------------------------------------------------------------------
+    //
     //  seagate_SCT_Low_Current_Spinup(const tDevice *device, eSeagateLCSpinLevel spinupLevel)
     //
     //! \brief   Description:  This function will send the SCT command to set the state of the low-current spinup
@@ -193,6 +257,100 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_SSC_Feature_SATA(const tDevice* M_NONNULL device, eSSCFeatureState mode);
+
+
+    //-----------------------------------------------------------------------------
+    //
+    //  set_Performance_Mode( tDevice* M_NONNULL device, bool performanceModeEnableDisable )
+    //
+    //! \brief   The PM (Performance Mode) bit in HDD's Unit Attention parameters page (00h) is
+    //! used to control the drive’s cache management algorithm to allow best performance in
+    //! different types of systems. It is the initiator’s responsibility to determine which setting
+    //! is best for that system.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param performanceModeEnableDisable -
+    //!          1 - A PM value of 1 indicates that the number of cache segments is fixed to the
+    //!              value set in mode page 08h.
+    //!          0 - A PM value of 0 indicates that the drive will optimize the number of segments
+    //!              depending on the command activity observed by the drive. The number of segments value (in mode page 08h) is ignored with the PM value is 0.
+    //! 
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_Performance_Mode(const tDevice* M_NONNULL device,
+                                                                 bool                     performanceModeEnableDisable);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_Set_Performance_Mode( tDevice* M_NONNULL device, bool performanceModeEnableDisable )
+    //
+    //! \brief   The PM (Performance Mode) bit in HDD's Unit Attention parameters page (00h) is
+    //! used to control the drive’s cache management algorithm to allow best performance in
+    //! different types of systems. It is the initiator’s responsibility to determine which setting
+    //! is best for that system. Implemented using scsi commands.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param performanceModeEnableDisable -
+    //!          1 - A PM value of 1 indicates that the number of cache segments is fixed to the
+    //!              value set in mode page 08h.
+    //!          0 - A PM value of 0 indicates that the drive will optimize the number of segments
+    //!              depending on the command activity observed by the drive. The number of segments value (in mode page
+    //!              08h) is ignored with the PM value is 0.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_NONNULL device,
+                                                             bool                     performanceModeEnableDisable);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  set_Thermal_Throttle( tDevice* M_NONNULL device, bool thermalThrottleEnableDisable )
+    //
+    //! \brief   The TTE (Thermal Throttle Enable) bit in SSD's Unit Attention parameters page (
+    //! 00h) is used to control drive's activity based on temperature.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param thermalThrottleEnableDisable -
+    //!          1 - If set to 1, drive activity is limited based on temperature.
+    //!          0 - If set to 0, drive activity is not limited-based on temperature.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues set_Thermal_Throttle(const tDevice* M_NONNULL device,
+                                                             bool                     thermalThrottleEnableDisable);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  scsi_Set_Thermal_Throttle( tDevice* M_NONNULL device, bool thermalThrottleEnableDisable )
+    //
+    //! \brief   The TTE (Thermal Throttle Enable) bit in SSD's Unit Attention parameters page (
+    //! 00h) is used to control drive's activity based on temperature. Implemented using scsi commands.
+    //
+    //  Entry:
+    //!   \param device - file descriptor
+    //!   \param thermalThrottleEnableDisable -
+    //!          1 - If set to 1, drive activity is limited based on temperature.
+    //!          0 - If set to 0, drive activity is not limited-based on temperature.
+    //!
+    //  Exit:
+    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Thermal_Throttle(const tDevice* M_NONNULL device,
+                                                             bool                     thermalThrottleEnableDisable);
 
     //-----------------------------------------------------------------------------
     //

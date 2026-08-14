@@ -346,6 +346,86 @@ OPENSEA_OPERATIONS_API int is_Low_Current_Spin_Up_Enabled(const tDevice* M_NONNU
 }
 
 M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Performance_Mode_Enabled(const tDevice* M_NONNULL device)
+{
+    switch (get_Device_DriveType(device))
+    {
+    case NVME_DRIVE:
+        break;
+    case SCSI_DRIVE:
+        return scsi_Is_Performance_Mode_Enabled(device);
+    case ATA_DRIVE:
+        break;
+    default:
+        break;
+    }
+    return false;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_Is_Performance_Mode_Enabled(const tDevice* M_NONNULL device)
+{
+    eReturnValues ret     = NOT_SUPPORTED;
+    bool enabled = false;
+    uint8_t modePageData[MODE_PARAMETER_HEADER_10_LEN + 8];
+    // Read the current settings
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN + 8, 0, true, false, MPC_CURRENT_VALUES, modePageData);
+    if (ret == SUCCESS)
+    {
+        // check the offset to see if the bit is set.
+        if (modePageData[MODE_PARAMETER_HEADER_10_LEN + 2] & BIT7)
+        {
+            enabled = true;
+        }
+        else
+        {
+            enabled = false;
+        }
+    }
+    return enabled;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool is_Thermal_Throttle_Enabled(const tDevice* M_NONNULL device)
+{
+    switch (get_Device_DriveType(device))
+    {
+    case NVME_DRIVE:
+        break;
+    case SCSI_DRIVE:
+        return scsi_Is_Thermal_Throttle_Enabled(device);
+    case ATA_DRIVE:
+        break;
+    default:
+        break;
+    }
+    return false;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API bool scsi_Is_Thermal_Throttle_Enabled(const tDevice* M_NONNULL device)
+{
+    eReturnValues ret     = NOT_SUPPORTED;
+    bool          enabled = false;
+    uint8_t       modePageData[MODE_PARAMETER_HEADER_10_LEN + 8];
+    // Read the current settings
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN + 8, 0, true, false, MPC_CURRENT_VALUES, modePageData);
+    if (ret == SUCCESS)
+    {
+        // check the offset to see if the bit is set.
+        if (modePageData[MODE_PARAMETER_HEADER_10_LEN + 6] & BIT0)
+        {
+            enabled = true;
+        }
+        else
+        {
+            enabled = false;
+        }
+    }
+    return enabled;
+}
+
+M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API eReturnValues seagate_SCT_Low_Current_Spinup(const tDevice* M_NONNULL device,
                                                                     eSeagateLCSpinLevel      spinupLevel)
 {
@@ -439,6 +519,191 @@ OPENSEA_OPERATIONS_API eReturnValues set_SSC_Feature_SATA(const tDevice* M_NONNU
             ret = NOT_SUPPORTED;
         }
     }
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Performance_Mode(const tDevice* M_NONNULL device, bool performanceModeEnableDisable)
+{
+    eReturnValues ret = UNKNOWN;
+    switch (get_Device_DriveType(device))
+    {
+    case NVME_DRIVE:
+        ret = NOT_SUPPORTED;
+        break;
+    case SCSI_DRIVE:
+        ret = scsi_Set_Performance_Mode(device, performanceModeEnableDisable);
+        break;
+    case ATA_DRIVE:
+        ret = NOT_SUPPORTED;
+        break;
+    default:
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_NONNULL device,
+                                                          bool                     performanceModeEnableDisable)
+{
+    eReturnValues ret = UNKNOWN;
+    // Retrieve mode page length
+    uint8_t           modeParameterHeader[MODE_PARAMETER_HEADER_10_LEN];
+    uint8_t           modePageLength = 0;
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN, 0, true, false,
+                             MPC_CURRENT_VALUES,
+                             modeParameterHeader);
+    if (ret == SUCCESS)
+    {
+        modePageLength = (modeParameterHeader[0] << 8) + modeParameterHeader[1] + 2;
+    }
+    else
+    {
+        return FAILURE;
+    }
+
+    // on SAS we change this through a mode page
+    uint8_t* unitAttentionModePage = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
+    if (unitAttentionModePage == M_NULLPTR)
+    {
+        perror("calloc failure!");
+        return MEMORY_FAILURE;
+    }
+
+    // first read the current settings
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, modePageLength, 0, true, false,
+                             MPC_CURRENT_VALUES,
+                             unitAttentionModePage);
+    if (ret == SUCCESS)
+    {
+        // set up the mode parameter header
+        // mode data length
+        unitAttentionModePage[0] = M_Byte1(modePageLength - 2);
+        unitAttentionModePage[1] = M_Byte0(modePageLength - 2);
+        // medium type
+        unitAttentionModePage[2] = 0;
+        // device specific
+        unitAttentionModePage[3] = 0;
+        // reserved and LongLBA bit
+        unitAttentionModePage[4] = RESERVED;
+        // reserved
+        unitAttentionModePage[5] = RESERVED;
+        // block desciptor length
+        unitAttentionModePage[6] = 0;
+        unitAttentionModePage[7] = 0;
+        // now go change the bit to what we need it to, then send a mode select command
+        uint8_t performanceModeBitOffset = MODE_PARAMETER_HEADER_10_LEN + 2;
+        if (performanceModeEnableDisable == true)
+        {
+            unitAttentionModePage[performanceModeBitOffset] |= BIT7;
+        }
+        else
+        {
+            // turn the bit off if it is already set
+            if (unitAttentionModePage[performanceModeBitOffset] & BIT7)
+            {
+                unitAttentionModePage[performanceModeBitOffset] ^= BIT7;
+            }
+        }
+        // send the mode select command
+        ret = scsi_Mode_Select_10(device, modePageLength, true, true, false, unitAttentionModePage, modePageLength);
+    }
+    safe_free_aligned(&unitAttentionModePage);
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_Thermal_Throttle(const tDevice* M_NONNULL device,
+                                                         bool                     thermalThrottleEnableDisable)
+{
+    eReturnValues ret = UNKNOWN;
+    switch (get_Device_DriveType(device))
+    {
+    case NVME_DRIVE:
+        ret = NOT_SUPPORTED;
+        break;
+    case SCSI_DRIVE:
+        ret = scsi_Set_Thermal_Throttle(device, thermalThrottleEnableDisable);
+        break;
+    case ATA_DRIVE:
+        ret = NOT_SUPPORTED;
+        break;
+    default:
+        ret = NOT_SUPPORTED;
+    }
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Thermal_Throttle(const tDevice* M_NONNULL device,
+                                                              bool                     thermalThrottleEnableDisable)
+{
+    eReturnValues ret = UNKNOWN;
+    // Retrieve mode page length
+    uint8_t           modeParameterHeader[MODE_PARAMETER_HEADER_10_LEN];
+    uint8_t           modePageLength = 0;
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN, 0, true, false,
+                             MPC_CURRENT_VALUES,
+                             modeParameterHeader);
+    if (ret == SUCCESS)
+    {
+        modePageLength = (modeParameterHeader[0] << 8) + modeParameterHeader[1] + 2;
+    }
+    else
+    {
+        return FAILURE;
+    }
+
+    // on SAS we change this through a mode page
+    uint8_t* unitAttentionModePage = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(modePageLength, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
+    if (unitAttentionModePage == M_NULLPTR)
+    {
+        perror("calloc failure!");
+        return MEMORY_FAILURE;
+    }
+
+    // first read the current settings
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, modePageLength, 0, true, false,
+                             MPC_CURRENT_VALUES,
+                             unitAttentionModePage);
+    if (ret == SUCCESS)
+    {
+        // set up the mode parameter header
+        // mode data length
+        unitAttentionModePage[0] = M_Byte1(modePageLength - 2);
+        unitAttentionModePage[1] = M_Byte0(modePageLength - 2);
+        // medium type
+        unitAttentionModePage[2] = 0;
+        // device specific
+        unitAttentionModePage[3] = 0;
+        // reserved and LongLBA bit
+        unitAttentionModePage[4] = RESERVED;
+        // reserved
+        unitAttentionModePage[5] = RESERVED;
+        // block desciptor length
+        unitAttentionModePage[6] = 0;
+        unitAttentionModePage[7] = 0;
+        // now go change the bit to what we need it to, then send a mode select command
+        uint8_t thermalThrottleEnableBitOffset = MODE_PARAMETER_HEADER_10_LEN + 6;
+        if (thermalThrottleEnableDisable == true)
+        {
+            unitAttentionModePage[thermalThrottleEnableBitOffset] |= BIT0;
+        }
+        else
+        {
+            // turn the bit off if it is already set
+            if (unitAttentionModePage[thermalThrottleEnableBitOffset] & BIT0)
+            {
+                unitAttentionModePage[thermalThrottleEnableBitOffset] ^= BIT0;
+            }
+        }
+        // send the mode select command
+        ret = scsi_Mode_Select_10(device, modePageLength, true, true, false, unitAttentionModePage, modePageLength);
+    }
+    safe_free_aligned(&unitAttentionModePage);
     return ret;
 }
 

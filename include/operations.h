@@ -333,54 +333,6 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues nvme_Set_Write_Cache(const tDevice* M_NONNULL device,
                                                               bool                     writeCacheEnableDisable);
 
-
-    //-----------------------------------------------------------------------------
-    //
-    //  scsi_Set_Performance_Mode( tDevice* M_NONNULL device, bool performanceMode )
-    //
-    //! \brief   The PM (Performance Mode) bit in HDD's Unit Attention parameters page (00h) is
-    //! used to control the drive’s cache management algorithm to allow best performance in
-    //! different types of systems. It is the initiator’s responsibility to determine which setting
-    //! is best for that system.
-    //
-    //  Entry:
-    //!   \param device - file descriptor
-    //!   \param performanceMode -
-    //!          1 - A PM value of 1 indicates that the number of cache segments is fixed to the
-    //!              value set in mode page 08h.
-    //!          0 - A PM value of 0 indicates that the drive will optimize the number of segments
-    //!              depending on the command activity observed by the drive. The number of segments
-    //!              value (in mode page 08h) is ignored with the PM value is 0.
-    //!
-    //  Exit:
-    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
-    //
-    //-----------------------------------------------------------------------------
-    M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_NONNULL device, bool performanceMode);
-
-
-    //-----------------------------------------------------------------------------
-    //
-    //  scsi_Set_ThermalThrottleEnable( tDevice* M_NONNULL device, bool thermalThrottleEnable )
-    //
-    //! \brief   The TTE (Thermal Throttle Enable) bit in SSD's Unit Attention parameters page (
-    //! 00h) is used to control drive's activity based on temperature.
-    //
-    //  Entry:
-    //!   \param device - file descriptor
-    //!   \param thermalThrottleEnable -
-    //!          1 - If set to 1, drive activity is limited based on temperature.
-    //!          0 - If set to 0, drive activity is not limited-based on temperature.
-    //!
-    //  Exit:
-    //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
-    //
-    //-----------------------------------------------------------------------------
-    M_PARAM_RO(1)
-    OPENSEA_OPERATIONS_API eReturnValues scsi_Set_ThermalThrottleEnable(const tDevice* M_NONNULL device, bool thermalThrottleEnable);
-
-
     //-----------------------------------------------------------------------------
     //
     //  is_Read_Look_Ahead_Enabled( tDevice* M_NONNULL device )
