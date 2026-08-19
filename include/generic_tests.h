@@ -824,6 +824,242 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+    //  random_Read_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a random read test within a specified LBA range with a specified
+    //! number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startLBA = starting LBA for random test range
+    //!   \param[in] endLBA = ending LBA for random test range
+    //!   \param[in] numberOfSeeks = number of random seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues random_Read_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                     uint64_t                 startLBA,
+                                                                     uint64_t                 endLBA,
+                                                                     uint16_t                 numberOfSeeks,
+                                                                     custom_Update M_NULLABLE updateFunction,
+                                                                     void* M_NULLABLE         updateData,
+                                                                     bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  random_Write_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a random write test within a specified LBA range with a specified
+    //! number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startLBA = starting LBA for random test range
+    //!   \param[in] endLBA = ending LBA for random test range
+    //!   \param[in] numberOfSeeks = number of random seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues random_Write_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                      uint64_t                 startLBA,
+                                                                      uint64_t                 endLBA,
+                                                                      uint16_t                 numberOfSeeks,
+                                                                      custom_Update M_NULLABLE updateFunction,
+                                                                      void* M_NULLABLE         updateData,
+                                                                      bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  random_Verify_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a random verify test within a specified LBA range with a
+    //! specified number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startLBA = starting LBA for random test range
+    //!   \param[in] endLBA = ending LBA for random test range
+    //!   \param[in] numberOfSeeks = number of random seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues random_Verify_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                       uint64_t                 startLBA,
+                                                                       uint64_t                 endLBA,
+                                                                       uint16_t                 numberOfSeeks,
+                                                                       custom_Update M_NULLABLE updateFunction,
+                                                                       void* M_NULLABLE         updateData,
+                                                                       bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  random_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a random read, write, or verify test within a specified LBA
+    //! range with a specified number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] rwvcommand = enum value specifying which command type to issue
+    //!   \param[in] startLBA = starting LBA for random test range
+    //!   \param[in] endLBA = ending LBA for random test range
+    //!   \param[in] numberOfSeeks = number of random seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues random_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                eRWVCommandType          rwvcommand,
+                                                                uint64_t                 startLBA,
+                                                                uint64_t                 endLBA,
+                                                                uint16_t                 numberOfSeeks,
+                                                                custom_Update M_NULLABLE updateFunction,
+                                                                void* M_NULLABLE         updateData,
+                                                                bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  butterfly_Read_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a butterfly read test within a specified LBA range with a
+    //! specified number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startLBA = starting LBA for butterfly test range (outer diameter)
+    //!   \param[in] endLBA = ending LBA for butterfly test range (inner diameter)
+    //!   \param[in] numberOfSeeks = number of butterfly seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Read_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                        uint64_t                 startLBA,
+                                                                        uint64_t                 endLBA,
+                                                                        uint16_t                 numberOfSeeks,
+                                                                        custom_Update M_NULLABLE updateFunction,
+                                                                        void* M_NULLABLE         updateData,
+                                                                        bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  butterfly_Write_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a butterfly write test within a specified LBA range with a
+    //! specified number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startLBA = starting LBA for butterfly test range (outer diameter)
+    //!   \param[in] endLBA = ending LBA for butterfly test range (inner diameter)
+    //!   \param[in] numberOfSeeks = number of butterfly seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Write_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                         uint64_t                 startLBA,
+                                                                         uint64_t                 endLBA,
+                                                                         uint16_t                 numberOfSeeks,
+                                                                         custom_Update M_NULLABLE updateFunction,
+                                                                         void* M_NULLABLE         updateData,
+                                                                         bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  butterfly_Verify_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a butterfly verify test within a specified LBA range with a
+    //! specified number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] startLBA = starting LBA for butterfly test range (outer diameter)
+    //!   \param[in] endLBA = ending LBA for butterfly test range (inner diameter)
+    //!   \param[in] numberOfSeeks = number of butterfly seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Verify_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                          uint64_t                 startLBA,
+                                                                          uint64_t                 endLBA,
+                                                                          uint16_t                 numberOfSeeks,
+                                                                          custom_Update M_NULLABLE updateFunction,
+                                                                          void* M_NULLABLE         updateData,
+                                                                          bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  butterfly_Test_With_Range()
+    //
+    //! \brief   Description:  This function performs a butterfly read, write, or verify test within a specified LBA
+    //! range with a specified number of seeks. Will stop on the first error found
+    //
+    //  Entry:
+    //!   \param[in] device = file descriptor
+    //!   \param[in] rwvcommand = enum value specifying which command type to issue
+    //!   \param[in] startLBA = starting LBA for butterfly test range (outer diameter)
+    //!   \param[in] endLBA = ending LBA for butterfly test range (inner diameter)
+    //!   \param[in] numberOfSeeks = number of butterfly seek operations to perform
+    //!   \param[in] updateFunction = callback function to update UI
+    //!   \param[in] updateData = hidden data to pass to the callback function
+    //!   \param[in] hideLBACounter = set to true to hide the LBA counter being printed to stdout
+    //!
+    //  Exit:
+    //!   \return SUCCESS on successful completion, FAILURE = fail
+    //
+    //-----------------------------------------------------------------------------
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API eReturnValues butterfly_Test_With_Range(const tDevice* M_NONNULL device,
+                                                                   eRWVCommandType          rwvcommand,
+                                                                   uint64_t                 startLBA,
+                                                                   uint64_t                 endLBA,
+                                                                   uint16_t                 numberOfSeeks,
+                                                                   custom_Update M_NULLABLE updateFunction,
+                                                                   void* M_NULLABLE         updateData,
+                                                                   bool                     hideLBACounter);
+
+    //-----------------------------------------------------------------------------
+    //
     //  random_Read_Test()
     //
     //! \brief   Description:  This function performs a random read test for the amount of time specified. Will stop on

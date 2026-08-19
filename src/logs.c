@@ -5023,7 +5023,55 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL devi
     }
     else if (get_Device_DriveType(device) == SCSI_DRIVE)
     {
-        if (issueFactory == 4)
+        if (issueFactory == 1 || issueFactory == 2 || issueFactory == 3)
+        {
+            uint8_t startSubPage                = SEAGATE_FARM_SP_TIME_SERIES_START;
+            uint8_t farmTimeSeriesTotalSubPages = 1;
+            // 0x10 – 0x1F(Default) : Time Series Frames(16) : Most recent frame first
+            if (issueFactory == 1)
+            {
+                startSubPage                = SEAGATE_FARM_SP_TIME_SERIES_START;
+                farmTimeSeriesTotalSubPages =
+                    (SEAGATE_FARM_SP_TIME_SERIES_END - SEAGATE_FARM_SP_TIME_SERIES_START) + 1;
+            }
+            // 0xC0 – 0xC1 : Long Term Save Frames(2) : Most recent frame first
+            else if (issueFactory == 2)
+            {
+                startSubPage                = SEAGATE_FARM_SP_TIME_SERIES_ADD1;
+                farmTimeSeriesTotalSubPages = (SEAGATE_FARM_SP_TIME_SERIES_ADD2 - SEAGATE_FARM_SP_TIME_SERIES_ADD1) + 1;
+            }
+            // 0xC2 – 0xC7: Sticky Frames (6 or 10): Fixed Subpage code for each frame type
+            else if (issueFactory == 3)
+            {
+                startSubPage                = SEAGATE_FARM_SP_STICKY_START;
+                farmTimeSeriesTotalSubPages = (SEAGATE_FARM_SP_STICKY_END - SEAGATE_FARM_SP_STICKY_START) + 1;
+            }
+            if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, startSubPage, &logSize))
+            {
+                genericLogBuf =
+                    C_CAST(uint8_t*, safe_calloc_aligned(logSize * farmTimeSeriesTotalSubPages, sizeof(uint8_t),
+                                                                     get_Device_IO_Minimum_Alignment(device)));
+                if (genericLogBuf)
+                {
+                    uint8_t subPageIndex = 0;
+                    for (; (subPageIndex < farmTimeSeriesTotalSubPages) && (ret != FAILURE); subPageIndex++)
+                    {
+                        ret = get_SCSI_Log(device, SEAGATE_LP_FARM, startSubPage + subPageIndex, M_NULLPTR, M_NULLPTR,
+                                           true, genericLogBuf + (subPageIndex * logSize), logSize, M_NULLPTR);
+                    }
+                    logSize = subPageIndex * logSize;
+                }
+                else
+                {
+                    return MEMORY_FAILURE;
+                }
+            }
+            else
+            {
+                return NOT_SUPPORTED;
+            }
+        }
+        else if (issueFactory == 4)
         {
             if (SUCCESS == get_SCSI_Log_Size(device, SEAGATE_LP_FARM, SEAGATE_FARM_SP_FACTORY, &logSize))
             {
@@ -5103,8 +5151,12 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL devi
             if (ret == SUCCESS)
             {
                 secureFileInfo* fp_log = M_NULLPTR;
-                uint16_t        returnedPageLength =
+                size_t        returnedPageLength =
                     M_BytesTo2ByteValue(genericLogBuf[2], genericLogBuf[3]) + LOG_PAGE_HEADER_LENGTH;
+                if (issueFactory < 4)
+                {
+                    returnedPageLength = logSize;
+                }
 
                 if (SUCCESS ==
                     create_And_Open_Secure_Log_File_Dev_EZ(device, &fp_log, fileNameType, filePath, logName, "bin"))
