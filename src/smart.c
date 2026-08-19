@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: MPL-2.0
 //
 // Do NOT modify or remove this copyright and license
 //
@@ -145,106 +145,106 @@ OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(const tDevice* M_NONNU
 
 OPENSEA_OPERATIONS_API errno_t
 get_Seagate_Attribute_Name(uint8_t         attributeNumber,
-                           char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                           char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
     {
     case 1: // read error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
         break;
     case 3: // spin up time
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
         break;
     case 4: // start stop count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
         break;
     case 5: // retired sectors count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
         break;
     case 7: // Seek Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
         break;
     case 9: // Power on Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 10: // Spin Retry Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
         break;
     case 12: // Drive Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     case 18: // Read Error Rate self test
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Health Self Assessment");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Health Self Assessment");
         break;
     case 174: // Unexpected Power Loss Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
         break;
     case 183: // PHY Counter Events
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "PHY Counter Events");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "PHY Counter Events");
         break;
     case 184: // IOEDC Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "IOEDC Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "IOEDC Count");
         break;
     case 187: // Reported Un-correctable
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
         break;
     case 188: // Command Timeout
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
         break;
     case 189: // High Fly Writes
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "High Fly Writes");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "High Fly Writes");
         break;
     case 190: // Airflow Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
         break;
     case 191: // Shock Sensor Counter
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
         break;
     case 192: // Emergency Retract Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
         break;
     case 193: // Load-Unload Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
         break;
     case 194: // Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
         break;
     case 195: // ECC On the Fly Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
         break;
     case 197: // Pending-Sparing Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
         break;
     case 198: // Offline Uncorrectable Sector Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sector Count");
         break;
     case 199: // Ultra DMA CRC Error
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
         break;
     case 200: // Pressure Measurement Limit
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pressure Measurement Limit");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pressure Measurement Limit");
         break;
     case 230: // Life Curve Status
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Life Curve Status");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Life Curve Status");
         break;
     case 231: // SSD Life Left
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
         break;
     case 235: // SSD Power Loss Mgmt Life Left
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Power Less Mgmt Life Left");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Power Less Mgmt Life Left");
         break;
     case 240: // Head flight Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
         break;
     case 241: // Lifetime Writes from Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
         break;
     case 242: // Lifetime Reads from Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
         break;
     case 254: // Free Fall Event
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Event");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Event");
         break;
     default:
         break;
@@ -255,7 +255,7 @@ get_Seagate_Attribute_Name(uint8_t         attributeNumber,
 OPENSEA_OPERATIONS_API errno_t
 get_Seagate_Vendor_D_E_Attribute_Name(eSeagateFamily  vendor,
                                       uint8_t         attributeNumber,
-                                      char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                                      char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     if (vendor != SEAGATE_VENDOR_D && vendor != SEAGATE_VENDOR_E)
@@ -265,52 +265,52 @@ get_Seagate_Vendor_D_E_Attribute_Name(eSeagateFamily  vendor,
     switch (attributeNumber)
     {
     case 1: // Read Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
         break;
     case 5: // retired sectors count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
         break;
     case 9: // Power on Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 12: // Drive Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     case 171: // Program Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
         break;
     case 172: // Erase Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
         break;
     case 181: // Program Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
         break;
     case 182: // Erase Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
         break;
     case 194: // Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
         break;
     case 201: // Soft Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
         break;
     case 204: // Soft ECC Correction Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
         break;
     case 231: // SSD Life Left
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
         break;
     case 234: // Lifetime Write to Flash
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes To Flash in GiB");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes To Flash in GiB");
         break;
     case 241: // Lifetime Writes from Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
         break;
     case 242: // Lifetime Reads from Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
         break;
     case 250: // Lifetime NAND Read Retries
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
         break;
     default:
         break;
@@ -320,115 +320,115 @@ get_Seagate_Vendor_D_E_Attribute_Name(eSeagateFamily  vendor,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Samsung_HDD_Attribute_Name(uint8_t         attributeNumber,
-                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                               char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
     {
     case 1: // read error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
         break;
     case 2: // Throughput Performance
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
         break;
     case 3: // spin up time
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
         break;
     case 4: // start stop count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
         break;
     case 5: // retired sectors count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
         break;
     case 7: // Seek Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
         break;
     case 8: // seek time performance.
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
         break;
     case 9: // Power on Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 10: // Spin Retry Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
         break;
     case 11: // calibration retry count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
         break;
     case 12: // Drive Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     case 180: // End to End Error Detection
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End to End Error Detection");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End to End Error Detection");
         break;
     case 181: // Unaligned Access
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unaligned Access");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unaligned Access");
         break;
     case 183: // SATA Interface Downshift
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Interface Downshift");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Interface Downshift");
         break;
     case 184: // End to End detection
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Detection");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Detection");
         break;
     case 187: // Reported Un-correctable
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
         break;
     case 188: // Command Timeout
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
         break;
     case 190: // Airflow Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Airflow Temperature");
         break;
     case 191: // Shock Sensor Counter
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock Sensor Counter");
         break;
     case 192: // Emergency Retract Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Emergency Retract Count");
         break;
     case 193: // Load-Unload Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-Unload Count");
         break;
     case 194: // Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
         break;
     case 195: // ECC On the Fly Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
         break;
     case 196: // Re-allocate Sector Event
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
         break;
     case 197: // Pending-Sparing Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending Sector Count");
         break;
     case 198: // offline uncorrectable sectors
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sectors");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Uncorrectable Sectors");
         break;
     case 199: // Ultra DMA CRC Error
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
         break;
     case 200: // Write Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
         break;
     case 201: // Soft Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Error Rate");
         break;
     case 223: // Load Retry Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Retry Count");
         break;
     case 225: // Load Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Cycle Count");
         break;
     case 240: // Head Fly Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flight Hours");
         break;
     case 241: // Total Write Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Write Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Write Count");
         break;
     case 242: // Total Read Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Read Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Read Count");
         break;
     case 254: // Free fall Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Fall Count");
         break;
     default:
         break;
@@ -438,156 +438,156 @@ get_Samsung_HDD_Attribute_Name(uint8_t         attributeNumber,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Maxtor_Attribute_Name(uint8_t         attributeNumber,
-                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                          char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     // names are from here: https://www.smartmontools.org/wiki/AttributesMaxtor
     switch (attributeNumber)
     {
     case 1: // raw read error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
         break;
     case 2: // throughput performance
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Throughput Performance");
         break;
     case 3: // spin-up time
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
         break;
     case 4: // start/stop count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
         break;
     case 5: // Reallocated Sector Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
         break;
     case 6: // start/stop count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
         break;
     case 7: // seek error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
         break;
     case 8: // seek time performance
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Time Performance");
         break;
     case 9: // power on hours
         // internal spec says this is minutes, but not sure which drives report in minutes.
         // Old drives I have tested seem to do hours. may need to use revision number
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-On Hours");
         break;
     case 10: // spin-up retry count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin-Up Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin-Up Retry Count");
         break;
     case 11: // calibration retry count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Calibration Retry Count");
         break;
     case 12: // power cycle count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
         break;
     case 13: // soft read error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
         break;
     case 192: // power-off retract cycle count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle Count");
         break;
     case 193: // Load/Unload Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
         break;
     case 194: // HDA Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "HDA Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "HDA Temperature");
         break;
     case 195: // Hardware ECC Recovered
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Hardware ECC Recovered");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Hardware ECC Recovered");
         break;
     case 196: // Reallocated Event Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Event Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Event Count");
         break;
     case 197: // Current Pending Sector Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
         break;
     case 198: // Offline Scan Uncorrectable Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Count");
         break;
     case 199: // UltraDMA CRC Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error Rate");
         break;
     case 200: // Write Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Error Rate");
         break;
     case 201: // Soft Read Error Rate
         // off track errors is an alternate name
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft Read Error Rate");
         break;
     case 202: // Data Addres Mark Errors
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Data Address Mark Errors");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Data Address Mark Errors");
         break;
     case 203: // run out cancel
         // ECC errors is an alternate name
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Run Out Cancel");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Run Out Cancel");
         break;
     case 204: // Soft ECC Correction
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction");
         break;
     case 205: // Thermal Asperity Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Thermal Asperity Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Thermal Asperity Rate");
         break;
     case 206: // Flying Height
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flying Height");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flying Height");
         break;
     case 207: // Spin High Current
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin High Current");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin High Current");
         break;
     case 208: // Spin Buzz
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Buzz");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Buzz");
         break;
     case 209: // Offline Seek Performance
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Seek Performance");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Offline Seek Performance");
         break;
     case 210: // Vibration during Write
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Write");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Write");
         break;
     case 211: // Vibration during Read
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Read");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vibration During Read");
         break;
     case 212: // Shock during Write
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock During Write");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Shock During Write");
         break;
     case 220: // Disk Shift
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Disk Shift");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Disk Shift");
         break;
     case 221: // G-Sense Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "G-Sense Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "G-Sense Error Rate");
         break;
     case 222: // Loaded Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Loaded Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Loaded Hours");
         break;
     case 223: // Load/Unload Retry Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Retry Count");
         break;
     case 224: // Load Friction
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Friction");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load Friction");
         break;
     case 225: // Load/Unload Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load/Unload Cycle Count");
         break;
     case 226: // Load-in Time
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-In Time");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Load-In Time");
         break;
     case 227: // Torque Amplification Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Torque Amplification Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Torque Amplification Count");
         break;
     case 228: // Power-Off Retract Cycle
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power-Off Retract Cycle");
         break;
     case 230: // GMR Head Amplitude
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "GMR Head Amplitude");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "GMR Head Amplitude");
         break;
     case 231: // Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
         break;
     case 240: // Head Flying Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flying Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Head Flying Hours");
         break;
     case 250: // Read Error Retry Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
         break;
     default:
         break;
@@ -598,7 +598,7 @@ get_Maxtor_Attribute_Name(uint8_t         attributeNumber,
 OPENSEA_OPERATIONS_API errno_t
 get_Seagate_Vendor_B_C_Attribute_Name(eSeagateFamily  vendor,
                                       uint8_t         attributeNumber,
-                                      char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                                      char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     if (vendor != SEAGATE_VENDOR_B && vendor != SEAGATE_VENDOR_C)
@@ -608,163 +608,163 @@ get_Seagate_Vendor_B_C_Attribute_Name(eSeagateFamily  vendor,
     switch (attributeNumber)
     {
     case 1: // read error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
         break;
     case 5: // retired block count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Block Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Block Count");
         break;
     case 9: // Power on Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 12: // Drive Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     case 100: // Total Erase Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
         break;
     case 168: // Min Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Min Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Min Power Cycle Count");
         break;
     case 169: // Max power cycle count (seagate-vendor-b-c)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Power Cycle Count");
         break;
     case 171: // Program Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
         break;
     case 172: // Erase Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
         break;
     case 174: // Unexpected Power Loss Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
         break;
     case 175: // Maximum Program Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Program Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Program Fail Count");
         break;
     case 176: // Maximum Erase Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Fail Count");
         break;
     case 177: // Wear Leveling Count
         if (vendor == SEAGATE_VENDOR_B)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Leveling Count");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Leveling Count");
         }
         else if (vendor == SEAGATE_VENDOR_C)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Endurance Used");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Endurance Used");
         }
         break;
     case 178: // Used Reserved Block Count for The Worst Die
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Chip)");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Chip)");
         break;
     case 179: // Used Reserved Block Count for SSD
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Total)");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Used Reserve Block Count (Total)");
         break;
     case 180: // reported IOEDC Error In Interval (Seagate/Samsung), End to End Error Detection Rate
         if (vendor == SEAGATE_VENDOR_C)
         {
             error =
-                safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Rate");
+                safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Rate");
         }
         else if (vendor == SEAGATE_VENDOR_B)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH,
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH,
                                            "Unused Reserved Block Count (Total)");
         }
         break;
     case 181: // Program Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
         break;
     case 182: // Erase Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
         break;
     case 183: // PHY Counter Events (Seagate), SATA Downshift Count (Seagate-vendor-b-c)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Downshift Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Downshift Count");
         break;
     case 184: // IOEDC Count (Seagate), End to End Error Detection Count (Seagate-vendor-b-c)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End To End Error Detection Count");
         break;
     case 187: // Reported Un-correctable
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
         break;
     case 188: // Command Timeout
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Command Timeout");
         break;
     case 190: // Airflow Temperature (Seagate), SATA Error Counters (Seagate-vendor-b-c)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Error Counters");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA Error Counters");
         break;
     case 194: // Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
         break;
     case 195: // ECC On the Fly Count (Seagate)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "ECC On The Fly Count");
         break;
     case 196: // Re-allocate Sector Event
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Re-allocate Sector Event");
         break;
     case 197: // Pending-Sparing Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Current Pending Sector Count");
         break;
     case 198: // offlince uncorrectable sectors
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Sectors");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Off-line Uncorrectable Sectors");
         break;
     case 199: // Ultra DMA CRC Error
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Ultra DMA CRC Error");
         break;
     case 201: // Uncorrectable Read Error Rate (Seagate-vendor-b-c)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Rate");
         break;
     case 204: // Soft ECC Correction Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Soft ECC Correction Rate");
         break;
     case 212: // Phy Error Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Phy Error Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Phy Error Count");
         break;
     case 231: // SSD Life Left
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
         break;
     case 234: //
         if (vendor == SEAGATE_VENDOR_B)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
         }
         else if (vendor == SEAGATE_VENDOR_C)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vendor Specific");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Vendor Specific");
         }
         break;
     case 241: // Lifetime Writes from Host
         if (vendor == SEAGATE_VENDOR_B)
         {
             error =
-                safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
+                safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host in GiB");
         }
         else if (vendor == SEAGATE_VENDOR_C)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
         }
         break;
     case 242: // Lifetime Reads from Host
         if (vendor == SEAGATE_VENDOR_B)
         {
             error =
-                safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
+                safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host in GiB");
         }
         else if (vendor == SEAGATE_VENDOR_C)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
         }
         break;
     case 245: // SSD Life Left (%)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left %");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left %");
         break;
     case 250: // Lifetime NAND Read Retries
         if (vendor == SEAGATE_VENDOR_B)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime NAND Read Retries");
         }
         else if (vendor == SEAGATE_VENDOR_C)
         {
-            error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
+            error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Retry Rate");
         }
         break;
     default:
@@ -775,73 +775,73 @@ get_Seagate_Vendor_B_C_Attribute_Name(eSeagateFamily  vendor,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Seagate_Vendor_F_Attribute_Name(uint8_t         attributeNumber,
-                                    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                                    char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
     {
     case 1: // UECC error count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "UECC Error count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "UECC Error count");
         break;
     case 9: // Power on Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 12: // Drive Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     case 16: // Spare Blocks Available
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spare Blocks Available");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spare Blocks Available");
         break;
     case 17: // Remaining Spare Blocks
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Spare Blocks");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Spare Blocks");
         break;
     case 168: // Sata Phy Error Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Sata Phy Error Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Sata Phy Error Count");
         break;
     case 170: // Bad Block Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Bad Block Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Bad Block Count");
         break;
     case 173: // Erase Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Count");
         break;
     case 174: // Unexpected Power Loss Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
         break;
     case 177: // Wear Range Delta
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
         break;
     case 192: // Unexpected power loss count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power loss Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power loss Count");
         break;
     case 194: // Primary Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
         break;
     case 218: // CRC Error Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "CRC Error Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "CRC Error Count");
         break;
     case 231: // SSD Life Left
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
         break;
     case 232: // Read failure block count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Failure Block Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Failure Block Count");
         break;
     case 233: // NAND GiB written
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND GiB Written");
         break;
     case 234: // NAND sectors read
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Read");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Read");
         break;
     case 235: // NAND sectors written
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Written");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND sectors Written");
         break;
     case 241: // Lifetime Writes from Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
         break;
     case 242: // Lifetime Reads from Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
         break;
     case 246: // Write Protect Detail
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Write Protect Detail");
         break;
     default:
         break;
@@ -851,98 +851,98 @@ get_Seagate_Vendor_F_Attribute_Name(uint8_t         attributeNumber,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Seagate_Vendor_G_Attribute_Name(uint8_t         attributeNumber,
-                                    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                                    char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
     {
     case 1: // Raw Read Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Raw Read Error Rate");
         break;
     case 5: // Reallocated Sector Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
         break;
     case 9: // Power on Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 11: // Power Fail Event Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Fail Event Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Fail Event Count");
         break;
     case 12: // Drive Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     case 100: // Flash Gigabytes Erased
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flash Gigabytes Erased");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Flash Gigabytes Erased");
         break;
     case 101: // Lifetime DevSleep Exit Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime DevSleep Exit Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime DevSleep Exit Count");
         break;
     case 102: // Lifetime PS4 Entry Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS4 Entry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS4 Entry Count");
         break;
     case 103: // Lifetime PS3 Exit Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS3 Exit Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime PS3 Exit Count");
         break;
     case 170: // Grown Bad Block Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Grown Bad Block Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Grown Bad Block Count");
         break;
     case 171: // Program Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Program Fail Count");
         break;
     case 172: // Erase Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
         break;
     case 173: // Average Program/Erase Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Program/Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Program/Erase Count");
         break;
     case 174: // Unexpected Power Loss Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Unexpected Power Loss Count");
         break;
     case 177: // Wear Range Delta
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Wear Range Delta");
         break;
     case 183: // SATA/PCIe Interface Downshift Count
         error =
-            safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA/PCIe Interface Downshift Count");
+            safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA/PCIe Interface Downshift Count");
         break;
     case 184: // End-To-End CRC Error Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End-To-End CRC Error Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "End-To-End CRC Error Count");
         break;
     case 187: // Uncorrectable ECC Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable ECC Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable ECC Count");
         break;
     case 194: // Primary Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Primary Temperature");
         break;
     case 195: // RAISE ECC Correctable Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "RAISE ECC Correctable Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "RAISE ECC Correctable Count");
         break;
     case 198: // Uncorrectable Read Error Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Read Error Count");
         break;
     case 199: // SATA R-Error (CRC) Error Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA R-Error (CRC) Error Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SATA R-Error (CRC) Error Count");
         break;
     case 230: // Drive Life Protection Status
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Life Protection Status");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Life Protection Status");
         break;
     case 231: // SSD Life Left
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
         break;
     case 232: // Available Reserved Space
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Available Reserved Space");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Available Reserved Space");
         break;
     case 233: // Lifetime Writes to Flash
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes to Flash");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes to Flash");
         break;
     case 241: // Lifetime Writes From Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Writes From Host");
         break;
     case 242: // Lifetime Reads from Host
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Lifetime Reads From Host");
         break;
     case 243: // Free Space
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Space");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Free Space");
         break;
     default:
         break;
@@ -952,32 +952,32 @@ get_Seagate_Vendor_G_Attribute_Name(uint8_t         attributeNumber,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Conner_Attribute_Name(uint8_t         attributeNumber,
-                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                          char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     // From product manual for models CFS635A/CFS850A/CFS1275A
     switch (attributeNumber)
     {
     case 1:
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Firm Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Firm Error Rate");
         break;
     case 3:
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
         break;
     case 4:
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Count");
         break;
     case 5:
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors");
         break;
     case 7:
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
         break;
     case 10:
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retries");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retries");
         break;
     case 12:
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     default:
         break;
@@ -987,97 +987,97 @@ get_Conner_Attribute_Name(uint8_t         attributeNumber,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Seagate_Vendor_K_Attribute_Name(uint8_t         attributeNumber,
-                                    char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                                    char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
     {
     case 1: // read error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
         break;
     case 5: // reallocated sector count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
         break;
     case 9: // power on hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 12: // power cycle count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Cycle Count");
         break;
     case 160: // Uncorrectable Sector Count during r/w
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Sector Count - R/W");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Sector Count - R/W");
         break;
     case 161: // Number of valid spare blocks
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Valid Spare Blocks");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Valid Spare Blocks");
         break;
     case 163: // number of invalid blocks
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Invalid Blocks");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Number of Invalid Blocks");
         break;
     case 164: // Total erase count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
         break;
     case 165: // Maximum erase count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
         break;
     case 166: // Minimum erase count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Minimum Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Minimum Erase Count");
         break;
     case 167: // average erase count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
         break;
     case 168: // Max erase count of spec
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Erase Count of Spec");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Max Erase Count of Spec");
         break;
     case 169: // remaining life
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Life");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Remaining Life");
         break;
     case 172: // Erase fail count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Erase Fail Count");
         break;
     case 173: // reserved
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reserved");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reserved");
         break;
     case 181: // Total Program Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Program Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Program Fail Count");
         break;
     case 182: // Total Erase Fail Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Fail Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Fail Count");
         break;
     case 187: // Uncorrectable error count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Error Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Uncorrectable Error Count");
         break;
     case 192: // power off retract count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Off Retract Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power Off Retract Count");
         break;
     case 194: // temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
         break;
     case 196: // reallocation event count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocation Event Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocation Event Count");
         break;
     case 218: // USB 3.0 recovery count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "USB 3.0 Recovery Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "USB 3.0 Recovery Count");
         break;
     case 231: // SSD Life Left
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "SSD Life Left");
         break;
     case 233: // NAND Write (32MB units)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND Written");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "NAND Written");
         break;
     case 241: // Total LBA Written (32MB units)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Written");
         break;
     case 242: // Total LBA Read (32MB units)
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total LBAs Read");
         break;
     case 244: // Average Erase count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Average Erase Count");
         break;
     case 245: // maximum erase count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Maximum Erase Count");
         break;
     case 246: // Total Erase Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Total Erase Count");
         break;
     default:
         break;
@@ -1087,34 +1087,34 @@ get_Seagate_Vendor_K_Attribute_Name(uint8_t         attributeNumber,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Quantum_Attribute_Name(uint8_t         attributeNumber,
-                           char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                           char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
     {
     case 1: // read error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
         break;
     case 3: // spin up time
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
         break;
     case 4: // start-stop count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start-Stop Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start-Stop Count");
         break;
     case 5: // Reallocated sector count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reallocated Sector Count");
         break;
     case 7: // seek error rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
         break;
     case 9: // power on hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 11: // recal retry count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Recalibration Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Recalibration Retry Count");
         break;
     case 12: // drive power cycle count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     default:
         break;
@@ -1124,43 +1124,43 @@ get_Quantum_Attribute_Name(uint8_t         attributeNumber,
 
 OPENSEA_OPERATIONS_API errno_t
 get_Common_Attribute_Names(uint8_t         attributeNumber,
-                           char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                           char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     errno_t error = 0;
     switch (attributeNumber)
     {
     case 1: // Read Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Read Error Rate");
         break;
     case 3: // Spin Up Time
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Up Time");
         break;
     case 4: // Start/Stop Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Start/Stop Count");
         break;
     case 5: // Retired Sectors Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Retired Sectors Count");
         break;
     case 7: // Seek Error Rate
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Seek Error Rate");
         break;
     case 9: // Power On Hours
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Power On Hours");
         break;
     case 10: // Spin Retry Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Spin Retry Count");
         break;
     case 12: // Drive Power Cycle Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Drive Power Cycle Count");
         break;
     case 187: // Reported Un-correctable
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Reported Un-correctable");
         break;
     case 194: // Temperature
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Temperature");
         break;
     case 197: // Pending-Sparing Count
-        error = safe_strcpy_no_overlap(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
+        error = safe_strcpy_no_overlap(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, "Pending-Sparing Count");
         break;
     default:
         break;
@@ -1168,15 +1168,29 @@ get_Common_Attribute_Names(uint8_t         attributeNumber,
     return error;
 }
 
+M_DEPRECATED_REASON("Use get_Device_SMART_Attribute_Name instead")
 M_PARAM_RO(1)
 M_PARAM_WO(3)
 OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL device,
                                                uint8_t                  attributeNumber,
-                                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
+                                               char*M_NONNULL* M_NONNULL attributeName)
+{
+    if (0 != get_Device_SMART_Attribute_Name(device, attributeNumber, *attributeName))
+        M_UNLIKELY
+        {
+            perror("Error setting attribute name");
+        }
+}
+
+M_PARAM_RO(1)
+M_PARAM_WO(3)
+OPENSEA_OPERATIONS_API errno_t get_Device_SMART_Attribute_Name(const tDevice* M_NONNULL device,
+                                            uint8_t                  attributeNumber,
+                                            char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH])
 {
     eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
     errno_t        error          = 0;
-    if (0 != safe_memset(*attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
+    if (0 != safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
         M_UNLIKELY
         {
             perror("Error clearing attribute name buffer before setting attribute name.");
@@ -1219,11 +1233,7 @@ OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL device,
         error = get_Common_Attribute_Names(attributeNumber, attributeName);
         break;
     }
-    if (0 != error)
-        M_UNLIKELY
-        {
-            perror("Error setting attribute name");
-        }
+    return error;
 }
 
 M_PARAM_RW(2)
@@ -1679,18 +1689,13 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
     if (get_Device_DriveType(device) == ATA_DRIVE)
     {
         eSeagateFamily isSeagateDrive = is_Seagate_Family(device);
-        DECLARE_ZERO_INIT_ARRAY(char, attrName, MAX_ATTRIBUTE_NAME_LENGTH);
-        char* attributeName = attrName;
         for (uint8_t iter = UINT8_C(0); iter < UINT8_MAX; ++iter)
         {
             if (smartData->attributes.ataSMARTAttr.attributes[iter].valid)
             {
                 smartAnylyzedData->attributes[iter].attributeNumber = iter;
                 smartAnylyzedData->attributes[iter].isValid         = true;
-
-                get_Attribute_Name(device, iter, &attributeName);
-                if (0 != safe_strcpy(smartAnylyzedData->attributes[iter].attributeName, MAX_ATTRIBUTE_NAME_LENGTH,
-                                     attributeName))
+                if (0 != get_Device_SMART_Attribute_Name(device, iter, smartAnylyzedData->attributes[iter].attributeName))
                     M_UNLIKELY
                     {
                         perror("Error copying attribute name");
@@ -3684,12 +3689,6 @@ static eReturnValues get_ATA_Analyzed_ATA_Attributes_From_SMART_Data(const tDevi
                     }
                     break;
                 }
-
-                if (0 != safe_memset(attributeName, MAX_ATTRIBUTE_NAME_LENGTH, 0, MAX_ATTRIBUTE_NAME_LENGTH))
-                    M_UNLIKELY
-                    {
-                        perror("Error clearing attribute name before reuse.");
-                    }
             }
         }
         return SUCCESS;
@@ -4697,10 +4696,8 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                     attributes.attributes.ataSMARTAttr.attributes[counter].data.nominal;
                                 tripInfo->ataAttribute.thresholdValue =
                                     attributes.attributes.ataSMARTAttr.attributes[counter].thresholdData.thresholdValue;
-                                char* attributeName =
-                                    M_REINTERPRET_CAST(char*, safe_calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-                                get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, &attributeName);
-                                if (safe_strlen(attributeName))
+                                DECLARE_ZERO_INIT_ARRAY(char, attributeName, MAX_ATTRIBUTE_NAME_LENGTH);
+                                if (0 == get_Device_SMART_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber, attributeName) && safe_strlen(attributeName))
                                 {
                                     // use the name in the error reason
                                     snprintfres = snprintf_err_handle(
@@ -4769,14 +4766,9 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                     tripInfo->ataAttribute.thresholdValue =
                                         attributes.attributes.ataSMARTAttr.attributes[counter]
                                             .thresholdData.thresholdValue;
-                                    char* attributeName =
-                                        M_REINTERPRET_CAST(char*, safe_calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-                                    if (attributeName)
-                                    {
-                                        get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber,
-                                                           &attributeName);
-                                    }
-                                    if (attributeName && safe_strlen(attributeName) > 0)
+                                    DECLARE_ZERO_INIT_ARRAY(char, attributeName, MAX_ATTRIBUTE_NAME_LENGTH);
+                                    if (0 == get_Device_SMART_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber,
+                                                                    attributeName) && safe_strlen(attributeName) > 0)
                                     {
                                         // use the name in the error reason
                                         snprintfres = snprintf_err_handle(
@@ -4803,7 +4795,6 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                         tripInfo->reasonStringLength =
                                             C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
-                                    safe_free(&attributeName);
                                 }
                                 break;
                             }
@@ -4838,14 +4829,9 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                     tripInfo->ataAttribute.thresholdValue =
                                         attributes.attributes.ataSMARTAttr.attributes[counter]
                                             .thresholdData.thresholdValue;
-                                    char* attributeName =
-                                        M_REINTERPRET_CAST(char*, safe_calloc(MAX_ATTRIBUTE_NAME_LENGTH, sizeof(char)));
-                                    if (attributeName)
-                                    {
-                                        get_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber,
-                                                           &attributeName);
-                                    }
-                                    if (attributeName && safe_strlen(attributeName) > 0)
+                                    DECLARE_ZERO_INIT_ARRAY(char, attributeName, MAX_ATTRIBUTE_NAME_LENGTH);
+                                    if (0 == get_Device_SMART_Attribute_Name(device, tripInfo->ataAttribute.attributeNumber,
+                                                                    attributeName) && safe_strlen(attributeName) > 0)
                                     {
                                         // use the name in the error reason
                                         snprintfres = snprintf_err_handle(
@@ -4873,7 +4859,6 @@ OPENSEA_OPERATIONS_API eReturnValues ata_SMART_Check(const tDevice* M_NONNULL   
                                         tripInfo->reasonStringLength =
                                             C_CAST(uint8_t, safe_strlen(tripInfo->reasonString));
                                     }
-                                    safe_free(&attributeName);
                                 }
                             }
                         }
@@ -6177,6 +6162,82 @@ OPENSEA_OPERATIONS_API eReturnValues set_MRIE_Mode(const tDevice* M_NONNULL devi
             if (driveDefault)
             {
                 control.mrie = defaultMode;
+            }
+            ret = set_SCSI_Informational_Exceptions_Info(device, true, &control);
+        }
+        else
+        {
+            ret = NOT_SUPPORTED; // leave as this since the drive doesn't support this mode page
+        }
+    }
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL device, bool ewascMode, bool driveDefault)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
+    {
+        informationalExceptionsControl control;
+        M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
+        bool defaultMode = true;
+        if (driveDefault)
+        {
+            if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
+            {
+                defaultMode = control.ewasc;
+            }
+            else
+            {
+                return FAILURE;
+            }
+        }
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
+        {
+            control.ewasc = ewascMode;
+            if (driveDefault)
+            {
+                control.ewasc = defaultMode;
+            }
+            ret = set_SCSI_Informational_Exceptions_Info(device, true, &control);
+        }
+        else
+        {
+            ret = NOT_SUPPORTED; // leave as this since the drive doesn't support this mode page
+        }
+    }
+    return ret;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL device,
+                                                     bool                     dexcptMode,
+                                                    bool                     driveDefault)
+{
+    eReturnValues ret = NOT_SUPPORTED;
+    if (get_Device_DriveType(device) == SCSI_DRIVE)
+    {
+        informationalExceptionsControl control;
+        M_INITIALIZE_STRUCTURE(&control, sizeof(informationalExceptionsControl));
+        bool defaultMode = false;
+        if (driveDefault)
+        {
+            if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_DEFAULT_VALUES, &control, M_NULLPTR))
+            {
+                defaultMode = control.dexcpt;
+            }
+            else
+            {
+                return FAILURE;
+            }
+        }
+        if (SUCCESS == get_SCSI_Informational_Exceptions_Info(device, MPC_CURRENT_VALUES, &control, M_NULLPTR))
+        {
+            control.dexcpt = dexcptMode;
+            if (driveDefault)
+            {
+                control.dexcpt = defaultMode;
             }
             ret = set_SCSI_Informational_Exceptions_Info(device, true, &control);
         }
