@@ -79,7 +79,7 @@ extern "C"
     //!   \param[out] sanitizeOptions - pointer to the sanitizeFeaturesSupported structure to populate some information
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -99,7 +99,7 @@ extern "C"
     //!   \param[out] sanitizeOptions = pointer to struct that will have which operations are supported set
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
