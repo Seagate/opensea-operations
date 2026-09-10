@@ -702,7 +702,7 @@ extern "C"
     //!   \param[in] dataLen = Data buffer Length
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues get_Ext_Smrt_Log(const tDevice* M_NONNULL device);

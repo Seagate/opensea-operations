@@ -55,7 +55,7 @@ extern "C"
     //
     //  erase_Time( tDevice* M_NONNULL device )
     //
-    //! \brief   Erase a LBAs from a starting LBA for a time in seconds.
+    //! \brief   Erase LBAs from a starting LBA for a time in seconds.
     //
     //  Entry:
     //!   \param device - file descriptor
