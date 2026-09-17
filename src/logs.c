@@ -280,7 +280,8 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Log_Size(const tDevice* M_NONNULL 
     // we know the page is supported, but to get the size, we need to try reading it.
     if (ret == SUCCESS)
     {
-        if (0 != safe_memset(logBuffer, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH, 0, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH))
+        if (0 !=
+            safe_memset(logBuffer, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH, 0, SCSI_LOG_SUPPORTED_SUBPAGES_MAX_LENGTH))
         {
             safe_free_aligned(&logBuffer);
             return MEMORY_FAILURE;
@@ -5031,8 +5032,7 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL devi
             if (issueFactory == 1)
             {
                 startSubPage                = SEAGATE_FARM_SP_TIME_SERIES_START;
-                farmTimeSeriesTotalSubPages =
-                    (SEAGATE_FARM_SP_TIME_SERIES_END - SEAGATE_FARM_SP_TIME_SERIES_START) + 1;
+                farmTimeSeriesTotalSubPages = (SEAGATE_FARM_SP_TIME_SERIES_END - SEAGATE_FARM_SP_TIME_SERIES_START) + 1;
             }
             // 0xC0 – 0xC1 : Long Term Save Frames(2) : Most recent frame first
             else if (issueFactory == 2)
@@ -5050,7 +5050,7 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL devi
             {
                 genericLogBuf =
                     C_CAST(uint8_t*, safe_calloc_aligned(logSize * farmTimeSeriesTotalSubPages, sizeof(uint8_t),
-                                                                     get_Device_IO_Minimum_Alignment(device)));
+                                                         get_Device_IO_Minimum_Alignment(device)));
                 if (genericLogBuf)
                 {
                     uint8_t subPageIndex = 0;
@@ -5151,7 +5151,7 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_Log(const tDevice* M_NONNULL devi
             if (ret == SUCCESS)
             {
                 secureFileInfo* fp_log = M_NULLPTR;
-                size_t        returnedPageLength =
+                size_t          returnedPageLength =
                     M_BytesTo2ByteValue(genericLogBuf[2], genericLogBuf[3]) + LOG_PAGE_HEADER_LENGTH;
                 if (issueFactory < 4)
                 {

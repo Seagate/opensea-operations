@@ -612,10 +612,12 @@ OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_M
 #else
                             uint16_t mnLimit = M_Min(MODEL_NUM_LEN, ATA_IDENTIFY_MN_LENGTH);
 #endif
-                            safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
-                                        0, mnLimit + 1);
-                            safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
-                                        &capMNMappingLog[offset + 8], mnLimit);
+                            if (0 != safe_strncpy(
+                                         capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
+                                         M_REINTERPRET_CAST(const char*, &capMNMappingLog[offset + 8]), mnLimit))
+                            {
+                                perror("Error copying MN string from capacity MN mapping log page");
+                            }
                             for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
                             {
                                 if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||
@@ -681,10 +683,12 @@ OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_M
                                 1; // Need to -1 for SCSI so that this will match the -i report. If this is not done,
                                    // then we end up with 1 less than the value provided.
                             uint16_t mnLimit = M_Min(MODEL_NUM_LEN, 16);
-                            safe_memset(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
-                                        0, mnLimit + 1);
-                            safe_memcpy(capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
-                                        &capProdIDMappingVPD[offset + 8], mnLimit);
+                            if (0 != safe_strncpy(
+                                         capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN + 1,
+                                         M_REINTERPRET_CAST(const char*, &capProdIDMappingVPD[offset + 8]), mnLimit))
+                            {
+                                perror("Error copying MN string from capacity MN mapping VPD page");
+                            }
                             for (uint16_t iter = UINT16_C(0); iter < mnLimit; ++iter)
                             {
                                 if (!safe_isascii(capModelMapping->descriptor[descriptorCounter].modelNumber[iter]) ||
@@ -698,7 +702,7 @@ OPENSEA_OPERATIONS_API ptrcapacityModelNumberMapping get_Capacity_Model_Number_M
                                 capModelMapping->descriptor[descriptorCounter].modelNumber, MODEL_NUM_LEN);
                         }
                     }
-                } // M_STATIC_CAST(uint64_t, capProdIDMappingSz) == capProdIDMappingTotalBytes
+                }
             }
             safe_free_aligned(&capProdIDMappingVPD);
         }

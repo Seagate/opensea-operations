@@ -372,7 +372,7 @@ size_t op_format_json_message(const op_json_message* M_NONNULL msg, char* M_NONN
     /* strip trailing comma if present */
     if (offset > 0 && out_buf[offset - 1] == ',')
     {
-        out_buf[offset - 1] = '\0';
+        null_Terminate_String(out_buf, M_STATIC_CAST(rsize_t, offset));
         offset -= 1;
     }
 

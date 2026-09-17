@@ -366,10 +366,11 @@ M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API bool scsi_Is_Performance_Mode_Enabled(const tDevice* M_NONNULL device)
 {
     eReturnValues ret     = NOT_SUPPORTED;
-    bool enabled = false;
-    uint8_t modePageData[MODE_PARAMETER_HEADER_10_LEN + 8];
+    bool          enabled = false;
+    uint8_t       modePageData[MODE_PARAMETER_HEADER_10_LEN + 8];
     // Read the current settings
-    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN + 8, 0, true, false, MPC_CURRENT_VALUES, modePageData);
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN + 8, 0, true,
+                             false, MPC_CURRENT_VALUES, modePageData);
     if (ret == SUCCESS)
     {
         // check the offset to see if the bit is set.
@@ -409,7 +410,8 @@ OPENSEA_OPERATIONS_API bool scsi_Is_Thermal_Throttle_Enabled(const tDevice* M_NO
     bool          enabled = false;
     uint8_t       modePageData[MODE_PARAMETER_HEADER_10_LEN + 8];
     // Read the current settings
-    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN + 8, 0, true, false, MPC_CURRENT_VALUES, modePageData);
+    ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN + 8, 0, true,
+                             false, MPC_CURRENT_VALUES, modePageData);
     if (ret == SUCCESS)
     {
         // check the offset to see if the bit is set.
@@ -523,7 +525,8 @@ OPENSEA_OPERATIONS_API eReturnValues set_SSC_Feature_SATA(const tDevice* M_NONNU
 }
 
 M_PARAM_RO(1)
-OPENSEA_OPERATIONS_API eReturnValues set_Performance_Mode(const tDevice* M_NONNULL device, bool performanceModeEnableDisable)
+OPENSEA_OPERATIONS_API eReturnValues set_Performance_Mode(const tDevice* M_NONNULL device,
+                                                          bool                     performanceModeEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     switch (get_Device_DriveType(device))
@@ -545,15 +548,14 @@ OPENSEA_OPERATIONS_API eReturnValues set_Performance_Mode(const tDevice* M_NONNU
 
 M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_NONNULL device,
-                                                          bool                     performanceModeEnableDisable)
+                                                               bool                     performanceModeEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     // Retrieve mode page length
-    uint8_t           modeParameterHeader[MODE_PARAMETER_HEADER_10_LEN];
-    uint8_t           modePageLength = 0;
+    uint8_t modeParameterHeader[MODE_PARAMETER_HEADER_10_LEN];
+    uint8_t modePageLength = 0;
     ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN, 0, true, false,
-                             MPC_CURRENT_VALUES,
-                             modeParameterHeader);
+                             MPC_CURRENT_VALUES, modeParameterHeader);
     if (ret == SUCCESS)
     {
         modePageLength = (modeParameterHeader[0] << 8) + modeParameterHeader[1] + 2;
@@ -574,8 +576,7 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_
 
     // first read the current settings
     ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, modePageLength, 0, true, false,
-                             MPC_CURRENT_VALUES,
-                             unitAttentionModePage);
+                             MPC_CURRENT_VALUES, unitAttentionModePage);
     if (ret == SUCCESS)
     {
         // set up the mode parameter header
@@ -616,7 +617,7 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_
 
 M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API eReturnValues set_Thermal_Throttle(const tDevice* M_NONNULL device,
-                                                         bool                     thermalThrottleEnableDisable)
+                                                          bool                     thermalThrottleEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     switch (get_Device_DriveType(device))
@@ -638,15 +639,14 @@ OPENSEA_OPERATIONS_API eReturnValues set_Thermal_Throttle(const tDevice* M_NONNU
 
 M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Thermal_Throttle(const tDevice* M_NONNULL device,
-                                                              bool                     thermalThrottleEnableDisable)
+                                                               bool                     thermalThrottleEnableDisable)
 {
     eReturnValues ret = UNKNOWN;
     // Retrieve mode page length
-    uint8_t           modeParameterHeader[MODE_PARAMETER_HEADER_10_LEN];
-    uint8_t           modePageLength = 0;
+    uint8_t modeParameterHeader[MODE_PARAMETER_HEADER_10_LEN];
+    uint8_t modePageLength = 0;
     ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, MODE_PARAMETER_HEADER_10_LEN, 0, true, false,
-                             MPC_CURRENT_VALUES,
-                             modeParameterHeader);
+                             MPC_CURRENT_VALUES, modeParameterHeader);
     if (ret == SUCCESS)
     {
         modePageLength = (modeParameterHeader[0] << 8) + modeParameterHeader[1] + 2;
@@ -667,8 +667,7 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Thermal_Throttle(const tDevice* M_
 
     // first read the current settings
     ret = scsi_Mode_Sense_10(device, SEAGATE_MP_UNIT_ATTENTION_PARAMETERS, modePageLength, 0, true, false,
-                             MPC_CURRENT_VALUES,
-                             unitAttentionModePage);
+                             MPC_CURRENT_VALUES, unitAttentionModePage);
     if (ret == SUCCESS)
     {
         // set up the mode parameter header
