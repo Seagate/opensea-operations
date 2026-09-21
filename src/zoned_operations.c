@@ -365,10 +365,11 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
     }
 }
 
-M_PARAM_RO(3)
+M_NONNULL_IF_NONZERO_SIZE(3, 2)
+M_PARAM_RO_SIZE(3, 2)
 OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       reportingOptions,
                                                    uint32_t                    numberOfZoneDescriptors,
-                                                   ptrZoneDescriptor M_NONNULL zoneDescriptors)
+                                                   ptrZoneDescriptor M_NULLABLE zoneDescriptors)
 {
     print_str("=======Key======\n");
     print_str("\tZone Type:\n");
@@ -432,18 +433,20 @@ OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       r
             perror("Error copying zone reporting options string");
         }
 
-    if (zoneDescriptors == M_NULLPTR)
-    {
-        perror("bad pointer to zoneDescriptors");
-        return;
-    }
-
     printf("\n===%s===\n", showingZones);
 
     printf("%-4s  %-17s  %-4s  %-15s  %-7s  %-15s\n", "Type", "Zone Condition", "Attr", "Start LBA", "Length",
            "Write Pointer");
-    for (uint32_t zoneIter = UINT32_C(0); zoneIter < numberOfZoneDescriptors; ++zoneIter)
+    if (zoneDescriptors == M_NULLPTR || numberOfZoneDescriptors == 0)
     {
-        print_Zone_Descriptor(zoneDescriptors[zoneIter]);
+        printf("%-4s  %-17s  %-4s  %-15s  %-7s  %-15s\n",
+               "N/A", "N/A", "N/A", "N/A", "N/A", "N/A");
+    }
+    else
+    {
+        for (uint32_t zoneIter = UINT32_C(0); zoneIter < numberOfZoneDescriptors; ++zoneIter)
+        {
+            print_Zone_Descriptor(zoneDescriptors[zoneIter]);
+        }
     }
 }

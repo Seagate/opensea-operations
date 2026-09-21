@@ -86,10 +86,11 @@ extern "C"
 
     // eZoneReportingOptions reportingOptions is used to print the header saying which zones we are showing (all, some,
     // etc)
-    M_PARAM_RO(3)
+    M_NONNULL_IF_NONZERO_SIZE(3, 2)
+    M_PARAM_RO_SIZE(3, 2)
     OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       reportingOptions,
                                                        uint32_t                    numberOfZoneDescriptors,
-                                                       ptrZoneDescriptor M_NONNULL zoneDescriptors);
+                                                       ptrZoneDescriptor M_NULLABLE zoneDescriptors);
 
 #if defined(__cplusplus)
 }
