@@ -1,6 +1,13 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
-project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.4.0', meson_version: '>=0.56.0', default_options: ['warning_level=2', 'default_library=static'])
+project(
+    'opensea-operations',
+    'c',
+    license: 'MPL-2.0',
+    version: '9.4.0',
+    meson_version: '>=0.56.0',
+    default_options: ['warning_level=2', 'default_library=static'],
+)
 
 c = meson.get_compiler('c')
 
@@ -88,7 +95,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wcalloc-transposed-args',
         '-Werror=alloca',  # Do not allow use of the alloca function
         '-Wstring-compare',  # Helps detect when strcmp is used when the programmer likely meant to use strncmp
-        '-Wfortify-source' # Clang specific (at least for now) but enables additional diagnostics.
+        '-Wfortify-source',  # Clang specific (at least for now) but enables additional diagnostics.
     ]
 
     if get_option('cc-suggest-attribute')
@@ -111,13 +118,16 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         warning_flags += '-Wsign-conversion'
     endif
 
-    # Check if -fstack-protector-strong links or not - some systems support
-    # the argument but are unable to link with it. Fall back to plain
-    # -fstack-protector when strong is unavailable.
-    # GCC's optimize attribute forces canary codegen on the probe function so
-    # the check does not depend on the compiler's per-function protection
-    # heuristics deciding that a small test function is not worth protecting.
-    stack_protector_test_code = '''
+    # ssp option: 'auto' (default) and 'enabled' both run the automatic
+    # probing below; 'disabled' skips the whole block and builds SSP-free.
+    if get_option('ssp').auto() or get_option('ssp').enabled()
+        # Check if -fstack-protector-strong links or not - some systems support
+        # the argument but are unable to link with it. Fall back to plain
+        # -fstack-protector when strong is unavailable.
+        # GCC's optimize attribute forces canary codegen on the probe function so
+        # the check does not depend on the compiler's per-function protection
+        # heuristics deciding that a small test function is not worth protecting.
+        stack_protector_test_code = '''
         #if defined(__GNUC__) && !defined(__clang__)
         __attribute__((noinline, optimize("-fstack-protector-all")))
         #else
@@ -132,28 +142,28 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         }
         int main(void) { return ssp_probe(); }
     '''
-    # The probe is compiled with the same warning_flags the real objects use
-    # (filtered to supported arguments) so its codegen matches the build,
-    # and linked with -z defs (also filtered to supported link arguments,
-    # like the real link does). On 32-bit i386/powerpc GCC
-    # emits a hidden (local binding) reference to __stack_chk_fail_local that
-    # is not a global export; it can only be satisfied by a static archive
-    # (glibc libc_nonshared.a, musl libssp_nonshared.a, illumos libssp_ns.a,
-    # see golang/go#58385). Toolchains that cannot provide it will fail the
-    # link and drop the flag. A bare 'compiles' check or a minimal link args
-    # list cannot detect this.
-    if c.links(
-        stack_protector_test_code,
-        name: 'stack-protector-strong link support',
-        args: c.get_supported_arguments(warning_flags) + c.get_supported_link_arguments(['-Wl,-z,defs']) + ['-fstack-protector-strong'],
-    )
-        warning_flags += '-fstack-protector-strong'
-    elif c.links(
-        stack_protector_test_code,
-        name: 'stack-protector link support',
-        args: c.get_supported_arguments(warning_flags) + c.get_supported_link_arguments(['-Wl,-z,defs']) + ['-fstack-protector'],
-    )
-        warning_flags += '-fstack-protector'
+        # A link check rather than a compile: on some toolchains the SSP glue
+        # symbols (__stack_chk_fail[_local], __stack_chk_guard) are only
+        # provided by a static archive and must already resolve at link time
+        # (see golang/go#58385).
+        ssp_strong_ok = c.links(
+            stack_protector_test_code,
+            name: 'stack-protector-strong link support',
+            args: ['-fstack-protector-strong'],
+        )
+        ssp_regular_ok = false
+        if not ssp_strong_ok
+            ssp_regular_ok = c.links(
+                stack_protector_test_code,
+                name: 'stack-protector link support',
+                args: ['-fstack-protector'],
+            )
+        endif
+        if ssp_strong_ok
+            warning_flags += '-fstack-protector-strong'
+        elif ssp_regular_ok
+            warning_flags += '-fstack-protector'
+        endif
     endif
 
     # Check if -fstack-clash-protection works or not. Some GCC for Windows
@@ -175,13 +185,15 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
     if c.links(
         stack_clash_test_code,
         name: 'stack-clash-protection link support',
-        args: c.get_supported_arguments(warning_flags) + c.get_supported_link_arguments(['-Wl,-z,defs']) + ['-fstack-clash-protection'],
+        args: ['-fstack-clash-protection'],
     )
         if meson.can_run_host_binaries()
             stack_clash_result = c.run(
                 stack_clash_test_code,
                 name: 'stack-clash-protection run support',
-                args: c.get_supported_arguments(warning_flags) + c.get_supported_link_arguments(['-Wl,-z,defs']) + ['-fstack-clash-protection'],
+                args: [
+                    '-fstack-clash-protection',
+                ],
             )
             if stack_clash_result.returncode() == 0
                 warning_flags += '-fstack-clash-protection'
@@ -294,11 +306,11 @@ elif c.get_id().contains('msvc')
     # MSVC defaults to old MSVC C compatibility which is mostly C89 with some newer C99/C11-ish support
     # Since we support older meson versions, we deal with this causing a warning over using the default_options to
     # set the C standard for the project.
-    if  c.has_argument('/std:clatest')
+    if c.has_argument('/std:clatest')
         warning_flags += '/std:clatest'
-    elif  c.has_argument('/std:c17')
+    elif c.has_argument('/std:c17')
         warning_flags += '/std:c17'
-    elif  c.has_argument('/std:c11')
+    elif c.has_argument('/std:c11')
         warning_flags += '/std:c11'
     endif
 
@@ -348,7 +360,7 @@ if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
 endif
 
 if target_machine.system() == 'windows'
-  global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
+    global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
 endif
 
 defaultlib = get_option('default_library')
@@ -362,7 +374,9 @@ elif defaultlib == 'shared'
     build_c_args += ['-DEXPORT_OPENSEA_OPERATIONS']
     dep_c_args += ['-DIMPORT_OPENSEA_OPERATIONS']
 else
-    error('Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib)
+    error(
+        'Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib,
+    )
 endif
 
 
@@ -410,7 +424,7 @@ opensea_operations_lib = library(
     c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep],
     include_directories: incdir,
-    gnu_symbol_visibility : 'hidden'
+    gnu_symbol_visibility: 'hidden',
 )
 
 opensea_operations_dep = declare_dependency(
