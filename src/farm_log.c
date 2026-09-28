@@ -3118,6 +3118,52 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Bool(const char* M_NULLAB
     }
 }
 
+static M_INLINE void print_Stat_If_Supported_And_Valid_Helium_Pressure(const char* M_NULLABLE statisticname,
+                                                            uint64_t               statisticData)
+{
+    uint8_t status = get_Farm_Status_Byte(statisticData);
+    if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
+    {
+        const char* good   = "Good";
+        const char* tripped  = "Tripped";
+        print_Statistic_Name(statisticname);
+        if ((status & FARM_FIELD_VALID_BIT) > 0)
+        {
+            bool format = M_ToBool(M_Byte6(statisticData) & BIT0);
+            printf_str("\t\t");
+            if (format)
+            {
+                // SMART normalized: 100 - good, 1 - tripped
+                if (get_Farm_Qword_Data(statisticData) == 1)
+                {
+                    printf_str(tripped);
+                }
+                else
+                {
+                    printf_str(good);
+                }
+            }
+            else
+            {
+                // 0 - good, 1 - tripped
+                if (get_Farm_Qword_Data(statisticData) > 0)
+                {
+                    printf_str(tripped);
+                }
+                else
+                {
+                    printf_str(good);
+                }
+            }
+            print_str("\n");
+        }
+        else
+        {
+            print_str("\t\tInvalid\n");
+        }
+    }
+}
+
 typedef enum eFARMByHeadOutputFormat
 {
     FARM_BY_HEAD_UINT64 = 0,
@@ -4163,8 +4209,7 @@ static void print_FARM_Reliability_Info(const farmReliabilityStatistics* M_NONNU
             print_Stat_If_Supported_And_Valid_By_Head("# Reallocated Candidate Sectors",
                                                       reli->numReallocationCandidateSectorsByHead, numheads,
                                                       FARM_BY_HEAD_UINT64, 0.0);
-            print_Stat_If_Supported_And_Valid_Bool("Helium Pressure Threshold", reli->heliumPressureThresholdTrip,
-                                                   "Tripped", "Not Tripped");
+            print_Stat_If_Supported_And_Valid_Helium_Pressure("Helium Pressure Threshold", reli->heliumPressureThresholdTrip);
             print_Stat_If_Supported_And_Valid_By_Head("# DOS Ought To Scan", reli->dosOughtScanCountByHead, numheads,
                                                       FARM_BY_HEAD_UINT64, 0.0);
             print_Stat_If_Supported_And_Valid_By_Head("# DOS Need To Scan", reli->dosNeedToScanCountByHead, numheads,
