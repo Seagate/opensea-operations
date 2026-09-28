@@ -3118,8 +3118,9 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Bool(const char* M_NULLAB
     }
 }
 
+M_NULL_TERM_STRING(1)
 static M_INLINE void print_Stat_If_Supported_And_Valid_Helium_Pressure(const char* M_NULLABLE statisticname,
-                                                            uint64_t               statisticData)
+                                                                       uint64_t               statisticData)
 {
     uint8_t status = get_Farm_Status_Byte(statisticData);
     if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
