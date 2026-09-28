@@ -3131,17 +3131,17 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Helium_Pressure(const cha
         if ((status & FARM_FIELD_VALID_BIT) > 0)
         {
             bool format = M_ToBool(M_Byte6(statisticData) & BIT0);
-            printf_str("\t\t");
+            print_str("\t\t");
             if (format)
             {
                 // SMART normalized: 100 - good, 1 - tripped
                 if (get_Farm_Qword_Data(statisticData) == 1)
                 {
-                    printf_str(tripped);
+                    print_str(tripped);
                 }
                 else
                 {
-                    printf_str(good);
+                    print_str(good);
                 }
             }
             else
@@ -3149,11 +3149,11 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Helium_Pressure(const cha
                 // 0 - good, 1 - tripped
                 if (get_Farm_Qword_Data(statisticData) > 0)
                 {
-                    printf_str(tripped);
+                    print_str(tripped);
                 }
                 else
                 {
-                    printf_str(good);
+                    print_str(good);
                 }
             }
             print_str("\n");
