@@ -436,7 +436,10 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice* M_NO
         }
         if (SUCCESS == scsi_Mode_Sense_10(device, modePage, modeLength, subpage, false, longlba, mpc, modeBuffer))
         {
-            *modePageSize = M_BytesTo2ByteValue(modeBuffer[0], modeBuffer[1]) + 2;
+            uint16_t modeDataLen = UINT16_C(0);
+            get_mode_param_header_10_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                            M_NULLPTR);
+            *modePageSize = M_STATIC_CAST(uint32_t, modeDataLen) + UINT32_C(2);
             ret           = SUCCESS;
         }
         else
@@ -496,7 +499,9 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice* M_NO
                 device, modePage, C_CAST(uint8_t, modeLength), subpage, false, mpc,
                 modeBuffer)) // don't disable block descriptors here since this is mostly to support old drives.
         {
-            *modePageSize = modeBuffer[0] + 1;
+            uint8_t modeDataLen = UINT8_C(0);
+            get_mode_param_header_6_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, M_NULLPTR);
+            *modePageSize = M_STATIC_CAST(uint32_t, modeDataLen) + UINT32_C(1);
             ret           = SUCCESS;
         }
     }
@@ -577,36 +582,45 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice* M_NONNULL
             {
                 *used6ByteCmd = false;
             }
-            // validate the correct page was returned!
-            uint16_t modeDataLen  = UINT16_C(0);
-            uint16_t blockDescLen = UINT16_C(0);
-            get_mode_param_header_10_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, M_NULLPTR,
-                                            &blockDescLen);
-            if (modeDataLen > 0 &&
-                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+
+            if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)
             {
-                if (subpage > 0)
-                {
-                    // validate we received a subpage correctly
-                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
-                    {
-                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
-                        {
-                            // subpage value does not match the request
-                            ret = FAILURE;
-                        }
-                    }
-                    else
-                    {
-                        ret = FAILURE;
-                    }
-                }
+                // TODO: Consider a different validation routine...loop through the buffer and validate multiple pages
+                // were found?
             }
             else
             {
-                // page code already does not match!
-                // consider this a failure!
-                ret = FAILURE;
+                // validate the correct page was returned!
+                uint16_t modeDataLen  = UINT16_C(0);
+                uint16_t blockDescLen = UINT16_C(0);
+                get_mode_param_header_10_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, M_NULLPTR,
+                                                &blockDescLen);
+                if (modeDataLen > 0 &&
+                    modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen], 5, 0))
+                {
+                    if (subpage > 0)
+                    {
+                        // validate we received a subpage correctly
+                        if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
+                        {
+                            if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
+                            {
+                                // subpage value does not match the request
+                                ret = FAILURE;
+                            }
+                        }
+                        else
+                        {
+                            ret = FAILURE;
+                        }
+                    }
+                }
+                else
+                {
+                    // page code already does not match!
+                    // consider this a failure!
+                    ret = FAILURE;
+                }
             }
             if (!toBuffer && !fileOpened && ret != FAILURE)
             {
@@ -747,35 +761,44 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice* M_NONNULL
             {
                 *used6ByteCmd = true;
             }
-            // validate the correct page was returned!
-            uint8_t modeDataLen  = UINT8_C(0);
-            uint8_t blockDescLen = UINT8_C(0);
-            get_mode_param_header_6_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR, &blockDescLen);
-            if (modeDataLen > 0 &&
-                modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+            if (modePage == MP_RETURN_ALL_PAGES || subpage == MP_SP_ALL_SUBPAGES)
             {
-                if (subpage > 0)
-                {
-                    // validate we received a subpage correctly
-                    if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
-                    {
-                        if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
-                        {
-                            // subpage value does not match the request
-                            ret = FAILURE;
-                        }
-                    }
-                    else
-                    {
-                        ret = FAILURE;
-                    }
-                }
+                // TODO: Consider a different validation routine...loop through the buffer and validate multiple pages
+                // were found?
             }
             else
             {
-                // page code already does not match!
-                // consider this a failure!
-                ret = FAILURE;
+                // validate the correct page was returned!
+                uint8_t modeDataLen  = UINT8_C(0);
+                uint8_t blockDescLen = UINT8_C(0);
+                get_mode_param_header_6_fields(modeBuffer, modeLength, &modeDataLen, M_NULLPTR, M_NULLPTR,
+                                               &blockDescLen);
+                if (modeDataLen > 0 &&
+                    modePage == get_bit_range_uint8(modeBuffer[MODE_PARAMETER_HEADER_6_LEN + blockDescLen], 5, 0))
+                {
+                    if (subpage > 0)
+                    {
+                        // validate we received a subpage correctly
+                        if (modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen] & BIT6)
+                        {
+                            if (subpage != modeBuffer[MODE_PARAMETER_HEADER_10_LEN + blockDescLen + 1])
+                            {
+                                // subpage value does not match the request
+                                ret = FAILURE;
+                            }
+                        }
+                        else
+                        {
+                            ret = FAILURE;
+                        }
+                    }
+                }
+                else
+                {
+                    // page code already does not match!
+                    // consider this a failure!
+                    ret = FAILURE;
+                }
             }
             if (!toBuffer && !fileOpened && ret != FAILURE)
             {
@@ -4033,7 +4056,7 @@ OPENSEA_OPERATIONS_API eReturnValues print_Supported_NVMe_Logs(const tDevice* M_
         // 0C = asymestric namespace access - anacap bit0 in controller identify??? or bit3 CMIC??? or oaes bit11???
         if (le32_to_host(device->drive_info.IdentifyData.nvme.ctrl.oaes) & BIT11)
         {
-            print_str("  12 (0CAh)\n");
+            print_str("  12 (0Ch)\n");
         }
         // 0D = lpa bit 4 = persistent event log
         if (device->drive_info.IdentifyData.nvme.ctrl.lpa & BIT4)

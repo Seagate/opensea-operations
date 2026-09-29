@@ -82,8 +82,9 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tD
                                                                         eNvmeFeaturesSelectValue selectType,
                                                                         M_ATTR_UNUSED bool listOnlySupportedFeatures)
 {
-    eReturnValues      ret = UNKNOWN;
-    uint16_t           featureID;
+    eReturnValues      ret = SUCCESS;
+    uint16_t           featureID = 0;
+    uint16_t           featureCnt = 0;
     nvmeFeaturesCmdOpt featureCmd;
     bool               vendorUniqueLinePrinted       = false;
     bool               commandSetSpecificLinePrinted = false;
@@ -102,6 +103,7 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tD
         featureCmd.dataPtr    = featData;
         if (nvme_Get_Features(device, &featureCmd) == SUCCESS)
         {
+            ++featureCnt;
             if (!vendorUniqueLinePrinted && featureID >= 0xC0)
             {
                 print_str("---------Vendor Unique---------\n");
@@ -116,6 +118,11 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tD
         }
     }
     print_str("===============================\n");
+    if (featureCnt == 0)
+    {
+        // probably an error
+        ret = FAILURE;
+    }
 
 #ifdef _DEBUG
     printf("<--%s (%d)\n", __FUNCTION__, ret);
