@@ -83,7 +83,7 @@ OPENSEA_OPERATIONS_API eReturnValues ata_Get_DST_Progress(const tDevice* M_NONNU
     eReturnValues result = SUCCESS;
     DECLARE_ZERO_INIT_ARRAY(uint8_t, temp_buf, ATA_SMART_READ_DATA_SIZE);
     result = ata_SMART_Read_Data(device, temp_buf, sizeof(temp_buf));
-    if (result == SUCCESS)
+    if (result == SUCCESS || result == WARN_INVALID_CHECKSUM)
     {
         // get the progress
         *percentComplete = ATA_SELF_TEST_PROGRESS_SCSI_CONVERSION_FACTOR -
@@ -1059,6 +1059,9 @@ static eReturnValues poll_DST_Progress(const tDevice* M_NONNULL device,
     const char* overTimeWarningMessage = "WARNING: DST is taking longer than expected.";
     bool        showTimeWarning        = false;
     bool        abortForTooLong        = false;
+
+    os_Disable_Idle_Power(device);
+
     while (status == 0x0F && (ret == SUCCESS || ret == IN_PROGRESS))
     {
         lastProgressIndication = percentComplete;
@@ -1114,6 +1117,9 @@ static eReturnValues poll_DST_Progress(const tDevice* M_NONNULL device,
         }
         delay_Seconds(timing.pollingInterval);
     }
+
+    os_Restore_Idle_Power(device);
+
     if (status == 0 && ret == SUCCESS)
     {
         if (showProgress)
