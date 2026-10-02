@@ -2877,7 +2877,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -2893,7 +2893,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeCryptoErasePassTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -2909,7 +2909,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -2925,7 +2925,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteErasePassTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -2941,7 +2941,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeBlockErasePassCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -2957,7 +2957,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeBlockErasePassTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -2973,7 +2973,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -2989,7 +2989,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitPassTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3005,7 +3005,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.eraseSecurityFileFailureCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3021,7 +3021,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.eraseSecurityFileFailureTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3037,7 +3037,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3053,7 +3053,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedPassTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3069,7 +3069,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3085,7 +3085,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeCryptoEraseFailTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3101,7 +3101,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3117,7 +3117,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeOverwriteEraseFailTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3133,7 +3133,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3149,7 +3149,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.sanitizeBlockEraseFailTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3165,7 +3165,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3181,7 +3181,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitFailTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3197,7 +3197,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailCount.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
@@ -3213,7 +3213,7 @@ static eReturnValues get_Seagate_ATA_DeviceStatistics(const tDevice* M_NONNULL  
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.failureInfo =
                         M_Byte5(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.isTimeStampsInMinutes =
-                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT39;
+                        le64_to_host(qwordPtrDeviceStatsLog[0]) & BIT32;
                     seagateDeviceStats->sataStatistics.ataSecurityEraseUnitEnhancedFailTimeStamp.statisticsDataValue =
                         M_DoubleWord0(le64_to_host(qwordPtrDeviceStatsLog[0]));
                     break;
