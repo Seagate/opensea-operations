@@ -6,7 +6,7 @@ project(
     license: 'MPL-2.0',
     version: '9.4.0',
     meson_version: '>=0.56.0',
-    default_options: ['warning_level=2', 'default_library=static'],
+    default_options: ['warning_level=2', 'werror=true', 'b_ndebug=if-release', 'default_library=static'],
 )
 
 c = meson.get_compiler('c')

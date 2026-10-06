@@ -82,8 +82,8 @@ OPENSEA_OPERATIONS_API eReturnValues nvme_Print_All_Feature_Identifiers(const tD
                                                                         eNvmeFeaturesSelectValue selectType,
                                                                         M_ATTR_UNUSED bool listOnlySupportedFeatures)
 {
-    eReturnValues      ret = SUCCESS;
-    uint16_t           featureID = 0;
+    eReturnValues      ret        = SUCCESS;
+    uint16_t           featureID  = 0;
     uint16_t           featureCnt = 0;
     nvmeFeaturesCmdOpt featureCmd;
     bool               vendorUniqueLinePrinted       = false;

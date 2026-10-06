@@ -9557,7 +9557,8 @@ OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformatio
                     print_str("Ultra Low Enabled\n");
                     break;
                 default:
-                    printf("Unknown/Invalid state: %" PRIX16 "\n", C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
+                    printf("Unknown/Invalid state: %" PRIX16 "\n",
+                           C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
                     break;
                 }
             }

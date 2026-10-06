@@ -623,7 +623,7 @@ static void perform_Walking_Test(const tDevice*        device,
     if (patternBuffer != M_NULLPTR)
     {
         uint32_t lbasPerBuffer = get_LBAs_Per_BufferSize(device, deviceBufferSize);
-        uint64_t bytemax       = (deviceBufferSize / lbasPerBuffer);
+        uint32_t bytemax       = M_STATIC_CAST(uint32_t, deviceBufferSize / lbasPerBuffer);
         DECLARE_SEATIMER(patternTimer);
         start_Timer(&patternTimer);
         for (uint32_t bitNumber = UINT32_C(0), byteNumber = UINT32_C(0); byteNumber < bytemax; ++bitNumber)
@@ -857,17 +857,17 @@ static eReturnValues perform_Pattern_Test(const tDevice*      device,
     return ret;
 }
 
-eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults testResults)
+eReturnValues perform_Cable_Test(const tDevice* M_NONNULL device, ptrCableTestResults M_NONNULL testResults)
 {
     fuaCmd notNeeded = {false, false};
     return perform_Pattern_Test(device, testResults, CABLE_TEST_MODE_BUFFER_CMDS, RESERVED, 1, notNeeded);
 }
 
-eReturnValues perform_Write_Read_Compare_Test(const tDevice*      device,
-                                              ptrCableTestResults testResults,
-                                              uint64_t            startingLBA,
-                                              uint64_t            range,
-                                              fuaCmd              fuaCmdReq)
+eReturnValues perform_Write_Read_Compare_Test(const tDevice* M_NONNULL      device,
+                                              ptrCableTestResults M_NONNULL testResults,
+                                              uint64_t                      startingLBA,
+                                              uint64_t                      range,
+                                              fuaCmd                        fuaCmdReq)
 {
     eReturnValues ret = SUCCESS;
     ret = perform_Pattern_Test(device, testResults, CABLE_TEST_MODE_READ_WRITE_CMDS, startingLBA, range, fuaCmdReq);

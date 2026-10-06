@@ -88,8 +88,8 @@ extern "C"
     // etc)
     M_NONNULL_IF_NONZERO_SIZE(3, 2)
     M_PARAM_RO_SIZE(3, 2)
-    OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       reportingOptions,
-                                                       uint32_t                    numberOfZoneDescriptors,
+    OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions        reportingOptions,
+                                                       uint32_t                     numberOfZoneDescriptors,
                                                        ptrZoneDescriptor M_NULLABLE zoneDescriptors);
 
 #if defined(__cplusplus)
