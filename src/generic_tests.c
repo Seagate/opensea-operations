@@ -3873,8 +3873,8 @@ OPENSEA_OPERATIONS_API eReturnValues quick_Zero_Verify_Test(const tDevice* M_NON
     uint64_t randomLBA            = UINT64_MAX;
     uint64_t randomLBASectionSize = C_CAST(uint64_t, return_Device_MaxLba(device) / DRIVE_SECTIONS);
     seed_64(C_CAST(uint64_t, time(M_NULLPTR)));
-    for (uint64_t sectionCounter = UINT64_C(0), counter = UINT64_C(0); sectionCounter < DRIVE_SECTIONS;
-         sectionCounter++, counter += UINT64_C(2))
+    for (uint64_t sectionCounter = UINT64_C(0); sectionCounter < DRIVE_SECTIONS;
+         sectionCounter++)
     {
         // first random LBA from section
         {
