@@ -3207,8 +3207,7 @@ OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(const tDevice* M_NONNULL device,
                 }
                 offset += blockDescriptorLength;
                 uint16_t currentPageLength = UINT16_C(0);
-                uint16_t counter           = UINT16_C(0);
-                for (; offset < modePageLength && modeDataLen > 0; offset += currentPageLength, ++counter)
+                for (; offset < modePageLength && modeDataLen > 0; offset += currentPageLength)
                 {
                     if (modeData[offset] & BIT6)
                     {
