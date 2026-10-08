@@ -332,8 +332,8 @@ eReturnValues reallocate_LBAs(const tDevice* M_NONNULL device, ptrErrorLBA M_NON
         safe_free_aligned(&dataBuf);
         return ret;
     }
-    bool    done       = false;
-    uint8_t counter    = 0;
+    bool    done    = false;
+    uint8_t counter = 0;
     // This cast is safe as currently maximum logical per physical LBAs is 8. Unlikely to see that change any time soon.
     uint8_t maxRetries = M_STATIC_CAST(uint8_t, 5 * logicalPerPhysical);
     do
