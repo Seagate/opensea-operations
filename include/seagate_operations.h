@@ -152,7 +152,8 @@ extern "C"
     //
     //  scsi_Is_Performance_Mode_Enabled( tDevice* M_NONNULL device )
     //
-    //! \brief   Get the current status of PM (Performance Mode) bit from SAS Unit Attention parameters page (00h) using scsi commands.
+    //! \brief   Get the current status of PM (Performance Mode) bit from SAS Unit Attention parameters page (00h) using
+    //! scsi commands.
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -168,7 +169,8 @@ extern "C"
     //
     //  is_Thermal_Throttle_Enabled( tDevice* M_NONNULL device )
     //
-    //! \brief   Get the current status of TTE (Thermal Throttle Enable) from in SAS Unit Attention parameters page (00h).
+    //! \brief   Get the current status of TTE (Thermal Throttle Enable) from in SAS Unit Attention parameters page
+    //! (00h).
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -184,7 +186,8 @@ extern "C"
     //
     //  scsi_Is_Thermal_Throttle_Enabled( tDevice* M_NONNULL device )
     //
-    //! \brief   Get the current status of TTE (Thermal Throttle Enable) bit from SAS Unit Attention parameters page (00h) using scsi commands.
+    //! \brief   Get the current status of TTE (Thermal Throttle Enable) bit from SAS Unit Attention parameters page
+    //! (00h) using scsi commands.
     //
     //  Entry:
     //!   \param device - file descriptor
@@ -258,7 +261,6 @@ extern "C"
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_SSC_Feature_SATA(const tDevice* M_NONNULL device, eSSCFeatureState mode);
 
-
     //-----------------------------------------------------------------------------
     //
     //  set_Performance_Mode( tDevice* M_NONNULL device, bool performanceModeEnableDisable )
@@ -274,15 +276,16 @@ extern "C"
     //!          1 - A PM value of 1 indicates that the number of cache segments is fixed to the
     //!              value set in mode page 08h.
     //!          0 - A PM value of 0 indicates that the drive will optimize the number of segments
-    //!              depending on the command activity observed by the drive. The number of segments value (in mode page 08h) is ignored with the PM value is 0.
-    //! 
+    //!              depending on the command activity observed by the drive. The number of segments value (in mode page
+    //!              08h) is ignored with the PM value is 0.
+    //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_Performance_Mode(const tDevice* M_NONNULL device,
-                                                                 bool                     performanceModeEnableDisable);
+                                                              bool                     performanceModeEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -308,7 +311,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_NONNULL device,
-                                                             bool                     performanceModeEnableDisable);
+                                                                   bool performanceModeEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -329,7 +332,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_Thermal_Throttle(const tDevice* M_NONNULL device,
-                                                             bool                     thermalThrottleEnableDisable);
+                                                              bool                     thermalThrottleEnableDisable);
 
     //-----------------------------------------------------------------------------
     //
@@ -350,7 +353,7 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Thermal_Throttle(const tDevice* M_NONNULL device,
-                                                             bool                     thermalThrottleEnableDisable);
+                                                                   bool thermalThrottleEnableDisable);
 
     //-----------------------------------------------------------------------------
     //

@@ -1834,7 +1834,7 @@ static eReturnValues ata_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
         }
     }
     // fallback to passthrough write
-    errno = 0;
+    errno               = 0;
     size_t eraseSizeMem = uint32_to_sizet(eraseBlockSize) * uint32_to_sizet(maxLBARange);
     if (errno == ERANGE)
     {
@@ -1881,7 +1881,7 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
             }
         }
     }
-    errno = 0;
+    errno               = 0;
     size_t eraseSizeMem = uint32_to_sizet(eraseBlockSize) * uint32_to_sizet(maxLBARange);
     if (errno == ERANGE)
     {
@@ -1889,9 +1889,8 @@ static eReturnValues nvme_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
         return MEMORY_FAILURE;
     }
     // fallback to passthrough write
-    uint8_t* eraseMBR =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t),
-                                                         get_Device_IO_Minimum_Alignment(device)));
+    uint8_t* eraseMBR = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (eraseMBR == M_NULLPTR)
     {
         return MEMORY_FAILURE;
@@ -1927,7 +1926,7 @@ static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
         }
     }
     // fallback to passthrough write
-    errno = 0;
+    errno               = 0;
     size_t eraseSizeMem = uint32_to_sizet(devBlockSize);
     if (errno == ERANGE)
     {
@@ -1935,9 +1934,8 @@ static eReturnValues scsi_Passthrough_Erase_MBR(const tDevice* M_NONNULL device)
         return MEMORY_FAILURE;
     }
     // fallback to passthrough write
-    uint8_t* eraseMBR =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t),
-                                                         get_Device_IO_Minimum_Alignment(device)));
+    uint8_t* eraseMBR = M_REINTERPRET_CAST(
+        uint8_t*, safe_calloc_aligned(eraseSizeMem, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (eraseMBR == M_NULLPTR)
     {
         return MEMORY_FAILURE;

@@ -3125,8 +3125,8 @@ static M_INLINE void print_Stat_If_Supported_And_Valid_Helium_Pressure(const cha
     uint8_t status = get_Farm_Status_Byte(statisticData);
     if ((status & FARM_FIELD_SUPPORTED_BIT) > 0)
     {
-        const char* good   = "Good";
-        const char* tripped  = "Tripped";
+        const char* good    = "Good";
+        const char* tripped = "Tripped";
         print_Statistic_Name(statisticname);
         if ((status & FARM_FIELD_VALID_BIT) > 0)
         {
@@ -4210,7 +4210,8 @@ static void print_FARM_Reliability_Info(const farmReliabilityStatistics* M_NONNU
             print_Stat_If_Supported_And_Valid_By_Head("# Reallocated Candidate Sectors",
                                                       reli->numReallocationCandidateSectorsByHead, numheads,
                                                       FARM_BY_HEAD_UINT64, 0.0);
-            print_Stat_If_Supported_And_Valid_Helium_Pressure("Helium Pressure Threshold", reli->heliumPressureThresholdTrip);
+            print_Stat_If_Supported_And_Valid_Helium_Pressure("Helium Pressure Threshold",
+                                                              reli->heliumPressureThresholdTrip);
             print_Stat_If_Supported_And_Valid_By_Head("# DOS Ought To Scan", reli->dosOughtScanCountByHead, numheads,
                                                       FARM_BY_HEAD_UINT64, 0.0);
             print_Stat_If_Supported_And_Valid_By_Head("# DOS Need To Scan", reli->dosNeedToScanCountByHead, numheads,

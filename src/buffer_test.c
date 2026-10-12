@@ -355,7 +355,7 @@ M_NODISCARD static M_INLINE bool write_read_compare_pattern(const tDevice*      
                     break;
                 }
             }
-            safe_memset(returnBuffer, deviceBufferSize, 0, deviceBufferSize);
+            explicit_zeroes(returnBuffer, deviceBufferSize);
             switch (testMode)
             {
             case CABLE_TEST_MODE_BUFFER_CMDS:
@@ -527,13 +527,15 @@ static void fill_mark_pattern_in_buffer(uint8_t* patternBuffer, uint32_t deviceB
 #define MARK_PATTERN_TOTAL_LEN (MARK_PATTERN_SEG_LEN * 2)
     uint32_t iter = UINT32_C(0);
     DECLARE_ZERO_INIT_ARRAY(uint8_t, mark0, MARK_PATTERN_SEG_LEN);
-    DECLARE_ZERO_INIT_ARRAY(uint8_t, markF, MARK_PATTERN_SEG_LEN);
+    DECLARE_CHAR_INIT_ARRAY(uint8_t, markF, MARK_PATTERN_SEG_LEN, 0xFF);
     uint8_t* mark = mark0;
-    safe_memset(markF, MARK_PATTERN_SEG_LEN, 0xFF, MARK_PATTERN_SEG_LEN);
     while (iter < deviceBufferSize)
     {
-        safe_memcpy(&patternBuffer[iter], deviceBufferSize - iter, mark,
-                    M_Min(MARK_PATTERN_SEG_LEN, deviceBufferSize - iter));
+        if (0 != safe_memcpy(&patternBuffer[iter], deviceBufferSize - iter, mark,
+                             M_Min(MARK_PATTERN_SEG_LEN, deviceBufferSize - iter)))
+        {
+            perror("Failure copying mark pattern into pattern buffer");
+        }
         iter += MARK_PATTERN_SEG_LEN;
         if (mark == mark0)
         {
@@ -572,6 +574,7 @@ static bool perform_Mark_Pattern_Test(const tDevice*        device,
     return result;
 }
 
+M_NONNULL_IF_NONZERO_SIZE(1, 2)
 static bool fill_walking_test_pattern_in_buffer(uint8_t*  patternBuffer,
                                                 uint32_t  deviceBufferSize,
                                                 bool      walkingZeros,
@@ -579,7 +582,8 @@ static bool fill_walking_test_pattern_in_buffer(uint8_t*  patternBuffer,
                                                 uint32_t* byteNumber)
 {
     uint8_t bitToSet;
-    safe_memset(patternBuffer, deviceBufferSize, walkingZeros ? 0xFF : 0x00, deviceBufferSize);
+    M_IGNORE_SAFE_ERRNO_CALL(safe_memset(patternBuffer, deviceBufferSize, walkingZeros ? 0xFF : 0x00, deviceBufferSize),
+                             "Filling pattern buffer with walking test pattern will not go out of bounds");
     if (*bitNumber > UINT32_C(7))
     {
         // this means we've shifted the bit through each bit of this byte, so offset to the next byte and start
@@ -619,7 +623,7 @@ static void perform_Walking_Test(const tDevice*        device,
     if (patternBuffer != M_NULLPTR)
     {
         uint32_t lbasPerBuffer = get_LBAs_Per_BufferSize(device, deviceBufferSize);
-        uint64_t bytemax       = (deviceBufferSize / lbasPerBuffer);
+        uint32_t bytemax       = M_STATIC_CAST(uint32_t, deviceBufferSize / lbasPerBuffer);
         DECLARE_SEATIMER(patternTimer);
         start_Timer(&patternTimer);
         for (uint32_t bitNumber = UINT32_C(0), byteNumber = UINT32_C(0); byteNumber < bytemax; ++bitNumber)
@@ -633,10 +637,18 @@ static void perform_Walking_Test(const tDevice*        device,
             }
             for (uint32_t lbaCopyIter = UINT32_C(1); lbaCopyIter < lbasPerBuffer; ++lbaCopyIter)
             {
-                safe_memcpy(&patternBuffer[device->drive_info.deviceBlockSize * (lbaCopyIter)],
-                            deviceBufferSize - (device->drive_info.deviceBlockSize * (lbaCopyIter)), &patternBuffer[0],
-                            M_Min(device->drive_info.deviceBlockSize,
-                                  deviceBufferSize - (device->drive_info.deviceBlockSize * (lbaCopyIter))));
+                if (0 != safe_memcpy(&patternBuffer[device->drive_info.deviceBlockSize * (lbaCopyIter)],
+                                     deviceBufferSize - (device->drive_info.deviceBlockSize * (lbaCopyIter)),
+                                     &patternBuffer[0],
+                                     M_Min(device->drive_info.deviceBlockSize,
+                                           deviceBufferSize - (device->drive_info.deviceBlockSize * (lbaCopyIter)))))
+                {
+                    perror("Error setting pattern into buffer. Aborting test.");
+                    stop_Timer(&patternTimer);
+                    testResults->totalTimeNS = get_Nano_Seconds(patternTimer);
+                    safe_free_aligned(&patternBuffer);
+                    return;
+                }
             }
 
             if (!write_read_compare_pattern(device, patternBuffer, deviceBufferSize, lba, lbaRange, testResults,
@@ -845,17 +857,17 @@ static eReturnValues perform_Pattern_Test(const tDevice*      device,
     return ret;
 }
 
-eReturnValues perform_Cable_Test(const tDevice* device, ptrCableTestResults testResults)
+eReturnValues perform_Cable_Test(const tDevice* M_NONNULL device, ptrCableTestResults M_NONNULL testResults)
 {
     fuaCmd notNeeded = {false, false};
     return perform_Pattern_Test(device, testResults, CABLE_TEST_MODE_BUFFER_CMDS, RESERVED, 1, notNeeded);
 }
 
-eReturnValues perform_Write_Read_Compare_Test(const tDevice*      device,
-                                              ptrCableTestResults testResults,
-                                              uint64_t            startingLBA,
-                                              uint64_t            range,
-                                              fuaCmd              fuaCmdReq)
+eReturnValues perform_Write_Read_Compare_Test(const tDevice* M_NONNULL      device,
+                                              ptrCableTestResults M_NONNULL testResults,
+                                              uint64_t                      startingLBA,
+                                              uint64_t                      range,
+                                              fuaCmd                        fuaCmdReq)
 {
     eReturnValues ret = SUCCESS;
     ret = perform_Pattern_Test(device, testResults, CABLE_TEST_MODE_READ_WRITE_CMDS, startingLBA, range, fuaCmdReq);

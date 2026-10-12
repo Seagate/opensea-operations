@@ -367,8 +367,8 @@ static void print_Zone_Descriptor(zoneDescriptor zoneDescriptor)
 
 M_NONNULL_IF_NONZERO_SIZE(3, 2)
 M_PARAM_RO_SIZE(3, 2)
-OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       reportingOptions,
-                                                   uint32_t                    numberOfZoneDescriptors,
+OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions        reportingOptions,
+                                                   uint32_t                     numberOfZoneDescriptors,
                                                    ptrZoneDescriptor M_NULLABLE zoneDescriptors)
 {
     print_str("=======Key======\n");
@@ -439,8 +439,7 @@ OPENSEA_OPERATIONS_API void print_Zone_Descriptors(eZoneReportingOptions       r
            "Write Pointer");
     if (zoneDescriptors == M_NULLPTR || numberOfZoneDescriptors == 0)
     {
-        printf("%-4s  %-17s  %-4s  %-15s  %-7s  %-15s\n",
-               "N/A", "N/A", "N/A", "N/A", "N/A", "N/A");
+        printf("%-4s  %-17s  %-4s  %-15s  %-7s  %-15s\n", "N/A", "N/A", "N/A", "N/A", "N/A", "N/A");
     }
     else
     {
