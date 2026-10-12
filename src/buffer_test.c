@@ -874,7 +874,7 @@ eReturnValues perform_Write_Read_Compare_Test(const tDevice* M_NONNULL      devi
     return ret;
 }
 
-static void print_Individual_Test_Results(const char* testname, ptrPatternTestResults results, size_t maxcount)
+static void print_Individual_Test_Results(const char* testname, ptrPatternTestResults results, uint8_t maxcount)
 {
     if (results != M_NULLPTR)
     {
