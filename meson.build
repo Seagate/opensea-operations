@@ -6,7 +6,15 @@ project(
     license: 'MPL-2.0',
     version: '9.4.0',
     meson_version: '>=0.56.0',
-    default_options: ['warning_level=2', 'werror=true', 'b_ndebug=if-release', 'default_library=static', 'b_asneeded=true'],
+    default_options: [
+        'warning_level=2',
+        'b_pie=true',
+        'b_staticpic=true',
+        'b_ndebug=if-release',
+        'default_library=static',
+        'b_asneeded=true',
+        'b_lundef=true',
+    ],
 )
 
 c = meson.get_compiler('c')
@@ -136,7 +144,12 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         #hardened_warn: 'disabled' (default) adds -Wno-hardened, 'auto' enables -Whardened
         #on GCC >= 15, 'enabled' enables it unconditionally.
         warning_flags += '-fhardened'
-        if get_option('hardened_warn').enabled() or (get_option('hardened_warn').auto() and c.version().version_compare('>=15.0'))
+        if get_option('hardened_warn').enabled() or (
+            get_option('hardened_warn').auto()
+            and c.version().version_compare(
+            '>=15.0',
+                    )
+        )
             warning_flags += '-Whardened'
         else
             warning_flags += '-Wno-hardened'
@@ -267,7 +280,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         #this flag is disabling them because this is way too noisy.
         warning_flags += ['-Wno-psabi']
     elif target_machine.cpu_family() == 'x86_64'
-        warning_flags += ['-fcf-protection=full']        #this may be linux only at this time.
+        warning_flags += ['-fcf-protection=full']  #this may be linux only at this time.
         #zero the callee-saved regs left by calls so they cannot seed ROP gadgets;
         #skipped on Clang < 16 (codegen bug) and dropped by get_supported_arguments on older GCC
         if not (c.get_id().contains('clang') and not c.version().version_compare('>=16.0'))
