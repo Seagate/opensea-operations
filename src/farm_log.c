@@ -2032,17 +2032,17 @@ static void sas_Read_FARM_Header_Param(uint8_t* ptrData, farmHeader* header)
     if (ptrData != M_NULLPTR && header != M_NULLPTR)
     {
         uint16_t parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint8_t  parameterLength = ptrData[3];
         if (parameter == 0x0000)
         {
             uint64_t* qwordptr = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-            // TODO: Signature may not need byteswapping
-            header->signature              = be64_to_host(qwordptr[0]);
-            header->majorVersion           = be64_to_host(qwordptr[1]);
-            header->minorVersion           = be64_to_host(qwordptr[2]);
-            header->numberOfPagesSupported = be64_to_host(qwordptr[3]);
-            header->logSizeInBytes         = be64_to_host(qwordptr[4]);
-            header->maxDriveHeadsSupported = be64_to_host(qwordptr[6]);
-            header->reasonForFrameCapture  = be64_to_host(qwordptr[8]);
+            parse_Farm_Log(qwordptr, 0, &header->signature,                parameterLength);
+            parse_Farm_Log(qwordptr, 1, &header->majorVersion,             parameterLength);
+            parse_Farm_Log(qwordptr, 2, &header->minorVersion,             parameterLength);
+            parse_Farm_Log(qwordptr, 3, &header->numberOfPagesSupported,   parameterLength);
+            parse_Farm_Log(qwordptr, 4, &header->logSizeInBytes,           parameterLength);
+            parse_Farm_Log(qwordptr, 6, &header->maxDriveHeadsSupported,   parameterLength);
+            parse_Farm_Log(qwordptr, 8, &header->reasonForFrameCapture,    parameterLength);
         }
     }
 }
@@ -2126,34 +2126,38 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
     {
         uint64_t* qwordptr  = M_NULLPTR;
         uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint8_t   parameterLength = ptrData[3];
         if (parameter == 0x0001)
         {
             qwordptr         = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-            info->pageNumber = be64_to_host(qwordptr[0]);
-            info->copyNumber = be64_to_host(qwordptr[1]);
+            parse_Farm_Log(qwordptr, 0, &info->pageNumber, parameterLength);
+            parse_Farm_Log(qwordptr, 1, &info->copyNumber, parameterLength);
             sas_FARM_ASCII_Field(&qwordptr[2], info->sn);
             sas_FARM_WWN_Field(&qwordptr[4], info->wwn);
-            info->driveInterface = be64_to_host(qwordptr[6]);
+            parse_Farm_Log(qwordptr, 6, &info->driveInterface, parameterLength);
             uint32_t asciidword  = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->driveInterface));
             info->driveInterface &= UINT64_C(0xFFFFFFFF00000000);
             info->driveInterface |= asciidword;
-            info->driveCapacity      = be64_to_host(qwordptr[7]);
-            info->physicalSectorSize = be64_to_host(qwordptr[8]);
-            info->logicalSectorSize  = be64_to_host(qwordptr[9]);
-            info->deviceBufferSize   = be64_to_host(qwordptr[10]);
-            info->numberOfHeads      = be64_to_host(qwordptr[11]);
-            info->deviceFormFactor   = be64_to_host(qwordptr[12]);
-            info->rotationRate       = be64_to_host(qwordptr[13]);
-            sas_FARM_ASCII_Field(&qwordptr[14], info->fwrev);
-            info->powerOnHours                          = be64_to_host(qwordptr[19]);
-            info->powerCycleCount                       = be64_to_host(qwordptr[23]);
-            info->hardwareResetCount                    = be64_to_host(qwordptr[24]);
-            info->nvcStatusOnPoweron                    = be64_to_host(qwordptr[26]);
-            info->timeAvailableToSaveUDToNVMem          = be64_to_host(qwordptr[27]);
-            info->highestPOHForTimeRestrictedParameters = be64_to_host(qwordptr[28]);
-            info->lowestPOHForTimeRestrictedParameters  = be64_to_host(qwordptr[29]);
 
-            info->dateOfAssembly = be64_to_host(qwordptr[30]);
+            parse_Farm_Log(qwordptr, 7,  &info->driveCapacity,      parameterLength);
+            parse_Farm_Log(qwordptr, 8,  &info->physicalSectorSize, parameterLength);
+            parse_Farm_Log(qwordptr, 9,  &info->logicalSectorSize,  parameterLength);
+            parse_Farm_Log(qwordptr, 10, &info->deviceBufferSize,   parameterLength);
+            parse_Farm_Log(qwordptr, 11, &info->numberOfHeads,      parameterLength);
+            parse_Farm_Log(qwordptr, 12, &info->deviceFormFactor,   parameterLength);
+            parse_Farm_Log(qwordptr, 13, &info->rotationRate,       parameterLength);
+
+            sas_FARM_ASCII_Field(&qwordptr[14], info->fwrev);
+
+            parse_Farm_Log(qwordptr, 19, &info->powerOnHours,                          parameterLength);
+            parse_Farm_Log(qwordptr, 23, &info->powerCycleCount,                       parameterLength);
+            parse_Farm_Log(qwordptr, 24, &info->hardwareResetCount,                    parameterLength);
+            parse_Farm_Log(qwordptr, 26, &info->nvcStatusOnPoweron,                    parameterLength);
+            parse_Farm_Log(qwordptr, 27, &info->timeAvailableToSaveUDToNVMem,          parameterLength);
+            parse_Farm_Log(qwordptr, 28, &info->highestPOHForTimeRestrictedParameters, parameterLength);
+            parse_Farm_Log(qwordptr, 29, &info->lowestPOHForTimeRestrictedParameters,  parameterLength);
+
+            parse_Farm_Log(qwordptr, 30, &info->dateOfAssembly, parameterLength);
             asciidword           = sas_ASCII_DWord_Replace_Null_With_Space(get_DWord0(info->dateOfAssembly));
             info->dateOfAssembly &= UINT64_C(0xFFFFFFFF00000000);
             info->dateOfAssembly |= b_swap_32(asciidword);
@@ -2162,18 +2166,18 @@ static void sas_Read_FARM_General_Drive_Info(uint8_t* ptrData, farmDriveInfo* in
         {
             qwordptr = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
             // emulating SATA so skip page number and copy
-            info->depopulationHeadMask = be64_to_host(qwordptr[2]);
+            parse_Farm_Log(qwordptr, 2,  &info->depopulationHeadMask,                 parameterLength);
             sas_FARM_ASCII_Field_In_Order(&qwordptr[3], info->modelNumber, 4);
-            info->driveRecordingType                                    = be64_to_host(qwordptr[7]);
-            info->isDriveDepopulated                                    = be64_to_host(qwordptr[8]);
-            info->maxAvailableSectorsForReassignment                    = be64_to_host(qwordptr[9]);
-            info->timeToReadyOfLastPowerCycle                           = be64_to_host(qwordptr[10]);
-            info->timeDriveHeldInStaggeredSpinDuringLastPowerOnSequence = be64_to_host(qwordptr[11]);
-            info->spinUpTimeMilliseconds                                = be64_to_host(qwordptr[12]);
-            info->hamrDataProtectStatus                                 = be64_to_host(qwordptr[13]);
-            info->regenHeadMask                                         = be64_to_host(qwordptr[14]);
-            info->pohOfMostRecentTimeseriesFrame                        = be64_to_host(qwordptr[15]);
-            info->pohOfSecondMostRecentTimeseriesFrame                  = be64_to_host(qwordptr[16]);
+            parse_Farm_Log(qwordptr, 7,  &info->driveRecordingType,                   parameterLength);
+            parse_Farm_Log(qwordptr, 8,  &info->isDriveDepopulated,                   parameterLength);
+            parse_Farm_Log(qwordptr, 9,  &info->maxAvailableSectorsForReassignment,   parameterLength);
+            parse_Farm_Log(qwordptr, 10, &info->timeToReadyOfLastPowerCycle,          parameterLength);
+            parse_Farm_Log(qwordptr, 11, &info->timeDriveHeldInStaggeredSpinDuringLastPowerOnSequence, parameterLength);
+            parse_Farm_Log(qwordptr, 12, &info->spinUpTimeMilliseconds,               parameterLength);
+            parse_Farm_Log(qwordptr, 13, &info->hamrDataProtectStatus,                parameterLength);
+            parse_Farm_Log(qwordptr, 14, &info->regenHeadMask,                        parameterLength);
+            parse_Farm_Log(qwordptr, 15, &info->pohOfMostRecentTimeseriesFrame,       parameterLength);
+            parse_Farm_Log(qwordptr, 16, &info->pohOfSecondMostRecentTimeseriesFrame, parameterLength);
         }
     }
 }
@@ -2184,48 +2188,64 @@ static void sas_Read_FARM_Workload_Info(uint8_t* ptrData, farmWorkload* work)
     {
         uint64_t* qwordptr  = M_NULLPTR;
         uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint8_t   parameterLength = ptrData[3];
         if (parameter == 0x0002)
         {
             qwordptr                                 = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-            work->pageNumber                         = be64_to_host(qwordptr[0]);
-            work->copyNumber                         = be64_to_host(qwordptr[1]);
-            work->ratedWorkloadPercentage            = be64_to_host(qwordptr[2]);
-            work->totalReadCommands                  = be64_to_host(qwordptr[3]);
-            work->totalWriteCommands                 = be64_to_host(qwordptr[4]);
-            work->totalRandomReadCommands            = be64_to_host(qwordptr[5]);
-            work->totalRandomWriteCommands           = be64_to_host(qwordptr[6]);
-            work->totalOtherCommands                 = be64_to_host(qwordptr[7]);
-            work->logicalSectorsWritten              = be64_to_host(qwordptr[8]);
-            work->logicalSectorsRead                 = be64_to_host(qwordptr[9]);
-            work->numReadsInLBA0To3125PercentRange   = be64_to_host(qwordptr[10]);
-            work->numReadsInLBA0To3125PercentRange   = be64_to_host(qwordptr[11]);
-            work->numReadsInLBA3125To25PercentRange  = be64_to_host(qwordptr[12]);
-            work->numReadsInLBA25To50PercentRange    = be64_to_host(qwordptr[13]);
-            work->numReadsInLBA50To100PercentRange   = be64_to_host(qwordptr[14]);
-            work->numWritesInLBA0To3125PercentRange  = be64_to_host(qwordptr[15]);
-            work->numWritesInLBA3125To25PercentRange = be64_to_host(qwordptr[16]);
-            work->numWritesInLBA25To50PercentRange   = be64_to_host(qwordptr[17]);
-            work->numWritesInLBA50To100PercentRange  = be64_to_host(qwordptr[18]);
-            work->numReadsOfXferLenLT16KB            = be64_to_host(qwordptr[19]);
-            work->numReadsOfXferLen16KBTo512KB       = be64_to_host(qwordptr[20]);
-            work->numReadsOfXferLen512KBTo2MB        = be64_to_host(qwordptr[21]);
-            work->numReadsOfXferLenGT2MB             = be64_to_host(qwordptr[22]);
-            work->numWritesOfXferLenLT16KB           = be64_to_host(qwordptr[23]);
-            work->numWritesOfXferLen16KBTo512KB      = be64_to_host(qwordptr[24]);
-            work->numWritesOfXferLen512KBTo2MB       = be64_to_host(qwordptr[25]);
-            work->numWritesOfXferLenGT2MB            = be64_to_host(qwordptr[26]);
+            parse_Farm_Log(qwordptr, 0,  &work->pageNumber,                          parameterLength);
+            parse_Farm_Log(qwordptr, 1,  &work->copyNumber,                          parameterLength);
+            parse_Farm_Log(qwordptr, 2,  &work->ratedWorkloadPercentage,             parameterLength);
+            parse_Farm_Log(qwordptr, 3,  &work->totalReadCommands,                   parameterLength);
+            parse_Farm_Log(qwordptr, 4,  &work->totalWriteCommands,                  parameterLength);
+            parse_Farm_Log(qwordptr, 5,  &work->totalRandomReadCommands,             parameterLength);
+            parse_Farm_Log(qwordptr, 6,  &work->totalRandomWriteCommands,            parameterLength);
+            parse_Farm_Log(qwordptr, 7,  &work->totalOtherCommands,                  parameterLength);
+            parse_Farm_Log(qwordptr, 8,  &work->logicalSectorsWritten,               parameterLength);
+            parse_Farm_Log(qwordptr, 9,  &work->logicalSectorsRead,                  parameterLength);
+            parse_Farm_Log(qwordptr, 10, &work->numReadsInLBA0To3125PercentRange,    parameterLength);
+            parse_Farm_Log(qwordptr, 11, &work->numReadsInLBA3125To25PercentRange,   parameterLength);
+            parse_Farm_Log(qwordptr, 12, &work->numReadsInLBA25To50PercentRange,     parameterLength);
+            parse_Farm_Log(qwordptr, 13, &work->numReadsInLBA50To100PercentRange,    parameterLength);
+            parse_Farm_Log(qwordptr, 14, &work->numWritesInLBA0To3125PercentRange,   parameterLength);
+            parse_Farm_Log(qwordptr, 15, &work->numWritesInLBA3125To25PercentRange,  parameterLength);
+            parse_Farm_Log(qwordptr, 16, &work->numWritesInLBA25To50PercentRange,    parameterLength);
+            parse_Farm_Log(qwordptr, 17, &work->numWritesInLBA50To100PercentRange,   parameterLength);
+            parse_Farm_Log(qwordptr, 18, &work->numReadsOfXferLenLT16KB,             parameterLength);
+            parse_Farm_Log(qwordptr, 19, &work->numReadsOfXferLen16KBTo512KB,        parameterLength);
+            parse_Farm_Log(qwordptr, 20, &work->numReadsOfXferLen512KBTo2MB,         parameterLength);
+            parse_Farm_Log(qwordptr, 21, &work->numReadsOfXferLenGT2MB,              parameterLength);
+            parse_Farm_Log(qwordptr, 22, &work->numWritesOfXferLenLT16KB,            parameterLength);
+            parse_Farm_Log(qwordptr, 23, &work->numWritesOfXferLen16KBTo512KB,       parameterLength);
+            parse_Farm_Log(qwordptr, 24, &work->numWritesOfXferLen512KBTo2MB,        parameterLength);
+            parse_Farm_Log(qwordptr, 25, &work->numWritesOfXferLenGT2MB,             parameterLength);
         }
         else if (parameter == 0x0008)
         {
             qwordptr                         = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-            work->countQD1at30sInterval      = be64_to_host(qwordptr[2]);
-            work->countQD2at30sInterval      = be64_to_host(qwordptr[3]);
-            work->countQD3To4at30sInterval   = be64_to_host(qwordptr[4]);
-            work->countQD5To8at30sInterval   = be64_to_host(qwordptr[5]);
-            work->countQD9To16at30sInterval  = be64_to_host(qwordptr[6]);
-            work->countQD17To32at30sInterval = be64_to_host(qwordptr[7]);
-            work->countQD33To64at30sInterval = be64_to_host(qwordptr[8]);
-            work->countGTQD64at30sInterval   = be64_to_host(qwordptr[9]);
+            parse_Farm_Log(qwordptr, 2, &work->countQD1at30sInterval,      parameterLength);
+            parse_Farm_Log(qwordptr, 3, &work->countQD2at30sInterval,      parameterLength);
+            parse_Farm_Log(qwordptr, 4, &work->countQD3To4at30sInterval,   parameterLength);
+            parse_Farm_Log(qwordptr, 5, &work->countQD5To8at30sInterval,   parameterLength);
+            parse_Farm_Log(qwordptr, 6, &work->countQD9To16at30sInterval,  parameterLength);
+            parse_Farm_Log(qwordptr, 7, &work->countQD17To32at30sInterval, parameterLength);
+            parse_Farm_Log(qwordptr, 8, &work->countQD33To64at30sInterval, parameterLength);
+            parse_Farm_Log(qwordptr, 9, &work->countGTQD64at30sInterval,   parameterLength);
+            parse_Farm_Log(qwordptr, 10, &work->numReadsXferLenBin0ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 11, &work->numReadsXferLenBin1ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 12, &work->numReadsXferLenBin2ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 13, &work->numReadsXferLenBin3ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 14, &work->numReadsXferLenBin4ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 15, &work->numReadsXferLenBin5ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 16, &work->numReadsXferLenBin6ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 17, &work->numReadsXferLenBin7ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 18, &work->numWritesXferLenBin0ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 19, &work->numWritesXferLenBin1ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 20, &work->numWritesXferLenBin2ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 21, &work->numWritesXferLenBin3ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 22, &work->numWritesXferLenBin4ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 23, &work->numWritesXferLenBin5ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 24, &work->numWritesXferLenBin6ForRestrictedTimeRange, parameterLength);
+            parse_Farm_Log(qwordptr, 25, &work->numWritesXferLenBin7ForRestrictedTimeRange, parameterLength);
         }
     }
 }
@@ -2266,58 +2286,60 @@ static void sas_Read_FARM_Error_Info(uint8_t* ptrData, farmErrorStatistics* erro
     {
         uint64_t* qwordptr  = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
         uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
-        uint8_t   paramlen  = ptrData[3];
+        uint8_t   parameterLength = ptrData[3];
         switch (parameter)
         {
         case 0x0003:
-            error->pageNumber                               = be64_to_host(qwordptr[0]);
-            error->copyNumber                               = be64_to_host(qwordptr[1]);
-            error->numberOfUnrecoverableReadErrors          = be64_to_host(qwordptr[2]);
-            error->numberOfUnrecoverableWriteErrors         = be64_to_host(qwordptr[3]);
-            error->numberOfReadRecoveryAttempts             = be64_to_host(qwordptr[4]);
-            error->numberOfMechanicalStartRetries           = be64_to_host(qwordptr[6]);
-            error->sasFRUTrips[0]                           = be64_to_host(qwordptr[8]);
-            error->sasFRUTrips[1]                           = be64_to_host(qwordptr[9]);
-            error->sasErr.fruCodeOfSMARTTripMostRecentFrame = be64_to_host(qwordptr[11]);
-            error->sasErr.portAinvDWordCount                = be64_to_host(qwordptr[12]);
-            error->sasErr.portBinvDWordCount                = be64_to_host(qwordptr[13]);
-            error->sasErr.portADisparityErrCount            = be64_to_host(qwordptr[14]);
-            error->sasErr.portBDisparityErrCount            = be64_to_host(qwordptr[15]);
-            error->sasErr.portAlossOfDWordSync              = be64_to_host(qwordptr[16]);
-            error->sasErr.portBlossOfDWordSync              = be64_to_host(qwordptr[17]);
-            error->sasErr.portAphyResetProblem              = be64_to_host(qwordptr[18]);
-            error->sasErr.portBphyResetProblem              = be64_to_host(qwordptr[19]);
+            parse_Farm_Log(qwordptr,  0, &error->pageNumber,                               parameterLength);
+            parse_Farm_Log(qwordptr,  1, &error->copyNumber,                               parameterLength);
+            parse_Farm_Log(qwordptr,  2, &error->numberOfUnrecoverableReadErrors,          parameterLength);
+            parse_Farm_Log(qwordptr,  3, &error->numberOfUnrecoverableWriteErrors,         parameterLength);
+            parse_Farm_Log(qwordptr,  4, &error->numberOfReadRecoveryAttempts,             parameterLength);
+            parse_Farm_Log(qwordptr,  6, &error->numberOfMechanicalStartRetries,           parameterLength);
+            parse_Farm_Log(qwordptr, 17, &error->sasFRUTrips[0],                           parameterLength);
+            parse_Farm_Log(qwordptr, 18, &error->sasFRUTrips[1],                           parameterLength);
+            parse_Farm_Log(qwordptr, 20, &error->sasErr.fruCodeOfSMARTTripMostRecentFrame, parameterLength);
+            parse_Farm_Log(qwordptr, 21, &error->sasErr.portAinvDWordCount,                parameterLength);
+            parse_Farm_Log(qwordptr, 22, &error->sasErr.portBinvDWordCount,                parameterLength);
+            parse_Farm_Log(qwordptr, 23, &error->sasErr.portADisparityErrCount,            parameterLength);
+            parse_Farm_Log(qwordptr, 24, &error->sasErr.portBDisparityErrCount,            parameterLength);
+            parse_Farm_Log(qwordptr, 25, &error->sasErr.portAlossOfDWordSync,              parameterLength);
+            parse_Farm_Log(qwordptr, 26, &error->sasErr.portBlossOfDWordSync,              parameterLength);
+            parse_Farm_Log(qwordptr, 27, &error->sasErr.portAphyResetProblem,              parameterLength);
+            parse_Farm_Log(qwordptr, 28, &error->sasErr.portBphyResetProblem,              parameterLength);
             break;
         case 0x0028:
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, error->cumLTUnrecReadRepeatByHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, error->cumLTUnrecReadRepeatByHead);
             break;
         case 0x0029:
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, error->cumLTUnrecReadUniqueByHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, error->cumLTUnrecReadUniqueByHead);
             break;
         case 0x0052:
-            error->numberOfReallocatedSectors                                              = be64_to_host(qwordptr[3]);
-            error->numberOfReallocationCandidateSectors                                    = be64_to_host(qwordptr[4]);
-            error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSaved               = be64_to_host(qwordptr[5]);
-            error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1           = be64_to_host(qwordptr[6]);
-            error->numberReallocationCandidateSectorsSinceLastFARMTimeSeriesFrameSaved     = be64_to_host(qwordptr[7]);
-            error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1 = be64_to_host(qwordptr[8]);
+            parse_Farm_Log(qwordptr,  3, &error->numberOfReallocatedSectors,            parameterLength);
+            parse_Farm_Log(qwordptr,  4, &error->numberOfReallocationCandidateSectors,  parameterLength);
+            parse_Farm_Log(qwordptr, 20, &error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSaved, parameterLength);
+            parse_Farm_Log(qwordptr, 21, &error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1,           parameterLength);
+            parse_Farm_Log(qwordptr, 22, &error->numberReallocationCandidateSectorsSinceLastFARMTimeSeriesFrameSaved,     parameterLength);
+            parse_Farm_Log(qwordptr, 23, &error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1, parameterLength);
             break;
         case 0x0062:
-            error->numberOfReallocatedSectorsActuator1                                    = be64_to_host(qwordptr[3]);
-            error->numberOfReallocationCandidateSectorsActuator1                          = be64_to_host(qwordptr[4]);
-            error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSavedActuator1     = be64_to_host(qwordptr[5]);
-            error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1 = be64_to_host(qwordptr[6]);
-            error->numberReallocationCandidateSectorsSinceLastFARMTimeSeriesFrameSavedActuator1 =
-                be64_to_host(qwordptr[7]);
-            error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1 =
-                be64_to_host(qwordptr[8]);
+            parse_Farm_Log(qwordptr,  3, &error->numberOfReallocatedSectorsActuator1,    parameterLength);
+            parse_Farm_Log(qwordptr,  4, &error->numberOfReallocationCandidateSectorsActuator1, parameterLength);
+            parse_Farm_Log(qwordptr, 20, &error->numberReallocatedSectorsSinceLastFARMTimeSeriesFrameSavedActuator1,
+                           parameterLength);
+            parse_Farm_Log(qwordptr, 21, &error->numberReallocatedSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1,
+                           parameterLength);
+            parse_Farm_Log(qwordptr, 22, &error->numberReallocationCandidateSectorsSinceLastFARMTimeSeriesFrameSavedActuator1,
+                           parameterLength);
+            parse_Farm_Log(qwordptr, 23, &error->numberReallocationCandidateSectorsBetweenFarmTimeSeriesFrameNandNminus1Actuator1,
+                           parameterLength);
             break;
         case 0x0107:
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen,
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength,
                                   error->numberUniqueUnrecoverableSectorsSinceLastFARMTimeSeriesFrameSavedByHead);
             break;
         case 0x0108:
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen,
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength,
                                   error->numberUniqueUnrecoverableSectorsBetweenFarmTimeSeriesFrameNandNminus1ByHead);
             break;
         }
@@ -2329,35 +2351,36 @@ static void sas_Read_FARM_Environment_Info(uint8_t* ptrData, farmEnvironmentStat
     if (ptrData != M_NULLPTR && env != M_NULLPTR)
     {
         uint64_t* qwordptr  = M_NULLPTR;
-        uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint16_t parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
+        uint8_t parameterLength = ptrData[3];
         if (parameter == 0x0004)
         {
             qwordptr                     = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-            env->pageNumber              = be64_to_host(qwordptr[0]);
-            env->copyNumber              = be64_to_host(qwordptr[1]);
-            env->currentTemperature      = be64_to_host(qwordptr[2]);
-            env->highestTemperature      = be64_to_host(qwordptr[3]);
-            env->lowestTemperature       = be64_to_host(qwordptr[4]);
-            env->specifiedMaxTemp        = be64_to_host(qwordptr[13]);
-            env->specifiedMinTemp        = be64_to_host(qwordptr[14]);
-            env->currentRelativeHumidity = be64_to_host(qwordptr[17]);
-            env->currentMotorPowerFromMostRecentSMARTSummaryFrame = be64_to_host(qwordptr[19]);
-            env->average12Vpwr                                    = be64_to_host(qwordptr[20]);
-            env->min12VPwr                                        = be64_to_host(qwordptr[21]);
-            env->max12VPwr                                        = be64_to_host(qwordptr[22]);
-            env->average5Vpwr                                     = be64_to_host(qwordptr[23]);
-            env->min5Vpwr                                         = be64_to_host(qwordptr[24]);
-            env->max5Vpwr                                         = be64_to_host(qwordptr[25]);
+            parse_Farm_Log(qwordptr,  0, &env->pageNumber,              parameterLength);
+            parse_Farm_Log(qwordptr,  1, &env->copyNumber,              parameterLength);
+            parse_Farm_Log(qwordptr,  2, &env->currentTemperature,      parameterLength);
+            parse_Farm_Log(qwordptr,  3, &env->highestTemperature,      parameterLength);
+            parse_Farm_Log(qwordptr,  4, &env->lowestTemperature,       parameterLength);
+            parse_Farm_Log(qwordptr, 13, &env->specifiedMaxTemp,        parameterLength);
+            parse_Farm_Log(qwordptr, 14, &env->specifiedMinTemp,        parameterLength);
+            parse_Farm_Log(qwordptr, 17, &env->currentRelativeHumidity, parameterLength);
+            parse_Farm_Log(qwordptr, 19, &env->currentMotorPowerFromMostRecentSMARTSummaryFrame, parameterLength);
+            parse_Farm_Log(qwordptr, 20, &env->average12Vpwr,           parameterLength);
+            parse_Farm_Log(qwordptr, 21, &env->min12VPwr,               parameterLength);
+            parse_Farm_Log(qwordptr, 22, &env->max12VPwr,               parameterLength);
+            parse_Farm_Log(qwordptr, 23, &env->average5Vpwr,            parameterLength);
+            parse_Farm_Log(qwordptr, 24, &env->min5Vpwr,                parameterLength);
+            parse_Farm_Log(qwordptr, 25, &env->max5Vpwr,                parameterLength);
         }
         else if (parameter == 0x0007)
         {
             qwordptr             = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
-            env->current12Vinput = be64_to_host(qwordptr[2]);
-            env->min12Vinput     = be64_to_host(qwordptr[3]);
-            env->max12Vinput     = be64_to_host(qwordptr[4]);
-            env->current5Vinput  = be64_to_host(qwordptr[5]);
-            env->min5Vinput      = be64_to_host(qwordptr[6]);
-            env->max5Vinput      = be64_to_host(qwordptr[7]);
+            parse_Farm_Log(qwordptr, 2, &env->current12Vinput, parameterLength);
+            parse_Farm_Log(qwordptr, 3, &env->min12Vinput,     parameterLength);
+            parse_Farm_Log(qwordptr, 4, &env->max12Vinput,     parameterLength);
+            parse_Farm_Log(qwordptr, 5, &env->current5Vinput,  parameterLength);
+            parse_Farm_Log(qwordptr, 6, &env->min5Vinput,      parameterLength);
+            parse_Farm_Log(qwordptr, 7, &env->max5Vinput,      parameterLength);
         }
     }
 }
@@ -2371,129 +2394,135 @@ static void sas_Read_FARM_Reliability_Info(uint8_t*                   ptrData,
     {
         uint64_t* qwordptr  = M_REINTERPRET_CAST(uint64_t*, &ptrData[LOG_PAGE_HEADER_LENGTH]);
         uint16_t  parameter = bytes_To_Uint16(ptrData[0], ptrData[1]);
-        uint8_t   paramlen  = ptrData[3];
+        uint8_t   parameterLength = ptrData[3];
         switch (parameter)
         {
         case 0x0005:
             if (reli != M_NULLPTR)
             {
-                reli->pageNumber       = be64_to_host(qwordptr[0]);
-                reli->copyNumber       = be64_to_host(qwordptr[1]);
-                reli->numRAWOperations = be64_to_host(qwordptr[15]);
+                parse_Farm_Log(qwordptr,  0, &reli->pageNumber,                         parameterLength);
+                parse_Farm_Log(qwordptr,  1, &reli->copyNumber,                         parameterLength);
+                parse_Farm_Log(qwordptr, 15, &reli->numRAWOperations,                   parameterLength);
             }
             if (error != M_NULLPTR)
             {
-                error->cumulativeLifetimeUnrecoverableReadErrorsDueToERC = be64_to_host(qwordptr[16]);
+                parse_Farm_Log(qwordptr, 16, &error->cumulativeLifetimeUnrecoverableReadErrorsDueToERC,
+                               parameterLength);
             }
             if (reli != M_NULLPTR)
             {
-                reli->highPriorityUnloadEvents           = be64_to_host(qwordptr[22]);
-                reli->numDiscSlipRecalibrationsPerformed = be64_to_host(qwordptr[24]);
-                reli->heliumPressureThresholdTrip        = be64_to_host(qwordptr[25]);
+                parse_Farm_Log(qwordptr, 22, &reli->highPriorityUnloadEvents,           parameterLength);
+                parse_Farm_Log(qwordptr, 24, &reli->numDiscSlipRecalibrationsPerformed, parameterLength);
+                parse_Farm_Log(qwordptr, 25, &reli->heliumPressureThresholdTrip,        parameterLength);
             }
             break;
         case 0x001A: // head resistance (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->mrHeadResistanceByHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->mrHeadResistanceByHead);
             break;
         case 0x001F: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATamplitudeByHeadTZAvg);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->currentH2SATamplitudeByHeadTZAvg);
             break;
         case 0x0020: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->currentH2SATasymmetryByHeadTZAvg);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->currentH2SATasymmetryByHeadTZAvg);
             break;
         case 0x0021: // realloc by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->numReallocatedSectorsByHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->numReallocatedSectorsByHead);
             break;
         case 0x0022: // realloc candidate by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->numReallocationCandidateSectorsByHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->numReallocationCandidateSectorsByHead);
             break;
         case 0x0026: // write workload by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->writeWorkloadPowerOnTimeByHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->writeWorkloadPowerOnTimeByHead);
             break;
         case 0x0030: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, parameterLength,
                                            &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 0);
             break;
         case 0x0031: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, parameterLength,
                                            &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 1);
             break;
         case 0x0032: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen,
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, parameterLength,
                                            &reli->currentH2SATtrimmedMeanBitsInErrorByHeadZone[0], 2);
             break;
         case 0x0033: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, parameterLength,
+                                           &reli->currentH2SATiterationsToConvergeByHeadZone[0],
                                            0);
             break;
         case 0x0034: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, parameterLength,
+                                           &reli->currentH2SATiterationsToConvergeByHeadZone[0],
                                            1);
             break;
         case 0x0035: // h2SAT by head (reliability)
-            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, paramlen, &reli->currentH2SATiterationsToConvergeByHeadZone[0],
+            sas_Fill_By_Head_Data_2D_Array(ptrData + 4, parameterLength,
+                                           &reli->currentH2SATiterationsToConvergeByHeadZone[0],
                                            2);
             break;
         case 0x0043: // second mr head resistance by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->secondHeadMRHeadResistanceByHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->secondHeadMRHeadResistanceByHead);
             break;
         case 0x0050: // actuator 0 reli stats (reliability)
             if (info != M_NULLPTR)
             {
-                info->headLoadEvents = be64_to_host(qwordptr[3]);
+                parse_Farm_Log(qwordptr, 3, &info->headLoadEvents, parameterLength);
             }
             if (reli != M_NULLPTR)
             {
-                reli->numDOSScansPerformed                             = be64_to_host(qwordptr[16]);
-                reli->numLBAsCorrectedByISP                            = be64_to_host(qwordptr[17]);
-                reli->numLBAsCorrectedByParitySector                   = be64_to_host(qwordptr[22]);
-                reli->superParityCoveragePercent                       = be64_to_host(qwordptr[29]);
-                reli->primarySuperParityCoveragePercentageSMR_HSMR_SWR = be64_to_host(qwordptr[30]);
+                parse_Farm_Log(qwordptr, 16, &reli->numDOSScansPerformed,           parameterLength);
+                parse_Farm_Log(qwordptr, 17, &reli->numLBAsCorrectedByISP,          parameterLength);
+                parse_Farm_Log(qwordptr, 22, &reli->numLBAsCorrectedByParitySector, parameterLength);
+                parse_Farm_Log(qwordptr, 29, &reli->superParityCoveragePercent,     parameterLength);
+                parse_Farm_Log(qwordptr, 30, &reli->primarySuperParityCoveragePercentageSMR_HSMR_SWR, parameterLength);
             }
             break;
         case 0x0051: // actuator 0 fled stats (reliability)
             if (error != M_NULLPTR)
             {
-                error->totalFlashLEDEvents = be64_to_host(qwordptr[3]);
-                error->lastFLEDIndex       = be64_to_host(qwordptr[4]);
+                parse_Farm_Log(qwordptr, 3, &error->totalFlashLEDEvents, parameterLength);
+                parse_Farm_Log(qwordptr, 4, &error->lastFLEDIndex,       parameterLength);
                 for (uint8_t fledIndex = UINT8_C(0); fledIndex < UINT8_C(8); ++fledIndex)
                 {
-                    error->last8FLEDEvents[fledIndex]        = be64_to_host(qwordptr[5 + fledIndex]);
-                    error->timestampOfLast8FLEDs[fledIndex]  = be64_to_host(qwordptr[14 + fledIndex]);
-                    error->powerCycleOfLast8FLEDs[fledIndex] = be64_to_host(qwordptr[22 + fledIndex]);
+                    parse_Farm_Log(qwordptr,  5 + fledIndex, &error->last8FLEDEvents[fledIndex], parameterLength);
+                    parse_Farm_Log(qwordptr, 13 + fledIndex, &error->timestampOfLast8FLEDs[fledIndex], parameterLength);
+                    parse_Farm_Log(qwordptr, 21 + fledIndex, &error->powerCycleOfLast8FLEDs[fledIndex], parameterLength);
                 }
             }
             break;
         case 0x0060: // actuator 1 reli stats (reliability)
             if (info != M_NULLPTR)
             {
-                info->headLoadEventsActuator1 = be64_to_host(qwordptr[3]);
+                parse_Farm_Log(qwordptr, 3, &info->headLoadEventsActuator1, parameterLength);
             }
             if (error != M_NULLPTR)
             {
-                reli->numDOSScansPerformedActuator1           = be64_to_host(qwordptr[16]);
-                reli->numLBAsCorrectedByISPActuator1          = be64_to_host(qwordptr[17]);
-                reli->numLBAsCorrectedByParitySectorActuator1 = be64_to_host(qwordptr[22]);
+                parse_Farm_Log(qwordptr, 16, &reli->numDOSScansPerformedActuator1,  parameterLength);
+                parse_Farm_Log(qwordptr, 17, &reli->numLBAsCorrectedByISPActuator1, parameterLength);
+                parse_Farm_Log(qwordptr, 22, &reli->numLBAsCorrectedByParitySectorActuator1, parameterLength);
                 // TODO: Where was this on SATA? Was it missed???? Need to add it to this structure somewhere-TJE
                 // reli->superParityCoveragePercentActuator1 = be64_to_host(qwordptr[29]);
-                reli->primarySuperParityCoveragePercentageSMR_HSMR_SWRActuator1 = be64_to_host(qwordptr[30]);
+                parse_Farm_Log(qwordptr, 30, &reli->primarySuperParityCoveragePercentageSMR_HSMR_SWRActuator1,
+                               parameterLength);
             }
             break;
         case 0x0061: // actuator 1 fled stats (reliability)
             if (error != M_NULLPTR)
             {
-                error->totalFlashLEDEventsActuator1 = be64_to_host(qwordptr[3]);
-                error->lastFLEDIndexActuator1       = be64_to_host(qwordptr[4]);
+                parse_Farm_Log(qwordptr, 3, &error->totalFlashLEDEventsActuator1, parameterLength);
+                parse_Farm_Log(qwordptr, 4, &error->lastFLEDIndexActuator1,       parameterLength);
                 for (uint8_t fledIndex = UINT8_C(0); fledIndex < UINT8_C(8); ++fledIndex)
                 {
-                    error->last8FLEDEventsActuator1[fledIndex]        = be64_to_host(qwordptr[5 + fledIndex]);
-                    error->timestampOfLast8FLEDsActuator1[fledIndex]  = be64_to_host(qwordptr[14 + fledIndex]);
-                    error->powerCycleOfLast8FLEDsActuator1[fledIndex] = be64_to_host(qwordptr[22 + fledIndex]);
+                    parse_Farm_Log(qwordptr, 5 + fledIndex, &error->last8FLEDEventsActuator1[fledIndex],
+                                   parameterLength);
+                    parse_Farm_Log(qwordptr, 13 + fledIndex, &error->timestampOfLast8FLEDsActuator1[fledIndex], parameterLength);
+                    parse_Farm_Log(qwordptr, 21 + fledIndex, &error->powerCycleOfLast8FLEDsActuator1[fledIndex], parameterLength);
                 }
             }
             break;
         case 0x0100: // terabytes written by head (reliability)
-            sas_Fill_By_Head_Data(ptrData + 4, paramlen, reli->lifetimeTerabytesWrittenperHead);
+            sas_Fill_By_Head_Data(ptrData + 4, parameterLength, reli->lifetimeTerabytesWrittenperHead);
             break;
         }
     }
@@ -2891,6 +2920,14 @@ static M_INLINE bool print_Stat_If_Supported_And_Valid_HexUint64(const char* M_N
 static M_INLINE uint8_t get_Farm_Float_Bits(uint64_t floatData)
 {
     return M_Byte6(floatData);
+}
+
+static void parse_Farm_Log(const uint64_t *ptrData, const uint8_t offset, uint64_t *ptrDest, const uint8_t paramlength)
+{
+    if (offset * 8 < paramlength)
+    {
+        *ptrDest = be64_to_host(ptrData[offset]);
+    }
 }
 
 // For Mrheadresistance type output
@@ -3557,6 +3594,30 @@ static void print_FARM_Workload_Info(const farmWorkload* M_NONNULL work, uint64_
                                                                  work->numWritesXferLenBin7Last3SMARTSummaryFrames)
                     ? true
                     : commandCover;
+            if (commandCover)
+            {
+                print_Stat_If_Supported_And_Valid_Time("  Time that XFer Bins Cover (Hours)",
+                                                       timerestrictedRangems ^ (BIT63 | BIT62),
+                                                       MICRO_SECONDS_PER_MILLI_SECONDS);
+            }
+
+            commandCover = false;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 0, restricted time range", work->numReadsXferLenBin0ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 1, restricted time range", work->numReadsXferLenBin1ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 2, restricted time range", work->numReadsXferLenBin2ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 3, restricted time range", work->numReadsXferLenBin3ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 4, restricted time range", work->numReadsXferLenBin4ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 5, restricted time range", work->numReadsXferLenBin5ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 6, restricted time range", work->numReadsXferLenBin6ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of reads of xfer bin 7, restricted time range", work->numReadsXferLenBin7ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 0, restricted time range", work->numWritesXferLenBin0ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 1, restricted time range", work->numWritesXferLenBin1ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 2, restricted time range", work->numWritesXferLenBin2ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 3, restricted time range", work->numWritesXferLenBin3ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 4, restricted time range", work->numWritesXferLenBin4ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 5, restricted time range", work->numWritesXferLenBin5ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 6, restricted time range", work->numWritesXferLenBin6ForRestrictedTimeRange) ? true : commandCover;
+            commandCover = true == print_Stat_If_Supported_And_Valid_Uint64("# of writes of xfer bin 7, restricted time range", work->numWritesXferLenBin7ForRestrictedTimeRange) ? true : commandCover;
             if (commandCover)
             {
                 print_Stat_If_Supported_And_Valid_Time("  Time that XFer Bins Cover (Hours)",
