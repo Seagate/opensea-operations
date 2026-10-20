@@ -724,7 +724,7 @@ static eReturnValues perform_Pattern_Test(const tDevice*      device,
             get_Buffer_Size(device, &bufferSize, &offsetPO2);
             break;
         case CABLE_TEST_MODE_READ_WRITE_CMDS:
-            bufferSize = get_Sector_Count_For_Read_Write(device) * device->drive_info.deviceBlockSize;
+            bufferSize = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_DEFAULT);
             break;
         }
         if (bufferSize > UINT32_C(0))

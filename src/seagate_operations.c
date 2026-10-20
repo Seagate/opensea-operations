@@ -598,15 +598,11 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Performance_Mode(const tDevice* M_
         uint8_t performanceModeBitOffset = MODE_PARAMETER_HEADER_10_LEN + 2;
         if (performanceModeEnableDisable == true)
         {
-            unitAttentionModePage[performanceModeBitOffset] |= BIT7;
+            unitAttentionModePage[performanceModeBitOffset] = set_uint8_bit(unitAttentionModePage[performanceModeBitOffset], 7);
         }
         else
         {
-            // turn the bit off if it is already set
-            if (unitAttentionModePage[performanceModeBitOffset] & BIT7)
-            {
-                unitAttentionModePage[performanceModeBitOffset] ^= BIT7;
-            }
+            unitAttentionModePage[performanceModeBitOffset] = clear_uint8_bit(unitAttentionModePage[performanceModeBitOffset], 7);
         }
         // send the mode select command
         ret = scsi_Mode_Select_10(device, modePageLength, true, true, false, unitAttentionModePage, modePageLength);
@@ -689,15 +685,11 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Set_Thermal_Throttle(const tDevice* M_
         uint8_t thermalThrottleEnableBitOffset = MODE_PARAMETER_HEADER_10_LEN + 6;
         if (thermalThrottleEnableDisable == true)
         {
-            unitAttentionModePage[thermalThrottleEnableBitOffset] |= BIT0;
+            unitAttentionModePage[thermalThrottleEnableBitOffset] = set_uint8_bit(unitAttentionModePage[thermalThrottleEnableBitOffset], 0);
         }
         else
         {
-            // turn the bit off if it is already set
-            if (unitAttentionModePage[thermalThrottleEnableBitOffset] & BIT0)
-            {
-                unitAttentionModePage[thermalThrottleEnableBitOffset] ^= BIT0;
-            }
+            unitAttentionModePage[thermalThrottleEnableBitOffset] = clear_uint8_bit(unitAttentionModePage[thermalThrottleEnableBitOffset], 0);
         }
         // send the mode select command
         ret = scsi_Mode_Select_10(device, modePageLength, true, true, false, unitAttentionModePage, modePageLength);
@@ -2748,11 +2740,15 @@ get_Ext_Smrt_Log(const tDevice* M_NONNULL device) //, nvmeGetLogPageCmdOpts * ge
         {
             printf("%-39s %-15s %-19s \n", "Description", "Ext-Smart-Id", "Ext-Smart-Value");
             for (index = 0; index < 80; index++)
+            {
                 print_str("-");
+            }
             print_str("\n");
             for (index = 0; index < NUMBER_EXTENDED_SMART_ATTRIBUTES; index++)
+            {
                 print_smart_log(ExtdSMARTInfo.Version, ExtdSMARTInfo.vendorData[index],
                                 index == (NUMBER_EXTENDED_SMART_ATTRIBUTES - 1));
+            }
         }
         return SUCCESS;
     }
