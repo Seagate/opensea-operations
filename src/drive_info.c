@@ -3891,7 +3891,7 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA M_NONNULL
             {
                 perror("Error copying copyright info from inquiry data");
             }
-            driveInfo->copyrightInfo[49] = '\0';
+            null_Terminate_String(driveInfo->copyrightInfo, sizeof(driveInfo->copyrightInfo));
             remove_Leading_And_Trailing_Control_Char_Len(driveInfo->copyrightInfo, 50);
         }
     }
@@ -7616,9 +7616,9 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                     add_Feature_To_Supported_List(driveInfo->featuresSupported, &driveInfo->numberOfFeaturesSupported,
                                                   "ATA Pass-Through 32");
                 }
-                }
             }
         }
+    }
     return ret;
 }
 
@@ -9557,7 +9557,8 @@ OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformatio
                     print_str("Ultra Low Enabled\n");
                     break;
                 default:
-                    printf("Unknown/Invalid state: %" PRIX16 "\n", C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
+                    printf("Unknown/Invalid state: %" PRIX16 "\n",
+                           C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
                     break;
                 }
             }

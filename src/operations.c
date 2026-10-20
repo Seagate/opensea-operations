@@ -2294,8 +2294,9 @@ OPENSEA_OPERATIONS_API eReturnValues scsi_Update_Mode_Page(const tDevice* M_NONN
                         safe_free_aligned(&currentPageToSet);
                         if (currentPage == 0)
                         {
-                            // This buffer always ends at page 0 since page zero is specifically the last page to be returned.
-                            // Use this as an exit point if we hit it to prevent looping through things we do not need to go through.
+                            // This buffer always ends at page 0 since page zero is specifically the last page to be
+                            // returned. Use this as an exit point if we hit it to prevent looping through things we do
+                            // not need to go through.
                             break;
                         }
                     }
@@ -3206,8 +3207,7 @@ OPENSEA_OPERATIONS_API void show_SCSI_Mode_Page(const tDevice* M_NONNULL device,
                 }
                 offset += blockDescriptorLength;
                 uint16_t currentPageLength = UINT16_C(0);
-                uint16_t counter           = UINT16_C(0);
-                for (; offset < modePageLength && modeDataLen > 0; offset += currentPageLength, ++counter)
+                for (; offset < modePageLength && modeDataLen > 0; offset += currentPageLength)
                 {
                     if (modeData[offset] & BIT6)
                     {

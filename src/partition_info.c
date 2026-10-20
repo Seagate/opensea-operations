@@ -659,7 +659,7 @@ static eReturnValues fill_GPT_Data(const tDevice* M_NONNULL device,
                                    uint8_t* M_NONNULL       gptDataBuf,
                                    uint32_t                 gptDataSize,
                                    ptrGPTData M_NONNULL     gpt,
-                                   uint32_t                 sizeOfGPTDataStruct,
+                                   size_t                   sizeOfGPTDataStruct,
                                    uint64_t                 lba)
 {
     eReturnValues ret = NOT_SUPPORTED;
