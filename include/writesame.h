@@ -53,7 +53,7 @@ extern "C"
     // get_Writesame_Progress
     //
     //! \brief   This function will get the write same progress for you. This only works on ATA drives (and it is
-    //! calculated progress, not drive reported) since SCSI does not report and progress on write same
+    //! calculated progress, not drive reported) since SCSI does not report any progress on write same
     //
     //  Entry:
     //!   \param[in] device = file descriptor
@@ -87,7 +87,7 @@ extern "C"
     //!   \param[in] numberOfLogicalBlocks = this is the range that the write same is being run on
     //!   \param[in] pollForProgress = boolean flag specifying whether or not to poll for progress
     //!   \param[in] pattern = pointer to buffer to use for pattern. Should be 1 logical sector in size. May be
-    //!   M_NULLPTR to use default zero pattern \param[in] patternLength = lenght of the pattern memory
+    //!   M_NULLPTR to use default zero pattern \param[in] patternLength = length of the pattern memory
     //!
     //  Exit:
     //!   \return SUCCESS = good, !SUCCESS something went wrong see error codes

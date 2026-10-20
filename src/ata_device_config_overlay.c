@@ -564,7 +564,7 @@ static M_INLINE void dco_Set_Features2(uint8_t dcoIdentData[M_NONNULL_ARRAY DCO_
 
 M_PARAM_RO(1)
 M_PARAM_RO(2)
-OPENSEA_OPERATIONS_API eReturnValues dco_Set(const tDevice* M_NONNULL device, ptrDcoData M_NONNULL data)
+OPENSEA_OPERATIONS_API eReturnValues dco_Set(const tDevice* M_NONNULL device, const ptrDcoData M_NONNULL data)
 {
     eReturnValues ret           = NOT_SUPPORTED;
     bool          dcoDMASupport = false;

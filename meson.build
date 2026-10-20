@@ -1,24 +1,47 @@
 # SPDX-License-Identifier: MPL-2.0
 # Copyright (c) 2021-2026 Seagate Technology LLC and/or its Affiliates, All Rights Reserved
-project('opensea-operations', 'c', license: 'MPL-2.0', version: '9.4.0', meson_version: '>=0.50.0', default_options: ['warning_level=2', 'default_library=static'])
+project(
+    'opensea-operations',
+    'c',
+    license: 'MPL-2.0',
+    version: '9.4.0',
+    meson_version: '>=0.56.0',
+    default_options: [
+        'warning_level=2',
+        'b_pie=true',
+        'b_staticpic=true',
+        'b_ndebug=if-release',
+        'default_library=static',
+        'b_asneeded=true',
+        'b_lundef=true',
+    ],
+)
 
 c = meson.get_compiler('c')
 
 warning_flags = []
 linker_flags = []  #additional linker flags to add per-compiler for hardening.
+ssp_support_dep = []  #Solaris/illumos SSP support library, propagated to consumers of this library
 
 if c.get_id().contains('gcc') or c.get_id().contains('clang')
     #TODO: Add -Wcast-align=strict and fix these issues to help ensure better portability
     #NOTE: -Wsign-conversion can be useful while debugging, but there are numerous places this shows up
     #      and it is not useful, so only add it while debugging.
     #NOTE: 4/4/2024 - adding flags from https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++
+    #NOTE: Where the check below succeeds (GCC >=14 on GNU/Linux) we add -fhardened on
+    #      top of the explicit flags here; the explicit flags are equal or stronger than
+    #      the -fhardened set, so no component is reduced. -fhardened is only supported
+    #      on GNU/Linux targets (GCC docs), so Clang, MSVC, non-Linux builds, and older
+    #      GCC rely on the explicit equivalents in this block (OpenSSF guide 3.26.2).
     warning_flags = [
         #	'-Wcast-align=strict',
         '-Wshadow=compatible-local',
+        '-Wbidi-chars=any',  #rejects bidi override chars in source (Trojan Source); dropped by get_supported_arguments where unsupported
         '-Wvla',
         '-Wfloat-equal',
         '-Wnull-dereference',
         '-Wunused-const-variable',
+        '-Wunused-but-set-variable',
         '-Wunused-parameter',
         '-Wunused-value',
         '-Wduplicated-cond',
@@ -43,7 +66,6 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wfloat-conversion',
         '-Wint-to-pointer-cast',
         '-Wimplicit-fallthrough',
-        '-D_GLIBCXX_ASSERTIONS',
         '-fstrict-flex-arrays=3',
         '-fno-delete-null-pointer-checks',
         '-fno-strict-overflow',
@@ -88,7 +110,7 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         '-Wcalloc-transposed-args',
         '-Werror=alloca',  # Do not allow use of the alloca function
         '-Wstring-compare',  # Helps detect when strcmp is used when the programmer likely meant to use strncmp
-        '-Wfortify-source' # Clang specific (at least for now) but enables additional diagnostics.
+        '-Wfortify-source',  # Clang specific (at least for now) but enables additional diagnostics.
     ]
 
     if get_option('cc-suggest-attribute')
@@ -106,32 +128,151 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         ]
     endif
 
-    if c.get_id().contains('gcc') and c.version().version_compare('>=10.0')
-        #only enable the sign conversion warning on versions 10 and up because it is way too noisy on earlier GCC versions than it is useful-TJE
+    if (c.get_id().contains('gcc') and c.version().version_compare('>=10.0')) or c.get_id().contains('clang')
+        #only enable the sign conversion warning on GCC 10 and up because it is way too noisy on earlier GCC versions than it is useful-TJE
+        #Clang supports it across all versions in our build matrix, so enable it there for parity
         warning_flags += '-Wsign-conversion'
     endif
 
-    if target_machine.system() != 'sunos'
-        warning_flags += '-fstack-protector-strong'
-    else
-        #Illumos will support this, but solaris will not due to library differences in the systems
-        if meson.version().version_compare('>=1.2.0')
-            if target_machine.kernel() == 'illumos'
-                warning_flags += '-fstack-protector-strong'
-            endif
+    if c.get_id().contains('gcc') and c.version().version_compare('>=14.0') and target_machine.system() == 'linux'
+        #KEEP IN SYNC: this -fhardened block is duplicated in 17 meson.build files (both repos)
+        #GNU/Linux + GCC >= 14: -fhardened is fully supported only on GNU/Linux; elsewhere GCC
+        #warns and applies it partially (GCC bug 126822/126823), so those targets use the
+        #explicit (equal-or-stronger) flags appended later.
+        #-Whardened + -Werror: false positive on GCC 14.2 (driver's own _FORTIFY_SOURCE),
+        #clean on 16.2.1 (both confirmed in real builds; 15.x untested).
+        #hardened_warn: 'disabled' (default) adds -Wno-hardened, 'auto' enables -Whardened
+        #on GCC >= 15, 'enabled' enables it unconditionally.
+        warning_flags += '-fhardened'
+        if get_option('hardened_warn').enabled() or (
+            get_option('hardened_warn').auto()
+            and c.version().version_compare(
+            '>=15.0',
+                    )
+        )
+            warning_flags += '-Whardened'
         else
-            # TODO: Backup method to detect illumos vs solaris
+            warning_flags += '-Wno-hardened'
+        endif
+    else
+        #-fhardened (above, where active) also enables _GLIBCXX_ASSERTIONS, so this
+        #is only needed for toolchains that lack -fhardened
+        warning_flags += '-D_GLIBCXX_ASSERTIONS'
+    endif
+
+    # ssp option: 'auto' (default) and 'enabled' both run the automatic
+    # probing below; 'disabled' skips the whole block and builds SSP-free.
+    if get_option('ssp').auto() or get_option('ssp').enabled()
+        # Check if -fstack-protector-strong links or not - some systems support
+        # the argument but are unable to link with it. Fall back to plain
+        # -fstack-protector when strong is unavailable.
+        # GCC's optimize attribute forces canary codegen on the probe function so
+        # the check does not depend on the compiler's per-function protection
+        # heuristics deciding that a small test function is not worth protecting.
+        stack_protector_test_code = '''
+        #if defined(__GNUC__) && !defined(__clang__)
+        __attribute__((noinline, optimize("-fstack-protector-all")))
+        #else
+        __attribute__((noinline))
+        #endif
+        int ssp_probe(void)
+        {
+            volatile char buf[8];
+            buf[0] = 1;
+            buf[7] = 2;
+            return buf[0] + buf[7];
+        }
+        int main(void) { return ssp_probe(); }
+    '''
+        # A link check rather than a compile: on some toolchains the SSP glue
+        # symbols (__stack_chk_fail[_local], __stack_chk_guard) are only
+        # provided by a static archive and must already resolve at link time
+        # (see golang/go#58385).
+        ssp_strong_ok = c.links(
+            stack_protector_test_code,
+            name: 'stack-protector-strong link support',
+            args: ['-fstack-protector-strong'],
+        )
+        ssp_regular_ok = false
+        if not ssp_strong_ok
+            ssp_regular_ok = c.links(
+                stack_protector_test_code,
+                name: 'stack-protector link support',
+                args: ['-fstack-protector'],
+            )
+        endif
+        if ssp_strong_ok or ssp_regular_ok
+            #On Solaris/illumos the SSP glue symbols (__stack_chk*) are only
+            #resolved through the platform SSP support library and that only
+            #reaches a ninja link line as an explicit library dependency, so
+            #SSP is enabled only when the platform ships it.
+            #ssp_support_dep propagates it to consumers of this library.
+            ssp_available = true
+            if target_machine.system() == 'sunos'
+                #illumos (OmniOS, Tribblix, OpenIndiana) ships libssp_ns.a,
+                #classic Oracle Solaris ships libssp.a
+                ssp_available = false
+                ssp_ns_dep = c.find_library('ssp_ns', required: false)
+                if ssp_ns_dep.found()
+                    ssp_support_dep = [ssp_ns_dep]
+                    ssp_available = true
+                else
+                    ssp_dep = c.find_library('ssp', required: false)
+                    if ssp_dep.found()
+                        ssp_support_dep = [ssp_dep]
+                        ssp_available = true
+                    endif
+                endif
+            endif
+            if ssp_available
+                if ssp_strong_ok
+                    warning_flags += '-fstack-protector-strong'
+                else
+                    #plain -fstack-protector only instruments functions with local char
+                    #arrays of 8 bytes or more; tighten the threshold to 4 bytes
+                    #per OpenSSF guide 3.14.2 (dropped if the toolchain lacks the param)
+                    warning_flags += ['-fstack-protector', '--param=ssp-buffer-size=4']
+                endif
+            endif
         endif
     endif
 
-    if c.get_id().contains('gcc') and target_machine.system() == 'windows'
-        #According to the link below, this is not needed in Windows...it also causes a bug in some versions of GCC for Windows.
-        #https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90458
-        #NOTE: While this appears to be fixed for versions 11 and 12, the current CI is failing on this with
-        #      version 12.2. If we want to or need to enable this, it should be done based on which versions we
-        #      know have been patched for this. -TJE
-    else
-        warning_flags += '-fstack-clash-protection'
+    # Check if -fstack-clash-protection works or not. Some GCC for Windows
+    # versions (see
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90458) accept the flag
+    # and even link it, but the generated code crashes at runtime, so the
+    # probe is also run when possible.
+    # The large local buffer forces the stack probing code path the buggy
+    # versions break.
+    stack_clash_test_code = '''
+        __attribute__((noinline)) int clash_probe(void)
+        {
+            volatile char buf[65536];
+            buf[0] = 1;
+            return buf[0];
+        }
+        int main(void) { return clash_probe() - 1; }
+    '''
+    if c.links(
+        stack_clash_test_code,
+        name: 'stack-clash-protection link support',
+        args: ['-fstack-clash-protection'],
+    )
+        if meson.can_run_host_binaries()
+            stack_clash_result = c.run(
+                stack_clash_test_code,
+                name: 'stack-clash-protection run support',
+                args: [
+                    '-fstack-clash-protection',
+                ],
+            )
+            if stack_clash_result.returncode() == 0
+                warning_flags += '-fstack-clash-protection'
+            endif
+        else
+            #Host binaries cannot be executed in this environment - keep the flag, the link check passed
+            warning_flags += '-fstack-clash-protection'
+        endif
     endif
 
     if target_machine.cpu_family() == 'ppc64'
@@ -139,12 +280,34 @@ if c.get_id().contains('gcc') or c.get_id().contains('clang')
         #this flag is disabling them because this is way too noisy.
         warning_flags += ['-Wno-psabi']
     elif target_machine.cpu_family() == 'x86_64'
-        warning_flags += ['-fcf-protection=full']        #this may be linux only at this time.
+        warning_flags += ['-fcf-protection=full']  #this may be linux only at this time.
+        #zero the callee-saved regs left by calls so they cannot seed ROP gadgets;
+        #skipped on Clang < 16 (codegen bug) and dropped by get_supported_arguments on older GCC
+        if not (c.get_id().contains('clang') and not c.version().version_compare('>=16.0'))
+            warning_flags += '-fzero-call-used-regs=used-gpr'
+        endif
     elif target_machine.cpu_family() == 'aarch64'
         warning_flags += ['-mbranch-protection=standard']
+        if not (c.get_id().contains('clang') and not c.version().version_compare('>=16.0'))
+            warning_flags += '-fzero-call-used-regs=used-gpr'
+        endif
     endif
 
     linker_flags += ['-Wl,-z,noexecstack', '-Wl,-z,relro', '-Wl,-z,now']
+    # lld-family linkers (lld-link for the MSVC interface, ld.lld for the GNU interface)
+    # do not know --no-copy-dt-needed-entries: they warn and ignore it, so the support
+    # probe "passes" (exit 0) and the flag ends up on every link line. lld already does
+    # not copy DT_NEEDED entries by default; state it explicitly only for toolchains
+    # where the probe genuinely validates it (older binutils < 2.22).
+    if not c.get_linker_id().contains('lld')
+        linker_flags += '-Wl,--no-copy-dt-needed-entries'
+    endif
+    #DF_1_NOOPEN (-z,nodlopen) is a build option so targets that must remain dlopen()-able
+    #can disable it; --no-copy-dt-needed-entries is the binutils default since 2.22 but is
+    #stated explicitly for systems that still link with older toolchains
+    if get_option('nodlopen')
+        linker_flags += '-Wl,-z,nodlopen'
+    endif
 
     fortifytest = ''' #include <stdio.h>
                       int main() {
@@ -179,36 +342,36 @@ elif c.get_id().contains('msvc')
         '/wd5105',  # macro expansion producing 'defined' has undefined behavior
         '/wd4746',  # volatile access of '<expression>' is subject to /volatile:[iso|ms] setting; consider using __iso_volatile_load/store intrinsic functions.
         #Turn on the following warnings to make the output more useful or like GCC/clang
-        '/w14255',  # 'function' : no function prototype given: converting '()' to '(void)'
-        '/w14062',  # enumerator 'identifier' in switch of enum 'enumeration' is not handled
-        '/w14101',  # 'identifier' : unreferenced local variable
-        '/w14189',  # 'identifier' : local variable is initialized but not referenced
-        '/w15031',  # #pragma warning(pop): likely mismatch, popping warning state pushed in different file
-        '/w15032',  # detected #pragma warning(push) with no corresponding #pragma warning(pop)
-        '/w15262',  # implicit fall-through occurs here; are you missing a break statement? Use [[fallthrough]] when a break statement is intentionally omitted between cases
-        '/w14255',  # 'function' : no function prototype given: converting '()' to '(void)' #NOTE: Only needed for /Wall, otherwise enabling can be good-TJE
-        '/w14242',  # identifier conversion from type 1 to type 2, possible loss of data (matches -wconversion above)
-        '/w14254',  # operator conversion from type 1 to type 2, possible loss of data (matches -wconversion above)
-        '/w14287',  # operator: unsigned/negative constant mismatch (matches -wconversion above)
-        '/w14296',  # operator: expression is always false
-        '/w14365',  # action: conversion from type 1 to type 2, signed/unsigned mismatch (matches -wconversion above)
-        '/w14388',  # implicit conversion warning during a comparison (matches -wconversion above)
-        '/w14545',  # expression before comma evaluates to a function which is missing an argument list
-        '/w14546',  # function call before comma missing argument list
-        '/w14547',  # 'operator' : operator before comma has no effect; expected operator with side-effect
-        '/w14548',  # expression before comma has no effect; expected expression with side-effect
-        '/w14549',  # 'operator1': operator before comma has no effect; did you intend 'operator2'?
-        '/w14574',  # 'identifier' is defined to be '0': did you mean to use '#if identifier'?
-        '/w14605',  # 	'/Dmacro' specified on current command line, but was not specified when precompiled header was built
-        '/w14555',  # expression has no effect; expected expression with side-effect
-        '/w14774',  # 'string' : format string expected in argument number is not a string literal
-        '/w14777',  # 'function' : format string 'string' requires an argument of type 'type1', but variadic argument number has type 'type2'
-        '/w14826',  # Conversion from 'type1' to 'type2' is sign-extended. This may cause unexpected runtime behavior (more -wconversion)
-        '/w15219',  # implicit conversion from 'type-1' to 'type-2', possible loss of data (-wconversion)
-        '/w15240',  # 'attribute-name': attribute is ignored in this syntactic position
-        '/w15245',  # 'function': unreferenced function with internal linkage has been removed
-        '/w14555',  # expression has no effect; expected expression with side-effect
-        '/w15264',  # 'variable-name': 'const' variable is not used
+        '/w34255',  # 'function' : no function prototype given: converting '()' to '(void)'
+        '/w34062',  # enumerator 'identifier' in switch of enum 'enumeration' is not handled
+        '/w34101',  # 'identifier' : unreferenced local variable
+        '/w34189',  # 'identifier' : local variable is initialized but not referenced
+        '/w35031',  # #pragma warning(pop): likely mismatch, popping warning state pushed in different file
+        '/w35032',  # detected #pragma warning(push) with no corresponding #pragma warning(pop)
+        '/w35262',  # implicit fall-through occurs here; are you missing a break statement? Use [[fallthrough]] when a break statement is intentionally omitted between cases
+        '/w34255',  # 'function' : no function prototype given: converting '()' to '(void)' #NOTE: Only needed for /Wall, otherwise enabling can be good-TJE
+        '/w34242',  # identifier conversion from type 1 to type 2, possible loss of data (matches -wconversion above)
+        '/w34254',  # operator conversion from type 1 to type 2, possible loss of data (matches -wconversion above)
+        '/w34287',  # operator: unsigned/negative constant mismatch (matches -wconversion above)
+        '/w34296',  # operator: expression is always false
+        '/w34365',  # action: conversion from type 1 to type 2, signed/unsigned mismatch (matches -wconversion above)
+        '/w34388',  # implicit conversion warning during a comparison (matches -wconversion above)
+        '/w34545',  # expression before comma evaluates to a function which is missing an argument list
+        '/w34546',  # function call before comma missing argument list
+        '/w34547',  # 'operator' : operator before comma has no effect; expected operator with side-effect
+        '/w34548',  # expression before comma has no effect; expected expression with side-effect
+        '/w34549',  # 'operator1': operator before comma has no effect; did you intend 'operator2'?
+        '/w34574',  # 'identifier' is defined to be '0': did you mean to use '#if identifier'?
+        '/w34605',  # 	'/Dmacro' specified on current command line, but was not specified when precompiled header was built
+        '/w34555',  # expression has no effect; expected expression with side-effect
+        '/w34774',  # 'string' : format string expected in argument number is not a string literal
+        '/w34777',  # 'function' : format string 'string' requires an argument of type 'type1', but variadic argument number has type 'type2'
+        '/w34826',  # Conversion from 'type1' to 'type2' is sign-extended. This may cause unexpected runtime behavior (more -wconversion)
+        '/w35219',  # implicit conversion from 'type-1' to 'type-2', possible loss of data (-wconversion)
+        '/w35240',  # 'attribute-name': attribute is ignored in this syntactic position
+        '/w35245',  # 'function': unreferenced function with internal linkage has been removed
+        '/w34555',  # expression has no effect; expected expression with side-effect
+        '/w35264',  # 'variable-name': 'const' variable is not used
         '/w24302',  # 'conversion': truncation from 'type1' to 'type2'
         '/w14311',  # 'variable': pointer truncation from 'type' to 'type'
         '/w14312',  # 'operation': conversion from 'type1' to 'type2' of greater size
@@ -236,11 +399,11 @@ elif c.get_id().contains('msvc')
     # MSVC defaults to old MSVC C compatibility which is mostly C89 with some newer C99/C11-ish support
     # Since we support older meson versions, we deal with this causing a warning over using the default_options to
     # set the C standard for the project.
-    if  c.has_argument('/std:clatest')
+    if c.has_argument('/std:clatest')
         warning_flags += '/std:clatest'
-    elif  c.has_argument('/std:c17')
+    elif c.has_argument('/std:c17')
         warning_flags += '/std:c17'
-    elif  c.has_argument('/std:c11')
+    elif c.has_argument('/std:c11')
         warning_flags += '/std:c11'
     endif
 
@@ -290,7 +453,7 @@ if not (target_machine.system() == 'sunos') and c.get_id().contains('gcc')
 endif
 
 if target_machine.system() == 'windows'
-  global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
+    global_cpp_args += ['-D_CRT_NONSTDC_NO_DEPRECATE', '-D_CRT_SECURE_NO_WARNINGS']
 endif
 
 defaultlib = get_option('default_library')
@@ -304,7 +467,9 @@ elif defaultlib == 'shared'
     build_c_args += ['-DEXPORT_OPENSEA_OPERATIONS']
     dep_c_args += ['-DIMPORT_OPENSEA_OPERATIONS']
 else
-    error('Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib)
+    error(
+        'Invalid default_library option value for this project. Please set shared or static, but not both: ' + defaultlib,
+    )
 endif
 
 
@@ -352,11 +517,12 @@ opensea_operations_lib = library(
     c_args: global_cpp_args + build_c_args,
     dependencies: [opensea_common_dep, opensea_transport_dep],
     include_directories: incdir,
-    gnu_symbol_visibility : 'hidden'
+    gnu_symbol_visibility: 'hidden',
 )
 
 opensea_operations_dep = declare_dependency(
     link_with: opensea_operations_lib,
     compile_args: global_cpp_args + dep_c_args,
+    dependencies: ssp_support_dep,
     include_directories: incdir,
 )

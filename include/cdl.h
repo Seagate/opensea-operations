@@ -39,7 +39,7 @@ extern "C"
     //! \enum eCDLFeatureSet
     //! \brief Enum representing CDL Feature enable or disable state.
     //!
-    //! This enum defines the different state (enable/disable) of CDL Feature.
+    //! This enum defines the different states (enable/disable) of CDL Feature.
     M_DECLARE_ENUM(eCDLFeatureSet,
                    /*!< CDL Feature Unknown state. */
                    CDL_FEATURE_UNKNOWN = -1,
@@ -70,13 +70,13 @@ extern "C"
         CDL_POLICY_TYPE_ACTIVE_TIME = 1,
         /*!< CDL Policy Total Time. */
         CDL_POLICY_TYPE_TOTAL_TIME = 2,
-        /*!< CDL Policy Command Duration Guideline. This is represetation of Total Time policy for SCSI drives*/
+        /*!< CDL Policy Command Duration Guideline. This is representation of Total Time policy for SCSI drives*/
         CDL_POLICY_TYPE_COMMAND_DURATION_GUIDELINE = 3);
 
     //! \enum eCDLTimeFieldUnitType
     //! \brief Enum representing units for time fields.
     //!
-    //! This enum defines the different of units for CDL Time fields.
+    //! This enum defines the different units for CDL Time fields.
     M_DECLARE_ENUM(eCDLTimeFieldUnitType,
                    /*!< CDL Time Field Unit in microseconds. */
                    CDL_TIME_FIELD_UNIT_TYPE_MICROSECONDS = 0,

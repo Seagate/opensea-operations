@@ -11,7 +11,7 @@
 // ******************************************************************************************
 //
 // \file sector_repair.h
-// \brief This file defines the functions related to sector repair. This file also contians functions for creating
+// \brief This file defines the functions related to sector repair. This file also contains functions for creating
 // uncorrectables on the drive since these functions are useful for testing repairs
 
 #pragma once

@@ -32,7 +32,7 @@ extern "C"
     //!                                [NVMe Identify data shows how many entries are present]
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -49,7 +49,7 @@ extern "C"
     //!   \param[in] device = pointer to tDevice structure
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_FWSLOTS_Log_Page(const tDevice* M_NONNULL device);
@@ -64,7 +64,7 @@ extern "C"
     //!   \param[in] device = pointer to tDevice structure
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_CmdSptEfft_Log_Page(const tDevice* M_NONNULL device);
@@ -81,7 +81,7 @@ extern "C"
     //!   \param[in] device = pointer to tDevice structure
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues nvme_Print_DevSelfTest_Log_Page(const tDevice* M_NONNULL device);
@@ -110,7 +110,7 @@ extern "C"
     //!   \param[in] listOnlySupportedFeatures = !!NOT USED!! list only supported features.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -131,7 +131,7 @@ extern "C"
     //!   \param[in] selectType eNvmeFeaturesSelectValue, i.e. current, default, saved etc.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -141,7 +141,7 @@ extern "C"
 
     // \fn print_Nvme_Ctrl_Regs(const tDevice* M_NONNULL device)
     // \brief Prints the controller registers.
-    // \param[in] device struture
+    // \param[in] device structure
     // \return SUCCESS - pass, !SUCCESS fail or something went wrong
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues print_Nvme_Ctrl_Regs(const tDevice* M_NONNULL device);
     //-----------------------------------------------------------------------------
@@ -150,14 +150,14 @@ extern "C"
     //
     //! \brief   Description:  Function to get the size for GetLog Page command by a utility.
     //!                        NOTE: Some variable length logs will not return a size at this time. Vendor unique logs
-    //!                        are not supported i nthis function
+    //!                        are not supported in this function
     //
     //  Entry:
     //!   \param[in] device = pointer to the device structure. This is needed in order to calculate some log sizes that
     //!   are not fixed \param[in] logPageId = Log Page Identifier. \param[out] logSize = size of the Log to return
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)

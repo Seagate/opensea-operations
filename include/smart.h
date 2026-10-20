@@ -67,69 +67,71 @@ extern "C"
     OPENSEA_OPERATIONS_API eReturnValues get_SMART_Attributes(const tDevice* M_NONNULL device,
                                                               smartLogData* M_NONNULL  smartAttrs);
 
+    M_DEPRECATED_REASON("Use get_Device_SMART_Attribute_Name instead")
+    M_PARAM_RO(1)
+    M_PARAM_RW(3)
+    OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL   device,
+                                                   uint8_t                    attributeNumber,
+                                                   char* M_NONNULL* M_NONNULL attributeName);
+
     M_PARAM_RO(1)
     M_PARAM_WO(3)
-    OPENSEA_OPERATIONS_API void get_Attribute_Name(const tDevice* M_NONNULL device,
-                                                   uint8_t                  attributeNumber,
-                                                   char* M_NONNULL
-                                                       attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    OPENSEA_OPERATIONS_API errno_t
+    get_Device_SMART_Attribute_Name(const tDevice* M_NONNULL device,
+                                    uint8_t                  attributeNumber,
+                                    char                     attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Seagate_Attribute_Name(uint8_t         attributeNumber,
-                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Seagate_Attribute_Name(uint8_t attributeNumber, char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(3)
     OPENSEA_OPERATIONS_API errno_t
-    get_Seagate_Vendor_D_E_Attribute_Name(eSeagateFamily  vendor,
-                                          uint8_t         attributeNumber,
-                                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Seagate_Vendor_D_E_Attribute_Name(eSeagateFamily vendor,
+                                          uint8_t        attributeNumber,
+                                          char           attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Samsung_HDD_Attribute_Name(uint8_t         attributeNumber,
-                                   char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Samsung_HDD_Attribute_Name(uint8_t attributeNumber,
+                                   char    attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Maxtor_Attribute_Name(uint8_t         attributeNumber,
-                              char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Maxtor_Attribute_Name(uint8_t attributeNumber, char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(3)
     OPENSEA_OPERATIONS_API errno_t
-    get_Seagate_Vendor_B_C_Attribute_Name(eSeagateFamily  vendor,
-                                          uint8_t         attributeNumber,
-                                          char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Seagate_Vendor_B_C_Attribute_Name(eSeagateFamily vendor,
+                                          uint8_t        attributeNumber,
+                                          char           attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Seagate_Vendor_F_Attribute_Name(uint8_t         attributeNumber,
-                                        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Seagate_Vendor_F_Attribute_Name(uint8_t attributeNumber,
+                                        char    attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Seagate_Vendor_G_Attribute_Name(uint8_t         attributeNumber,
-                                        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Seagate_Vendor_G_Attribute_Name(uint8_t attributeNumber,
+                                        char    attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Conner_Attribute_Name(uint8_t         attributeNumber,
-                              char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Conner_Attribute_Name(uint8_t attributeNumber, char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Seagate_Vendor_K_Attribute_Name(uint8_t         attributeNumber,
-                                        char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Seagate_Vendor_K_Attribute_Name(uint8_t attributeNumber,
+                                        char    attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Quantum_Attribute_Name(uint8_t         attributeNumber,
-                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Quantum_Attribute_Name(uint8_t attributeNumber, char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     M_PARAM_RW(2)
     OPENSEA_OPERATIONS_API errno_t
-    get_Common_Attribute_Names(uint8_t         attributeNumber,
-                               char* M_NONNULL attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
+    get_Common_Attribute_Names(uint8_t attributeNumber, char attributeName[M_NONNULL_ARRAY MAX_ATTRIBUTE_NAME_LENGTH]);
 
     typedef enum eSMARTAttrOutModeEnum
     {
@@ -866,7 +868,11 @@ extern "C"
 
     //-----------------------------------------------------------------------------
     //
+<<<<<<< HEAD
     //  set_EWASC_Mode(const tDevice *device, uint8_t ewascMode, bool driveDefault)
+=======
+    //  set_EWASC_Mode(const tDevice *device, bool ewascMode, bool driveDefault)
+>>>>>>> develop
     //
     //! \brief   Description:  Set SCSI Informational Exceptions EWASC (Enable Warning)
     //
@@ -881,12 +887,21 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_EWASC_Mode(const tDevice* M_NONNULL device,
+<<<<<<< HEAD
                                                        uint8_t                  ewascMode,
                                                        bool                     driveDefault);
 
     //-----------------------------------------------------------------------------
     //
     //  set_DEXCPT_Mode(const tDevice *device, uint8_t dexcptMode, bool driveDefault)
+=======
+                                                        bool                     ewascMode,
+                                                        bool                     driveDefault);
+
+    //-----------------------------------------------------------------------------
+    //
+    //  set_DEXCPT_Mode(const tDevice *device, bool dexcptMode, bool driveDefault)
+>>>>>>> develop
     //
     //! \brief   Description:  Set SCSI Informational Exceptions DEXCPT (Disable Exception Control)
     //
@@ -901,8 +916,13 @@ extern "C"
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API eReturnValues set_DEXCPT_Mode(const tDevice* M_NONNULL device,
+<<<<<<< HEAD
                                                          uint8_t                 dexcptMode,
                                                         bool                     driveDefault);
+=======
+                                                         bool                     dexcptMode,
+                                                         bool                     driveDefault);
+>>>>>>> develop
 
 #define SMART_ERROR_STATE_MASK                                                                                         \
     0x0F // highnibble is vendor unique. use this to look at the low nibble and match a state to the enum below

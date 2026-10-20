@@ -1520,7 +1520,8 @@ OPENSEA_OPERATIONS_API eReturnValues get_Number_Of_LBA_Status_Descriptors(const 
 #define ATA_LBA_STATUS_DESCRIPTOR_SIZE 16
 
 //! \def ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR
-//! \brief Number of LBA status descriptors that can fit in a sector, accounting for the 16 byte header at the start of the sector.
+//! \brief Number of LBA status descriptors that can fit in a sector, accounting for the 16 byte header at the start of
+//! the sector.
 #define ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR ((LEGACY_DRIVE_SEC_SIZE / ATA_LBA_STATUS_DESCRIPTOR_SIZE) - 1)
 
 M_PARAM_RO(1)
@@ -1537,7 +1538,8 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M
     }
     RESTORE_NONNULL_COMPARE
     uint32_t getLbaStatusDataSize =
-        M_STATIC_CAST(uint32_t, numberOfDescriptorsExpected / ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR) * LEGACY_DRIVE_SEC_SIZE;
+        M_STATIC_CAST(uint32_t, numberOfDescriptorsExpected / ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR) *
+        LEGACY_DRIVE_SEC_SIZE;
     // need an extra sector for the remaining descriptors
     if (numberOfDescriptorsExpected % ATA_LBA_STATUS_DESCRIPTORS_PER_SECTOR != 0)
     {
@@ -1549,7 +1551,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M
                numberOfDescriptorsExpected);
         getLbaStatusDataSize = M_STATIC_CAST(uint32_t, LEGACY_DRIVE_SEC_SIZE) * M_STATIC_CAST(uint32_t, UINT16_MAX);
     }
-    errno = 0;
+    errno                       = 0;
     size_t descriptorBufferSize = uint32_to_sizet(getLbaStatusDataSize) + uint16_to_sizet(LEGACY_DRIVE_SEC_SIZE);
     if (errno == ERANGE)
     {
@@ -1557,9 +1559,8 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M
         return MEMORY_FAILURE;
     }
     // Note we read not only descriptors but also page 0 which is header
-    uint8_t* descriptorBuffer =
-        C_CAST(uint8_t*, safe_calloc_aligned(descriptorBufferSize, sizeof(uint8_t),
-                                             get_Device_IO_Minimum_Alignment(device)));
+    uint8_t* descriptorBuffer = C_CAST(
+        uint8_t*, safe_calloc_aligned(descriptorBufferSize, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
     if (descriptorBuffer != M_NULLPTR)
     {
         uint64_t numberOfDescriptorsReturned = UINT64_C(0);
@@ -1575,7 +1576,9 @@ OPENSEA_OPERATIONS_API eReturnValues get_LBA_Status_Descriptors(const tDevice* M
                     for (uint16_t pageOffset = ATA_LBA_STATUS_DESCRIPTOR_SIZE; pageOffset < LEGACY_DRIVE_SEC_SIZE;
                          pageOffset += ATA_LBA_STATUS_DESCRIPTOR_SIZE)
                     {
-                        uint64_t bufferOffset = ((M_STATIC_CAST(uint64_t, page) * M_STATIC_CAST(uint64_t, LEGACY_DRIVE_SEC_SIZE)) + M_STATIC_CAST(uint64_t, pageOffset));
+                        uint64_t bufferOffset =
+                            ((M_STATIC_CAST(uint64_t, page) * M_STATIC_CAST(uint64_t, LEGACY_DRIVE_SEC_SIZE)) +
+                             M_STATIC_CAST(uint64_t, pageOffset));
                         if (numberOfDescriptorsReturned < numberOfDescriptorsExpected)
                         {
                             descriptorList[numberOfDescriptorsReturned].startLba = M_BytesTo8ByteValue(

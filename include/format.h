@@ -456,7 +456,7 @@ extern "C"
     //!   \param[out] formatSupport = structure holding variables to describe format support on NVMe devices
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -528,7 +528,7 @@ extern "C"
     //!   after sending the format command
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -547,7 +547,7 @@ extern "C"
     //!   \param[out] percentComplete = value that holds the percentage that a format is complete.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -565,7 +565,7 @@ extern "C"
     //!   \param[in] device = pointer to tDevice structure
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1) OPENSEA_OPERATIONS_API eReturnValues show_NVM_Format_Progress(const tDevice* M_NONNULL device);

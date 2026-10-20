@@ -3891,7 +3891,7 @@ static eReturnValues get_SCSI_Inquiry_Data(ptrDriveInformationSAS_SATA M_NONNULL
             {
                 perror("Error copying copyright info from inquiry data");
             }
-            driveInfo->copyrightInfo[49] = '\0';
+            null_Terminate_String(driveInfo->copyrightInfo, sizeof(driveInfo->copyrightInfo));
             remove_Leading_And_Trailing_Control_Char_Len(driveInfo->copyrightInfo, 50);
         }
     }
@@ -9540,21 +9540,27 @@ OPENSEA_OPERATIONS_API void print_SAS_Sata_Device_Information(ptrDriveInformatio
     {
         if (driveInfo->lowCurrentSpinupViaSCT) // to handle differences in reporting between 2.5" products and others
         {
-            print_str("\tLow Current Spinup: ");
-            switch (driveInfo->lowCurrentSpinupEnabled)
+            // state=0 means the SCT query failed or returned an unreliable response (e.g. SATL
+            // returned non-standard sense data). Skip the line rather than printing a misleading error.
+            if (driveInfo->lowCurrentSpinupEnabled != 0)
             {
-            case SEAGATE_LOW_CURRENT_SPINUP_STATE_LOW:
-                print_str("Enabled\n");
-                break;
-            case SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT:
-                print_str("Disabled\n");
-                break;
-            case SEAGATE_LOW_CURRENT_SPINUP_STATE_ULTRA_LOW:
-                print_str("Ultra Low Enabled\n");
-                break;
-            default:
-                printf("Unknown/Invalid state: %" PRIX16 "\n", C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
-                break;
+                print_str("\tLow Current Spinup: ");
+                switch (driveInfo->lowCurrentSpinupEnabled)
+                {
+                case SEAGATE_LOW_CURRENT_SPINUP_STATE_LOW:
+                    print_str("Enabled\n");
+                    break;
+                case SEAGATE_LOW_CURRENT_SPINUP_STATE_DEFAULT:
+                    print_str("Disabled\n");
+                    break;
+                case SEAGATE_LOW_CURRENT_SPINUP_STATE_ULTRA_LOW:
+                    print_str("Ultra Low Enabled\n");
+                    break;
+                default:
+                    printf("Unknown/Invalid state: %" PRIX16 "\n",
+                           C_CAST(uint16_t, driveInfo->lowCurrentSpinupEnabled));
+                    break;
+                }
             }
         }
         else

@@ -530,7 +530,7 @@ extern "C"
     //!   \param flags -  to filter the logs.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -546,7 +546,7 @@ extern "C"
     //!   \param flags -  to filter the logs.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -561,7 +561,7 @@ extern "C"
     //!   \param flags -  to filter the logs.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -577,7 +577,7 @@ extern "C"
     //!   \param flags -  to filter the logs.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -598,7 +598,7 @@ extern "C"
     //!   do 64k instead of a default amount \param logLengthOverride - NVME only. Used to specify the total length of a
     //!   log when known since the generic lookup may not get this correct or may not know the actual length
     //  Exit:
-    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
@@ -632,7 +632,7 @@ extern "C"
     //!   \param flags -  to filter the logs.
     //!
     //  Exit:
-    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something when wrong
+    //!   \return SUCCESS = pass, NOT_SUPPORTED = log is not supported by device, !SUCCESS = something went wrong
     //
     //-----------------------------------------------------------------------------
     M_PARAM_RO(1)
