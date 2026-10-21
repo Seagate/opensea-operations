@@ -2777,11 +2777,11 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
 {
     eReturnValues   ret          = SUCCESS;
     secureFileInfo* isl          = M_NULLPTR;
-    uint8_t         islLogToPull = UINT8_C(0xFF);
-    if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
+    uint8_t islLogToPull = UINT8_C(0xFF);
+    // Round up so an off-by-a-bit size never fails. LEGACY_DRIVE_SEC_SIZE must stay a power of two.
+    if (transferSizeBytes)
     {
-        // NOTE: We may be able to pull this in any size, but for now and for compatibility only allow 512B sizes.
-        return BAD_PARAMETER;
+        transferSizeBytes = unsigned_int_round_up_power2(transferSizeBytes, LEGACY_DRIVE_SEC_SIZE);
     }
     uint8_t* dataBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
@@ -3133,9 +3133,10 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
 {
     eReturnValues   ret = SUCCESS;
     secureFileInfo* isl = M_NULLPTR;
-    if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
+    // Round up so an off-by-a-bit size never fails. LEGACY_DRIVE_SEC_SIZE must stay a power of two.
+    if (transferSizeBytes)
     {
-        return BAD_PARAMETER;
+        transferSizeBytes = unsigned_int_round_up_power2(transferSizeBytes, LEGACY_DRIVE_SEC_SIZE);
     }
     uint8_t* dataBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
