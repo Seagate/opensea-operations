@@ -1861,6 +1861,8 @@ static uint32_t get_fwdl_segment_size_from_os_limits(const tDevice* M_NONNULL de
     }
 #else
     M_USE_UNUSED(device);
+    M_USE_UNUSED(fwdlSupport);
+    M_USE_UNUSED(microcodelength);
 #endif
     return updateLen;
 }
