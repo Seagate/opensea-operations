@@ -132,12 +132,12 @@ extern "C"
 
     M_STATIC_ASSERT(sizeof(farmHeader) == FARM_PAGE_LEN, farm_header_stuct_is_not_16kib);
 
-#define FARM_MAX_HEADS 24
+#define FARM_MAX_HEADS                      24
 
-    // This exists here since this macro gets cast to uint8 in many other places.
-    // If this limit is increased above 255 (unlikely), then a lot of other code will need type changes to
-    // work properly.
-    M_STATIC_ASSERT(FARM_MAX_HEADS < UINT8_MAX, farm_max_heads_exceeds_uint8_t_limit);
+// This exists here since this macro gets cast to uint8 in many other places.
+// If this limit is increased above 255 (unlikely), then a lot of other code will need type changes to
+// work properly.
+M_STATIC_ASSERT(FARM_MAX_HEADS < UINT8_MAX, farm_max_heads_exceeds_uint8_t_limit);
 
 #define FARM_GET_PHYS_ELEM_STAT_BY_HEAD_MAX FARM_MAX_HEADS
 
@@ -217,7 +217,7 @@ extern "C"
                     farm_DI_SWRConfig);
 
 #define FARM_WORKLOAD_RESERVED_STATS  350
-#define FARM_WORKLOAD_RESERVED_STATS2 1650
+#define FARM_WORKLOAD_RESERVED_STATS2 1634
 
     typedef struct s_farmWorkload
     {
@@ -271,6 +271,22 @@ extern "C"
         uint64_t numWritesXferLenBin5Last3SMARTSummaryFrames;
         uint64_t numWritesXferLenBin6Last3SMARTSummaryFrames;
         uint64_t numWritesXferLenBin7Last3SMARTSummaryFrames;
+        uint64_t numReadsXferLenBin0ForRestrictedTimeRange;
+        uint64_t numReadsXferLenBin1ForRestrictedTimeRange;
+        uint64_t numReadsXferLenBin2ForRestrictedTimeRange;
+        uint64_t numReadsXferLenBin3ForRestrictedTimeRange;
+        uint64_t numReadsXferLenBin4ForRestrictedTimeRange;
+        uint64_t numReadsXferLenBin5ForRestrictedTimeRange;
+        uint64_t numReadsXferLenBin6ForRestrictedTimeRange;
+        uint64_t numReadsXferLenBin7ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin0ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin1ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin2ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin3ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin4ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin5ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin6ForRestrictedTimeRange;
+        uint64_t numWritesXferLenBin7ForRestrictedTimeRange;
         uint64_t reserved[FARM_WORKLOAD_RESERVED_STATS2];
     } farmWorkload;
 
@@ -583,6 +599,9 @@ extern "C"
 
     M_PARAM_RO(1)
     OPENSEA_OPERATIONS_API void print_FARM_Data(farmLogData* M_NONNULL farmdata);
+
+    static void parse_Farm_Log(const uint64_t *ptrData, const uint8_t offset, uint64_t *ptrDest, const uint8_t paramlength);
+
 
 #if defined(__cplusplus)
 }
