@@ -160,8 +160,12 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log_Size(const tDevice* M_NONNULL d
         else if (is_SMART_Enabled(device) && is_SMART_Error_Logging_Supported(device))
         {
             // The directory log is marked as optional and is supposed to return aborted IF the drive does not support
-            // multi-sector logs. Only do this for summary error, comprehensive error, self-test log, and selective
+            // multi-sector logs. Only do this for summary error, self-test log, and selective
             // self-test log
+            // Note: Comprehensive SMART error log removed from here. Spec says drive may support between 2 and 51 sectors/blocks
+            // of data for that log. That automatically defeats the purpose of this check where only logs 512B are supported.
+            // For a drive supporting a 2 sector version, this will be handled by the drive supporting the read of the log
+            // directory!
             switch (logAddress)
             {
             case ATA_LOG_SUMMARY_SMART_ERROR_LOG:
@@ -177,20 +181,6 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log_Size(const tDevice* M_NONNULL d
                 if (is_Self_Test_Supported(device) && is_Selective_Self_Test_Supported(device))
                 {
                     *logFileSize = UINT32_C(512);
-                }
-                break;
-            case ATA_LOG_COMPREHENSIVE_SMART_ERROR_LOG:
-                // first appears in ATA/ATAPI-6
-                // If the drive does not report at least this version, do not return a size for it as it will not be
-                // supported
-                if (is_ATA_Identify_Word_Valid(le16_to_host(device->drive_info.IdentifyData.ata.Word080)) &&
-                    (le16_to_host(device->drive_info.IdentifyData.ata.Word080) & 0xFFC0))
-                {
-                    *logFileSize = UINT32_C(512);
-                }
-                else
-                {
-                    *logFileSize = UINT32_C(0);
                 }
                 break;
             default:
@@ -1399,11 +1389,18 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(const tDevice* M_NON
             return BAD_PARAMETER;
         }
 
-        uint32_t increment =
-            UINT32_C(65536); // pulling in 64K chunks...this should be ok, but we may need to change this later!
+        uint32_t increment = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_DEFAULT);
         if (transferSizeBytes != 0)
         {
             increment = transferSizeBytes; // use the user selected size (if it's non-zero)
+        }
+        if (increment == 0)
+        {
+            if (VERBOSITY_QUIET < device->deviceVerbosity)
+            {
+                print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
+            }
+            return TRANSFER_SIZE_UNAVAILABLE;
         }
         if (increment > historyLen)
         {
@@ -1849,26 +1846,34 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(const tDevice* M_NONNULL device
 
         if (GPL)
         {
-            // read each log 1 page at a time since some can get to be so large some controllers won't let you pull it.
-            uint16_t pagesToReadAtATime = UINT16_C(1);
-            uint16_t numberOfLogPages   = C_CAST(uint16_t, logSize / LEGACY_DRIVE_SEC_SIZE);
+            // read each log in chunks since some logs can get to be so large some controllers won't let you pull it all at once.
+            const uint32_t logXferSizeBytes = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
+            if (logXferSizeBytes < ATA_LOG_PAGE_LEN_BYTES)
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
+                }
+                safe_free_aligned(&logBuffer);
+                return TRANSFER_SIZE_UNAVAILABLE;
+            }
+            uint16_t pagesToReadAtATime = C_CAST(uint16_t, logXferSizeBytes / ATA_LOG_PAGE_LEN_BYTES);
+            uint16_t numberOfLogPages   = C_CAST(uint16_t, logSize / ATA_LOG_PAGE_LEN_BYTES);
             uint16_t pagesToReadNow     = UINT16_C(1);
             uint16_t currentPage        = UINT16_C(0);
-            if (get_Device_InterfaceType(device) != USB_INTERFACE &&
-                get_Device_InterfaceType(device) != IEEE_1394_INTERFACE)
-            {
-                pagesToReadAtATime = 32;
-            }
-            else
-            {
-                // USB and IEEE 1394 should only ever be read 1 page at a time since these interfaces use cheap bridge
-                // chips that typically don't allow larger transfers.
-                pagesToReadAtATime = 1;
-            }
             if (transferSizeBytes > UINT32_C(0))
             {
                 // caller is telling us how much to read at a time...so let them.
-                pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / LEGACY_DRIVE_SEC_SIZE));
+                pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / ATA_LOG_PAGE_LEN_BYTES));
+            }
+            if (pagesToReadAtATime == 0)
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    print_str("The requested transfer size is below the 512B minimum log page size!\n");
+                }
+                safe_free_aligned(&logBuffer);
+                return BAD_PARAMETER;
             }
             logFromGPL = true;
             for (currentPage = UINT16_C(0); currentPage < numberOfLogPages; currentPage += pagesToReadAtATime)
@@ -2529,11 +2534,20 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                 uint16_t reportedLargeSize  = UINT16_C(0);
                 uint16_t islPullingSize     = UINT16_C(0);
                 uint16_t pageNumber         = UINT16_C(0); // keep track of the current page we are reading/saving
-                uint32_t pullChunkSize =
-                    UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE; // pull the remainder of the log in 4k chunks
+                uint32_t pullChunkSize = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
                 if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
+                }
+                if (pullChunkSize == 0)
+                {
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
+                    }
+                    safe_free_aligned(&dataBuffer);
+                    free_Secure_File_Info(&isl);
+                    return TRANSFER_SIZE_UNAVAILABLE;
                 }
                 uint8_t* temp = M_NULLPTR;
                 // saving first page to file
@@ -2763,11 +2777,11 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
 {
     eReturnValues   ret          = SUCCESS;
     secureFileInfo* isl          = M_NULLPTR;
-    uint8_t         islLogToPull = UINT8_C(0xFF);
-    if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
+    uint8_t islLogToPull = UINT8_C(0xFF);
+    // Round up so an off-by-a-bit size never fails. LEGACY_DRIVE_SEC_SIZE must stay a power of two.
+    if (transferSizeBytes)
     {
-        // NOTE: We may be able to pull this in any size, but for now and for compatibility only allow 512B sizes.
-        return BAD_PARAMETER;
+        transferSizeBytes = unsigned_int_round_up_power2(transferSizeBytes, LEGACY_DRIVE_SEC_SIZE);
     }
     uint8_t* dataBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
@@ -2846,11 +2860,20 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
             if (SUCCESS == scsi_Read_Buffer(device, SCSI_RB_ERROR_HISTORY, islLogToPull, pageNumber,
                                             LEGACY_DRIVE_SEC_SIZE, dataBuffer))
             {
-                uint32_t pullChunkSize =
-                    UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE; // pull the remainder of the log in 4k chunks
+                uint32_t pullChunkSize = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_DEFAULT);
                 if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
+                }
+                if (pullChunkSize == 0)
+                {
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
+                    }
+                    safe_free_aligned(&dataBuffer);
+                    free_Secure_File_Info(&isl);
+                    return TRANSFER_SIZE_UNAVAILABLE;
                 }
                 uint16_t reportedSmallSize  = UINT16_C(0);
                 uint16_t reportedMediumSize = UINT16_C(0);
@@ -3110,9 +3133,10 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
 {
     eReturnValues   ret = SUCCESS;
     secureFileInfo* isl = M_NULLPTR;
-    if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
+    // Round up so an off-by-a-bit size never fails. LEGACY_DRIVE_SEC_SIZE must stay a power of two.
+    if (transferSizeBytes)
     {
-        return BAD_PARAMETER;
+        transferSizeBytes = unsigned_int_round_up_power2(transferSizeBytes, LEGACY_DRIVE_SEC_SIZE);
     }
     uint8_t* dataBuffer = M_REINTERPRET_CAST(
         uint8_t*, safe_calloc_aligned(LEGACY_DRIVE_SEC_SIZE, sizeof(uint8_t), get_Device_IO_Minimum_Alignment(device)));
@@ -3181,11 +3205,20 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                 uint32_t reportedXLargeSize = UINT32_C(0);
                 uint32_t islPullingSize     = UINT32_C(0);
                 uint32_t pageNumber         = UINT32_C(0); // keep track of the offset we are reading/saving
-                uint32_t pullChunkSize =
-                    UINT32_C(8) * LEGACY_DRIVE_SEC_SIZE; // pull the remainder of the log in 4k chunks
+                uint32_t pullChunkSize = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
                 if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
+                }
+                if (pullChunkSize == 0)
+                {
+                    if (VERBOSITY_QUIET < device->deviceVerbosity)
+                    {
+                        print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
+                    }
+                    safe_free_aligned(&dataBuffer);
+                    free_Secure_File_Info(&isl);
+                    return TRANSFER_SIZE_UNAVAILABLE;
                 }
                 uint8_t* temp = M_NULLPTR;
                 // saving first page to file
@@ -4594,12 +4627,12 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL 
     bool            fileOpened         = false;
     secureFileInfo* fp_log             = M_NULLPTR;
     eReturnValues   ret                = UNKNOWN;
-    uint16_t        pagesToReadAtATime = UINT16_C(1);
+    uint16_t        pagesToReadAtATime = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE) / ATA_LOG_PAGE_LEN_BYTES;
     uint16_t        pagesToReadNow     = UINT16_C(1);
     uint16_t        currentPage        = UINT16_C(0);
     uint16_t        numberOfLogPages   = C_CAST(uint16_t, FARM_SUBLOGPAGE_LEN / LEGACY_DRIVE_SEC_SIZE);
     uint8_t*        logBuffer =
-        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned((SIZE_T_C(32) * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t),
+        M_REINTERPRET_CAST(uint8_t*, safe_calloc_aligned((TOTAL_CONSTITUENT_PAGES * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t),
                                                          get_Device_IO_Minimum_Alignment(device)));
     DECLARE_ZERO_INIT_ARRAY(char, logType, OPENSEA_PATH_MAX);
 
@@ -4620,27 +4653,33 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL 
                 safe_free_aligned(&logBuffer);
                 return MEMORY_FAILURE;
             }
-            if (get_Device_InterfaceType(device) != USB_INTERFACE &&
-                get_Device_InterfaceType(device) != IEEE_1394_INTERFACE)
+            if (get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE) < ATA_LOG_PAGE_LEN_BYTES)
             {
-                pagesToReadAtATime = 32;
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
+                }
+                safe_free_aligned(&logBuffer);
+                return TRANSFER_SIZE_UNAVAILABLE;
             }
-            else
-            {
-                // USB and IEEE 1394 should only ever be read 1 page at a time since these interfaces use cheap bridge
-                // chips that typically don't allow larger transfers.
-                pagesToReadAtATime = 1;
-            }
-
             if (transferSizeBytes > UINT32_C(0))
             {
-                if (transferSizeBytes % LEGACY_DRIVE_SEC_SIZE)
+                if (transferSizeBytes % ATA_LOG_PAGE_LEN_BYTES)
                 {
                     safe_free_aligned(&logBuffer);
                     return BAD_PARAMETER;
                 }
                 // caller is telling us how much to read at a time
-                pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / LEGACY_DRIVE_SEC_SIZE));
+                pagesToReadAtATime = C_CAST(uint16_t, (transferSizeBytes / ATA_LOG_PAGE_LEN_BYTES));
+            }
+            if (pagesToReadAtATime == 0)
+            {
+                if (VERBOSITY_QUIET < device->deviceVerbosity)
+                {
+                    print_str("The requested transfer size is below the 512B minimum log page size!\n");
+                }
+                safe_free_aligned(&logBuffer);
+                return BAD_PARAMETER;
             }
 
             for (currentPage = 0; currentPage < numberOfLogPages; currentPage += pagesToReadAtATime)
@@ -4679,7 +4718,7 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL 
                         // write the page to a file
                         if (SEC_FILE_SUCCESS !=
                             secure_Write_File(fp_log, &logBuffer[uint16_to_sizet(currentPage) * LEGACY_DRIVE_SEC_SIZE],
-                                              (SIZE_T_C(32) * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t),
+                                              (TOTAL_CONSTITUENT_PAGES * LEGACY_DRIVE_SEC_SIZE), sizeof(uint8_t),
                                               (uint16_to_sizet(pagesToReadNow) * LEGACY_DRIVE_SEC_SIZE), M_NULLPTR))
                         {
                             if (VERBOSITY_QUIET < device->deviceVerbosity)
