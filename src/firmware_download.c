@@ -1841,7 +1841,8 @@ static uint32_t get_fwdl_segment_size_from_os_limits(const tDevice* M_NONNULL de
         }
         // No updateLen < payloadAlignment since this will automatically bypass the Windows API as it is incompatible.
     }
-    else if (device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
+    else if (!device->os_info.fwdlIOsupport.fwdlIOSupported &&
+             device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
     {
         // changing the transfer size to single blocks as a workaround for old drivers. This is more
         // generic than I would like, but do not currently have a better solution for this old issue.
