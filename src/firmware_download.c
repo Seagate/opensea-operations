@@ -394,7 +394,11 @@ OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL 
                 break;
             }
 
-            options->segmentSize = get_fwdl_segment_size(device, options->segmentSize, fwdlSupport);
+            options->segmentSize = M_STATIC_CAST(
+                uint16_t,
+                get_fwdl_segment_size_for_microcode(
+                    device, M_STATIC_CAST(uint32_t, options->segmentSize) * LEGACY_DRIVE_SEC_SIZE,
+                    fwdlSupport, options->firmwareMemoryLength) / LEGACY_DRIVE_SEC_SIZE);
 
             if (options->segmentSize == 0)
             {
