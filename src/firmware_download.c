@@ -1876,27 +1876,51 @@ static uint32_t fwdl_Round_Segment_Size_To_Boundary(const tDevice* M_NONNULL    
                                                     const uint32_t                 candidate,
                                                     const supportedDLModes         fwdlSupport)
 {
-    const uint32_t minBytes  = fwdlSupport.minSegmentSize * UINT32_C(512);
-    const uint32_t baseAlign = (get_Device_DriveType(device) == SCSI_DRIVE) ? UINT32_C(2) : UINT32_C(512);
-    // driveOffsetBoundary may be a safe fallback default when the drive does not report it
+    M_USE_UNUSED(device);
+    const uint32_t minBytes = fwdlSupport.minSegmentSize * UINT32_C(512);
     const uint32_t boundary = M_Max(fwdlSupport.driveOffsetBoundaryInBytes, UINT32_C(1));
-    // largest multiple of the reported boundary at or below candidate. If that is
-    // below the device minimum, then NO multiple of this boundary exists in the
-    // valid range [minBytes, candidate], so the boundary alone cannot save it.
-    uint32_t alignedTo = candidate - (candidate % boundary);
+    // largest multiple of the drive's boundary at or below candidate. The boundary is a
+    // device requirement whether it was device-reported, NVMe granularity-derived, or set
+    // from OS rules, so it must never be relaxed. If that multiple is 0 or below the
+    // device minimum, then NO multiple of this boundary exists in the valid range
+    // [minBytes, candidate], so no compliant segment size exists.
+    const uint32_t alignedTo = candidate - (candidate % boundary);
     if (alignedTo > 0 && alignedTo >= minBytes)
     {
         return alignedTo;
     }
-    // The strict failure above typically means the boundary is an unverified fallback
-    // default rather than the drive's true requirement (vendor firmware images are
-    // built to meet the drive's real requirements), so relax to the most conservative
-    // alignment that can always be trusted: word for SCSI, sector otherwise.
-    // The device minimum is still enforced, so relaxation can never produce an invalid size.
-    alignedTo = candidate - (candidate % baseAlign);
-    if (alignedTo > 0 && alignedTo >= minBytes)
+    return 0;
+}
+
+//! \fn uint32_t fwdl_Pick_Compliant_Segment_Size(uint32_t cap, uint32_t microcodelength, supportedDLModes fwdlSupport)
+//! \brief Selects the largest boundary-aligned segment size at or below cap with which
+//!        microcodelength can be written such that every segment - including the partial
+//!        final segment, which is issued as its own download command - meets the device
+//!        minimum segment size.
+//! \return The compliant size, or 0 if no compliant size exists at or below cap.
+static uint32_t fwdl_Pick_Compliant_Segment_Size(uint32_t           cap,
+                                                 uint32_t           microcodelength,
+                                                 const supportedDLModes fwdlSupport)
+{
+    const uint32_t minBytes = fwdlSupport.minSegmentSize * UINT32_C(512);
+    const uint32_t boundary = M_Max(fwdlSupport.driveOffsetBoundaryInBytes, UINT32_C(1));
+    uint32_t candidate       = cap - (cap % boundary);
+    // step down in boundary increments. As the final partial segment is its own command,
+    // its length (the remainder) must be 0 or at least the device minimum, just like a
+    // full segment.
+    while (candidate > 0 && candidate >= minBytes)
     {
-        return alignedTo;
+        const uint32_t remainder = microcodelength % candidate;
+        if (remainder == 0 || remainder >= minBytes)
+        {
+            return candidate;
+        }
+        // stop before candidate - boundary would underflow below 0
+        if (candidate < boundary)
+        {
+            break;
+        }
+        candidate -= boundary;
     }
     return 0;
 }
@@ -1959,14 +1983,11 @@ static uint32_t get_fwdl_segment_size_from_dev_limits(const tDevice* M_NONNULL d
         }
         if (microcodelength > 0)
         {
-            // Since we know the actual microcode length, make sure that if we use the current updateLen,
-            // that the remainder segment still meets the min/max requirements. Adjust if it does not!
-            // Always adjust DOWN in size at this point!
-            if (microcodelength % updateLen != 0)
-            {
-                uint32_t remainder = microcodelength % updateLen;
-                updateLen -= remainder;
-            }
+            // Since we know the actual microcode length, pick a segment size such that both the
+            // full segments and the partial final segment meet the device min/max requirements.
+            // Shrinking by the remainder alone is not enough, as it can leave the final segment
+            // (or even the new full segments) smaller than the device minimum.
+            updateLen = fwdl_Pick_Compliant_Segment_Size(updateLen, microcodelength, fwdlSupport);
         }
     }
     // The file itself is never padded or modified - only the per-segment transfer size is adjusted here.
@@ -1994,6 +2015,18 @@ OPENSEA_OPERATIONS_API uint32_t get_fwdl_segment_size_for_microcode(const tDevic
         updateLen = get_fwdl_segment_size_from_dev_limits(device, fwdlSupport, microcodelength);
 
         updateLen = get_fwdl_segment_size_from_os_limits(device, updateLen, fwdlSupport, microcodelength);
+        // OS limits may shrink the size further (or replace it), which can leave a segment
+        // below the device minimum. When that happens, re-derive a compliant size at or below
+        // the OS-allowed cap; a 0 result aborts the download with TRANSFER_SIZE_UNAVAILABLE.
+        if (updateLen > 0 && microcodelength > 0)
+        {
+            const uint32_t minBytes  = fwdlSupport.minSegmentSize * UINT32_C(512);
+            const uint32_t remainder = microcodelength % updateLen;
+            if (updateLen < minBytes || (remainder != 0 && remainder < minBytes))
+            {
+                updateLen = fwdl_Pick_Compliant_Segment_Size(updateLen, microcodelength, fwdlSupport);
+            }
+        }
     }
     return updateLen;
 }

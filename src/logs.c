@@ -1390,17 +1390,15 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Error_History(const tDevice* M_NON
         }
 
         uint32_t increment = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_DEFAULT);
+        // discovery can report 0 or below the minimum page size; fall back to a single page
+        // transfer so the pull still works rather than aborting
+        if (increment < ATA_LOG_PAGE_LEN_BYTES)
+        {
+            increment = ATA_LOG_PAGE_LEN_BYTES;
+        }
         if (transferSizeBytes != 0)
         {
             increment = transferSizeBytes; // use the user selected size (if it's non-zero)
-        }
-        if (increment == 0)
-        {
-            if (VERBOSITY_QUIET < device->deviceVerbosity)
-            {
-                print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
-            }
-            return TRANSFER_SIZE_UNAVAILABLE;
         }
         if (increment > historyLen)
         {
@@ -1847,15 +1845,12 @@ OPENSEA_OPERATIONS_API eReturnValues get_ATA_Log(const tDevice* M_NONNULL device
         if (GPL)
         {
             // read each log in chunks since some logs can get to be so large some controllers won't let you pull it all at once.
-            const uint32_t logXferSizeBytes = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
+            uint32_t logXferSizeBytes = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
+            // discovery can report 0 or below the minimum log page size; fall back to a single page
+            // transfer so the pull still works rather than aborting
             if (logXferSizeBytes < ATA_LOG_PAGE_LEN_BYTES)
             {
-                if (VERBOSITY_QUIET < device->deviceVerbosity)
-                {
-                    print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
-                }
-                safe_free_aligned(&logBuffer);
-                return TRANSFER_SIZE_UNAVAILABLE;
+                logXferSizeBytes = ATA_LOG_PAGE_LEN_BYTES;
             }
             uint16_t pagesToReadAtATime = C_CAST(uint16_t, logXferSizeBytes / ATA_LOG_PAGE_LEN_BYTES);
             uint16_t numberOfLogPages   = C_CAST(uint16_t, logSize / ATA_LOG_PAGE_LEN_BYTES);
@@ -2535,19 +2530,15 @@ static eReturnValues ata_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                 uint16_t islPullingSize     = UINT16_C(0);
                 uint16_t pageNumber         = UINT16_C(0); // keep track of the current page we are reading/saving
                 uint32_t pullChunkSize = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
+                // discovery can report 0 or below the minimum log page size; fall back to a single
+                // page transfer so the pull still works rather than aborting
+                if (pullChunkSize < ATA_LOG_PAGE_LEN_BYTES)
+                {
+                    pullChunkSize = ATA_LOG_PAGE_LEN_BYTES;
+                }
                 if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
-                }
-                if (pullChunkSize == 0)
-                {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
-                    {
-                        print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
-                    }
-                    safe_free_aligned(&dataBuffer);
-                    free_Secure_File_Info(&isl);
-                    return TRANSFER_SIZE_UNAVAILABLE;
                 }
                 uint8_t* temp = M_NULLPTR;
                 // saving first page to file
@@ -2861,19 +2852,15 @@ static eReturnValues scsi_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                                             LEGACY_DRIVE_SEC_SIZE, dataBuffer))
             {
                 uint32_t pullChunkSize = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_DEFAULT);
+                // discovery can report 0 or below the minimum page size; fall back to a single page
+                // transfer so the pull still works rather than aborting
+                if (pullChunkSize < ATA_LOG_PAGE_LEN_BYTES)
+                {
+                    pullChunkSize = ATA_LOG_PAGE_LEN_BYTES;
+                }
                 if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
-                }
-                if (pullChunkSize == 0)
-                {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
-                    {
-                        print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
-                    }
-                    safe_free_aligned(&dataBuffer);
-                    free_Secure_File_Info(&isl);
-                    return TRANSFER_SIZE_UNAVAILABLE;
                 }
                 uint16_t reportedSmallSize  = UINT16_C(0);
                 uint16_t reportedMediumSize = UINT16_C(0);
@@ -3206,19 +3193,15 @@ static eReturnValues nvme_Pull_Telemetry_Log(const tDevice* M_NONNULL device,
                 uint32_t islPullingSize     = UINT32_C(0);
                 uint32_t pageNumber         = UINT32_C(0); // keep track of the offset we are reading/saving
                 uint32_t pullChunkSize = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
+                // discovery can report 0 or below the minimum page size; fall back to a single page
+                // transfer so the pull still works rather than aborting
+                if (pullChunkSize < ATA_LOG_PAGE_LEN_BYTES)
+                {
+                    pullChunkSize = ATA_LOG_PAGE_LEN_BYTES;
+                }
                 if (transferSizeBytes > UINT32_C(0))
                 {
                     pullChunkSize = transferSizeBytes;
-                }
-                if (pullChunkSize == 0)
-                {
-                    if (VERBOSITY_QUIET < device->deviceVerbosity)
-                    {
-                        print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
-                    }
-                    safe_free_aligned(&dataBuffer);
-                    free_Secure_File_Info(&isl);
-                    return TRANSFER_SIZE_UNAVAILABLE;
                 }
                 uint8_t* temp = M_NULLPTR;
                 // saving first page to file
@@ -4653,14 +4636,12 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL 
                 safe_free_aligned(&logBuffer);
                 return MEMORY_FAILURE;
             }
-            if (get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE) < ATA_LOG_PAGE_LEN_BYTES)
+            // pagesToReadAtATime was derived from discovery above; if discovery did not yield a usable
+            // chunk, fall back to one page per transfer so the pull still works. An explicit override
+            // is independent of discovery and is validated by the checks below.
+            if (transferSizeBytes == UINT32_C(0) && pagesToReadAtATime == UINT16_C(0))
             {
-                if (VERBOSITY_QUIET < device->deviceVerbosity)
-                {
-                    print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
-                }
-                safe_free_aligned(&logBuffer);
-                return TRANSFER_SIZE_UNAVAILABLE;
+                pagesToReadAtATime = UINT16_C(1);
             }
             if (transferSizeBytes > UINT32_C(0))
             {
