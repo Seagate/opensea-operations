@@ -1906,6 +1906,10 @@ static uint32_t get_fwdl_segment_size_from_dev_limits(const tDevice* M_NONNULL d
                                                       uint32_t                 microcodelength)
 {
     uint32_t devXferSizeBytes = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
+    if (devXferSizeBytes == 0)
+    {
+        return 0;
+    }
     uint32_t updateLen = 0;
     if (fwdlSupport.minSegmentSize == 0 && fwdlSupport.maxSegmentSize == UINT32_MAX)
     {
