@@ -394,7 +394,20 @@ OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL 
                 break;
             }
 
-            options->segmentSize = get_fwdl_segment_size(device, options->segmentSize, fwdlSupport);
+            options->segmentSize = M_STATIC_CAST(
+                uint16_t,
+                get_fwdl_segment_size_for_microcode(
+                    device, M_STATIC_CAST(uint32_t, options->segmentSize) * LEGACY_DRIVE_SEC_SIZE,
+                    fwdlSupport, options->firmwareMemoryLength) / LEGACY_DRIVE_SEC_SIZE);
+
+            if (options->segmentSize == 0)
+            {
+                // no size met both the device and OS requirements on this hardware, so do not
+                // attempt the download at all. The caller can suggest a user override of the
+                // segment size if one is possible.
+                ret = TRANSFER_SIZE_UNAVAILABLE;
+                return ret;
+            }
 
             downloadSize      = options->segmentSize * LEGACY_DRIVE_SEC_SIZE;
             downloadBlocks    = options->firmwareMemoryLength / downloadSize;
@@ -407,7 +420,9 @@ OPENSEA_OPERATIONS_API eReturnValues firmware_Download(const tDevice* M_NONNULL 
             if (get_Device_DriveType(device) != NVME_DRIVE && deviceSupportsWinAPI && downloadMode == DL_FW_DEFERRED)
             {
                 // check if alignment requirements will be met
-                if (options->firmwareMemoryLength % device->os_info.fwdlIOsupport.payloadAlignment)
+                if (options->firmwareMemoryLength % device->os_info.fwdlIOsupport.payloadAlignment ||
+                    downloadSize % device->os_info.fwdlIOsupport.payloadAlignment ||
+                    downloadRemainder % device->os_info.fwdlIOsupport.payloadAlignment)
                 {
                     // turn off use of the windows API since this file cannot meet the alignment requirements for the
                     // whole download
@@ -1745,56 +1760,285 @@ OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL  
     }
 }
 
+enum {
+    FIRMWARE_UPDATE_SEGMENT_SIZE_WIN_XP_COMPAT = UINT32_C(512)
+};
+
+static uint32_t get_fwdl_segment_size_from_os_limits(const tDevice* M_NONNULL device,
+                                                     const uint32_t           currentUpdateLen,
+                                                     const supportedDLModes   fwdlSupport,
+                                                     const uint32_t           microcodelength)
+{
+    uint32_t updateLen = currentUpdateLen;
+    if (currentUpdateLen == 0)
+    {
+        return updateLen; // If the current update length is 0, return 0 as no valid segment size can be determined.
+    }
+    // Now, in Windows make further adjustments to work with Windows properly.
+#if defined(_WIN32)
+    // API must be supported AND microcode length itself must be able to fit the alignment for us to do anything worthwhile here.
+    if (device->os_info.fwdlIOsupport.fwdlIOSupported && (device->os_info.fwdlIOsupport.payloadAlignment != 0 && microcodelength % device->os_info.fwdlIOsupport.payloadAlignment == 0))
+    {
+        // first make sure that  we fit in the API's max length
+        if (updateLen > device->os_info.fwdlIOsupport.maxXferSize)
+        {
+            if (device->os_info.fwdlIOsupport.maxXferSize > (fwdlSupport.minSegmentSize * 512))
+            {
+                updateLen = device->os_info.fwdlIOsupport.maxXferSize;
+            }
+            else
+            {
+                // Unlikely combination, but make no adjustments. This will not work with windows API
+                // Later code doing the download should detect this and bypass it.
+                return updateLen;
+            }
+        }
+        // check if we can modify the length to meet this alignment requirement for ALL segments.
+        // If the "remainder" will not fit, then DO NOTHING. The code issuing the download
+        // automatically turns the Windows API off to deal with compatibility issues that are
+        // already known to exist.
+        // Need to check Windows API requirements as well as minimum segment size requirements for the device.
+        if (microcodelength > 0 && (microcodelength % updateLen) == 0 && (updateLen % device->os_info.fwdlIOsupport.payloadAlignment) == 0)
+        {
+            // nothing more to do!
+            // This microcode file and the current update length match all drive and API requirements
+            return updateLen;
+        }
+        else if (microcodelength == 0 && (updateLen % device->os_info.fwdlIOsupport.payloadAlignment) == 0)
+        {
+            // If the microcode length is unknown, but the current update length meets the payload alignment requirement,
+            // we can proceed with the current update length.
+            // Essentially this is us guessing and without the actual file, we cannot make a better determination.
+            return updateLen;
+        }
+        else if (updateLen > device->os_info.fwdlIOsupport.payloadAlignment)
+        {
+            if (updateLen % device->os_info.fwdlIOsupport.payloadAlignment != 0)
+            {
+                // currently set updateLen will not meet the payload alignment requirement
+                // Need to adjust it to a value that will make sense.
+                // This will adjust it to the nearest lower multiple of the payload alignment.
+                updateLen -= updateLen % device->os_info.fwdlIOsupport.payloadAlignment;
+                if (updateLen < (fwdlSupport.minSegmentSize * 512))
+                {
+                    updateLen = currentUpdateLen;
+                }
+            }
+            // Now, if we know the total microcode length, we can ensure that all segments will be aligned properly.
+            if (microcodelength > 0)
+            {
+                uint32_t remainder = microcodelength % updateLen;
+                if (remainder != 0)
+                {
+                    // cannot necessarily just adjust this down at this point. Everything must be multiples of payload alignment.
+                    // MAYBE the updateLen can be adjusted more, but we need to make sure to get a remainder of 0 AND
+                    // preserve the alignment requirements.
+                    // For now, simply restoring the currentUpdateLen since this is unlikely to be able to fit the API requirements properly.
+                    updateLen = currentUpdateLen;
+                }
+                else
+                {
+                    // no remainder AND it meets alignment requirements means this is what should be used
+                    return updateLen;
+                }
+            }
+        }
+        // No updateLen < payloadAlignment since this will automatically bypass the Windows API as it is incompatible.
+    }
+    else if (!device->os_info.fwdlIOsupport.fwdlIOSupported &&
+             device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
+    {
+        // changing the transfer size to single blocks as a workaround for old drivers. This is more
+        // generic than I would like, but do not currently have a better solution for this old issue.
+        // This issue goes back to Windows XP ATA passthrough days and only single sector transfers work
+        // properly on these old, strange drivers. Ideally this check is more enhanced for specific
+        // drivers that are known to have this issue, but there is not currently enough information to
+        // setup this more complicated check. -TJE
+        if (fwdlSupport.minSegmentSize <= 1)
+        {
+            updateLen = FIRMWARE_UPDATE_SEGMENT_SIZE_WIN_XP_COMPAT;
+        }
+        else
+        {
+            // AKA it will definitely NOT work
+            updateLen = 0;
+        }
+    }
+#else
+    M_USE_UNUSED(device);
+    M_USE_UNUSED(fwdlSupport);
+    M_USE_UNUSED(microcodelength);
+#endif
+    return updateLen;
+}
+
+//! \fn uint32_t fwdl_Round_Segment_Size_To_Boundary(const tDevice* device, const uint32_t candidate, const supportedDLModes fwdlSupport)
+//! \brief Rounds a segment size candidate down to the drive's boundary requirement while
+//!        keeping it valid against the device's minimum segment size.
+//! \return 0 if no valid alignment exists for the candidate.
+static uint32_t fwdl_Round_Segment_Size_To_Boundary(const tDevice* M_NONNULL      device,
+                                                    const uint32_t                 candidate,
+                                                    const supportedDLModes         fwdlSupport)
+{
+    M_USE_UNUSED(device);
+    const uint32_t minBytes = fwdlSupport.minSegmentSize * UINT32_C(512);
+    const uint32_t boundary = M_Max(fwdlSupport.driveOffsetBoundaryInBytes, UINT32_C(1));
+    // largest multiple of the drive's boundary at or below candidate. The boundary is a
+    // device requirement whether it was device-reported, NVMe granularity-derived, or set
+    // from OS rules, so it must never be relaxed. If that multiple is 0 or below the
+    // device minimum, then NO multiple of this boundary exists in the valid range
+    // [minBytes, candidate], so no compliant segment size exists.
+    const uint32_t alignedTo = candidate - (candidate % boundary);
+    if (alignedTo > 0 && alignedTo >= minBytes)
+    {
+        return alignedTo;
+    }
+    return 0;
+}
+
+//! \fn uint32_t fwdl_Pick_Compliant_Segment_Size(uint32_t cap, uint32_t microcodelength, supportedDLModes fwdlSupport)
+//! \brief Selects the largest boundary-aligned segment size at or below cap with which
+//!        microcodelength can be written such that every segment - including the partial
+//!        final segment, which is issued as its own download command - meets the device
+//!        minimum segment size.
+//! \return The compliant size, or 0 if no compliant size exists at or below cap.
+static uint32_t fwdl_Pick_Compliant_Segment_Size(uint32_t           cap,
+                                                 uint32_t           microcodelength,
+                                                 const supportedDLModes fwdlSupport)
+{
+    const uint32_t minBytes = fwdlSupport.minSegmentSize * UINT32_C(512);
+    const uint32_t boundary = M_Max(fwdlSupport.driveOffsetBoundaryInBytes, UINT32_C(1));
+    uint32_t candidate       = cap - (cap % boundary);
+    // step down in boundary increments. As the final partial segment is its own command,
+    // its length (the remainder) must be 0 or at least the device minimum, just like a
+    // full segment.
+    while (candidate > 0 && candidate >= minBytes)
+    {
+        const uint32_t remainder = microcodelength % candidate;
+        if (remainder == 0 || remainder >= minBytes)
+        {
+            return candidate;
+        }
+        // stop before candidate - boundary would underflow below 0
+        if (candidate < boundary)
+        {
+            break;
+        }
+        candidate -= boundary;
+    }
+    return 0;
+}
+
+static uint32_t get_fwdl_segment_size_from_dev_limits(const tDevice* M_NONNULL device,
+                                                      supportedDLModes         fwdlSupport,
+                                                      uint32_t                 microcodelength)
+{
+    uint32_t devXferSizeBytes = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE);
+    if (devXferSizeBytes == 0)
+    {
+        return 0;
+    }
+    uint32_t updateLen = 0;
+    if (fwdlSupport.minSegmentSize == 0 && fwdlSupport.maxSegmentSize == UINT32_MAX)
+    {
+        // No minimum or maximum required by the device, so make sure this will simply "just work"
+        updateLen = devXferSizeBytes;
+        if (microcodelength > 0)
+        {
+            // check how many segments this will need to do the full update
+            // Attempt to choose a size that leaves no remainder if easy to adjust for...may or may not be possible
+            // use driveOffsetBoundaryInBytes from fwdlSupport to make sure this makes sense.
+            // This is mostly for SAS since it may not be 512 aligned like SATA requires or 4K aligned like NVMe requires
+            if (microcodelength % updateLen == 0)
+            {
+                // no adjustment needed, but fall through to the boundary alignment check below
+            }
+            else
+            {
+                // find a length that more evenly divides the microcodelength
+                if (microcodelength < updateLen)
+                {
+                    updateLen = microcodelength;
+                }
+                else
+                {
+                    uint32_t segmentCount = microcodelength / updateLen;
+                    uint32_t adjusted = microcodelength / segmentCount;
+                    if (adjusted <= updateLen)
+                    {
+                        updateLen = adjusted; // only ever shrinks
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // First evaluate min/max requirements (if they exist)
+        if ((fwdlSupport.minSegmentSize * 512) > devXferSizeBytes)
+        {
+            // the minimum requirement is greater than what is possible. This is not supportable on this OS/device combo.
+            // So return a 0 to indicate this issue.
+            return 0;
+        }
+        else
+        {
+            updateLen = M_Min(fwdlSupport.maxSegmentSize * 512, devXferSizeBytes);
+        }
+        if (microcodelength > 0)
+        {
+            // Since we know the actual microcode length, pick a segment size such that both the
+            // full segments and the partial final segment meet the device min/max requirements.
+            // Shrinking by the remainder alone is not enough, as it can leave the final segment
+            // (or even the new full segments) smaller than the device minimum.
+            updateLen = fwdl_Pick_Compliant_Segment_Size(updateLen, microcodelength, fwdlSupport);
+        }
+    }
+    // The file itself is never padded or modified - only the per-segment transfer size is adjusted here.
+    // The math above can produce a size that is not aligned to the device's boundary requirement
+    // (2^driveOffsetBoundary: 512 for SATA, 4K for NVMe, 2/512/4K for SAS), so round the segment
+    // size DOWN to it. The partial final segment is issued separately by the download code, so
+    // only the full segments need to be boundary aligned.
+    if (updateLen > 0)
+    {
+        updateLen = fwdl_Round_Segment_Size_To_Boundary(device, updateLen, fwdlSupport);
+    }
+    return updateLen;
+}
+
+M_PARAM_RO(1)
+OPENSEA_OPERATIONS_API uint32_t get_fwdl_segment_size_for_microcode(const tDevice* M_NONNULL device,
+                                                      uint32_t                 requestedSize,
+                                                      supportedDLModes         fwdlSupport,
+                                                      uint32_t                 microcodelength)
+{
+    uint32_t updateLen = requestedSize;
+    // Always allow overriding this automatic mode with the user's requested size!
+    if (requestedSize == FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO)
+    {
+        updateLen = get_fwdl_segment_size_from_dev_limits(device, fwdlSupport, microcodelength);
+
+        updateLen = get_fwdl_segment_size_from_os_limits(device, updateLen, fwdlSupport, microcodelength);
+        // OS limits may shrink the size further (or replace it), which can leave a segment
+        // below the device minimum. When that happens, re-derive a compliant size at or below
+        // the OS-allowed cap; a 0 result aborts the download with TRANSFER_SIZE_UNAVAILABLE.
+        if (updateLen > 0 && microcodelength > 0)
+        {
+            const uint32_t minBytes  = fwdlSupport.minSegmentSize * UINT32_C(512);
+            const uint32_t remainder = microcodelength % updateLen;
+            if (updateLen < minBytes || (remainder != 0 && remainder < minBytes))
+            {
+                updateLen = fwdl_Pick_Compliant_Segment_Size(updateLen, microcodelength, fwdlSupport);
+            }
+        }
+    }
+    return updateLen;
+}
+
 M_PARAM_RO(1)
 OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice* M_NONNULL device,
                                                       uint16_t                 requestedSize,
                                                       supportedDLModes         fwdlSupport)
 {
-    uint16_t updateLen = requestedSize;
-    // Always allow overriding this automatic mode with the user's requested size!
-    if (requestedSize == FIRMWARE_UPDATE_SEGMENT_SIZE_AUTO)
-    {
-        if (fwdlSupport.minSegmentSize == 0 && fwdlSupport.maxSegmentSize == UINT32_MAX)
-        {
-            // No minimum or maximum required. Use default we've always used.
-            updateLen = DEFAULT_FWDL_SEGMENT_SIZE;
-        }
-        else
-        {
-            // First evaluate min/max requirements (if they exist)
-            if (fwdlSupport.minSegmentSize > DEFAULT_FWDL_SEGMENT_SIZE)
-            {
-                updateLen = M_STATIC_CAST(uint16_t, fwdlSupport.minSegmentSize);
-            }
-            else
-            {
-                updateLen = M_STATIC_CAST(uint16_t, M_Min(fwdlSupport.maxSegmentSize, DEFAULT_FWDL_SEGMENT_SIZE));
-            }
-        }
-
-        // Now, in Windows make further adjustments to work with Windows properly.
-#if defined(_WIN32) && defined(WINVER)
-        if (device->os_info.ioType == WIN_IOCTL_ATA_PASSTHROUGH)
-        {
-#    if WINVER >= SEA_WIN32_WINNT_WIN10
-            if (!device->os_info.fwdlIOsupport.fwdlIOSupported)
-            {
-                // changing the transfer size to single blocks as a workaround for old drivers. This is more
-                // generic than I would like, but do not currently have a better solution for this old issue.
-                // This issue goes back to Windows XP ATA passthrough days and only single sector transfers work
-                // properly on these old, strange drivers. Ideally this check is more enhanced for specific
-                // drivers that are known to have this issue, but there is not currently enough information to
-                // setup this more complicated check. -TJE
-                updateLen = 1;
-            }
-#    else  // winver >=win10
-           // not enough information, so assume old XP workaround listed above. - TJE
-            updateLen = 1;
-#    endif // winver >= win10
-        }
-#else
-        M_USE_UNUSED(device);
-#endif
-    }
-    return updateLen;
+    return get_fwdl_segment_size_for_microcode(device, M_STATIC_CAST(uint32_t, requestedSize) * UINT32_C(512), fwdlSupport, 0) / 512;
 }
