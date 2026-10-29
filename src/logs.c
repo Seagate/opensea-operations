@@ -499,7 +499,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page_Size(const tDevice* M_NO
     if (retriedMP6 && ret == SUCCESS && device->drive_info.passThroughHacks.scsiHacks.mp6sp0Success > 0 &&
         !is_Empty(modeBuffer, modeLength))
     {
-        M_CONST_CAST(tDevice*, device)->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
+        set_Hack_SCSI_Mode6B_For_Subpage_Zero(M_CONST_CAST(tDevice*, device), true, PH_BY_PROBE);
     }
     safe_free_aligned(&modeBuffer);
     return ret;
@@ -873,7 +873,7 @@ OPENSEA_OPERATIONS_API eReturnValues get_SCSI_Mode_Page(const tDevice* M_NONNULL
     if (device->drive_info.passThroughHacks.scsiHacks.mp6sp0Success > 0 && retriedMP6 && ret == SUCCESS &&
         !is_Empty(modeBuffer, modeLength))
     {
-        M_CONST_CAST(tDevice*, device)->drive_info.passThroughHacks.scsiHacks.useMode6BForSubpageZero = true;
+        set_Hack_SCSI_Mode6B_For_Subpage_Zero(M_CONST_CAST(tDevice*, device), true, PH_BY_PROBE);
     }
     safe_free_aligned(&modeBuffer);
     return ret;
@@ -1266,12 +1266,12 @@ OPENSEA_OPERATIONS_API bool is_SCSI_Read_Buffer_16_Supported(const tDevice* M_NO
         eSCSICmdSupport readBuf16Support   = is_SCSI_Operation_Code_Supported(device, &readBuf16SupReq);
         if (readBuf16Support == SCSI_CMD_SUPPORT_SUPPORTED_TO_SCSI_STANDARD)
         {
-            supported                                                                               = true;
-            M_CONST_CAST(tDevice*, device)->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize = INT8_C(16);
+            supported = true;
+            set_Hack_SCSI_Read_Buffer_Cmd_Size(M_CONST_CAST(tDevice*, device), INT8_C(16), PH_BY_PROBE);
         }
         else
         {
-            M_CONST_CAST(tDevice*, device)->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize = INT8_C(10);
+            set_Hack_SCSI_Read_Buffer_Cmd_Size(M_CONST_CAST(tDevice*, device), INT8_C(10), PH_BY_PROBE);
         }
     }
     else if (device->drive_info.passThroughHacks.scsiHacks.readBufferCmdSize == INT8_C(16))
