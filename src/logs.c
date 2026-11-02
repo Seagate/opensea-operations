@@ -4610,7 +4610,7 @@ OPENSEA_OPERATIONS_API eReturnValues pull_FARM_LogPage(const tDevice* M_NONNULL 
     bool            fileOpened         = false;
     secureFileInfo* fp_log             = M_NULLPTR;
     eReturnValues   ret                = UNKNOWN;
-    uint16_t        pagesToReadAtATime = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE) / ATA_LOG_PAGE_LEN_BYTES;
+    uint16_t        pagesToReadAtATime = M_STATIC_CAST(uint16_t, get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE) / ATA_LOG_PAGE_LEN_BYTES);
     uint16_t        pagesToReadNow     = UINT16_C(1);
     uint16_t        currentPage        = UINT16_C(0);
     uint16_t        numberOfLogPages   = C_CAST(uint16_t, FARM_SUBLOGPAGE_LEN / LEGACY_DRIVE_SEC_SIZE);

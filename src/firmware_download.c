@@ -2040,5 +2040,5 @@ OPENSEA_OPERATIONS_API uint16_t get_fwdl_segment_size(const tDevice* M_NONNULL d
                                                       uint16_t                 requestedSize,
                                                       supportedDLModes         fwdlSupport)
 {
-    return get_fwdl_segment_size_for_microcode(device, M_STATIC_CAST(uint32_t, requestedSize) * UINT32_C(512), fwdlSupport, 0) / 512;
+    return M_STATIC_CAST(uint16_t, get_fwdl_segment_size_for_microcode(device, M_STATIC_CAST(uint32_t, requestedSize) * UINT32_C(512), fwdlSupport, 0) / UINT32_C(512));
 }
