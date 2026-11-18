@@ -7433,8 +7433,7 @@ static eReturnValues get_SCSI_Report_Op_Codes_Data(const tDevice* M_NONNULL     
                     // for report op codes, set hacks flag and return
                     if (scsiInfo->version >= 5)
                     {
-                        M_CONST_CAST(tDevice*, device)
-                            ->drive_info.passThroughHacks.scsiHacks.noReportSupportedOperations = true;
+                        set_Hack_SCSI_No_Report_Supported_Ops(M_CONST_CAST(tDevice*, device), true, PH_BY_PROBE);
                     }
                     return NOT_SUPPORTED;
                 }

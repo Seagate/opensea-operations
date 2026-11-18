@@ -202,6 +202,24 @@ extern "C"
     OPENSEA_OPERATIONS_API void show_Supported_FWDL_Modes(const tDevice* M_NONNULL      device,
                                                           ptrSupportedDLModes M_NONNULL supportedModes);
 
+    //! \brief Calculates the appropriate transfer size for segmented and deferred download modes
+    //! \details Uses what the device reports as well as the OS and driver to attempt to choose a
+    //! best size to use for the download to the device.
+    //! If the \a microcodelength is set to 0, it estimates on capabilities alone. If this is nonzero,
+    //! then it chooses size based on capability and the total length of the file to ensure that
+    //! all segments fit the transfer size requirements.
+    //! \param[in] device = pointer to the device structure
+    //! \param[in] requestedSize = the requested transfer size in bytes. If non-zero this is the returned value. AKA an override to auto-detection
+    //! \param[in] fwdlSupport = the supported download modes and their constraints
+    //! \param[in] microcodelength = the total length of the microcode to be downloaded in bytes
+    //! \return the calculated transfer size in bytes. 0 is returned if it is not possible to meet device and OS
+    //! requirements for the update.
+    M_PARAM_RO(1)
+    OPENSEA_OPERATIONS_API uint32_t get_fwdl_segment_size_for_microcode(const tDevice* M_NONNULL device,
+                                                      uint32_t                 requestedSize,
+                                                      supportedDLModes         fwdlSupport,
+                                                      uint32_t                 microcodelength);
+
     //-----------------------------------------------------------------------------
     //
     //  get_fwdl_segment_size()

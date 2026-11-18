@@ -79,8 +79,17 @@ OPENSEA_OPERATIONS_API eReturnValues get_Zone_Descriptors(const tDevice* M_NONNU
 {
     eReturnValues ret                = SUCCESS;
     uint8_t*      reportZones        = M_NULLPTR;
-    uint32_t      sectorCount        = get_Sector_Count_For_512B_Based_XFers(device);
+    uint32_t      sectorCount        = get_Transfer_Size_For_Device(device, COMMAND_XFER_SIZE_TYPE_NATIVE) / 512;
     uint32_t      dataBytesToRequest = numberOfZoneDescriptors * UINT32_C(64);
+
+    if (sectorCount == 0)
+    {
+        if (VERBOSITY_QUIET < device->deviceVerbosity)
+        {
+            print_str("Unable to find a suitable transfer size for this device. Aborting the pull.\n");
+        }
+        return TRANSFER_SIZE_UNAVAILABLE;
+    }
 
     if (zoneDescriptors == M_NULLPTR || numberOfZoneDescriptors == UINT32_C(0))
     {
